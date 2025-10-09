@@ -209,7 +209,6 @@ const styles = StyleSheet.create({
         resizeMode: "contain",
     },
 
-    // Style cho Modal
     modalContainer: {
         flex: 1,
         backgroundColor: "#000",

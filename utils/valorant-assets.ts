@@ -92,38 +92,79 @@ export async function loadAgent() {
 }
 
 export async function fetchVersion() {
-  const res = await axios.get("https://valorant-api.com/v1/version");
+  const res = await axios.request({
+    url: "https://valorant-api.com/v1/version",
+    method: "GET",
+  });
+
   return res.data.data.riotClientVersion;
 }
 
 export async function fetchSkins(language?: string) {
-  const res = await axios.get<{ data: ValorantSkin[] }>(`https://valorant-api.com/v1/weapons/skins?language=${language ?? getVAPILang()}`);
+  const res = await axios.request<{ data: ValorantSkin[] }>({
+    url: `https://valorant-api.com/v1/weapons/skins?language=${
+        language ?? getVAPILang()
+    }`,
+    method: "GET",
+  });
+
   return res.data.data;
 }
 
 export async function fetchBuddies(language?: string) {
-  const res = await axios.get<{ data: ValorantBuddyAccessory[] }>(`https://valorant-api.com/v1/buddies?language=${language ?? getVAPILang()}`);
+  const res = await axios.request<{ data: ValorantBuddyAccessory[] }>({
+    url: `https://valorant-api.com/v1/buddies?language=${
+        language ?? getVAPILang()
+    }`,
+    method: "GET",
+  });
+
   return res.data.data;
 }
 
 export async function fetchSprays(language?: string) {
-  const res = await axios.get<{ data: ValorantSprayAccessory[] }>(`https://valorant-api.com/v1/sprays?language=${language ?? getVAPILang()}`);
+  const res = await axios.request<{ data: ValorantSprayAccessory[] }>({
+    url: `https://valorant-api.com/v1/sprays?language=${
+        language ?? getVAPILang()
+    }`,
+    method: "GET",
+  });
+
   return res.data.data;
 }
 
 export async function fetchPlayerCards(language?: string) {
-  const res = await axios.get<{ data: ValorantCardAccessory[] }>(`https://valorant-api.com/v1/playercards?language=${language ?? getVAPILang()}`);
+  const res = await axios.request<{ data: ValorantCardAccessory[] }>({
+    url: `https://valorant-api.com/v1/playercards?language=${
+        language ?? getVAPILang()
+    }`,
+    method: "GET",
+  });
+
   return res.data.data;
 }
 
 export async function fetchPlayerTitles(language?: string) {
-  const res = await axios.get<{ data: ValorantTitleAccessory[] }>(`https://valorant-api.com/v1/playertitles?language=${language ?? getVAPILang()}`);
+  const res = await axios.request<{ data: ValorantTitleAccessory[] }>({
+    url: `https://valorant-api.com/v1/playertitles?language=${
+        language ?? getVAPILang()
+    }`,
+    method: "GET",
+  });
+
   return res.data.data;
 }
 
 export async function fetchBundle(bundleId: string, language?: string) {
-  const res = await axios.get<{ data: ValorantBundle }>(`https://valorant-api.com/v1/bundles/${bundleId}?language=${language ?? getVAPILang()}`);
-  return res.data.data;
+  const res = await axios.request<{ data: ValorantBundle }>({
+    url: `https://valorant-api.com/v1/bundles/${bundleId}?language=${
+        language ?? getVAPILang()
+    }`,
+    method: "GET",
+    validateStatus: () => true,
+  });
+
+  return res.status === 200 ? res.data.data : null;
 }
 
 export async function fetchAgent(agentId: string, language?: string) {

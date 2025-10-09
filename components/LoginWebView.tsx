@@ -127,7 +127,7 @@ export default function LoginWebView() {
       renderToHardwareTextureAndroid
     >
       <WebView
-        userAgent="Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36"
+        userAgent="Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Mobile Safari/537.36"
         source={{
           uri: LOGIN_URL,
         }}

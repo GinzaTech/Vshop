@@ -69,7 +69,6 @@ function NightMarket() {
               textAlign: "center",
               fontSize: 14,
               marginTop: 10,
-              fontWeight: "bold",
             }}
           >
             {t("no_nightmarket")}

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "VShop",
-    "slug": "kona",
+    "slug": "vshop",
     "version": "3.1.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -55,12 +55,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "91470069-28cd-468d-8ee5-0fcdc347ca69"
+        "projectId": "90bdf4e2-2472-4cd1-a168-4a5ee4e62218"
       },
       "router": {
         "origin": false
       }
     },
-    "owner": "kona004"
+    "owner": "hyeon004"
   }
 }

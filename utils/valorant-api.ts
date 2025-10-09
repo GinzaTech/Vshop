@@ -51,8 +51,7 @@ export let defaultUser = {
 const extraHeaders = () => ({
   "X-Riot-ClientVersion":
       getAssets().riotClientVersion || "43.0.1.4195386.4190634",
-  "X-Riot-ClientPlatform":
-      "eyJwbGF0Zm9ybVR5cGUiOiJQQyIsInBsYXRmb3JtT1MiOiJXaW5kb3dzIiwicGxhdGZvcm1PU1ZlcnNpb24iOiIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwicGxhdGZvcm1DaGlwc2V0IjoiVW5rbm93biJ9",
+  "X-Riot-ClientPlatform": "eyJwbGF0Zm9ybVR5cGUiOiJQQyIsInBsYXRmb3JtT1MiOiJXaW5kb3dzIiwicGxhdGZvcm1PU1ZlcnNpb24iOiIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwicGxhdGZvcm1DaGlwc2V0IjoiVW5rbm93biJ9",
 });
 
 export async function getEntitlementsToken(accessToken: string) {
@@ -66,12 +65,13 @@ export async function getEntitlementsToken(accessToken: string) {
     },
     data: {},
   });
-
+    console.log("entitlements_token:", res.data.entitlements_token)
   return res.data.entitlements_token;
 }
 
 export function getUserId(accessToken: string) {
   const data = jwtDecode(accessToken) as any;
+  console.log("puuid:",data.sub)
   return data.sub;
 }
 
@@ -117,7 +117,7 @@ export async function getShop(
     },
     data: {},
   });
-
+    console.log("accessToken", accessToken)
   return res.data;
 }
 
@@ -146,24 +146,26 @@ export async function parseShop(shop: StorefrontResponse) {
     const bundle = shop.FeaturedBundle.Bundles[b];
     const bundleAsset = await fetchBundle(bundle.DataAssetID);
 
-    bundles.push({
-      ...bundleAsset,
-      price: bundle.Items.map((item) => item.DiscountedPrice).reduce(
-          (a, b) => a + b
-      ),
-      items: bundle.Items.filter(
-          (item) => item.Item.ItemTypeID === VItemTypes.SkinLevel
-      ).map((item) => {
-        const skin = skins.find(
-            (_skin) => _skin.levels[0].uuid === item.Item.ItemID
-        ) as ValorantSkin;
+    if (bundleAsset != null) {
+      bundles.push({
+        ...bundleAsset,
+        price: bundle.Items.map((item) => item.DiscountedPrice).reduce(
+            (a, b) => a + b
+        ),
+        items: bundle.Items.filter(
+            (item) => item.Item.ItemTypeID === VItemTypes.SkinLevel
+        ).map((item) => {
+          const skin = skins.find(
+              (_skin) => _skin.levels[0].uuid === item.Item.ItemID
+          ) as ValorantSkin;
 
-        return {
-          ...skin,
-          price: item.BasePrice,
-        };
-      }),
-    });
+          return {
+            ...skin,
+            price: item.BasePrice,
+          };
+        }),
+      });
+    }
   }
 
   /* NIGHT MARKET */
@@ -383,6 +385,24 @@ export async function quitPreGameLobby(
     })
    return res.data;
 }
+
+export async function playerLoadout(
+    accesstoken: string,
+    entitlementsToken: string,
+    region: string,
+    userId: string) {
+    const res = await axios.request({
+        url: getUrl({name: "player", region: region, userId: userId}),
+        method: "POST",
+        headers: {
+          ...extraHeaders(),
+          'X-Riot-Entitlements-JWT': entitlementsToken,
+          Authorization: `Bearer ${accesstoken}`,
+        }
+    })
+   return res.data;
+}
+
 function getUrl({
     name,
     region,
@@ -407,7 +427,8 @@ function getUrl({
     name: `https://pd.${region}.a.pvp.net/name-service/v2/players`,
     matchID: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/players/${userId}`,
     lock: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/lock/${agentId}`,
-    quit: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/quit`
+    quit: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/quit`,
+    player: `https://pd.${region}.a.pvp.net/personalization/v2/players/${userId}/playerloadout`
   };
 
   return URLS[name];

@@ -78,6 +78,15 @@ function Layout() {
                     }}
                 />
                 <Drawer.Screen
+                    name="equip"
+                    options={{
+                        title: t("equip"),
+                        drawerIcon: ({ color, size }) => (
+                            <Icon name="anchor" color={color} size={size} />
+                         ),
+                        }}
+                    />
+                <Drawer.Screen
                     name="accessories"
                     options={{
                         title: t("accessories"),
