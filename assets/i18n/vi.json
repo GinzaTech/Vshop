@@ -120,5 +120,61 @@
     },
     "remove": "Xóa khỏi wishlist"
   },
-  "xp": "Kinh nghiệm"
+  "xp": "Kinh nghiệm",
+  "equip_page": {
+    "tabs": {
+      "loadout": "Trang bị",
+      "skins": "Skins trang bị",
+      "collection": "Bộ sưu tập da"
+    },
+    "sections": {
+      "identity": "Hồ sơ",
+      "sprays": "Graffiti",
+      "weapons": "Vũ khí"
+    },
+    "categories": {
+      "Sidearm": "Súng ngắn",
+      "Sidearms": "Súng ngắn",
+      "SMG": "Súng tiểu liên",
+      "SMGs": "Súng tiểu liên",
+      "Shotgun": "Shotgun",
+      "Shotguns": "Shotgun",
+      "Rifle": "Súng trường",
+      "Rifles": "Súng trường",
+      "Assault Rifles": "Súng trường tấn công",
+      "Sniper": "Súng bắn tỉa",
+      "Sniper Rifles": "Súng bắn tỉa",
+      "Heavy": "Vũ khí hạng nặng",
+      "Heavy Weapons": "Vũ khí hạng nặng",
+      "Melee": "Cận chiến",
+      "Melee Weapons": "Cận chiến",
+      "Other": "Khác",
+      "Other Weapons": "Khác"
+    },
+    "identity": {
+      "card_fallback": "Thẻ người chơi",
+      "title_fallback": "Chưa chọn danh hiệu",
+      "account_level": "Cấp tài khoản: {{level}}",
+      "level_hidden": "Đang ẩn cấp tài khoản"
+    },
+    "search_placeholder": "Tìm kiếm skin đã trang bị",
+    "empty": "Không tìm thấy skin nào.",
+    "error_loading": "Không thể tải trang bị. Kéo để làm mới và thử lại.",
+    "missing_auth": "Đăng nhập để xem trang bị hiện tại của bạn.",
+    "unknown_skin": "Skin không xác định",
+    "spray_slot_label": "Vị trí {{slot}}",
+    "spray_slots": {
+      "spray1": "Xịt 1",
+      "spray2": "Xịt 2",
+      "spray3": "Xịt 3",
+      "firsthalf": "Hiệp 1",
+      "secondhalf": "Hiệp 2",
+      "any": "Bất kỳ vòng nào",
+      "anyround": "Bất kỳ vòng nào",
+      "pregame": "Trước trận",
+      "postround": "Sau vòng",
+      "sudden_death": "Hiệp phụ",
+      "default": "Mặc định"
+    }
+  }
 }

@@ -15,6 +15,35 @@ axios.interceptors.request.use(
     }
 );
 
+export interface PlayerLoadoutResponse {
+    Subject: string;
+    Version: number;
+    Guns: {
+        ID: string;
+        CharmInstanceID?: string;
+        CharmID?: string;
+        CharmLevelID?: string;
+        SkinID: string;
+        SkinLevelID: string;
+        ChromaID: string;
+        Attachments: unknown[];
+    }[];
+    Sprays: {
+        EquipSlotID: string;
+        SprayID: string;
+        SprayLevelID: string | null;
+    }[];
+    Identity: {
+        PlayerCardID: string;
+        PlayerTitleID: string;
+        AccountLevel: number;
+        PreferredLevelBorderID: string;
+        HideAccountLevel: boolean;
+    };
+    Incognito: boolean;
+}
+
+
 export let defaultUser = {
   id: "",
   name: "",
@@ -391,9 +420,9 @@ export async function playerLoadout(
     entitlementsToken: string,
     region: string,
     userId: string) {
-    const res = await axios.request({
+    const res = await axios.request<PlayerLoadoutResponse>({
         url: getUrl({name: "player", region: region, userId: userId}),
-        method: "POST",
+        method: "GET",
         headers: {
           ...extraHeaders(),
           'X-Riot-Entitlements-JWT': entitlementsToken,

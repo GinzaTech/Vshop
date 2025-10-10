@@ -120,5 +120,61 @@
   },
   "xp": "XP",
   "accessories": "Accessory Shop",
-  "kc": "Kingdom Credits"
+  "kc": "Kingdom Credits",
+  "equip_page": {
+    "tabs": {
+      "loadout": "Loadout",
+      "skins": "Equipped skins",
+      "collection": "Skin collection"
+    },
+    "sections": {
+      "identity": "Identity",
+      "sprays": "Sprays",
+      "weapons": "Weapons"
+    },
+    "categories": {
+      "Sidearm": "Sidearms",
+      "Sidearms": "Sidearms",
+      "SMG": "SMGs",
+      "SMGs": "SMGs",
+      "Shotgun": "Shotguns",
+      "Shotguns": "Shotguns",
+      "Rifle": "Rifles",
+      "Rifles": "Rifles",
+      "Assault Rifles": "Assault rifles",
+      "Sniper": "Sniper rifles",
+      "Sniper Rifles": "Sniper rifles",
+      "Heavy": "Heavy weapons",
+      "Heavy Weapons": "Heavy weapons",
+      "Melee": "Melee",
+      "Melee Weapons": "Melee",
+      "Other": "Other",
+      "Other Weapons": "Other"
+    },
+    "identity": {
+      "card_fallback": "Player card",
+      "title_fallback": "No title equipped",
+      "account_level": "Account level: {{level}}",
+      "level_hidden": "Account level hidden"
+    },
+    "search_placeholder": "Search equipped skins",
+    "empty": "No equipped skins found.",
+    "error_loading": "Unable to load your loadout. Pull to refresh and try again.",
+    "missing_auth": "Sign in to see your current equipment.",
+    "unknown_skin": "Unknown skin",
+    "spray_slot_label": "{{slot}} spray",
+    "spray_slots": {
+      "spray1": "Spray 1",
+      "spray2": "Spray 2",
+      "spray3": "Spray 3",
+      "firsthalf": "First half",
+      "secondhalf": "Second half",
+      "any": "Any round",
+      "anyround": "Any round",
+      "pregame": "Pre-round",
+      "postround": "Post-round",
+      "sudden_death": "Sudden death",
+      "default": "Default"
+    }
+  }
 }
