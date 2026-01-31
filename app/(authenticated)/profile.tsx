@@ -59,11 +59,11 @@ function Equip() {
       return {
         accent,
         background: colors?.background ?? "#05060a",
-        card: colors?.elevation?.level2 ?? "#0d111b",
-        cardBorder: colors?.outline ?? "rgba(255,255,255,0.12)",
-        chipBackground: colors?.surfaceVariant ?? "rgba(255,255,255,0.08)",
+        card: "#0d111b",
+        cardBorder: "rgba(255,255,255,0.12)",
+        chipBackground: "rgba(255,255,255,0.08)",
         textPrimary: colors?.onSurface ?? "#ffffff",
-        textSecondary: colors?.onSurfaceVariant ?? "rgba(255,255,255,0.68)",
+        textSecondary: "rgba(255,255,255,0.68)",
       };
     },
     [colors]
@@ -71,9 +71,9 @@ function Equip() {
 
   const hasAuth = Boolean(
     user.accessToken &&
-      user.entitlementsToken &&
-      user.region &&
-      user.id
+    user.entitlementsToken &&
+    user.region &&
+    user.id
   );
 
   const tabItems = React.useMemo(
@@ -802,17 +802,17 @@ const styles = StyleSheet.create({
   },
   identityInfo: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
     justifyContent: "center",
   },
   identityTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "700",
     marginBottom: 4,
   },
   identitySubtitle: {
     fontSize: 14,
-    marginBottom: 2,
+    marginBottom: 8,
   },
   sprayList: {
     flexDirection: "row",
@@ -820,124 +820,123 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
   },
   sprayCard: {
-    width: 160,
+    width: "46%",
+    margin: 6,
     borderRadius: 18,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    marginHorizontal: 6,
-    marginBottom: 12,
   },
   sprayImage: {
     width: 96,
     height: 96,
+    marginBottom: 12,
   },
   sprayName: {
     fontSize: 14,
-    textAlign: "center",
     fontWeight: "600",
+    marginBottom: 4,
+    textAlign: "center",
   },
   spraySlot: {
     fontSize: 12,
     textAlign: "center",
+    opacity: 0.8,
   },
   categorySection: {
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: 24,
   },
   categoryTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
-    marginBottom: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
+    marginBottom: 12,
+    marginLeft: 4,
   },
   weaponCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingVertical: 18,
-    paddingHorizontal: 18,
+    flexDirection: "row",
     marginBottom: 12,
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-  },
-  weaponImageWrapper: {
-    width: 132,
-    height: 72,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    marginLeft: 12,
-  },
-  weaponImage: {
-    width: "100%",
-    aspectRatio: 3.4,
+    borderRadius: 16,
+    padding: 12,
+    height: 110,
+    borderWidth: 1,
+    alignItems: "center",
   },
   weaponDetails: {
     flex: 1,
-    gap: 6,
-    paddingRight: 12,
+    marginRight: 12,
+    justifyContent: "center",
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
+    marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 13,
-    fontWeight: "500",
   },
   weaponTags: {
     flexDirection: "row",
+    marginTop: 8,
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 10,
   },
   weaponTag: {
-    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginRight: 6,
+    marginBottom: 4,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
   },
   weaponTagText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "600",
-    textTransform: "capitalize",
+    textTransform: "uppercase",
+  },
+  weaponImageWrapper: {
+    width: 120,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  weaponImage: {
+    width: "100%",
+    height: "100%",
   },
   collectionContainer: {
     flex: 1,
   },
   searchBar: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-    borderRadius: 18,
+    margin: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+    elevation: 0,
     borderWidth: 1,
   },
   collectionList: {
-    paddingBottom: 24,
-    paddingHorizontal: 8,
+    padding: 10,
+    paddingBottom: 32,
   },
   collectionRow: {
     justifyContent: "space-between",
-    paddingHorizontal: 8,
   },
   collectionCard: {
     flex: 1,
-    borderRadius: 18,
-    borderWidth: 1,
+    margin: 6,
+    borderRadius: 16,
     padding: 12,
-    marginBottom: 12,
     alignItems: "center",
-    marginHorizontal: 8,
+    borderWidth: 1,
+    minHeight: 180,
   },
   collectionImage: {
     width: "100%",
-    aspectRatio: 2.8,
-    marginBottom: 8,
+    height: 100,
+    marginBottom: 12,
   },
   collectionSkinName: {
     fontSize: 14,
-    textAlign: "center",
     fontWeight: "600",
+    textAlign: "center",
     marginBottom: 4,
   },
   collectionWeaponName: {
@@ -948,15 +947,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 32,
+    padding: 24,
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 16,
     textAlign: "center",
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 16,
     textAlign: "center",
+    marginTop: 32,
   },
 });
 

@@ -1,0 +1,61 @@
+1. KHÔNG TỰ Ý COMMIT. Phải chờ confirm.
+2. KHÔNG TỰ Ý PUBLISH. Phải chờ confirm.
+3. Ngăn chặn toàn bộ các lệnh liên quan tới "xóa, thay thế, chỉnh thư mục, tập tin".
+4. Trước mỗi Chat Conversation mới, tốt nhất là bắt Agent đọc rules.
+# =============
+# NHÓM 1 – CỰC KỲ NGUY HIỂM (HỦY DỮ LIỆU, KHÓ / KHÔNG KHÔI PHỤC)
+# =============
+rm -rf                 # Xóa đệ quy + không hỏi, có thể xóa toàn bộ hệ thống
+rm -r                  # Xóa thư mục và toàn bộ nội dung bên trong
+rm                     # Xóa file trực tiếp, không qua thùng rác
+unlink                 # Xóa file ở mức filesystem, không thể undo
+shred                  # Ghi đè dữ liệu nhiều lần để không thể phục hồi
+wipe                   # Xóa dữ liệu vĩnh viễn trên disk
+dd                     # Ghi/chép block thô, dễ phá hủy disk hoặc partition
+dd if=/dev/zero        # Ghi số 0 lên thiết bị, xóa sạch dữ liệu
+dd if=/dev/null        # Làm hỏng nội dung thiết bị nếu dùng sai
+mkfs                   # Tạo filesystem mới, xóa sạch dữ liệu cũ
+mkfs.ext4              # Format filesystem ext4
+mkfs.xfs               # Format filesystem XFS
+format                 # Format ổ đĩa (Unix / Windows)
+Format-Volume          # PowerShell format volume
+# =============
+# NHÓM 2 – NGUY HIỂM CAO (XÓA THƯ MỤC / NHIỀU FILE)
+# =============
+rmdir                  # Xóa thư mục (thường là thư mục rỗng)
+rd                     # Xóa thư mục trong Windows
+rmdir /s               # Xóa thư mục và toàn bộ nội dung (Windows)
+Remove-Item -Recurse   # PowerShell xóa đệ quy thư mục và file
+Remove-Item            # PowerShell xóa file / thư mục
+del /s                 # CMD xóa nhiều file trong thư mục con
+erase /s               # CMD xóa hàng loạt file
+# =============
+# NHÓM 3 – NGUY HIỂM TRUNG BÌNH (XÓA FILE / GHI ĐÈ)
+# =============
+del                    # Xóa file trong Windows
+erase                  # Tương đương del
+Clear-Content          # Xóa nội dung file nhưng giữ file
+cp --remove-destination# Ghi đè file đích bằng cách xóa trước
+# =============
+# NHÓM 4 – NGUY HIỂM GIÁN TIẾP (KHÔNG PHẢI XÓA NHƯNG MẤT DỮ LIỆU)
+# =============
+mv                     # Di chuyển / ghi đè file, mất dữ liệu cũ
+rsync --delete         # Xóa file ở đích nếu không còn ở nguồn
+rsync --remove-source-files # Di chuyển file bằng cách xóa nguồn
+install                # Ghi đè file hệ thống khi cài đặt
+# =============
+# NHÓM 5 – QUẢN LÝ DISK / PARTITION (RỦI RO CAO NẾU DÙNG SAI)
+# =============
+fdisk                  # Chỉnh sửa partition table
+cfdisk                 # fdisk dạng giao diện
+parted                 # Quản lý partition nâng cao
+diskpart               # Công cụ partition của Windows
+mount                  # Gắn filesystem (ghi đè mount point)
+umount                 # Tháo filesystem, có thể mất dữ liệu đang ghi
+# =============
+# NHÓM 6 – ÍT NGUY HIỂM (NHƯNG CÓ THỂ GÂY HẬU QUẢ)
+# =============
+truncate               # Cắt ngắn file (có thể về 0 byte)
+chown                  # Đổi owner, có thể làm mất quyền truy cập
+chmod                  # Đổi permission, có thể khóa file
+attrib                 # Thay đổi thuộc tính file (Windows)

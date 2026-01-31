@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
-import {View, Text, Image, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList, Dimensions, ImageSourcePropType} from "react-native";
-import Animated from "react-native-reanimated";
-import {FadeIn, FadeOut} from "react-native-reanimated";
-import {useTranslation} from "react-i18next";
-import {getAgent} from "~/utils/valorant-assets";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { View, Text, Image, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList, Dimensions, ImageSourcePropType } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
+import { getAgent } from "~/utils/valorant-assets";
 
-const {width} = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 const BOX_SIZE = width / 5 - 10;
 
 interface Role {
@@ -28,11 +27,17 @@ interface AgentModalProps {
     onClose: () => void;
     selectedAbility: Ability | null;
     onAbilityPress: (ability: Ability) => void;
-    sortAbilities: (abilities: Ability[]) => Ability[];
+    sortAbilities: (abilities: Ability[] | undefined) => Ability[];
 }
 
+const sortAbilities = (abilities: Ability[] | undefined): Ability[] => {
+    if (!abilities) return [];
+    const passive = abilities.filter((ability) => ability.slot === "Passive");
+    return [...passive, ...abilities.filter((ability) => ability.slot !== "Passive")];
+};
+
 const GalleryAgent = () => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     const [agents, setAgents] = useState<ValorantAgent[]>([]);
     const [filteredAgents, setFilteredAgents] = useState<ValorantAgent[]>([]);
@@ -50,6 +55,7 @@ const GalleryAgent = () => {
                     abilities: agent.abilities || [],
                 }));
                 setAgents(normalizedAgents);
+                setFilteredAgents(normalizedAgents); // Initialize filteredAgents
             } catch (error) {
                 console.error("Error fetching agents:", error);
             }
@@ -58,7 +64,7 @@ const GalleryAgent = () => {
         fetchAgents();
     }, []);
 
-    const filterByRole = (role: string | number) => {
+    const filterByRole = useCallback((role: string | number) => {
         if (typeof role !== "string") return;
         if (role === selectedRole) {
             setSelectedRole(null);
@@ -68,9 +74,9 @@ const GalleryAgent = () => {
             const translatedRole = t(role);
             setFilteredAgents(agents.filter((agent) => agent.role?.displayName === translatedRole));
         }
-    };
+    }, [agents, selectedRole, t]);
 
-    const handleAgentPress = (agent: ValorantAgent) => {
+    const handleAgentPress = useCallback((agent: ValorantAgent) => {
         if (selectedAgent && selectedAgent.uuid === agent.uuid) {
             setSelectedAgent(null);
             setShowDescription(false);
@@ -80,13 +86,14 @@ const GalleryAgent = () => {
             setShowDescription(true);
             setSelectedAbility(null);
         }
-    };
+    }, [selectedAgent]);
 
-    const sortAbilities = (abilities: Ability[] | undefined): Ability[] => {
-        if (!abilities) return [];
-        const passive = abilities.filter((ability) => ability.slot === "Passive");
-        return [...passive, ...abilities.filter((ability) => ability.slot !== "Passive")];
-    };
+    const handleCloseModal = useCallback(() => {
+        setSelectedAgent(null);
+        setShowDescription(false);
+        setSelectedAbility(null);
+    }, []);
+
     return {
         agents,
         filteredAgents,
@@ -98,10 +105,12 @@ const GalleryAgent = () => {
         sortAbilities,
         setSelectedAgent,
         setSelectedAbility,
+        handleCloseModal,
+        showDescription,
     };
 };
 
-export const RoleSelector: React.FC<RoleSelectorProps> = ({ roles, selectedRole, onRoleSelect }) => (
+export const RoleSelector: React.FC<RoleSelectorProps> = React.memo(({ roles, selectedRole, onRoleSelect }) => (
     <View style={styles.roleContainer}>
         {roles.map((role) => (
             <TouchableOpacity
@@ -114,23 +123,33 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ roles, selectedRole,
             </TouchableOpacity>
         ))}
     </View>
-);
-export const AgentGrid: React.FC<AgentGridProps> = ({ agents, onAgentPress }) => (
-    <FlatList
-        data={agents}
-        keyExtractor={(item) => item.uuid}
-        numColumns={5}
-        renderItem={({ item }) => (
-            <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(400)} style={styles.box}>
-                <TouchableOpacity style={styles.box} onPress={() => onAgentPress(item)}>
-                    <Image source={{ uri: item.displayIcon }} style={styles.icon} />
-                </TouchableOpacity>
-            </Animated.View>
-        )}
-        contentContainerStyle={styles.listContainer}
-    />
-);
-export const AgentModal: React.FC<AgentModalProps> = ({ agent, onClose, selectedAbility, onAbilityPress, sortAbilities,}) => (
+));
+
+const AgentItem = React.memo(({ item, onPress }: { item: ValorantAgent; onPress: (agent: ValorantAgent) => void }) => (
+    <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(400)} style={styles.box}>
+        <TouchableOpacity style={styles.box} onPress={() => onPress(item)}>
+            <Image source={{ uri: item.displayIcon }} style={styles.icon} />
+        </TouchableOpacity>
+    </Animated.View>
+));
+
+export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgentPress }) => {
+    const renderItem = useCallback(({ item }: { item: ValorantAgent }) => (
+        <AgentItem item={item} onPress={onAgentPress} />
+    ), [onAgentPress]);
+
+    return (
+        <FlatList
+            data={agents}
+            keyExtractor={(item) => item.uuid}
+            numColumns={5}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContainer}
+        />
+    );
+});
+
+export const AgentModal: React.FC<AgentModalProps> = React.memo(({ agent, onClose, selectedAbility, onAbilityPress, sortAbilities, }) => (
     <Modal visible={!!agent} transparent={false} animationType="slide" onRequestClose={onClose}>
         <View style={styles.modalContainer}>
             <ScrollView contentContainerStyle={styles.modalContent}>
@@ -165,7 +184,8 @@ export const AgentModal: React.FC<AgentModalProps> = ({ agent, onClose, selected
             </ScrollView>
         </View>
     </Modal>
-);
+));
+
 const styles = StyleSheet.create({
     roleContainer: {
         flexDirection: "row",
@@ -248,17 +268,17 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         alignItems: "center",
         width: "100%",
-        marginHorizontal: 2, 
+        marginHorizontal: 2,
     },
     abilityContainer: {
         alignItems: "center",
-        margin: 3,  
-        width: "18%",  
-        flexBasis: "18%", 
+        margin: 3,
+        width: "18%",
+        flexBasis: "18%",
     },
     abilityIcon: {
-        width: 40,  
-        height: 40, 
+        width: 40,
+        height: 40,
         resizeMode: "contain",
     },
 
@@ -280,3 +300,4 @@ const styles = StyleSheet.create({
 });
 
 export default GalleryAgent;
+

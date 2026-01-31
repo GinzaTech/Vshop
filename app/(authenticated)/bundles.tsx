@@ -6,6 +6,7 @@ import BundleItem from "~/components/BundleItem";
 import { useUserStore } from "~/hooks/useUserStore";
 import Icon from "@expo/vector-icons/MaterialIcons";
 import { useTranslation } from "react-i18next";
+import CurrencyIcon from "~/components/CurrencyIcon";
 
 function Bundles() {
   const { t } = useTranslation();
@@ -13,6 +14,39 @@ function Bundles() {
 
   return user.shops.bundles.length !== 0 ? (
     <ScrollView>
+      {/* Header - Copied from Shop.tsx for consistency */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingVertical: 10,
+          paddingHorizontal: 16,
+        }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <CurrencyIcon icon="vp" style={{
+            width: 20,
+            height: 20,
+            marginTop: 4
+          }} />
+          <Text style={{
+            color: "white",
+            fontSize: 16,
+            fontWeight: "bold",
+            marginLeft: 8,
+            marginTop: 3
+          }}>
+            {user.balances.vp.toString()}
+          </Text>
+        </View>
+        {/* Bundles have individual timers, but we can show main timer or nothing. 
+              Let's show main timer as global shop reset context, or just empty if confusing. 
+              Shop.tsx shows main timer. Keeping it consistent. */}
+        {/* <Countdown timestamp={timestamp} /> */}
+        {/* Actually, bundles usually expire differently. Let's JUST show balance to keep it clean, 
+              since each bundle card has its own timer in BundleImage */ }
+      </View>
+
       {user.shops.bundles.map((bundle, i) => (
         <View key={bundle.uuid}>
           <BundleImage

@@ -1,8 +1,11 @@
 import { Image, View } from "react-native";
 
+import { StyleProp, ImageStyle } from "react-native";
+
 interface props {
-  icon: "vp" | "rad" | "kc" ;
+  icon: "vp" | "rad" | "kc";
   paper?: boolean;
+  style?: StyleProp<ImageStyle>;
 }
 
 export default function CurrencyIcon(props: props) {
@@ -24,23 +27,22 @@ export default function CurrencyIcon(props: props) {
               props.icon === "vp"
                 ? require("~/assets/images/vp.png")
                 : (props.icon === "rad"
-                    ? require("~/assets/images/rad.png")
-                    : require("~/assets/images/kc.png")
-                  )
+                  ? require("~/assets/images/rad.png")
+                  : require("~/assets/images/kc.png")
+                )
             }
             {...props}
           />
         </View>
       ) : (
         <Image
-          style={{ width: 15, height: 15 }}
+          style={[{ width: 15, height: 15 }, props.style]}
           source={
             props.icon === "vp"
-                ? require("~/assets/images/vp.png")
-                : (props.icon === "rad"
-                        ? require("~/assets/images/rad.png")
-                        : require("~/assets/images/kc.png")
-                )
+              ? require("~/assets/images/vp.png")
+              : props.icon === "rad"
+                ? require("~/assets/images/rad.png")
+                : require("~/assets/images/kc.png")
           }
           {...props}
         />

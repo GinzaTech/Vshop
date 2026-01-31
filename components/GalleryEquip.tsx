@@ -1,11 +1,13 @@
 import React from "react";
-import { Text, StyleSheet } from "react-native";
-import { Card, useTheme } from "react-native-paper";
+import { Text, StyleSheet, View } from "react-native";
+import { Card, useTheme } from "react-native-paper"; // Keep for types if needed, or remove
+import Animated, { FadeIn } from "react-native-reanimated";
 import { getEquipmentImage } from "./popups/equipHelpers";
+import GlassCard from "~/components/ui/GlassCard";
+import { COLORS } from "~/constants/DesignSystem";
+import { Image } from "expo-image";
 
-const GalleryEquipComponent = ({ data, screenshotModeEnabled }) => {
-  const { colors } = useTheme();
-
+const GalleryEquipComponent = ({ data, screenshotModeEnabled }: { data: any, screenshotModeEnabled: boolean }) => {
   const imageSource = React.useMemo(() => {
     const icon = getEquipmentImage(data);
 
@@ -17,55 +19,61 @@ const GalleryEquipComponent = ({ data, screenshotModeEnabled }) => {
   }, [data, screenshotModeEnabled]);
 
   return (
-    <Card
-      style={[styles.card, { backgroundColor: colors.surface }]}
-      accessible
-      accessibilityLabel={data.displayName}
-    >
-      <Card.Cover source={imageSource} style={styles.cover} resizeMode="contain" />
-      <Card.Content style={styles.content}>
-        <Text
-          style={[styles.title, { color: colors.onSurface }]}
-          numberOfLines={1}
-        >
-          {data.displayName}
-        </Text>
-        {data.subtitle ? (
+    <Animated.View entering={FadeIn} style={styles.container}>
+      <GlassCard
+        style={styles.card}
+        accessible
+        accessibilityLabel={data.displayName}
+      >
+        <Image source={imageSource} style={styles.cover} contentFit="contain" />
+        <View style={styles.content}>
           <Text
-            style={[styles.subtitle, { color: colors.onSurfaceVariant }]}
-            numberOfLines={2}
+            style={styles.title}
+            numberOfLines={1}
           >
-            {data.subtitle}
+            {data.displayName}
           </Text>
-        ) : null}
-      </Card.Content>
-    </Card>
+          {data.subtitle ? (
+            <Text
+              style={styles.subtitle}
+              numberOfLines={2}
+            >
+              {data.subtitle}
+            </Text>
+          ) : null}
+        </View>
+      </GlassCard>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
     flex: 1,
-    marginHorizontal: 4,
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: "hidden",
+    margin: 6,
+  },
+  card: {
+    padding: 0, // GlassCard has internal padding, maybe adjust
+    // Resetting GlassCard internal View padding if needed via child
   },
   cover: {
-    height: 140,
-    backgroundColor: "transparent",
+    height: 100,
+    width: "100%",
+    marginBottom: 8,
   },
   content: {
-    paddingTop: 12,
+    // padding: 12, // GlassCard adds padding to content container
   },
   title: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 12,
     lineHeight: 16,
+    color: COLORS.GLASS_WHITE_DIM,
   },
 });
 

@@ -28,10 +28,19 @@ export const CombinedDarkTheme = {
     ...merge(PaperDarkTheme.colors, NavigationDarkTheme.colors),
     primary: "#fa4454",
     accent: "#fa4454",
+    outlineVariant: "rgba(255, 255, 255, 0.1)",
+    onPrimary: "#ffffff",
   },
 };
 
 SplashScreen.preventAutoHideAsync();
+
+const CustomHeader = ({ options, navigation }: any) => (
+  <Appbar.Header style={{ backgroundColor: CombinedDarkTheme.colors.primary }}>
+    <Appbar.BackAction onPress={navigation.goBack} />
+    <Appbar.Content title={options.title} />
+  </Appbar.Header>
+);
 
 function RootLayout() {
   const router = useRouter();
@@ -68,22 +77,14 @@ function RootLayout() {
             publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLIC_KEY ?? ""}
           >
             <ThemeProvider value={CombinedDarkTheme}>
+
               <Stack
                 screenOptions={{
                   headerStyle: {
                     backgroundColor: CombinedDarkTheme.colors.primary,
                   },
                   headerTintColor: "#fff",
-                  header: ({ options, navigation }) => (
-                    <Appbar.Header
-                      style={{
-                        backgroundColor: CombinedDarkTheme.colors.primary,
-                      }}
-                    >
-                      <Appbar.BackAction onPress={navigation.goBack} />
-                      <Appbar.Content title={options.title} />
-                    </Appbar.Header>
-                  ),
+                  header: CustomHeader,
                   gestureEnabled: false,
                 }}
               >

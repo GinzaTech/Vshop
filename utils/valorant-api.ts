@@ -3,44 +3,44 @@ import { jwtDecode } from "jwt-decode";
 import { VCurrencies, VItemTypes } from "./misc";
 import https from "https-browserify";
 import { fetchBundle, fetchAgent, getAssets, getAgent } from "./valorant-assets";
-import {access} from "node:fs";
+import { access } from "node:fs";
 
 axios.interceptors.request.use(
-    function (config) {
-      if (__DEV__) console.log(`${config.method?.toUpperCase()} ${config.url}`);
-      return config;
-    },
-    function (error) {
-      return Promise.reject(error);
-    }
+  function (config) {
+    if (__DEV__) console.log(`${config.method?.toUpperCase()} ${config.url}`);
+    return config;
+  },
+  function (error) {
+    return Promise.reject(error);
+  }
 );
 
 export interface PlayerLoadoutResponse {
-    Subject: string;
-    Version: number;
-    Guns: {
-        ID: string;
-        CharmInstanceID?: string;
-        CharmID?: string;
-        CharmLevelID?: string;
-        SkinID: string;
-        SkinLevelID: string;
-        ChromaID: string;
-        Attachments: unknown[];
-    }[];
-    Sprays: {
-        EquipSlotID: string;
-        SprayID: string;
-        SprayLevelID: string | null;
-    }[];
-    Identity: {
-        PlayerCardID: string;
-        PlayerTitleID: string;
-        AccountLevel: number;
-        PreferredLevelBorderID: string;
-        HideAccountLevel: boolean;
-    };
-    Incognito: boolean;
+  Subject: string;
+  Version: number;
+  Guns: {
+    ID: string;
+    CharmInstanceID?: string;
+    CharmID?: string;
+    CharmLevelID?: string;
+    SkinID: string;
+    SkinLevelID: string;
+    ChromaID: string;
+    Attachments: unknown[];
+  }[];
+  Sprays: {
+    EquipSlotID: string;
+    SprayID: string;
+    SprayLevelID: string | null;
+  }[];
+  Identity: {
+    PlayerCardID: string;
+    PlayerTitleID: string;
+    AccountLevel: number;
+    PreferredLevelBorderID: string;
+    HideAccountLevel: boolean;
+  };
+  Incognito: boolean;
 }
 
 
@@ -79,13 +79,13 @@ export let defaultUser = {
 
 const extraHeaders = () => ({
   "X-Riot-ClientVersion":
-      getAssets().riotClientVersion || "43.0.1.4195386.4190634",
+    getAssets().riotClientVersion || "43.0.1.4195386.4190634",
   "X-Riot-ClientPlatform": "eyJwbGF0Zm9ybVR5cGUiOiJQQyIsInBsYXRmb3JtT1MiOiJXaW5kb3dzIiwicGxhdGZvcm1PU1ZlcnNpb24iOiIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwicGxhdGZvcm1DaGlwc2V0IjoiVW5rbm93biJ9",
 });
 
 export async function getEntitlementsToken(accessToken: string) {
   const res = await axios.request<EntitlementResponse>({
-    url: getUrl({name: "entitlements"}),
+    url: getUrl({ name: "entitlements" }),
     method: "POST",
     headers: {
       ...extraHeaders(),
@@ -94,24 +94,24 @@ export async function getEntitlementsToken(accessToken: string) {
     },
     data: {},
   });
-    console.log("entitlements_token:", res.data.entitlements_token)
+  console.log("entitlements_token:", res.data.entitlements_token)
   return res.data.entitlements_token;
 }
 
 export function getUserId(accessToken: string) {
   const data = jwtDecode(accessToken) as any;
-  console.log("puuid:",data.sub)
+  console.log("puuid:", data.sub)
   return data.sub;
 }
 
 export async function getUsername(
-    accessToken: string,
-    entitlementsToken: string,
-    userId: string,
-    region: string
+  accessToken: string,
+  entitlementsToken: string,
+  userId: string,
+  region: string
 ) {
   const res = await axios.request<NameServiceResponse>({
-    url: getUrl({name: "name", region: region}),
+    url: getUrl({ name: "name", region: region }),
     method: "PUT",
     headers: {
       ...extraHeaders(),
@@ -130,13 +130,13 @@ export async function getUsername(
 
 
 export async function getShop(
-    accessToken: string,
-    entitlementsToken: string,
-    region: string,
-    userId: string
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
 ) {
   const res = await axios.request<StorefrontResponse>({
-    url: getUrl({name: "storefront", region: region, userId: userId}),
+    url: getUrl({ name: "storefront", region: region, userId: userId }),
     method: "POST",
     headers: {
       ...extraHeaders(),
@@ -146,7 +146,7 @@ export async function getShop(
     },
     data: {},
   });
-    console.log("accessToken", accessToken)
+  console.log("accessToken", accessToken)
   return res.data;
 }
 
@@ -179,13 +179,13 @@ export async function parseShop(shop: StorefrontResponse) {
       bundles.push({
         ...bundleAsset,
         price: bundle.Items.map((item) => item.DiscountedPrice).reduce(
-            (a, b) => a + b
+          (a, b) => a + b
         ),
         items: bundle.Items.filter(
-            (item) => item.Item.ItemTypeID === VItemTypes.SkinLevel
+          (item) => item.Item.ItemTypeID === VItemTypes.SkinLevel
         ).map((item) => {
           const skin = skins.find(
-              (_skin) => _skin.levels[0].uuid === item.Item.ItemID
+            (_skin) => _skin.levels[0].uuid === item.Item.ItemID
           ) as ValorantSkin;
 
           return {
@@ -204,7 +204,7 @@ export async function parseShop(shop: StorefrontResponse) {
     for (var k = 0; k < bonusStore.length; k++) {
       let itemid = bonusStore[k].Offer.Rewards[0].ItemID;
       const skin = skins.find(
-          (_skin) => _skin.levels[0].uuid === itemid
+        (_skin) => _skin.levels[0].uuid === itemid
       ) as ValorantSkin;
 
       nightMarket.push({
@@ -224,16 +224,16 @@ export async function parseShop(shop: StorefrontResponse) {
 
     // This is a pain because of different return types
     const buddy = buddies.find(
-        (_skin) => _skin.levels[0].uuid === accessoryItem.Rewards[0].ItemID
+      (_skin) => _skin.levels[0].uuid === accessoryItem.Rewards[0].ItemID
     );
     const card = cards.find(
-        (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
+      (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
     );
     const title = titles.find(
-        (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
+      (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
     );
     const spray = sprays.find(
-        (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
+      (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
     );
 
     if (buddy) {
@@ -273,25 +273,25 @@ export async function parseShop(shop: StorefrontResponse) {
     accessory,
     remainingSecs: {
       main:
-          shop.SkinsPanelLayout.SingleItemOffersRemainingDurationInSeconds ?? 0,
+        shop.SkinsPanelLayout.SingleItemOffersRemainingDurationInSeconds ?? 0,
       bundles: shop.FeaturedBundle.Bundles.map(
-          (bundle) => bundle.DurationRemainingInSeconds
+        (bundle) => bundle.DurationRemainingInSeconds
       ) ?? [0],
       nightMarket: shop.BonusStore?.BonusStoreRemainingDurationInSeconds ?? 0,
       accessory:
-          shop.AccessoryStore.AccessoryStoreRemainingDurationInSeconds ?? 0,
+        shop.AccessoryStore.AccessoryStoreRemainingDurationInSeconds ?? 0,
     },
   };
 }
 
 export async function getBalances(
-    accessToken: string,
-    entitlementsToken: string,
-    region: string,
-    userId: string
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
 ) {
   const res = await axios.request<WalletResponse>({
-    url: getUrl({name: "wallet", region: region, userId: userId}),
+    url: getUrl({ name: "wallet", region: region, userId: userId }),
     method: "GET",
     headers: {
       ...extraHeaders(),
@@ -309,13 +309,13 @@ export async function getBalances(
 }
 
 export async function getProgress(
-    accessToken: string,
-    entitlementsToken: string,
-    region: string,
-    userId: string
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
 ) {
   const res = await axios.request<AccountXPResponse>({
-    url: getUrl({name: "playerxp", region: region, userId: userId}),
+    url: getUrl({ name: "playerxp", region: region, userId: userId }),
     method: "GET",
     headers: {
       ...extraHeaders(),
@@ -331,114 +331,152 @@ export async function getProgress(
 
 
 export const reAuth = (version: string) =>
-    axios.request({
-      url: "https://auth.riotgames.com/api/v1/authorization",
-      method: "POST",
-      headers: {
-        "User-Agent": `RiotClient/${version} rso-auth (Windows; 10;;Professional, x64)`,
-        "Content-Type": "application/json",
-      },
-      data: {
-        client_id: "play-valorant-web-prod",
-        nonce: "1",
-        redirect_uri: "https://playvalorant.com/opt_in",
-        response_type: "token id_token",
-        response_mode: "query",
-        scope: "account openid",
-      },
-      httpsAgent: new https.Agent({
-        ciphers: [
-          "TLS_CHACHA20_POLY1305_SHA256",
-          "TLS_AES_128_GCM_SHA256",
-          "TLS_AES_256_GCM_SHA384",
-          "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-        ].join(":"),
-        honorCipherOrder: true,
-        minVersion: "TLSv1.2",
-      }),
-      withCredentials: true,
-    });
+  axios.request({
+    url: "https://auth.riotgames.com/api/v1/authorization",
+    method: "POST",
+    headers: {
+      "User-Agent": `RiotClient/${version} rso-auth (Windows; 10;;Professional, x64)`,
+      "Content-Type": "application/json",
+    },
+    data: {
+      client_id: "play-valorant-web-prod",
+      nonce: "1",
+      redirect_uri: "https://playvalorant.com/opt_in",
+      response_type: "token id_token",
+      response_mode: "query",
+      scope: "account openid",
+    },
+    httpsAgent: new https.Agent({
+      ciphers: [
+        "TLS_CHACHA20_POLY1305_SHA256",
+        "TLS_AES_128_GCM_SHA256",
+        "TLS_AES_256_GCM_SHA384",
+        "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+      ].join(":"),
+      honorCipherOrder: true,
+      minVersion: "TLSv1.2",
+    }),
+    withCredentials: true,
+  });
 
 export async function getMatchID(
-    accessToken: string,
-    entitlementsToken:string,
-    region: string,
-    userId: string) {
-    const res = await axios.request<PreGamePlayerResponse>({
-        url: getUrl({name: "matchID", region: region, userId: userId}),
-        method: "GET",
-        headers: {
-          ...extraHeaders(),
-          'X-Riot-Entitlements-JWT': entitlementsToken,
-          Authorization: `Bearer ${accessToken}`,
-        },
-    });
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string) {
+  const res = await axios.request<PreGamePlayerResponse>({
+    url: getUrl({ name: "matchID", region: region, userId: userId }),
+    method: "GET",
+    headers: {
+      ...extraHeaders(),
+      'X-Riot-Entitlements-JWT': entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
 
-    return res.data.MatchID;
+  return res.data.MatchID;
 }
 
 export async function lockAgent(
-    accesstoken: string,
-    entitlementsToken: string,
-    userId: string,
-    region: string,
-    agentId: string) {
+  accesstoken: string,
+  entitlementsToken: string,
+  userId: string,
+  region: string,
+  agentId: string) {
   const matchId = await getMatchID(accesstoken, entitlementsToken, region, userId);
 
   const res = await axios.request<LockCharacterResponse>({
-        url: getUrl({name: "lock", region: region, matchId: matchId, agentId: agentId}),
-        method: "POST",
-        headers: {
-            ...extraHeaders(),
-            'X-Riot-Entitlements-JWT': entitlementsToken,
-            Authorization: `Bearer ${accesstoken}`,
-        }
+    url: getUrl({ name: "lock", region: region, matchId: matchId, agentId: agentId }),
+    method: "POST",
+    headers: {
+      ...extraHeaders(),
+      'X-Riot-Entitlements-JWT': entitlementsToken,
+      Authorization: `Bearer ${accesstoken}`,
+    }
   })
-    return res.data;
+  return res.data;
 }
 
 export async function quitPreGameLobby(
-    accesstoken: string,
-    entitlementsToken: string,
-    region: string,
-    userId: string) {
-   const matchId = await getMatchID(accesstoken, entitlementsToken, region, userId);
-    const res = await axios.request({
-        url: getUrl({name: "quit", region: region, matchId: matchId}),
-        method: "POST",
-        headers: {
-          ...extraHeaders(),
-          'X-Riot-Entitlements-JWT': entitlementsToken,
-          Authorization: `Bearer ${accesstoken}`,
-        }
-    })
-   return res.data;
+  accesstoken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string) {
+  const matchId = await getMatchID(accesstoken, entitlementsToken, region, userId);
+  const res = await axios.request({
+    url: getUrl({ name: "quit", region: region, matchId: matchId }),
+    method: "POST",
+    headers: {
+      ...extraHeaders(),
+      'X-Riot-Entitlements-JWT': entitlementsToken,
+      Authorization: `Bearer ${accesstoken}`,
+    }
+  })
+  return res.data;
 }
 
 export async function playerLoadout(
-    accesstoken: string,
-    entitlementsToken: string,
-    region: string,
-    userId: string) {
-    const res = await axios.request<PlayerLoadoutResponse>({
-        url: getUrl({name: "player", region: region, userId: userId}),
-        method: "GET",
-        headers: {
-          ...extraHeaders(),
-          'X-Riot-Entitlements-JWT': entitlementsToken,
-          Authorization: `Bearer ${accesstoken}`,
-        }
-    })
-   return res.data;
+  accesstoken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string) {
+  const res = await axios.request<PlayerLoadoutResponse>({
+    url: getUrl({ name: "player", region: region, userId: userId }),
+    method: "GET",
+    headers: {
+      ...extraHeaders(),
+      'X-Riot-Entitlements-JWT': entitlementsToken,
+      Authorization: `Bearer ${accesstoken}`,
+    }
+  })
+  return res.data;
+}
+
+export async function playerMatchHistory(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string,
+  params?: { startIndex?: number; endIndex?: number; queue?: string }
+) {
+  const res = await axios.request({
+    url: getUrl({ name: "match-history", region: region, userId: userId }),
+    method: "GET",
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    params,
+  });
+  return res.data;
+}
+
+export async function matchDetails(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  matchId: string
+) {
+  const res = await axios.request({
+    url: getUrl({ name: "match-details", region: region, matchId: matchId }),
+    method: "GET",
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.data;
 }
 
 function getUrl({
-    name,
-    region,
-    userId,
-    matchId,
-    agentId,
-    }: {
+  name,
+  region,
+  userId,
+  matchId,
+  agentId,
+}: {
   name: string;
   region?: string | null;
   userId?: string | null;
@@ -457,7 +495,9 @@ function getUrl({
     matchID: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/players/${userId}`,
     lock: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/lock/${agentId}`,
     quit: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/quit`,
-    player: `https://pd.${region}.a.pvp.net/personalization/v2/players/${userId}/playerloadout`
+    player: `https://pd.${region}.a.pvp.net/personalization/v2/players/${userId}/playerloadout`,
+    "match-history": `https://pd.${region}.a.pvp.net/match-history/v1/history/${userId}`,
+    "match-details": `https://pd.${region}.a.pvp.net/match-details/v1/matches/${matchId}`
   };
 
   return URLS[name];

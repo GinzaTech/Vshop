@@ -83,9 +83,9 @@ function Layout() {
                         title: t("equip"),
                         drawerIcon: ({ color, size }) => (
                             <Icon name="anchor" color={color} size={size} />
-                         ),
-                        }}
-                    />
+                        ),
+                    }}
+                />
                 <Drawer.Screen
                     name="accessories"
                     options={{
@@ -138,6 +138,33 @@ function Layout() {
                         drawerIcon: ({ color, size }) => (
                             <Icon name="target" color={color} size={size} />
                         ),
+                    }}
+                />
+                <Drawer.Screen
+                    name="history"
+                    options={{
+                        title: t("history") || "Match History",
+                        drawerIcon: ({ color, size }) => (
+                            <Icon name="history" color={color} size={size} />
+                        ),
+                    }}
+                />
+                <Drawer.Screen
+                    name="crosshair"
+                    options={{
+                        title: t("crosshair") || "Crosshair",
+                        drawerIcon: ({ color, size }) => (
+                            <Icon name="crosshairs-gps" color={color} size={size} />
+                        ),
+                    }}
+                />
+                <Drawer.Screen
+                    name="match_details/[id]"
+                    options={{
+                        drawerItemStyle: { display: "none" },
+                        headerShown: false,
+                        drawerLabel: () => null,
+                        title: "",
                     }}
                 />
                 <Drawer.Screen

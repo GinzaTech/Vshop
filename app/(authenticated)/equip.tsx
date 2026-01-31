@@ -26,10 +26,10 @@ const Equip = () => {
     return buildEquipDisplayList(sorted, activeSection);
   }, [activeSection, searchQuery]);
 
-  const keyExtractor = React.useCallback((item) => item.id, []);
+  const keyExtractor = React.useCallback((item: { id: string }) => item.id, []);
 
   const renderEquipItem = React.useCallback(
-    ({ item }) => (
+    ({ item }: { item: any }) => (
       <GalleryEquip data={item} screenshotModeEnabled={screenshotModeEnabled} />
     ),
     [screenshotModeEnabled]
@@ -43,7 +43,7 @@ const Equip = () => {
         onChangeText={setSearchQuery}
         style={[styles.searchBar, { backgroundColor: colors.surface }]}
         inputStyle={styles.searchInput}
-        iconColor={colors.onSurfaceVariant}
+        iconColor={colors.placeholder}
       />
       <View style={styles.tabGroup}>
         {EQUIPMENT_SECTIONS.map((section, index) => {
@@ -88,7 +88,7 @@ const Equip = () => {
             <Text style={[styles.emptyTitle, { color: colors.onSurface }]}>
               No equipment found
             </Text>
-            <Text style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}>
+            <Text style={[styles.emptySubtitle, { color: colors.placeholder }]}>
               Try a different search term or category.
             </Text>
           </View>
