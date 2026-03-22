@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { BlurView } from "expo-blur";
 import Animated, {
   Easing,
@@ -83,11 +82,6 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       (variant === "bundle" ? "Bundle skin" : "Store skin")
     );
   }, [item.displayName, variant]);
-  const upgradeLabel = useMemo(() => {
-    const levelCount = item.levels.length || 1;
-    return levelCount > 1 ? `Lv ${levelCount}/${levelCount}` : "Lv 1";
-  }, [item.levels.length]);
-  const showUpgradeBadge = variant !== "store";
   const handleCardPress = useCallback(() => {
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
@@ -204,27 +198,6 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
             {tier.label}
           </Text>
         </View>
-
-        {showUpgradeBadge ? (
-          <View
-            style={[
-              styles.metaBadge,
-              {
-                backgroundColor: tier.badgeBackground,
-                borderColor: tier.border,
-              },
-            ]}
-          >
-            <Icon
-              name="arrow-up-bold-circle-outline"
-              size={13}
-              color={tier.text}
-            />
-            <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-              {upgradeLabel}
-            </Text>
-          </View>
-        ) : null}
 
         <View
           style={[
