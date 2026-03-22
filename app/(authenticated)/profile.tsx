@@ -88,6 +88,9 @@ function Profile() {
   const [ownedSkinLevelIds, setOwnedSkinLevelIds] = React.useState<string[]>([]);
   const [weaponMetadata, setWeaponMetadata] = React.useState<WeaponMetadataMap>({});
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [expandedCollectionWeapons, setExpandedCollectionWeapons] = React.useState<
+    string[]
+  >([]);
 
   const palette = React.useMemo(
     () => {
@@ -549,6 +552,20 @@ function Profile() {
       }),
     [collectionByWeapon]
   );
+
+  React.useEffect(() => {
+    setExpandedCollectionWeapons((current) =>
+      current.filter((weaponName) => orderedCollectionWeapons.includes(weaponName))
+    );
+  }, [orderedCollectionWeapons]);
+
+  const toggleCollectionWeapon = React.useCallback((weaponName: string) => {
+    setExpandedCollectionWeapons((current) =>
+      current.includes(weaponName)
+        ? current.filter((value) => value !== weaponName)
+        : [...current, weaponName]
+    );
+  }, []);
 
   const handleRefresh = React.useCallback(async () => {
     if (!hasAuth) return;
@@ -1018,84 +1035,107 @@ function Profile() {
               return null;
             }
 
+            const isExpanded =
+              searchQuery.trim().length > 0 ||
+              expandedCollectionWeapons.includes(weaponName);
+
             return (
               <View key={weaponName} style={styles.collectionSection}>
-                <View style={styles.collectionSectionHeader}>
-                  <Text
-                    style={[
-                      styles.collectionSectionTitle,
-                      { color: palette.textPrimary },
-                    ]}
-                  >
-                    {weaponName}
-                  </Text>
-                  <View
-                    style={[
-                      styles.collectionCountPill,
-                      {
-                        backgroundColor: palette.card,
-                        borderColor: palette.cardBorder,
-                      },
-                    ]}
-                  >
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => toggleCollectionWeapon(weaponName)}
+                  style={[
+                    styles.collectionSectionHeader,
+                    {
+                      backgroundColor: palette.card,
+                      borderColor: palette.cardBorder,
+                    },
+                  ]}
+                >
+                  <View style={styles.collectionSectionHeaderLeft}>
                     <Text
                       style={[
-                        styles.collectionCountText,
-                        { color: palette.textSecondary },
+                        styles.collectionSectionTitle,
+                        { color: palette.textPrimary },
                       ]}
                     >
-                      {items.length} {t("equip_page.tabs.skins").toLowerCase()}
+                      {weaponName}
                     </Text>
-                  </View>
-                </View>
-
-                <View style={styles.collectionGrid}>
-                  {items.map((item) => {
-                    const tier = getContentTierVisual(
-                      item.contentTierUuid,
-                      item.contentTierName
-                    );
-
-                    return (
-                      <View
-                        key={item.collectionId}
+                    <View
+                      style={[
+                        styles.collectionCountPill,
+                        {
+                          backgroundColor: palette.background,
+                          borderColor: palette.cardBorder,
+                        },
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.collectionCard,
-                          {
-                            backgroundColor: tier.cardBackground,
-                            borderColor: tier.border,
-                          },
+                          styles.collectionCountText,
+                          { color: palette.textSecondary },
                         ]}
                       >
+                        {items.length} {t("equip_page.tabs.skins").toLowerCase()}
+                      </Text>
+                    </View>
+                  </View>
+                  <Icon
+                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                    size={22}
+                    color={palette.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {isExpanded ? (
+                  <View style={styles.collectionGrid}>
+                    {items.map((item) => {
+                      const tier = getContentTierVisual(
+                        item.contentTierUuid,
+                        item.contentTierName
+                      );
+
+                      return (
                         <View
+                          key={item.collectionId}
                           style={[
-                            styles.collectionVisual,
+                            styles.collectionCard,
                             {
-                              backgroundColor: tier.visualBackground,
+                              backgroundColor: tier.cardBackground,
                               borderColor: tier.border,
                             },
                           ]}
                         >
-                          <Image
-                            source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
-                            style={styles.collectionImage}
-                            contentFit="contain"
-                          />
+                          <View
+                            style={[
+                              styles.collectionVisual,
+                              {
+                                backgroundColor: tier.visualBackground,
+                                borderColor: tier.border,
+                              },
+                            ]}
+                          >
+                            <Image
+                              source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
+                              style={styles.collectionImage}
+                              contentFit="contain"
+                            />
+                          </View>
+                          {renderWeaponBadges(item)}
+                          <Text
+                            style={[
+                              styles.collectionSkinName,
+                              { color: palette.textPrimary },
+                            ]}
+                            numberOfLines={2}
+                          >
+                            {item.skinName}
+                          </Text>
                         </View>
-                        {renderWeaponBadges(item)}
-                        <Text
-                          style={[
-                            styles.collectionSkinName,
-                            { color: palette.textPrimary },
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {item.skinName}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
+                      );
+                    })}
+                  </View>
+                ) : null}
               </View>
             );
           })
@@ -1547,21 +1587,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 22,
+    borderWidth: 1,
     marginBottom: 12,
   },
+  collectionSectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+  },
   collectionSectionTitle: {
-    fontSize: 21,
+    fontSize: 18,
     fontWeight: "700",
   },
   collectionCountPill: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: RADIUS.chip,
     borderWidth: 1,
   },
   collectionCountText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  collectionChevron: {
+    marginLeft: 12,
   },
   collectionGrid: {
     flexDirection: "row",
