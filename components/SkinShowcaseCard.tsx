@@ -161,60 +161,64 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
           ) : null}
 
           <View style={isBundleVariant ? styles.bundleBadgeRow : styles.badgeRow}>
-            <View
-              style={[
-                styles.metaBadge,
-                isBundleVariant && styles.bundleCompactBadge,
-                {
-                  backgroundColor: tier.badgeBackground,
-                  borderColor: tier.border,
-                },
-              ]}
-            >
-              <View
-                style={[styles.rarityDot, { backgroundColor: tier.accent }]}
-              />
-              <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-                {tier.label}
-              </Text>
-            </View>
-
             {isBundleVariant ? (
-              <View style={styles.bundleStatsColumn}>
-                <View
-                  style={[
-                    styles.metaBadge,
-                    styles.bundleStatBadge,
-                    {
-                      backgroundColor: tier.badgeBackground,
-                      borderColor: tier.border,
-                    },
-                  ]}
-                >
-                  <Icon
-                    name="arrow-up-bold-circle-outline"
-                    size={15}
-                    color={tier.text}
-                  />
-                  <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-                    {upgradeLabel}
-                  </Text>
+              <View style={styles.bundleMetaStack}>
+                <View style={styles.bundleTopMetaRow}>
+                  <View
+                    style={[
+                      styles.metaBadge,
+                      styles.bundleCompactBadge,
+                      {
+                        backgroundColor: tier.badgeBackground,
+                        borderColor: tier.border,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[styles.rarityDot, { backgroundColor: tier.accent }]}
+                    />
+                    <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+                      {tier.label}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.metaBadge,
+                      styles.bundleStatBadge,
+                      {
+                        backgroundColor: tier.badgeBackground,
+                        borderColor: tier.border,
+                      },
+                    ]}
+                  >
+                    <Icon
+                      name="arrow-up-bold-circle-outline"
+                      size={15}
+                      color={tier.text}
+                    />
+                    <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+                      {upgradeLabel}
+                    </Text>
+                  </View>
                 </View>
 
-                <View
-                  style={[
-                    styles.metaBadge,
-                    styles.bundleStatBadge,
-                    {
-                      backgroundColor: tier.badgeBackground,
-                      borderColor: tier.border,
-                    },
-                  ]}
-                >
-                  <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-                  <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-                    {item.price}
-                  </Text>
+                <View style={styles.bundleStatsColumn}>
+                  <View
+                    style={[
+                      styles.metaBadge,
+                      styles.bundleStatBadge,
+                      {
+                        backgroundColor: tier.badgeBackground,
+                        borderColor: tier.border,
+                      },
+                    ]}
+                  >
+                    <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+                    <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+                      {item.price}
+                    </Text>
+                  </View>
                 </View>
               </View>
             ) : (
@@ -233,7 +237,9 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
                     size={15}
                     color={COLORS.TEXT_SECONDARY}
                   />
-                  <Text style={styles.metaBadgeText}>{upgradeLabel}</Text>
+                  <Text style={styles.metaBadgeText}>
+                    {upgradeLabel}
+                  </Text>
                 </View>
 
                 <View
@@ -384,6 +390,16 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
+  bundleMetaStack: {
+    alignItems: "flex-start",
+    gap: 6,
+  },
+  bundleTopMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
   metaBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -400,7 +416,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   bundleStatsColumn: {
-    marginTop: 6,
     gap: 6,
   },
   bundleCompactBadge: {
