@@ -50,16 +50,59 @@ export const getVAPILang = () => {
   return translation ? translation.VAPILangCode : "en-US";
 };
 
+const normalizeLanguage = (
+  languageCode?: string | null,
+  languageTag?: string | null
+) => {
+  const normalizedTag = languageTag?.toLowerCase() || "";
+
+  if (
+    normalizedTag.startsWith("zh-hant") ||
+    normalizedTag.startsWith("zh-tw") ||
+    normalizedTag.startsWith("zh-hk")
+  ) {
+    return "zh-Hant";
+  }
+
+  if (
+    normalizedTag.startsWith("zh-hans") ||
+    normalizedTag.startsWith("zh-cn") ||
+    normalizedTag.startsWith("zh-sg")
+  ) {
+    return "zh-Hans";
+  }
+
+  const normalizedCode = (languageCode || languageTag || "en")
+    .split("-")[0]
+    .toLowerCase();
+
+  switch (normalizedCode) {
+    case "ja":
+      return "jp";
+    case "nb":
+    case "nn":
+      return "no";
+    default:
+      return normalizedCode in resources ? normalizedCode : "en";
+  }
+};
+
 const langDetector = {
   type: "languageDetector" as ModuleType,
   async: true,
   detect: (callback: any) => {
     AsyncStorage.getItem("language", (error, result) => {
-      if (error || !result) {
-        const lang = getLocales()[0].languageCode || "en";
-        callback(lang);
+      if (!error && result) {
+        callback(normalizeLanguage(result, result));
+        return;
       } else {
-        callback(result);
+        const locales = getLocales();
+        const deviceLocale = locales?.[0];
+        const lang = normalizeLanguage(
+          deviceLocale?.languageCode,
+          deviceLocale?.languageTag
+        );
+        callback(lang);
       }
     });
   },

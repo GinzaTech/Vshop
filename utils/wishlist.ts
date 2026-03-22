@@ -5,9 +5,10 @@ import axios from "axios";
 import i18n, { getVAPILang } from "./localization";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import * as Notifications from "expo-notifications";
-import BackgroundFetch from "react-native-background-fetch";
 import * as plausible from "./plausible";
 import { fetchVersion } from "./valorant-assets";
+import { Platform } from "react-native";
+import BackgroundFetch from "./background-fetch";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -117,6 +118,10 @@ export async function checkShop(wishlist: string[]) {
 }
 
 export async function initBackgroundFetch() {
+  if (Platform.OS === "web") {
+    return false;
+  }
+
   await BackgroundFetch.configure(
     {
       minimumFetchInterval: 15,
@@ -140,8 +145,15 @@ export async function initBackgroundFetch() {
       BackgroundFetch.finish(taskId);
     }
   );
+
+  return true;
 }
 
 export async function stopBackgroundFetch() {
+  if (Platform.OS === "web") {
+    return false;
+  }
+
   await BackgroundFetch.stop();
+  return true;
 }

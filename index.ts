@@ -1,17 +1,23 @@
 import "expo-router/entry";
-
-import BackgroundFetch from "react-native-background-fetch";
+import { Platform } from "react-native";
+import BackgroundFetch from "./utils/background-fetch";
 import { wishlistBgTask } from "./utils/wishlist";
 
-BackgroundFetch.registerHeadlessTask(async (event) => {
-  let taskId = event.taskId;
-  let isTimeout = event.timeout;
-  if (isTimeout) {
-    console.log("[BackgroundFetch] Headless TIMEOUT:", taskId);
-    BackgroundFetch.finish(taskId);
-    return;
-  }
+if (Platform.OS !== "web") {
+  BackgroundFetch.registerHeadlessTask(async (event: {
+    taskId: string;
+    timeout: boolean;
+  }) => {
+    const taskId = event.taskId;
+    const isTimeout = event.timeout;
 
-  await wishlistBgTask();
-  BackgroundFetch.finish(taskId);
-});
+    if (isTimeout) {
+      console.log("[BackgroundFetch] Headless TIMEOUT:", taskId);
+      BackgroundFetch.finish(taskId);
+      return;
+    }
+
+    await wishlistBgTask();
+    BackgroundFetch.finish(taskId);
+  });
+}

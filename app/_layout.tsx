@@ -6,7 +6,6 @@ import {
   DefaultTheme as PaperTheme,
   Provider as PaperProvider,
 } from "react-native-paper";
-import { StripeProvider } from "@stripe/stripe-react-native";
 import merge from "deepmerge";
 import {
   DefaultTheme as NavigationTheme,
@@ -22,6 +21,7 @@ import { initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import PlausibleProvider from "~/components/PlausibleProvider";
 import { COLORS } from "~/constants/DesignSystem";
+import StripeProvider from "~/components/providers/StripeProvider";
 
 export const CombinedAppTheme = {
   ...merge(PaperTheme, NavigationTheme),

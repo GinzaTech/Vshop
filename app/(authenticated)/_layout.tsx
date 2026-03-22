@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
@@ -33,13 +33,13 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <View
-      pointerEvents="box-none"
       style={[
         styles.tabBarWrap,
+        Platform.OS === "web" && styles.tabBarWrapWeb,
         { paddingBottom: Math.max(insets.bottom, 12) },
       ]}
     >
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, Platform.OS === "web" && styles.tabBarWeb]}>
         {visibleRoutes.map((route: any) => {
           const routeIndex = state.routes.findIndex(
             (item: any) => item.key === route.key
@@ -227,6 +227,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
   },
+  tabBarWrapWeb: {
+    pointerEvents: "none",
+  } as any,
   tabBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -240,6 +243,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.06)",
     ...GLOBAL_STYLES.shadow,
   },
+  tabBarWeb: {
+    pointerEvents: "auto",
+  } as any,
   tabButton: {
     flex: 1,
     alignItems: "center",

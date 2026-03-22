@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 
 export const COLORS = {
   ACCENT: "#ff6b57",
@@ -32,6 +32,19 @@ export const RADIUS = {
   button: 22,
 };
 
+const shadowStyle =
+  Platform.OS === "web"
+    ? ({
+        boxShadow: "0px 16px 24px rgba(0, 0, 0, 0.08)",
+      } as any)
+    : {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 16 },
+        shadowOpacity: 0.08,
+        shadowRadius: 24,
+        elevation: 10,
+      };
+
 export const GLOBAL_STYLES = StyleSheet.create({
   glassContainer: {
     backgroundColor: COLORS.SURFACE,
@@ -39,11 +52,5 @@ export const GLOBAL_STYLES = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
   },
-  shadow: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 10,
-  },
+  shadow: shadowStyle,
 });
