@@ -26,8 +26,15 @@ import { checkShop, initBackgroundFetch, stopBackgroundFetch } from "~/utils/wis
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import BatteryOptimizationWarning from "~/components/BatteryOptimizationWarning";
 import GlassCard from "~/components/ui/GlassCard";
+import UpdatePopup from "~/components/popups/UpdatePopup";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { clearAllCookies } from "~/utils/cookies";
+import {
+  AppUpdateCheckResult,
+  applyOtaUpdate,
+  checkForAppUpdate,
+  getCurrentAppVersionLabel,
+} from "~/utils/app-update";
 
 function Settings() {
   const { t } = useTranslation();
@@ -39,6 +46,15 @@ function Settings() {
     (state) => state.setNotificationEnabled
   );
   const wishlistedSkins = useWishlistStore((state) => state.skinIds);
+  const [updatePopupVisible, setUpdatePopupVisible] = React.useState(false);
+  const [checkingUpdate, setCheckingUpdate] = React.useState(false);
+  const [applyingUpdate, setApplyingUpdate] = React.useState(false);
+  const [updateResult, setUpdateResult] =
+    React.useState<AppUpdateCheckResult | null>(null);
+  const currentVersionLabel = React.useMemo(
+    () => getCurrentAppVersionLabel(),
+    []
+  );
 
   const handleLogout = async () => {
     await clearAllCookies(true);
@@ -68,6 +84,45 @@ function Settings() {
         ToastAndroid.show(t("wishlist.notification.disabled"), ToastAndroid.LONG);
       }
     }
+  };
+
+  const handleCheckForUpdates = async () => {
+    setUpdatePopupVisible(true);
+    setCheckingUpdate(true);
+
+    try {
+      const result = await checkForAppUpdate();
+      setUpdateResult(result);
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
+  const handleUpdatePrimaryAction = async () => {
+    if (!updateResult) return;
+
+    if (updateResult.kind === "ota-available") {
+      setApplyingUpdate(true);
+
+      const applyResult = await applyOtaUpdate();
+      if (!applyResult.applied) {
+        setUpdateResult({
+          kind: "error",
+          currentVersion: updateResult.currentVersion,
+          latestVersion: updateResult.latestVersion,
+          releaseUrl: updateResult.releaseUrl,
+          environment: updateResult.environment,
+          canUseOta: updateResult.canUseOta,
+          channel: updateResult.channel,
+          message: applyResult.message,
+        });
+        setApplyingUpdate(false);
+      }
+      return;
+    }
+
+    await Linking.openURL(updateResult.releaseUrl);
+    setUpdatePopupVisible(false);
   };
 
   const shortcutItems = [
@@ -119,130 +174,154 @@ function Settings() {
   );
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.hero}>
-        <Text style={styles.title}>Explore more</Text>
-        <Text style={styles.subtitle}>
-          Customize the app, manage your account, and jump into the extra tools.
+    <>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <Text style={styles.title}>Explore more</Text>
+          <Text style={styles.subtitle}>
+            Customize the app, manage your account, and jump into the extra tools.
+          </Text>
+        </View>
+
+        <BatteryOptimizationWarning />
+
+        <View style={styles.shortcutGrid}>
+          {shortcutItems.map((item) => (
+            <TouchableOpacity
+              key={item.route}
+              activeOpacity={0.85}
+              style={styles.shortcutCard}
+              onPress={() => router.push(item.route as never)}
+            >
+              <View style={styles.shortcutIcon}>
+                <Icon name={item.icon} size={20} color={COLORS.TEXT_PRIMARY} />
+              </View>
+              <Text style={styles.shortcutLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.sectionTitle}>App</Text>
+        <GlassCard style={styles.card}>
+          {renderRow({
+            icon: "update",
+            title: "Check for updates",
+            description: `Current build ${currentVersionLabel}`,
+            onPress: handleCheckForUpdates,
+          })}
+        </GlassCard>
+
+        <Text style={styles.sectionTitle}>Preferences</Text>
+        <GlassCard style={styles.card}>
+          {renderRow({
+            icon: "translate",
+            title: t("language"),
+            onPress: () => router.push("/language"),
+          })}
+          {Platform.OS === "android"
+            ? renderRow({
+                icon: "cellphone-message",
+                title: t("wishlist.notification.name"),
+                description: t("wishlist.notification.info"),
+                onPress: toggleNotificationState,
+                right: (
+                  <Switch
+                    value={notificationEnabled}
+                    onValueChange={toggleNotificationState}
+                    color={COLORS.PURE_BLACK}
+                  />
+                ),
+              })
+            : null}
+          {__DEV__
+            ? renderRow({
+                icon: "cellphone-screenshot",
+                title: t("screenshot_mode"),
+                onPress: toggleScreenshotMode,
+                right: (
+                  <Switch
+                    value={screenshotModeEnabled}
+                    onValueChange={toggleScreenshotMode}
+                    color={COLORS.PURE_BLACK}
+                  />
+                ),
+              })
+            : null}
+          {__DEV__
+            ? renderRow({
+                icon: "bell-badge-outline",
+                title: "Wishlist notification test",
+                onPress: () => checkShop(wishlistedSkins),
+              })
+            : null}
+        </GlassCard>
+
+        <Text style={styles.sectionTitle}>Links</Text>
+        <GlassCard style={styles.card}>
+          {renderRow({
+            icon: "discord",
+            title: t("discord_server"),
+            onPress: () => Linking.openURL("https://vshop.one/discord"),
+          })}
+          {renderRow({
+            icon: "information-outline",
+            title: t("credits"),
+            onPress: () => Linking.openURL("https://vshop.one/credits"),
+          })}
+          {renderRow({
+            icon: "shield-check-outline",
+            title: t("privacy_policy"),
+            onPress: () => Linking.openURL("https://vshop.one/privacy"),
+          })}
+          {renderRow({
+            icon: "account-remove-outline",
+            title: t("delete_account"),
+            onPress: () =>
+              Linking.openURL(
+                "https://support-valorant.riotgames.com/hc/en-us/articles/360050328414-Deleting-Your-Riot-Account-and-All-Your-Data"
+              ),
+          })}
+        </GlassCard>
+
+        <Text style={styles.sectionTitle}>Account</Text>
+        <GlassCard style={styles.card}>
+          {renderRow({
+            icon: "content-copy",
+            title: t("copy_riot_id"),
+            description: user.id,
+            onPress: () => Clipboard.setStringAsync(user.id),
+          })}
+          {renderRow({
+            icon: "logout",
+            title: t("logout"),
+            onPress: handleLogout,
+            danger: true,
+          })}
+        </GlassCard>
+
+        <Text style={styles.disclaimer}>
+          VShop is not endorsed by Riot Games in any way. Riot Games, Valorant,
+          and all associated properties are trademarks or registered trademarks of
+          Riot Games, Inc.
         </Text>
-      </View>
+      </ScrollView>
 
-      <BatteryOptimizationWarning />
-
-      <View style={styles.shortcutGrid}>
-        {shortcutItems.map((item) => (
-          <TouchableOpacity
-            key={item.route}
-            activeOpacity={0.85}
-            style={styles.shortcutCard}
-            onPress={() => router.push(item.route as never)}
-          >
-            <View style={styles.shortcutIcon}>
-              <Icon name={item.icon} size={20} color={COLORS.TEXT_PRIMARY} />
-            </View>
-            <Text style={styles.shortcutLabel}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.sectionTitle}>Preferences</Text>
-      <GlassCard style={styles.card}>
-        {renderRow({
-          icon: "translate",
-          title: t("language"),
-          onPress: () => router.push("/language"),
-        })}
-        {Platform.OS === "android"
-          ? renderRow({
-              icon: "cellphone-message",
-              title: t("wishlist.notification.name"),
-              description: t("wishlist.notification.info"),
-              onPress: toggleNotificationState,
-              right: (
-                <Switch
-                  value={notificationEnabled}
-                  onValueChange={toggleNotificationState}
-                  color={COLORS.PURE_BLACK}
-                />
-              ),
-            })
-          : null}
-        {__DEV__
-          ? renderRow({
-              icon: "cellphone-screenshot",
-              title: t("screenshot_mode"),
-              onPress: toggleScreenshotMode,
-              right: (
-                <Switch
-                  value={screenshotModeEnabled}
-                  onValueChange={toggleScreenshotMode}
-                  color={COLORS.PURE_BLACK}
-                />
-              ),
-            })
-          : null}
-        {__DEV__
-          ? renderRow({
-              icon: "bell-badge-outline",
-              title: "Wishlist notification test",
-              onPress: () => checkShop(wishlistedSkins),
-            })
-          : null}
-      </GlassCard>
-
-      <Text style={styles.sectionTitle}>Links</Text>
-      <GlassCard style={styles.card}>
-        {renderRow({
-          icon: "discord",
-          title: t("discord_server"),
-          onPress: () => Linking.openURL("https://vshop.one/discord"),
-        })}
-        {renderRow({
-          icon: "information-outline",
-          title: t("credits"),
-          onPress: () => Linking.openURL("https://vshop.one/credits"),
-        })}
-        {renderRow({
-          icon: "shield-check-outline",
-          title: t("privacy_policy"),
-          onPress: () => Linking.openURL("https://vshop.one/privacy"),
-        })}
-        {renderRow({
-          icon: "account-remove-outline",
-          title: t("delete_account"),
-          onPress: () =>
-            Linking.openURL(
-              "https://support-valorant.riotgames.com/hc/en-us/articles/360050328414-Deleting-Your-Riot-Account-and-All-Your-Data"
-            ),
-        })}
-      </GlassCard>
-
-      <Text style={styles.sectionTitle}>Account</Text>
-      <GlassCard style={styles.card}>
-        {renderRow({
-          icon: "content-copy",
-          title: t("copy_riot_id"),
-          description: user.id,
-          onPress: () => Clipboard.setStringAsync(user.id),
-        })}
-        {renderRow({
-          icon: "logout",
-          title: t("logout"),
-          onPress: handleLogout,
-          danger: true,
-        })}
-      </GlassCard>
-
-      <Text style={styles.disclaimer}>
-        VShop is not endorsed by Riot Games in any way. Riot Games, Valorant,
-        and all associated properties are trademarks or registered trademarks of
-        Riot Games, Inc.
-      </Text>
-    </ScrollView>
+      <UpdatePopup
+        visible={updatePopupVisible}
+        checking={checkingUpdate}
+        applying={applyingUpdate}
+        result={updateResult}
+        onDismiss={() => {
+          if (applyingUpdate) return;
+          setUpdatePopupVisible(false);
+        }}
+        onPrimaryAction={handleUpdatePrimaryAction}
+      />
+    </>
   );
 }
 

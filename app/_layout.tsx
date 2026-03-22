@@ -12,8 +12,6 @@ import {
   DefaultTheme as NavigationTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Platform } from "react-native";
-import UpdatePopup from "~/components/popups/UpdatePopup";
 import { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SplashScreen } from "expo-router";
@@ -109,12 +107,11 @@ function RootLayout() {
                   name="language"
                   options={{ presentation: "modal", title: t("language") }}
                 />
-                <Stack.Screen
-                  name="(authenticated)"
-                  options={{ headerShown: false }}
-                />
-              </Stack>
-              {Platform.OS === "android" && <UpdatePopup />}
+              <Stack.Screen
+                name="(authenticated)"
+                options={{ headerShown: false }}
+              />
+            </Stack>
             </ThemeProvider>
           </StripeProvider>
         </PaperProvider>

@@ -71,7 +71,8 @@
     "stream-browserify": "^3.0.0",
     "url": "^0.11.4",
     "util": "^0.12.5",
-    "zustand": "4.5.5"
+    "zustand": "4.5.5",
+    "expo-updates": "~0.25.28"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
