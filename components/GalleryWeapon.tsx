@@ -3,7 +3,6 @@ import {
   Image,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Divider, IconButton, Menu } from "react-native-paper";

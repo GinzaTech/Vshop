@@ -1,7 +1,9 @@
+import { Platform } from "react-native";
+
 import { isExpoGo } from "./runtime";
 
 export const clearAllCookies = async (useWebKit = true) => {
-  if (isExpoGo) {
+  if (Platform.OS === "web" || isExpoGo) {
     return false;
   }
 

@@ -1,4 +1,6 @@
 import type { PropsWithChildren } from "react";
+import { Platform } from "react-native";
+
 import { isExpoGo } from "~/utils/runtime";
 
 type StripeProviderProps = PropsWithChildren<{
@@ -9,7 +11,7 @@ export default function StripeProvider({
   children,
   publishableKey,
 }: StripeProviderProps) {
-  if (isExpoGo) {
+  if (Platform.OS === "web" || isExpoGo) {
     return <>{children}</>;
   }
 

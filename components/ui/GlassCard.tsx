@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, ViewProps } from "react-native";
 import { BlurView } from "expo-blur";
-import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
+import { GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 
 interface GlassCardProps extends ViewProps {
     style?: StyleProp<ViewStyle>;

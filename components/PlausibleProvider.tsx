@@ -1,12 +1,16 @@
 import { PropsWithChildren, useEffect } from "react";
 import { usePathname } from "expo-router";
-import * as plausible from "~/utils/plausible";
 
 export default function PlausibleProvider({ children }: PropsWithChildren) {
   const pathname = usePathname();
 
   useEffect(() => {
-    plausible.capture("pageview", pathname);
+    const trackPageView = async () => {
+      const plausible = await import("~/utils/plausible");
+      await plausible.capture("pageview", pathname);
+    };
+
+    trackPageView().catch(() => {});
   }, [pathname]);
 
   return children;

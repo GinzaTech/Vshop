@@ -1,10 +1,16 @@
 import axios from "axios";
-import * as Device from "expo-device";
-import * as Application from "expo-application";
 import { Platform } from "react-native";
 
 let userAgent: string;
 let appVersion: string | undefined;
+
+function getDeviceModule() {
+  return require("expo-device") as typeof import("expo-device");
+}
+
+function getApplicationModule() {
+  return require("expo-application") as typeof import("expo-application");
+}
 
 // https://plausible.io/docs/events-api
 export async function capture(
@@ -18,6 +24,7 @@ export async function capture(
     return;
 
   if (!userAgent) {
+    const Device = getDeviceModule();
     const osName =
       Platform.OS === "android"
         ? "Android"
@@ -32,6 +39,7 @@ export async function capture(
   }
 
   if (!appVersion) {
+    const Application = getApplicationModule();
     appVersion = Application.nativeApplicationVersion || undefined;
   }
 

@@ -11,7 +11,6 @@ import {
 } from "react-native-paper";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useState } from "react";
-import * as Application from "expo-application";
 import { COLORS } from "~/constants/DesignSystem";
 
 export default function UpdatePopup() {
@@ -85,6 +84,8 @@ export default function UpdatePopup() {
 }
 
 function compareVersions(githubTag: string) {
+  const Application = require("expo-application") as typeof import("expo-application");
+
   if (!Application.nativeApplicationVersion) return 0;
 
   const versionParts = Application.nativeApplicationVersion.split(".");

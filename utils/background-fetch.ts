@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 import { isExpoGo } from "./runtime";
 
 const fallbackBackgroundFetch = {
@@ -8,8 +10,9 @@ const fallbackBackgroundFetch = {
   stop: async () => {},
 };
 
-const BackgroundFetch = isExpoGo
-  ? fallbackBackgroundFetch
-  : require("react-native-background-fetch").default;
+const BackgroundFetch =
+  Platform.OS === "web" || isExpoGo
+    ? fallbackBackgroundFetch
+    : require("react-native-background-fetch").default;
 
 export default BackgroundFetch;

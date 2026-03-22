@@ -1,24 +1,47 @@
 import { getAccessTokenFromUri, isSameDayUTC } from "./misc";
-import {getEntitlementsToken, getShop, getUserId, reAuth,} from "./valorant-api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import i18n, { getVAPILang } from "./localization";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
-import * as Notifications from "expo-notifications";
-import * as plausible from "./plausible";
-import { fetchVersion } from "./valorant-assets";
 import { Platform } from "react-native";
 import BackgroundFetch from "./background-fetch";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
 const NOTIFICATION_CHANNEL = "wishlist";
+let notificationsConfigured = false;
+
+function getNotifications() {
+  return require("expo-notifications") as typeof import("expo-notifications");
+}
+
+function configureNotifications() {
+  if (notificationsConfigured) {
+    return getNotifications();
+  }
+
+  const Notifications = getNotifications();
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+
+  notificationsConfigured = true;
+  return Notifications;
+}
+
+function getWishlistDependencies() {
+  const localization = require("./localization");
+
+  return {
+    i18n: localization.default,
+    getVAPILang: localization.getVAPILang as typeof import("./localization").getVAPILang,
+    plausible: require("./plausible") as typeof import("./plausible"),
+    fetchVersion: require("./valorant-assets")
+      .fetchVersion as typeof import("./valorant-assets").fetchVersion,
+    valorantApi: require("./valorant-api") as typeof import("./valorant-api"),
+  };
+}
 
 export async function wishlistBgTask() {
   await useWishlistStore.persist.rehydrate();
@@ -36,6 +59,7 @@ export async function wishlistBgTask() {
   );
 
   if (!isSameDayUTC(lastWishlistCheck, now) || lastWishlistCheckTs === 0) {
+    const { plausible } = getWishlistDependencies();
     plausible.capture("wishlist_check");
 
     console.log("New day, checking shop in the background");
@@ -47,6 +71,11 @@ export async function wishlistBgTask() {
 }
 
 export async function checkShop(wishlist: string[]) {
+  const Notifications = configureNotifications();
+  const { fetchVersion, getVAPILang, i18n, valorantApi } =
+    getWishlistDependencies();
+  const { getEntitlementsToken, getShop, getUserId, reAuth } = valorantApi;
+
   await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL, {
     name: "Wishlist",
     importance: Notifications.AndroidImportance.MAX,
@@ -121,6 +150,8 @@ export async function initBackgroundFetch() {
   if (Platform.OS === "web") {
     return false;
   }
+
+  configureNotifications();
 
   await BackgroundFetch.configure(
     {
