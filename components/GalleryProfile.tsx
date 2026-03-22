@@ -88,6 +88,10 @@ export interface EquippedWeapon {
   image?: string;
   buddyName?: string;
   buddyIcon?: string;
+  contentTierUuid?: string;
+  contentTierName?: string;
+  upgradeLevel?: number;
+  maxUpgradeLevel?: number;
 }
 
 export interface EquippedSpray {
@@ -175,7 +179,6 @@ export const buildMetadataTags = (weapon: EquippedWeapon) =>
   Array.from(
     new Set(
       [
-        weapon.skinLevelName,
         weapon.chromaName && weapon.chromaName !== weapon.skinName
           ? weapon.chromaName
           : undefined,

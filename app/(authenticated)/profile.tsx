@@ -40,6 +40,110 @@ import {
 } from "~/components/GalleryProfile";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
+type ContentTierVisual = {
+  label: string;
+  accent: string;
+  text: string;
+  border: string;
+  cardBackground: string;
+  visualBackground: string;
+  badgeBackground: string;
+};
+
+const DEFAULT_CONTENT_TIER: ContentTierVisual = {
+  label: "Standard",
+  accent: "#7b838f",
+  text: "#2f343b",
+  border: "rgba(123, 131, 143, 0.26)",
+  cardBackground: "rgba(123, 131, 143, 0.10)",
+  visualBackground: "rgba(123, 131, 143, 0.18)",
+  badgeBackground: "rgba(123, 131, 143, 0.14)",
+};
+
+const CONTENT_TIER_VISUALS: Record<string, ContentTierVisual> = {
+  "12683d76-48d7-84a3-4e09-6985794f0445": {
+    label: "Select",
+    accent: "#5A9FE2",
+    text: "#214b77",
+    border: "rgba(90, 159, 226, 0.34)",
+    cardBackground: "rgba(90, 159, 226, 0.10)",
+    visualBackground: "rgba(90, 159, 226, 0.18)",
+    badgeBackground: "rgba(90, 159, 226, 0.16)",
+  },
+  "0cebb8be-46d7-c12a-d306-e9907bfc5a25": {
+    label: "Deluxe",
+    accent: "#009587",
+    text: "#0d5a54",
+    border: "rgba(0, 149, 135, 0.34)",
+    cardBackground: "rgba(0, 149, 135, 0.10)",
+    visualBackground: "rgba(0, 149, 135, 0.18)",
+    badgeBackground: "rgba(0, 149, 135, 0.16)",
+  },
+  "60bca009-4182-7998-dee7-b8a2558dc369": {
+    label: "Premium",
+    accent: "#D1548D",
+    text: "#7f2952",
+    border: "rgba(209, 84, 141, 0.34)",
+    cardBackground: "rgba(209, 84, 141, 0.10)",
+    visualBackground: "rgba(209, 84, 141, 0.18)",
+    badgeBackground: "rgba(209, 84, 141, 0.16)",
+  },
+  "e046854e-406c-37f4-6607-19a9ba8426fc": {
+    label: "Exclusive",
+    accent: "#F5955B",
+    text: "#88512a",
+    border: "rgba(245, 149, 91, 0.34)",
+    cardBackground: "rgba(245, 149, 91, 0.10)",
+    visualBackground: "rgba(245, 149, 91, 0.18)",
+    badgeBackground: "rgba(245, 149, 91, 0.16)",
+  },
+  "411e4a55-4e59-7757-41f0-86a53f101bb5": {
+    label: "Ultra",
+    accent: "#FAD663",
+    text: "#7c6424",
+    border: "rgba(250, 214, 99, 0.36)",
+    cardBackground: "rgba(250, 214, 99, 0.12)",
+    visualBackground: "rgba(250, 214, 99, 0.22)",
+    badgeBackground: "rgba(250, 214, 99, 0.18)",
+  },
+};
+
+const getContentTierVisual = (
+  contentTierUuid?: string,
+  contentTierName?: string
+) => {
+  if (contentTierUuid && CONTENT_TIER_VISUALS[contentTierUuid]) {
+    return CONTENT_TIER_VISUALS[contentTierUuid];
+  }
+
+  if (contentTierName) {
+    const matchedTier = Object.values(CONTENT_TIER_VISUALS).find(
+      (tier) => tier.label.toLowerCase() === contentTierName.toLowerCase()
+    );
+
+    if (matchedTier) {
+      return matchedTier;
+    }
+  }
+
+  return DEFAULT_CONTENT_TIER;
+};
+
+const formatUpgradeLevel = (weapon: EquippedWeapon) => {
+  if (!weapon.upgradeLevel) {
+    return null;
+  }
+
+  if (
+    weapon.maxUpgradeLevel &&
+    weapon.maxUpgradeLevel > 1
+  ) {
+    return `Lv ${weapon.upgradeLevel}/${weapon.maxUpgradeLevel}`;
+  }
+
+  return `Lv ${weapon.upgradeLevel}`;
+};
+
 function Profile() {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -212,6 +316,10 @@ function Profile() {
 
       const chroma = skin?.chromas.find((item) => item.uuid === gun.ChromaID);
       const level = skin?.levels.find((item) => item.uuid === gun.SkinLevelID);
+      const upgradeLevelIndex = skin?.levels.findIndex(
+        (item) => item.uuid === gun.SkinLevelID
+      );
+      const tierVisual = getContentTierVisual(skin?.contentTierUuid);
 
       const buddy = assets.buddies.find(
         (item) =>
@@ -239,6 +347,13 @@ function Profile() {
           skin?.displayIcon,
         buddyName: buddyLevel?.displayName || buddy?.displayName,
         buddyIcon: buddyLevel?.displayIcon,
+        contentTierUuid: skin?.contentTierUuid,
+        contentTierName: tierVisual.label,
+        upgradeLevel:
+          typeof upgradeLevelIndex === "number" && upgradeLevelIndex >= 0
+            ? upgradeLevelIndex + 1
+            : undefined,
+        maxUpgradeLevel: skin?.levels.length,
       };
     });
   }, [rawGuns, t, weaponMetadata]);
@@ -559,16 +674,86 @@ function Profile() {
     [palette]
   );
 
+  const renderWeaponBadges = React.useCallback(
+    (weapon: EquippedWeapon) => {
+      const tier = getContentTierVisual(
+        weapon.contentTierUuid,
+        weapon.contentTierName
+      );
+      const upgradeLabel = formatUpgradeLevel(weapon);
+
+      return (
+        <View style={styles.weaponBadgeRow}>
+          <View
+            style={[
+              styles.weaponBadge,
+              {
+                backgroundColor: tier.badgeBackground,
+                borderColor: tier.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.weaponBadgeDot,
+                { backgroundColor: tier.accent },
+              ]}
+            />
+            <Text
+              style={[
+                styles.weaponBadgeText,
+                { color: tier.text },
+              ]}
+              numberOfLines={1}
+            >
+              {weapon.contentTierName || tier.label}
+            </Text>
+          </View>
+          {upgradeLabel ? (
+            <View
+              style={[
+                styles.weaponBadge,
+                {
+                  backgroundColor: palette.chipBackground,
+                  borderColor: palette.cardBorder,
+                },
+              ]}
+            >
+              <Icon
+                name="arrow-up-bold-circle-outline"
+                size={12}
+                color={palette.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.weaponBadgeText,
+                  { color: palette.textPrimary },
+                ]}
+              >
+                {upgradeLabel}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      );
+    },
+    [palette]
+  );
+
   const renderLoadoutWeaponCard = React.useCallback(
     (weapon: EquippedWeapon) => {
       const metadataTags = buildMetadataTags(weapon);
+      const tier = getContentTierVisual(
+        weapon.contentTierUuid,
+        weapon.contentTierName
+      );
 
       return (
         <View
           key={weapon.weaponId}
           style={[
             styles.weaponCard,
-            { backgroundColor: palette.card, borderColor: palette.cardBorder },
+            { backgroundColor: tier.cardBackground, borderColor: tier.border },
           ]}
         >
           <View style={styles.weaponDetails}>
@@ -584,14 +769,15 @@ function Profile() {
             >
               {weapon.weaponName}
             </Text>
+            {renderWeaponBadges(weapon)}
             {renderMetadataTags(metadataTags)}
           </View>
           <View
             style={[
               styles.weaponImageWrapper,
               {
-                backgroundColor: palette.chipBackground,
-                borderColor: palette.cardBorder,
+                backgroundColor: tier.visualBackground,
+                borderColor: tier.border,
               },
             ]}
           >
@@ -604,27 +790,36 @@ function Profile() {
         </View>
       );
     },
-    [palette, renderMetadataTags]
+    [
+      palette.textPrimary,
+      palette.textSecondary,
+      renderMetadataTags,
+      renderWeaponBadges,
+    ]
   );
 
   const renderSkinGridCard = React.useCallback(
     (weapon: EquippedWeapon, category: string) => {
       const metadataTags = buildMetadataTags(weapon);
+      const tier = getContentTierVisual(
+        weapon.contentTierUuid,
+        weapon.contentTierName
+      );
 
       return (
         <View
           key={`${category}-${weapon.weaponId}`}
           style={[
             styles.skinGridCard,
-            { backgroundColor: palette.card, borderColor: palette.cardBorder },
+            { backgroundColor: tier.cardBackground, borderColor: tier.border },
           ]}
         >
           <View
             style={[
               styles.skinGridVisual,
               {
-                backgroundColor: palette.chipBackground,
-                borderColor: palette.cardBorder,
+                backgroundColor: tier.visualBackground,
+                borderColor: tier.border,
               },
             ]}
           >
@@ -646,12 +841,13 @@ function Profile() {
             >
               {weapon.weaponName}
             </Text>
+            {renderWeaponBadges(weapon)}
             {renderMetadataTags(metadataTags)}
           </View>
         </View>
       );
     },
-    [palette, renderMetadataTags]
+    [palette.textPrimary, palette.textSecondary, renderMetadataTags, renderWeaponBadges]
   );
 
   const renderWeaponCategories = React.useCallback(
@@ -754,30 +950,59 @@ function Profile() {
           </Text>
         }
         renderItem={({ item }) => (
-          <View
-            style={[
-              styles.collectionCard,
-              { backgroundColor: palette.card, borderColor: palette.cardBorder },
-            ]}
-          >
-            <Image
-              source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
-              style={styles.collectionImage}
-              contentFit="contain"
-            />
-            <Text
-              style={[styles.collectionSkinName, { color: palette.textPrimary }]}
-              numberOfLines={2}
-            >
-              {item.skinName}
-            </Text>
-            <Text
-              style={[styles.collectionWeaponName, { color: palette.textSecondary }]}
-              numberOfLines={1}
-            >
-              {item.weaponName}
-            </Text>
-          </View>
+          (() => {
+            const tier = getContentTierVisual(
+              item.contentTierUuid,
+              item.contentTierName
+            );
+
+            return (
+              <View
+                style={[
+                  styles.collectionCard,
+                  {
+                    backgroundColor: tier.cardBackground,
+                    borderColor: tier.border,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.collectionVisual,
+                    {
+                      backgroundColor: tier.visualBackground,
+                      borderColor: tier.border,
+                    },
+                  ]}
+                >
+                  <Image
+                    source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
+                    style={styles.collectionImage}
+                    contentFit="contain"
+                  />
+                </View>
+                {renderWeaponBadges(item)}
+                <Text
+                  style={[
+                    styles.collectionSkinName,
+                    { color: palette.textPrimary },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {item.skinName}
+                </Text>
+                <Text
+                  style={[
+                    styles.collectionWeaponName,
+                    { color: palette.textSecondary },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.weaponName}
+                </Text>
+              </View>
+            );
+          })()
         )}
       />
     </View>
@@ -1068,9 +1293,35 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     fontSize: 13,
   },
+  weaponBadgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 10,
+    marginBottom: 2,
+  },
+  weaponBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  weaponBadgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    marginRight: 6,
+  },
+  weaponBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
   weaponTags: {
     flexDirection: "row",
-    marginTop: 8,
+    marginTop: 4,
     flexWrap: "wrap",
   },
   weaponTag: {
@@ -1159,24 +1410,31 @@ const styles = StyleSheet.create({
     margin: 6,
     borderRadius: RADIUS.card,
     padding: 14,
-    alignItems: "center",
     borderWidth: 1,
-    minHeight: 180,
+    minHeight: 230,
+  },
+  collectionVisual: {
+    width: "100%",
+    height: 110,
+    borderRadius: 18,
+    padding: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    marginBottom: 12,
   },
   collectionImage: {
     width: "100%",
-    height: 100,
-    marginBottom: 12,
+    height: "100%",
   },
   collectionSkinName: {
     fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
+    fontWeight: "700",
     marginBottom: 4,
   },
   collectionWeaponName: {
     fontSize: 12,
-    textAlign: "center",
   },
   centered: {
     flex: 1,
