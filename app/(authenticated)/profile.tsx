@@ -367,65 +367,72 @@ function Profile() {
   );
 
   const loadoutDetails = React.useMemo<EquippedWeapon[]>(() => {
-    const assets = getAssets();
+    try {
+      const assets = getAssets();
 
-    return rawGuns.map((gun) => {
-      const metadata = weaponMetadata[gun.ID];
-      const category = resolveCategory(metadata);
+      return rawGuns.map((gun) => {
+        const metadata = weaponMetadata[gun.ID];
+        const category = resolveCategory(metadata);
 
-      const skin =
-        assets.skins.find((item) => item.uuid === gun.SkinID) ||
-        assets.skins.find((item) =>
-          Array.isArray(item.levels) &&
-          item.levels.some((level) => level.uuid === gun.SkinLevelID)
+        const skin =
+          assets.skins.find((item) => item.uuid === gun.SkinID) ||
+          assets.skins.find((item) =>
+            Array.isArray(item.levels) &&
+            item.levels.some((level) => level.uuid === gun.SkinLevelID)
+          );
+        const skinChromas = Array.isArray(skin?.chromas) ? skin.chromas : [];
+        const skinLevels = Array.isArray(skin?.levels) ? skin.levels : [];
+
+        const chroma = skinChromas.find((item) => item.uuid === gun.ChromaID);
+        const level = skinLevels.find((item) => item.uuid === gun.SkinLevelID);
+        const upgradeLevelIndex = skinLevels.findIndex(
+          (item) => item.uuid === gun.SkinLevelID
         );
-      const skinChromas = Array.isArray(skin?.chromas) ? skin.chromas : [];
-      const skinLevels = Array.isArray(skin?.levels) ? skin.levels : [];
+        const tierVisual = getContentTierVisual(skin?.contentTierUuid);
 
-      const chroma = skinChromas.find((item) => item.uuid === gun.ChromaID);
-      const level = skinLevels.find((item) => item.uuid === gun.SkinLevelID);
-      const upgradeLevelIndex = skinLevels.findIndex(
-        (item) => item.uuid === gun.SkinLevelID
-      );
-      const tierVisual = getContentTierVisual(skin?.contentTierUuid);
+        const buddy = assets.buddies.find(
+          (item) =>
+            item.uuid === gun.CharmID ||
+            (Array.isArray(item.levels) &&
+              item.levels.some((level) => level.uuid === gun.CharmLevelID))
+        );
+        const buddyLevels = Array.isArray(buddy?.levels) ? buddy.levels : [];
 
-      const buddy = assets.buddies.find(
-        (item) =>
-          item.uuid === gun.CharmID ||
-          (Array.isArray(item.levels) &&
-            item.levels.some((level) => level.uuid === gun.CharmLevelID))
-      );
-      const buddyLevels = Array.isArray(buddy?.levels) ? buddy.levels : [];
+        const buddyLevel =
+          buddyLevels.find((level) => level.uuid === gun.CharmLevelID) ||
+          buddyLevels[0];
 
-      const buddyLevel =
-        buddyLevels.find((level) => level.uuid === gun.CharmLevelID) ||
-        buddyLevels[0];
+        const weaponName = metadata?.displayName || skin?.displayName || gun.ID;
 
-      const weaponName = metadata?.displayName || skin?.displayName || gun.ID;
-
-      return {
-        weaponId: gun.ID,
-        weaponName,
-        category,
-        skinName: skin?.displayName || t("equip_page.unknown_skin"),
-        skinLevelName: level?.displayName,
-        chromaName: chroma?.displayName,
-        image:
-          chroma?.fullRender ||
-          chroma?.displayIcon ||
-          level?.displayIcon ||
-          skin?.displayIcon,
-        buddyName: buddyLevel?.displayName || buddy?.displayName,
-        buddyIcon: buddyLevel?.displayIcon,
-        contentTierUuid: skin?.contentTierUuid,
-        contentTierName: tierVisual.label,
-        upgradeLevel:
-          typeof upgradeLevelIndex === "number" && upgradeLevelIndex >= 0
-            ? upgradeLevelIndex + 1
-            : undefined,
-        maxUpgradeLevel: skinLevels.length,
-      };
-    });
+        return {
+          weaponId: gun.ID,
+          weaponName,
+          category,
+          skinName: skin?.displayName || t("equip_page.unknown_skin"),
+          skinLevelName: level?.displayName,
+          chromaName: chroma?.displayName,
+          image:
+            chroma?.fullRender ||
+            chroma?.displayIcon ||
+            level?.displayIcon ||
+            skin?.displayIcon,
+          buddyName: buddyLevel?.displayName || buddy?.displayName,
+          buddyIcon: buddyLevel?.displayIcon,
+          contentTierUuid: skin?.contentTierUuid,
+          contentTierName: tierVisual.label,
+          upgradeLevel:
+            typeof upgradeLevelIndex === "number" && upgradeLevelIndex >= 0
+              ? upgradeLevelIndex + 1
+              : undefined,
+          maxUpgradeLevel: skinLevels.length,
+        };
+      });
+    } catch (err) {
+      if (__DEV__) {
+        console.error("[profile] loadoutDetails failed", err);
+      }
+      return [];
+    }
   }, [rawGuns, t, weaponMetadata]);
 
   const loadoutSorted = React.useMemo(() => {
@@ -514,83 +521,90 @@ function Profile() {
   }, [identity]);
 
   const ownedCollection = React.useMemo<OwnedWeaponCollectionItem[]>(() => {
-    const assets = getAssets();
-    const collectionMap = new Map<
-      string,
-      { skin: ValorantSkin; ownedIds: Set<string> }
-    >();
+    try {
+      const assets = getAssets();
+      const collectionMap = new Map<
+        string,
+        { skin: ValorantSkin; ownedIds: Set<string> }
+      >();
 
-    ownedSkinLevelIds.forEach((ownedId) => {
-      const skin = assets.skins.find((item) =>
-        item.uuid === ownedId ||
-        (Array.isArray(item.levels) &&
-          item.levels.some((level) => level.uuid === ownedId)) ||
-        (Array.isArray(item.chromas) &&
-          item.chromas.some((chroma) => chroma.uuid === ownedId))
-      );
-
-      if (!skin) {
-        return;
-      }
-
-      const existing = collectionMap.get(skin.uuid);
-      if (existing) {
-        existing.ownedIds.add(ownedId);
-        return;
-      }
-
-      collectionMap.set(skin.uuid, {
-        skin,
-        ownedIds: new Set([ownedId]),
-      });
-    });
-
-    return Array.from(collectionMap.values())
-      .map(({ skin, ownedIds }) => {
-        const levels = Array.isArray(skin.levels) ? skin.levels : [];
-        const chromas = Array.isArray(skin.chromas) ? skin.chromas : [];
-        const weaponInfo = skinWeaponMap[skin.uuid];
-        const weaponName =
-          weaponInfo?.weaponName || inferWeaponNameFromSkin(skin.displayName);
-        const category =
-          weaponInfo?.category || (weaponName === "Melee" ? "Melee" : "Other");
-        const highestOwnedLevelIndex = levels.reduce(
-          (highestIndex, level, index) =>
-            ownedIds.has(level.uuid) ? index : highestIndex,
-          -1
+      ownedSkinLevelIds.forEach((ownedId) => {
+        const skin = assets.skins.find((item) =>
+          item.uuid === ownedId ||
+          (Array.isArray(item.levels) &&
+            item.levels.some((level) => level.uuid === ownedId)) ||
+          (Array.isArray(item.chromas) &&
+            item.chromas.some((chroma) => chroma.uuid === ownedId))
         );
-        const tier = getContentTierVisual(skin.contentTierUuid);
 
-        return {
-          collectionId: skin.uuid,
-          weaponId: skin.uuid,
-          weaponName,
-          category,
-          skinName: skin.displayName,
-          image:
-            chromas[0]?.fullRender ||
-            chromas[0]?.displayIcon ||
-            levels[highestOwnedLevelIndex]?.displayIcon ||
-            levels[0]?.displayIcon ||
-            skin.displayIcon,
-          contentTierUuid: skin.contentTierUuid,
-          contentTierName: tier.label,
-          upgradeLevel:
-            highestOwnedLevelIndex >= 0 || ownedIds.has(skin.uuid)
-              ? Math.max(highestOwnedLevelIndex + 1, 1)
-              : 1,
-          maxUpgradeLevel: levels.length,
-        };
-      })
-      .sort((a, b) => {
-        const weaponDiff =
-          getWeaponNameWeight(a.weaponName) - getWeaponNameWeight(b.weaponName);
-        if (weaponDiff !== 0) {
-          return weaponDiff;
+        if (!skin) {
+          return;
         }
 
-        return a.skinName.localeCompare(b.skinName);
+        const existing = collectionMap.get(skin.uuid);
+        if (existing) {
+          existing.ownedIds.add(ownedId);
+          return;
+        }
+
+        collectionMap.set(skin.uuid, {
+          skin,
+          ownedIds: new Set([ownedId]),
+        });
       });
+
+      return Array.from(collectionMap.values())
+        .map(({ skin, ownedIds }) => {
+          const levels = Array.isArray(skin.levels) ? skin.levels : [];
+          const chromas = Array.isArray(skin.chromas) ? skin.chromas : [];
+          const weaponInfo = skinWeaponMap[skin.uuid];
+          const weaponName =
+            weaponInfo?.weaponName || inferWeaponNameFromSkin(skin.displayName);
+          const category =
+            weaponInfo?.category || (weaponName === "Melee" ? "Melee" : "Other");
+          const highestOwnedLevelIndex = levels.reduce(
+            (highestIndex, level, index) =>
+              ownedIds.has(level.uuid) ? index : highestIndex,
+            -1
+          );
+          const tier = getContentTierVisual(skin.contentTierUuid);
+
+          return {
+            collectionId: skin.uuid,
+            weaponId: skin.uuid,
+            weaponName,
+            category,
+            skinName: skin.displayName,
+            image:
+              chromas[0]?.fullRender ||
+              chromas[0]?.displayIcon ||
+              levels[highestOwnedLevelIndex]?.displayIcon ||
+              levels[0]?.displayIcon ||
+              skin.displayIcon,
+            contentTierUuid: skin.contentTierUuid,
+            contentTierName: tier.label,
+            upgradeLevel:
+              highestOwnedLevelIndex >= 0 || ownedIds.has(skin.uuid)
+                ? Math.max(highestOwnedLevelIndex + 1, 1)
+                : 1,
+            maxUpgradeLevel: levels.length,
+          };
+        })
+        .sort((a, b) => {
+          const weaponDiff =
+            getWeaponNameWeight(a.weaponName) - getWeaponNameWeight(b.weaponName);
+          if (weaponDiff !== 0) {
+            return weaponDiff;
+          }
+
+          return a.skinName.localeCompare(b.skinName);
+        });
+    } catch (err) {
+      if (__DEV__) {
+        console.error("[profile] ownedCollection failed", err);
+      }
+      return [];
+    }
   }, [ownedSkinLevelIds, skinWeaponMap]);
 
   React.useEffect(() => {
