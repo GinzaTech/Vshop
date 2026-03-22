@@ -132,6 +132,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     <View
       style={[
         styles.card,
+        isBundleVariant && styles.bundleCard,
         {
           backgroundColor: tier.cardBackground,
           borderColor: tier.border,
@@ -139,18 +140,25 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       ]}
     >
       <View style={styles.mainRow}>
-        <View style={styles.content}>
-          <Text style={styles.eyebrow} numberOfLines={1}>
-            {weaponType || "Weapon"}
-          </Text>
+        <View style={[styles.content, isBundleVariant && styles.bundleContent]}>
+          {!isBundleVariant ? (
+            <Text style={styles.eyebrow} numberOfLines={1}>
+              {weaponType || "Weapon"}
+            </Text>
+          ) : null}
 
-          <Text style={styles.title} numberOfLines={1}>
+          <Text
+            style={[styles.title, isBundleVariant && styles.bundleTitle]}
+            numberOfLines={1}
+          >
             {item.displayName}
           </Text>
 
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {subtitle}
-          </Text>
+          {!isBundleVariant ? (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
 
           <View style={isBundleVariant ? styles.bundleBadgeRow : styles.badgeRow}>
             <View
@@ -279,6 +287,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
             onPress={() => toggleSkin(item.levels[0].uuid)}
             style={[
               styles.favoriteButton,
+              isBundleVariant && styles.bundleFavoriteButton,
               {
                 backgroundColor: isFavorited
                   ? tier.accent
@@ -325,6 +334,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 18,
   },
+  bundleCard: {
+    marginBottom: 14,
+    borderRadius: 24,
+    padding: 16,
+  },
   mainRow: {
     flexDirection: "row",
     alignItems: "stretch",
@@ -333,6 +347,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingRight: 16,
+  },
+  bundleContent: {
+    paddingRight: 12,
+    justifyContent: "flex-start",
   },
   eyebrow: {
     color: COLORS.TEXT_SECONDARY,
@@ -344,6 +362,9 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_PRIMARY,
     fontSize: 19,
     fontWeight: "700",
+  },
+  bundleTitle: {
+    fontSize: 17,
   },
   subtitle: {
     marginTop: 6,
@@ -378,8 +399,8 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   bundleStatsColumn: {
-    marginTop: 10,
-    gap: 10,
+    marginTop: 8,
+    gap: 8,
   },
   bundleStatBadge: {
     alignSelf: "flex-start",
@@ -420,7 +441,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   bundleMediaColumn: {
-    width: 140,
+    width: 126,
     alignItems: "flex-end",
     justifyContent: "flex-start",
   },
@@ -433,8 +454,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
+  bundleFavoriteButton: {
+    width: 34,
+    height: 34,
+    marginBottom: 8,
+  },
   bundleImageFrame: {
-    marginTop: 8,
+    width: 116,
+    height: 116,
+    marginTop: 0,
+    borderRadius: 22,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   imageFrame: {
     width: 128,
