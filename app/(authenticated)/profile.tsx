@@ -444,12 +444,13 @@ function Profile() {
     const assets = getAssets();
     const collectionMap = new Map<
       string,
-      { skin: ValorantSkin; ownedLevels: Set<string> }
+      { skin: ValorantSkin; ownedIds: Set<string> }
     >();
 
-    ownedSkinLevelIds.forEach((levelId) => {
+    ownedSkinLevelIds.forEach((ownedId) => {
       const skin = assets.skins.find((item) =>
-        item.levels.some((level) => level.uuid === levelId)
+        item.uuid === ownedId ||
+        item.levels.some((level) => level.uuid === ownedId)
       );
 
       if (!skin) {
@@ -458,18 +459,18 @@ function Profile() {
 
       const existing = collectionMap.get(skin.uuid);
       if (existing) {
-        existing.ownedLevels.add(levelId);
+        existing.ownedIds.add(ownedId);
         return;
       }
 
       collectionMap.set(skin.uuid, {
         skin,
-        ownedLevels: new Set([levelId]),
+        ownedIds: new Set([ownedId]),
       });
     });
 
     return Array.from(collectionMap.values())
-      .map(({ skin, ownedLevels }) => {
+      .map(({ skin, ownedIds }) => {
         const weaponInfo = skinWeaponMap[skin.uuid];
         const weaponName =
           weaponInfo?.weaponName || inferWeaponNameFromSkin(skin.displayName);
@@ -477,7 +478,7 @@ function Profile() {
           weaponInfo?.category || (weaponName === "Melee" ? "Melee" : "Other");
         const highestOwnedLevelIndex = skin.levels.reduce(
           (highestIndex, level, index) =>
-            ownedLevels.has(level.uuid) ? index : highestIndex,
+            ownedIds.has(level.uuid) ? index : highestIndex,
           -1
         );
         const tier = getContentTierVisual(skin.contentTierUuid);
@@ -497,7 +498,9 @@ function Profile() {
           contentTierUuid: skin.contentTierUuid,
           contentTierName: tier.label,
           upgradeLevel:
-            highestOwnedLevelIndex >= 0 ? highestOwnedLevelIndex + 1 : 1,
+            highestOwnedLevelIndex >= 0 || ownedIds.has(skin.uuid)
+              ? Math.max(highestOwnedLevelIndex + 1, 1)
+              : 1,
           maxUpgradeLevel: skin.levels.length,
         };
       })
