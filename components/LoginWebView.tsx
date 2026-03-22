@@ -13,6 +13,7 @@ import {
   getShop,
   getUserId,
   getUsername,
+  ownedItems,
   parseShop,
 
 } from "~/utils/valorant-api";
@@ -22,6 +23,7 @@ import { loadAssets } from "~/utils/valorant-assets";
 import { loadAgent } from "~/utils/valorant-assets";
 import { COLORS } from "~/constants/DesignSystem";
 import { clearAllCookies } from "~/utils/cookies";
+import { VItemTypes } from "~/utils/misc";
 
 const LOGIN_URL =
   "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid";
@@ -87,6 +89,36 @@ export default function LoginWebView({
         );
         const shops = await parseShop(shop);
 
+        setLoading("Fetching owned skins");
+        const [ownedSkinLevels, ownedSkinChromas] = await Promise.allSettled([
+          ownedItems(
+            accessToken,
+            entitlementsToken,
+            region,
+            userId,
+            VItemTypes.SkinLevel
+          ),
+          ownedItems(
+            accessToken,
+            entitlementsToken,
+            region,
+            userId,
+            VItemTypes.SkinChroma
+          ),
+        ]);
+
+        const ownedSkinIds = Array.from(
+          new Set(
+            [ownedSkinLevels, ownedSkinChromas].flatMap((result) =>
+              result.status === "fulfilled"
+                ? (result.value?.EntitlementsByTypes ?? []).flatMap((entry) =>
+                    (entry.Entitlements ?? []).map((entitlement) => entitlement.ItemID)
+                  )
+                : []
+            )
+          )
+        );
+
         setLoading(t("fetching.progress"));
         const progress = await getProgress(
           accessToken,
@@ -111,6 +143,7 @@ export default function LoginWebView({
           shops,
           progress,
           balances,
+          ownedSkinIds,
           accessToken,
           entitlementsToken,
 

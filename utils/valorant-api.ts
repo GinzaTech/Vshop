@@ -82,6 +82,7 @@ export let defaultUser = {
     level: 0,
     xp: 0,
   },
+  ownedSkinIds: [] as string[],
   accessToken: "",
   entitlementsToken: "",
 };

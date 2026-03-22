@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocalSearchParams } from "expo-router";
 import {
   RefreshControl,
   ScrollView,
@@ -74,18 +75,28 @@ const inferWeaponNameFromSkin = (skinName: string) => {
 };
 
 function Profile() {
+  const params = useLocalSearchParams<{ tab?: string | string[] }>();
   const { colors } = useTheme();
   const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
+  const initialTabParam = Array.isArray(params.tab) ? params.tab[0] : params.tab;
+  const initialTab: TabKey =
+    initialTabParam === "loadout" ||
+    initialTabParam === "skins" ||
+    initialTabParam === "collection"
+      ? initialTabParam
+      : "loadout";
 
-  const [activeTab, setActiveTab] = React.useState<TabKey>("loadout");
+  const [activeTab, setActiveTab] = React.useState<TabKey>(initialTab);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [rawGuns, setRawGuns] = React.useState<PlayerLoadoutGun[]>([]);
   const [rawSprays, setRawSprays] = React.useState<PlayerLoadoutSpray[]>([]);
   const [identity, setIdentity] = React.useState<PlayerLoadoutIdentity | null>(null);
-  const [ownedSkinLevelIds, setOwnedSkinLevelIds] = React.useState<string[]>([]);
+  const [ownedSkinLevelIds, setOwnedSkinLevelIds] = React.useState<string[]>(
+    user.ownedSkinIds || []
+  );
   const [weaponMetadata, setWeaponMetadata] = React.useState<WeaponMetadataMap>({});
   const [searchQuery, setSearchQuery] = React.useState("");
   const [expandedCollectionWeapons, setExpandedCollectionWeapons] = React.useState<
@@ -177,7 +188,8 @@ function Profile() {
       setError(null);
 
       try {
-        const [loadoutResult, ownedItemsResult] = await Promise.allSettled([
+        const [loadoutResult, ownedLevelsResult, ownedChromasResult] =
+          await Promise.allSettled([
           playerLoadout(
             user.accessToken,
             user.entitlementsToken,
@@ -190,6 +202,13 @@ function Profile() {
             user.region,
             user.id,
             VItemTypes.SkinLevel
+          ),
+          ownedItems(
+            user.accessToken,
+            user.entitlementsToken,
+            user.region,
+            user.id,
+            VItemTypes.SkinChroma
           ),
         ]);
 
@@ -210,29 +229,64 @@ function Profile() {
           )
         );
 
-        if (ownedItemsResult.status === "fulfilled") {
-          const entitlementGroups = Array.isArray(
-            ownedItemsResult.value?.EntitlementsByTypes
-          )
-            ? ownedItemsResult.value.EntitlementsByTypes
-            : [];
+        const fulfilledInventoryResults = [ownedLevelsResult, ownedChromasResult].filter(
+          (
+            result
+          ): result is PromiseFulfilledResult<Awaited<ReturnType<typeof ownedItems>>> =>
+            result.status === "fulfilled"
+        );
+
+        if (fulfilledInventoryResults.length > 0) {
           const nextOwnedSkinLevelIds = Array.from(
             new Set(
-              entitlementGroups
+              fulfilledInventoryResults
+                .flatMap((result) =>
+                  Array.isArray(result.value?.EntitlementsByTypes)
+                    ? result.value.EntitlementsByTypes
+                    : []
+                )
                 .flatMap((entry) => entry.Entitlements || [])
                 .map((entitlement) => entitlement.ItemID)
                 .filter(Boolean)
             )
           );
 
+          if (__DEV__) {
+            console.log("[collection] owned items response", {
+              entitlementGroups: fulfilledInventoryResults.reduce(
+                (count, result) =>
+                  count +
+                  (Array.isArray(result.value?.EntitlementsByTypes)
+                    ? result.value.EntitlementsByTypes.length
+                    : 0),
+                0
+              ),
+              ownedItemIds: nextOwnedSkinLevelIds.length,
+              fallbackToEquipped: nextOwnedSkinLevelIds.length === 0,
+            });
+          }
+
           setOwnedSkinLevelIds(
             nextOwnedSkinLevelIds.length
               ? nextOwnedSkinLevelIds
-              : equippedSkinLevelIds
+              : user.ownedSkinIds?.length
+                ? user.ownedSkinIds
+                : equippedSkinLevelIds
           );
         } else {
-          if (__DEV__) console.error(ownedItemsResult.reason);
-          setOwnedSkinLevelIds(equippedSkinLevelIds);
+          if (__DEV__) {
+            console.error(ownedLevelsResult.status === "rejected" ? ownedLevelsResult.reason : null);
+            console.error(ownedChromasResult.status === "rejected" ? ownedChromasResult.reason : null);
+          }
+          if (__DEV__) {
+            console.log("[collection] owned items fallback", {
+              storedItemIds: user.ownedSkinIds?.length ?? 0,
+              equippedItemIds: equippedSkinLevelIds.length,
+            });
+          }
+          setOwnedSkinLevelIds(
+            user.ownedSkinIds?.length ? user.ownedSkinIds : equippedSkinLevelIds
+          );
         }
       } catch (err) {
         if (__DEV__) console.error(err);
@@ -243,7 +297,15 @@ function Profile() {
         }
       }
     },
-    [hasAuth, t, user.accessToken, user.entitlementsToken, user.id, user.region]
+    [
+      hasAuth,
+      t,
+      user.accessToken,
+      user.entitlementsToken,
+      user.id,
+      user.ownedSkinIds,
+      user.region,
+    ]
   );
 
   React.useEffect(() => {
@@ -267,6 +329,12 @@ function Profile() {
       isMounted = false;
     };
   }, []);
+
+  React.useEffect(() => {
+    if (user.ownedSkinIds?.length) {
+      setOwnedSkinLevelIds(user.ownedSkinIds);
+    }
+  }, [user.ownedSkinIds]);
 
   React.useEffect(() => {
     if (!hasAuth) {
@@ -308,12 +376,15 @@ function Profile() {
       const skin =
         assets.skins.find((item) => item.uuid === gun.SkinID) ||
         assets.skins.find((item) =>
+          Array.isArray(item.levels) &&
           item.levels.some((level) => level.uuid === gun.SkinLevelID)
         );
+      const skinChromas = Array.isArray(skin?.chromas) ? skin.chromas : [];
+      const skinLevels = Array.isArray(skin?.levels) ? skin.levels : [];
 
-      const chroma = skin?.chromas.find((item) => item.uuid === gun.ChromaID);
-      const level = skin?.levels.find((item) => item.uuid === gun.SkinLevelID);
-      const upgradeLevelIndex = skin?.levels.findIndex(
+      const chroma = skinChromas.find((item) => item.uuid === gun.ChromaID);
+      const level = skinLevels.find((item) => item.uuid === gun.SkinLevelID);
+      const upgradeLevelIndex = skinLevels.findIndex(
         (item) => item.uuid === gun.SkinLevelID
       );
       const tierVisual = getContentTierVisual(skin?.contentTierUuid);
@@ -321,12 +392,14 @@ function Profile() {
       const buddy = assets.buddies.find(
         (item) =>
           item.uuid === gun.CharmID ||
-          item.levels.some((level) => level.uuid === gun.CharmLevelID)
+          (Array.isArray(item.levels) &&
+            item.levels.some((level) => level.uuid === gun.CharmLevelID))
       );
+      const buddyLevels = Array.isArray(buddy?.levels) ? buddy.levels : [];
 
       const buddyLevel =
-        buddy?.levels.find((level) => level.uuid === gun.CharmLevelID) ||
-        buddy?.levels?.[0];
+        buddyLevels.find((level) => level.uuid === gun.CharmLevelID) ||
+        buddyLevels[0];
 
       const weaponName = metadata?.displayName || skin?.displayName || gun.ID;
 
@@ -350,7 +423,7 @@ function Profile() {
           typeof upgradeLevelIndex === "number" && upgradeLevelIndex >= 0
             ? upgradeLevelIndex + 1
             : undefined,
-        maxUpgradeLevel: skin?.levels.length,
+        maxUpgradeLevel: skinLevels.length,
       };
     });
   }, [rawGuns, t, weaponMetadata]);
@@ -450,7 +523,10 @@ function Profile() {
     ownedSkinLevelIds.forEach((ownedId) => {
       const skin = assets.skins.find((item) =>
         item.uuid === ownedId ||
-        item.levels.some((level) => level.uuid === ownedId)
+        (Array.isArray(item.levels) &&
+          item.levels.some((level) => level.uuid === ownedId)) ||
+        (Array.isArray(item.chromas) &&
+          item.chromas.some((chroma) => chroma.uuid === ownedId))
       );
 
       if (!skin) {
@@ -471,12 +547,14 @@ function Profile() {
 
     return Array.from(collectionMap.values())
       .map(({ skin, ownedIds }) => {
+        const levels = Array.isArray(skin.levels) ? skin.levels : [];
+        const chromas = Array.isArray(skin.chromas) ? skin.chromas : [];
         const weaponInfo = skinWeaponMap[skin.uuid];
         const weaponName =
           weaponInfo?.weaponName || inferWeaponNameFromSkin(skin.displayName);
         const category =
           weaponInfo?.category || (weaponName === "Melee" ? "Melee" : "Other");
-        const highestOwnedLevelIndex = skin.levels.reduce(
+        const highestOwnedLevelIndex = levels.reduce(
           (highestIndex, level, index) =>
             ownedIds.has(level.uuid) ? index : highestIndex,
           -1
@@ -490,10 +568,10 @@ function Profile() {
           category,
           skinName: skin.displayName,
           image:
-            skin.chromas?.[0]?.fullRender ||
-            skin.chromas?.[0]?.displayIcon ||
-            skin.levels?.[highestOwnedLevelIndex]?.displayIcon ||
-            skin.levels?.[0]?.displayIcon ||
+            chromas[0]?.fullRender ||
+            chromas[0]?.displayIcon ||
+            levels[highestOwnedLevelIndex]?.displayIcon ||
+            levels[0]?.displayIcon ||
             skin.displayIcon,
           contentTierUuid: skin.contentTierUuid,
           contentTierName: tier.label,
@@ -501,7 +579,7 @@ function Profile() {
             highestOwnedLevelIndex >= 0 || ownedIds.has(skin.uuid)
               ? Math.max(highestOwnedLevelIndex + 1, 1)
               : 1,
-          maxUpgradeLevel: skin.levels.length,
+          maxUpgradeLevel: levels.length,
         };
       })
       .sort((a, b) => {
@@ -514,6 +592,21 @@ function Profile() {
         return a.skinName.localeCompare(b.skinName);
       });
   }, [ownedSkinLevelIds, skinWeaponMap]);
+
+  React.useEffect(() => {
+    if (__DEV__ && activeTab === "collection") {
+      console.log("[collection] resolved owned skins", {
+        ownedIds: ownedSkinLevelIds.length,
+        resolvedSkins: ownedCollection.length,
+        weaponGroups: orderedCollectionWeapons.length,
+      });
+    }
+  }, [
+    activeTab,
+    orderedCollectionWeapons.length,
+    ownedCollection.length,
+    ownedSkinLevelIds.length,
+  ]);
 
   const filteredCollection = React.useMemo(() => {
     if (!searchQuery.trim()) {
@@ -569,6 +662,16 @@ function Profile() {
         : [...current, weaponName]
     );
   }, []);
+
+  React.useEffect(() => {
+    if (
+      initialTabParam === "loadout" ||
+      initialTabParam === "skins" ||
+      initialTabParam === "collection"
+    ) {
+      setActiveTab(initialTabParam);
+    }
+  }, [initialTabParam]);
 
   const handleRefresh = React.useCallback(async () => {
     if (!hasAuth) return;
