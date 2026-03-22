@@ -199,18 +199,37 @@ function Profile() {
         setRawSprays(response.Sprays || []);
         setIdentity(response.Identity || null);
 
-        if (ownedItemsResult.status === "fulfilled") {
-          const nextOwnedSkinLevelIds =
-            ownedItemsResult.value.EntitlementsByTypes.flatMap((entry) =>
-              entry.Entitlements.map((entitlement) => entitlement.ItemID)
-            );
+        const equippedSkinLevelIds = Array.from(
+          new Set(
+            (response.Guns || [])
+              .map((gun) => gun.SkinLevelID)
+              .filter(Boolean)
+          )
+        );
 
-          setOwnedSkinLevelIds(nextOwnedSkinLevelIds);
+        if (ownedItemsResult.status === "fulfilled") {
+          const entitlementGroups = Array.isArray(
+            ownedItemsResult.value?.EntitlementsByTypes
+          )
+            ? ownedItemsResult.value.EntitlementsByTypes
+            : [];
+          const nextOwnedSkinLevelIds = Array.from(
+            new Set(
+              entitlementGroups
+                .flatMap((entry) => entry.Entitlements || [])
+                .map((entitlement) => entitlement.ItemID)
+                .filter(Boolean)
+            )
+          );
+
+          setOwnedSkinLevelIds(
+            nextOwnedSkinLevelIds.length
+              ? nextOwnedSkinLevelIds
+              : equippedSkinLevelIds
+          );
         } else {
           if (__DEV__) console.error(ownedItemsResult.reason);
-          setOwnedSkinLevelIds(
-            (response.Guns || []).map((gun) => gun.SkinLevelID).filter(Boolean)
-          );
+          setOwnedSkinLevelIds(equippedSkinLevelIds);
         }
       } catch (err) {
         if (__DEV__) console.error(err);
