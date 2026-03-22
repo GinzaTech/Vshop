@@ -254,32 +254,16 @@ export default function MatchHistory() {
                   </View>
 
                   <View style={styles.mapBlock}>
-                    <View
-                      style={[
-                        styles.mapBadge,
-                        {
-                          backgroundColor: resultSurface,
-                          borderColor: resultBorder,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.mapBadgeText, { color: resultColor }]}>
-                        MAP
-                      </Text>
-                    </View>
                     <Text style={[styles.mapTitle, { color: resultColor }]}>
                       {item.stats.mapName}
                     </Text>
-                    <Text style={styles.mapMeta}>
-                      {item.stats.roundsPlayed} rounds played
-                    </Text>
+                    <Text style={styles.mapMeta}>{formatMatchDate(item.GameStartTime)}</Text>
                   </View>
 
                   <View style={styles.scoreBlock}>
                     <Text style={[styles.scoreValue, { color: resultColor }]}>
                       {item.stats.roundsWon} - {item.stats.roundsLost}
                     </Text>
-                    <Text style={styles.scoreMeta}>Scoreline</Text>
                   </View>
                 </View>
 
@@ -489,19 +473,6 @@ const styles = StyleSheet.create({
   mapBlock: {
     flex: 1,
   },
-  mapBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: RADIUS.chip,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  mapBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.7,
-  },
   mapTitle: {
     fontSize: 18,
     fontWeight: "700",
@@ -518,11 +489,6 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_PRIMARY,
     fontSize: 24,
     fontWeight: "700",
-  },
-  scoreMeta: {
-    marginTop: 4,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
   },
   metricsGrid: {
     flexDirection: "row",
