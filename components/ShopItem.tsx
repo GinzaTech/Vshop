@@ -7,7 +7,13 @@ interface ShopItemProps {
 }
 
 const ShopItem = React.memo(function ShopItem({ item }: ShopItemProps) {
-  return <SkinShowcaseCard item={item} subtitle="Daily store pick" />;
+  return (
+    <SkinShowcaseCard
+      item={item}
+      subtitle="Daily store pick"
+      variant="bundle"
+    />
+  );
 });
 
 export default ShopItem;

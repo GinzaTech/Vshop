@@ -36,7 +36,6 @@ import {
   IdentityDetails,
   resolveCategory,
   formatSpraySlot,
-  buildMetadataTags,
 } from "~/components/GalleryProfile";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
@@ -560,37 +559,6 @@ function Profile() {
     );
   };
 
-  const renderMetadataTags = React.useCallback(
-    (tags: string[]) => {
-      if (tags.length === 0) return null;
-
-      return (
-        <View style={styles.weaponTags}>
-          {tags.map((tag) => (
-            <View
-              key={tag}
-              style={[
-                styles.weaponTag,
-                {
-                  backgroundColor: palette.chipBackground,
-                  borderColor: palette.cardBorder,
-                },
-              ]}
-            >
-              <Text
-                style={[styles.weaponTagText, { color: palette.textSecondary }]}
-                numberOfLines={1}
-              >
-                {tag}
-              </Text>
-            </View>
-          ))}
-        </View>
-      );
-    },
-    [palette]
-  );
-
   const renderWeaponBadges = React.useCallback(
     (weapon: EquippedWeapon) => {
       const tier = getContentTierVisual(
@@ -631,20 +599,20 @@ function Profile() {
               style={[
                 styles.weaponBadge,
                 {
-                  backgroundColor: palette.chipBackground,
-                  borderColor: palette.cardBorder,
+                  backgroundColor: tier.badgeBackground,
+                  borderColor: tier.border,
                 },
               ]}
             >
               <Icon
                 name="arrow-up-bold-circle-outline"
                 size={12}
-                color={palette.textSecondary}
+                color={tier.text}
               />
               <Text
                 style={[
                   styles.weaponBadgeText,
-                  { color: palette.textPrimary },
+                  { color: tier.text },
                 ]}
               >
                 {upgradeLabel}
@@ -654,12 +622,11 @@ function Profile() {
         </View>
       );
     },
-    [palette]
+    []
   );
 
   const renderLoadoutWeaponCard = React.useCallback(
     (weapon: EquippedWeapon) => {
-      const metadataTags = buildMetadataTags(weapon);
       const tier = getContentTierVisual(
         weapon.contentTierUuid,
         weapon.contentTierName
@@ -670,28 +637,23 @@ function Profile() {
           key={weapon.weaponId}
           style={[
             styles.weaponCard,
+            styles.syncedWeaponCard,
             { backgroundColor: tier.cardBackground, borderColor: tier.border },
           ]}
         >
           <View style={styles.weaponDetails}>
             <Text
               style={[styles.cardTitle, { color: palette.textPrimary }]}
-              numberOfLines={2}
+              numberOfLines={1}
             >
               {weapon.skinName}
             </Text>
-            <Text
-              style={[styles.cardSubtitle, { color: palette.textSecondary }]}
-              numberOfLines={1}
-            >
-              {weapon.weaponName}
-            </Text>
             {renderWeaponBadges(weapon)}
-            {renderMetadataTags(metadataTags)}
           </View>
           <View
             style={[
               styles.weaponImageWrapper,
+              styles.syncedWeaponImageWrapper,
               {
                 backgroundColor: tier.visualBackground,
                 borderColor: tier.border,
@@ -709,15 +671,12 @@ function Profile() {
     },
     [
       palette.textPrimary,
-      palette.textSecondary,
-      renderMetadataTags,
       renderWeaponBadges,
     ]
   );
 
   const renderSkinGridCard = React.useCallback(
     (weapon: EquippedWeapon, category: string) => {
-      const metadataTags = buildMetadataTags(weapon);
       const tier = getContentTierVisual(
         weapon.contentTierUuid,
         weapon.contentTierName
@@ -728,12 +687,14 @@ function Profile() {
           key={`${category}-${weapon.weaponId}`}
           style={[
             styles.skinGridCard,
+            styles.syncedGridCard,
             { backgroundColor: tier.cardBackground, borderColor: tier.border },
           ]}
         >
           <View
             style={[
               styles.skinGridVisual,
+              styles.syncedGridVisual,
               {
                 backgroundColor: tier.visualBackground,
                 borderColor: tier.border,
@@ -749,22 +710,16 @@ function Profile() {
           <View style={styles.skinGridDetails}>
             <Text
               style={[styles.skinGridTitle, { color: palette.textPrimary }]}
-              numberOfLines={2}
+              numberOfLines={1}
             >
               {weapon.skinName}
             </Text>
-            <Text
-              style={[styles.skinGridSubtitle, { color: palette.textSecondary }]}
-            >
-              {weapon.weaponName}
-            </Text>
             {renderWeaponBadges(weapon)}
-            {renderMetadataTags(metadataTags)}
           </View>
         </View>
       );
     },
-    [palette.textPrimary, palette.textSecondary, renderMetadataTags, renderWeaponBadges]
+    [palette.textPrimary, renderWeaponBadges]
   );
 
   const renderWeaponCategories = React.useCallback(
@@ -922,15 +877,6 @@ function Profile() {
               numberOfLines={2}
             >
               {item.skinName}
-            </Text>
-            <Text
-              style={[
-                styles.collectionWeaponName,
-                { color: palette.textSecondary },
-              ]}
-              numberOfLines={1}
-            >
-              {item.weaponName}
             </Text>
           </View>
         );
@@ -1238,6 +1184,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
   },
+  syncedWeaponCard: {
+    padding: 12,
+    minHeight: 112,
+    borderRadius: 22,
+  },
   weaponDetails: {
     flex: 1,
     marginRight: 12,
@@ -1305,6 +1256,12 @@ const styles = StyleSheet.create({
     padding: 10,
     overflow: "hidden",
   },
+  syncedWeaponImageWrapper: {
+    width: 104,
+    height: 88,
+    borderRadius: 20,
+    padding: 8,
+  },
   weaponImage: {
     width: "100%",
     height: "100%",
@@ -1321,6 +1278,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
   },
+  syncedGridCard: {
+    padding: 10,
+  },
   skinGridVisual: {
     width: "100%",
     height: 116,
@@ -1330,6 +1290,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
+  },
+  syncedGridVisual: {
+    height: 100,
+    borderRadius: 16,
+    padding: 8,
   },
   skinGridImage: {
     width: "100%",
@@ -1388,10 +1353,6 @@ const styles = StyleSheet.create({
   collectionSkinName: {
     fontSize: 14,
     fontWeight: "700",
-    marginBottom: 4,
-  },
-  collectionWeaponName: {
-    fontSize: 12,
   },
   centered: {
     flex: 1,
