@@ -1,7 +1,7 @@
 import i18n, { ModuleType } from "i18next";
 import { initReactI18next } from "react-i18next";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getLocales } from "expo-localization";
+import { getStoredItem, setStoredItem } from "./storage";
 
 import en from "~/assets/i18n/en.json";
 import ar from "~/assets/i18n/ar.json";
@@ -90,25 +90,25 @@ const normalizeLanguage = (
 const langDetector = {
   type: "languageDetector" as ModuleType,
   async: true,
-  detect: (callback: any) => {
-    AsyncStorage.getItem("language", (error, result) => {
-      if (!error && result) {
-        callback(normalizeLanguage(result, result));
-        return;
-      } else {
-        const locales = getLocales();
-        const deviceLocale = locales?.[0];
-        const lang = normalizeLanguage(
-          deviceLocale?.languageCode,
-          deviceLocale?.languageTag
-        );
-        callback(lang);
-      }
-    });
+  detect: async (callback: any) => {
+    const result = await getStoredItem("language");
+
+    if (result) {
+      callback(normalizeLanguage(result, result));
+      return;
+    }
+
+    const locales = getLocales();
+    const deviceLocale = locales?.[0];
+    const lang = normalizeLanguage(
+      deviceLocale?.languageCode,
+      deviceLocale?.languageTag
+    );
+    callback(lang);
   },
   init: () => {},
   cacheUserLanguage: (language: string) => {
-    AsyncStorage.setItem("language", language);
+    setStoredItem("language", language);
   },
 };
 

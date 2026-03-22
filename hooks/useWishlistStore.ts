@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { appStorage } from "~/utils/storage";
 
 interface WishlistState {
   notificationEnabled: boolean;
@@ -27,7 +27,7 @@ export const useWishlistStore = create<WishlistState>()(
     }),
     {
       name: "wishlist",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => appStorage),
     }
   )
 );
