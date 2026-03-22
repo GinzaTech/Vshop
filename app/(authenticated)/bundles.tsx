@@ -12,6 +12,16 @@ import { COLORS, RADIUS } from "~/constants/DesignSystem";
 function Bundles() {
   const { t } = useTranslation();
   const user = useUserStore(({ user }) => user);
+  const [expandedBundles, setExpandedBundles] = React.useState<
+    Record<string, boolean>
+  >({});
+
+  const toggleBundle = React.useCallback((bundleUuid: string) => {
+    setExpandedBundles((current) => ({
+      ...current,
+      [bundleUuid]: !current[bundleUuid],
+    }));
+  }, []);
 
   if (user.shops.bundles.length === 0) {
     return (
@@ -43,21 +53,31 @@ function Bundles() {
         <Text style={styles.balanceText}>{user.balances.vp}</Text>
       </View>
 
-      {user.shops.bundles.map((bundle, index) => (
-        <View key={bundle.uuid} style={styles.bundleBlock}>
-          <BundleImage
-            bundle={bundle}
-            remainingSecs={user.shops.remainingSecs.bundles[index]}
-          />
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Included items</Text>
-            <Text style={styles.sectionMeta}>{bundle.items.length} skins</Text>
+      {user.shops.bundles.map((bundle, index) => {
+        const isExpanded = Boolean(expandedBundles[bundle.uuid]);
+
+        return (
+          <View key={bundle.uuid} style={styles.bundleBlock}>
+            <BundleImage
+              bundle={bundle}
+              remainingSecs={user.shops.remainingSecs.bundles[index]}
+              expanded={isExpanded}
+              onPress={() => toggleBundle(bundle.uuid)}
+            />
+            {isExpanded ? (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Included items</Text>
+                  <Text style={styles.sectionMeta}>{bundle.items.length} skins</Text>
+                </View>
+                {bundle.items.map((item) => (
+                  <BundleItem item={item} key={item.uuid} />
+                ))}
+              </>
+            ) : null}
           </View>
-          {bundle.items.map((item) => (
-            <BundleItem item={item} key={item.uuid} />
-          ))}
-        </View>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 }
