@@ -10,6 +10,10 @@ interface MatchStats {
     deaths: number;
     assists: number;
     score: number;
+    acs: number;
+    kdRatio: string;
+    headshotPct: string | null;
+    roundsPlayed: number;
     won: boolean;
     roundsWon: number;
     roundsLost: number;
@@ -127,6 +131,19 @@ export const useMatchStore = create<MatchState>((set, get) => ({
 
                     const teamId = myself.teamId;
                     const myTeam = details.teams.find((t: any) => t.teamId === teamId);
+                    const roundsPlayed =
+                        myself.stats?.roundsPlayed ||
+                        myTeam?.roundsPlayed ||
+                        (myTeam ? myTeam.roundsWon + (myTeam.roundsPlayed - myTeam.roundsWon) : 0) ||
+                        0;
+                    const kills = myself.stats?.kills || 0;
+                    const deaths = myself.stats?.deaths || 0;
+                    const assists = myself.stats?.assists || 0;
+                    const score = myself.stats?.score || 0;
+                    const headshots = myself.stats?.headshots || 0;
+                    const bodyshots = myself.stats?.bodyshots || 0;
+                    const legshots = myself.stats?.legshots || 0;
+                    const totalShots = headshots + bodyshots + legshots;
 
                     const mapInfo = assets.maps ? assets.maps.find((m: any) => m.mapUrl === details.matchInfo?.mapId) : null;
                     const agentInfo = agents ? agents.find((a: any) => a.uuid === myself.characterId) : null;
@@ -134,11 +151,16 @@ export const useMatchStore = create<MatchState>((set, get) => ({
                     return {
                         ...match,
                         stats: {
-                            kda: `${myself.stats.score}/${myself.stats.roundsPlayed}/${myself.stats.kills}`,
-                            kills: myself.stats.kills,
-                            deaths: myself.stats.deaths,
-                            assists: myself.stats.assists,
-                            score: myself.stats.score,
+                            kda: `${kills}/${deaths}/${assists}`,
+                            kills,
+                            deaths,
+                            assists,
+                            score,
+                            acs: roundsPlayed > 0 ? Math.round(score / roundsPlayed) : 0,
+                            kdRatio: deaths > 0 ? (kills / deaths).toFixed(2) : kills.toFixed(2),
+                            headshotPct:
+                                totalShots > 0 ? `${Math.round((headshots / totalShots) * 100)}%` : null,
+                            roundsPlayed,
                             won: myTeam ? myTeam.won : false,
                             roundsWon: myTeam ? myTeam.roundsWon : 0,
                             roundsLost: myTeam ? (myTeam.roundsPlayed - myTeam.roundsWon) : 0,

@@ -14,8 +14,29 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
-import GlassCard from "~/components/ui/GlassCard";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
+
+const formatLabel = (value?: string | null) => {
+  if (!value) return "Unknown";
+
+  return value
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+};
+
+const formatMatchDate = (value: number) =>
+  new Date(value).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+
+const formatMatchTime = (value: number) =>
+  new Date(value).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
 export default function MatchHistory() {
   const user = useUserStore((state) => state.user);
@@ -34,6 +55,26 @@ export default function MatchHistory() {
     await fetchMatches(user);
     setRefreshing(false);
   };
+
+  const completedMatches = React.useMemo(
+    () => matches.filter((item) => item.stats),
+    [matches]
+  );
+  const summary = React.useMemo(() => {
+    const wins = completedMatches.filter((item) => item.stats?.won).length;
+    const losses = completedMatches.length - wins;
+    const avgAcs =
+      completedMatches.length > 0
+        ? Math.round(
+            completedMatches.reduce(
+              (total, item) => total + (item.stats?.acs || 0),
+              0
+            ) / completedMatches.length
+          )
+        : 0;
+
+    return { wins, losses, avgAcs };
+  }, [completedMatches]);
 
   if (loading && !refreshing && matches.length === 0) {
     return (
@@ -59,10 +100,27 @@ export default function MatchHistory() {
       }
       ListHeaderComponent={
         <View style={styles.header}>
-          <Text style={styles.title}>Recent matches</Text>
+          <Text style={styles.title}>Match History</Text>
           <Text style={styles.subtitle}>
-            Review your last games, scorelines, and the agent you played.
+            Tracker-style recent matches with result, KDA, ACS, and pace at a glance.
           </Text>
+
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Wins</Text>
+              <Text style={[styles.summaryValue, styles.winSummary]}>
+                {summary.wins}
+              </Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Losses</Text>
+              <Text style={styles.summaryValue}>{summary.losses}</Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Avg ACS</Text>
+              <Text style={styles.summaryValue}>{summary.avgAcs || "--"}</Text>
+            </View>
+          </View>
         </View>
       }
       ListEmptyComponent={
@@ -77,71 +135,136 @@ export default function MatchHistory() {
       renderItem={({ item }) => {
         if (!item.stats) {
           return (
-            <GlassCard style={styles.card}>
-              <View style={styles.pendingRow}>
-                <View style={styles.pendingIcon}>
-                  <Text style={styles.pendingIconText}>?</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>Processing match</Text>
-                  <Text style={styles.cardMeta}>
-                    {new Date(item.GameStartTime).toLocaleDateString()}
-                  </Text>
-                </View>
+            <View style={styles.pendingCard}>
+              <View style={styles.pendingIcon}>
+                <Text style={styles.pendingIconText}>?</Text>
               </View>
-            </GlassCard>
+              <View style={styles.pendingContent}>
+                <Text style={styles.pendingTitle}>Processing match</Text>
+                <Text style={styles.pendingMeta}>
+                  {formatMatchDate(item.GameStartTime)} at{" "}
+                  {formatMatchTime(item.GameStartTime)}
+                </Text>
+              </View>
+            </View>
           );
         }
 
-        const resultColor = item.stats.won ? COLORS.SUCCESS : COLORS.ACCENT;
+        const resultColor = item.stats.won ? COLORS.SUCCESS : COLORS.ACCENT_DEEP;
+        const resultSurface = item.stats.won
+          ? "rgba(95, 122, 107, 0.12)"
+          : "rgba(47, 52, 59, 0.12)";
 
         return (
           <TouchableOpacity
-            activeOpacity={0.88}
+            activeOpacity={0.9}
             onPress={() => router.push(`/match_details/${item.MatchID}`)}
           >
-            <GlassCard style={styles.card}>
-              <Image
-                source={{ uri: item.stats.mapImage }}
-                style={styles.mapImage}
-                contentFit="cover"
+            <View style={styles.matchCard}>
+              <View
+                style={[
+                  styles.resultBar,
+                  { backgroundColor: resultColor },
+                ]}
               />
-              <View style={styles.cardOverlay} />
-              <View style={styles.cardContent}>
-                <View style={styles.leftColumn}>
-                  <Image
-                    source={{ uri: item.stats.agentIcon }}
-                    style={styles.agentIcon}
-                    contentFit="cover"
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.cardTitle}>
-                      {item.stats.mapName}
+
+              {item.stats.mapImage ? (
+                <Image
+                  source={{ uri: item.stats.mapImage }}
+                  style={styles.mapImage}
+                  contentFit="cover"
+                />
+              ) : null}
+              <View style={styles.mapScrim} />
+
+              <View style={styles.matchCardContent}>
+                <View style={styles.cardTopRow}>
+                  <View style={styles.cardTopLeft}>
+                    <View
+                      style={[
+                        styles.resultPill,
+                        {
+                          backgroundColor: resultColor,
+                          borderColor: resultColor,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.resultPillText}>
+                        {item.stats.won ? "Victory" : "Defeat"}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.modePill,
+                        {
+                          backgroundColor: resultSurface,
+                          borderColor: COLORS.BORDER,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.modePillText}>
+                        {formatLabel(item.stats.gameMode || item.QueueID)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.dateBlock}>
+                    <Text style={styles.dateText}>
+                      {formatMatchDate(item.GameStartTime)}
                     </Text>
-                    <Text style={styles.cardMeta}>
-                      {new Date(item.GameStartTime).toLocaleDateString()}
+                    <Text style={styles.timeText}>
+                      {formatMatchTime(item.GameStartTime)}
                     </Text>
-                    <Text style={styles.cardMode}>{item.stats.gameMode}</Text>
                   </View>
                 </View>
 
-                <View style={styles.rightColumn}>
-                  <View
-                    style={[styles.resultPill, { backgroundColor: resultColor }]}
-                  >
-                    <Text style={styles.resultPillText}>
-                      {item.stats.won ? "Victory" : "Defeat"}
+                <View style={styles.matchMainRow}>
+                  <View style={styles.agentShell}>
+                    <Image
+                      source={{ uri: item.stats.agentIcon }}
+                      style={styles.agentIcon}
+                      contentFit="cover"
+                    />
+                  </View>
+
+                  <View style={styles.mapBlock}>
+                    <Text style={styles.mapTitle}>{item.stats.mapName}</Text>
+                    <Text style={styles.mapMeta}>
+                      {item.stats.roundsPlayed} rounds played
                     </Text>
                   </View>
-                  <Text style={styles.scoreText}>
-                    {item.stats.roundsWon} - {item.stats.roundsLost}
-                  </Text>
-                  <Text style={styles.kdaText}>
-                    {item.stats.kills}/{item.stats.deaths}/{item.stats.assists}
-                  </Text>
+
+                  <View style={styles.scoreBlock}>
+                    <Text style={styles.scoreValue}>
+                      {item.stats.roundsWon} - {item.stats.roundsLost}
+                    </Text>
+                    <Text style={styles.scoreMeta}>Scoreline</Text>
+                  </View>
+                </View>
+
+                <View style={styles.metricsGrid}>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricLabel}>KDA</Text>
+                    <Text style={styles.metricValue}>{item.stats.kda}</Text>
+                  </View>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricLabel}>K/D</Text>
+                    <Text style={styles.metricValue}>{item.stats.kdRatio}</Text>
+                  </View>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricLabel}>ACS</Text>
+                    <Text style={styles.metricValue}>{item.stats.acs}</Text>
+                  </View>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricLabel}>HS%</Text>
+                    <Text style={styles.metricValue}>
+                      {item.stats.headshotPct || "--"}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </GlassCard>
+            </View>
           </TouchableOpacity>
         );
       }}
@@ -171,6 +294,37 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_SECONDARY,
     lineHeight: 22,
   },
+  summaryRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 18,
+  },
+  summaryCard: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 20,
+    backgroundColor: COLORS.SURFACE,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    ...GLOBAL_STYLES.shadow,
+  },
+  summaryLabel: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  summaryValue: {
+    marginTop: 8,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 22,
+    fontWeight: "700",
+  },
+  winSummary: {
+    color: COLORS.SUCCESS,
+  },
   centered: {
     flex: 1,
     justifyContent: "center",
@@ -196,86 +350,170 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: COLORS.TEXT_SECONDARY,
   },
-  card: {
-    marginBottom: 14,
-    overflow: "hidden",
+  matchCard: {
     position: "relative",
+    overflow: "hidden",
+    marginBottom: 14,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE,
+    ...GLOBAL_STYLES.shadow,
+  },
+  resultBar: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 5,
+    zIndex: 3,
   },
   mapImage: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.12,
+    opacity: 0.1,
   },
-  cardOverlay: {
+  mapScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.75)",
+    backgroundColor: "rgba(241,244,248,0.92)",
   },
-  cardContent: {
+  matchCardContent: {
+    padding: 16,
+  },
+  cardTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    gap: 16,
-  },
-  leftColumn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
   },
-  rightColumn: {
-    alignItems: "flex-end",
-  },
-  agentIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: RADIUS.chip,
-  },
-  cardTitle: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  cardMeta: {
-    marginTop: 4,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
-  },
-  cardMode: {
-    marginTop: 6,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    textTransform: "uppercase",
+  cardTopLeft: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    flex: 1,
   },
   resultPill: {
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: RADIUS.chip,
-    marginBottom: 10,
+    borderWidth: 1,
   },
   resultPillText: {
     color: COLORS.PURE_WHITE,
     fontSize: 12,
     fontWeight: "700",
   },
-  scoreText: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 20,
+  modePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+  },
+  modePillText: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
     fontWeight: "700",
   },
-  kdaText: {
+  dateBlock: {
+    alignItems: "flex-end",
+  },
+  dateText: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  timeText: {
     marginTop: 4,
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
   },
-  pendingRow: {
+  matchMainRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    marginTop: 14,
+  },
+  agentShell: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    overflow: "hidden",
+  },
+  agentIcon: {
+    width: "100%",
+    height: "100%",
+  },
+  mapBlock: {
+    flex: 1,
+  },
+  mapTitle: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  mapMeta: {
+    marginTop: 5,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
+  },
+  scoreBlock: {
+    alignItems: "flex-end",
+  },
+  scoreValue: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  scoreMeta: {
+    marginTop: 4,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+  },
+  metricsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 14,
+  },
+  metricCard: {
+    width: "47.5%",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.54)",
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+  },
+  metricLabel: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  metricValue: {
+    marginTop: 6,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  pendingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+    padding: 16,
+    borderRadius: RADIUS.card,
+    backgroundColor: COLORS.SURFACE,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    ...GLOBAL_STYLES.shadow,
   },
   pendingIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: RADIUS.chip,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.SURFACE_MUTED,
@@ -284,5 +522,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 18,
     color: COLORS.TEXT_SECONDARY,
+  },
+  pendingContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  pendingTitle: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  pendingMeta: {
+    marginTop: 4,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
   },
 });
