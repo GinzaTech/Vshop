@@ -17,6 +17,8 @@ import GlassCard from "~/components/ui/GlassCard";
 import { COLORS } from "~/constants/DesignSystem";
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get("window");
+const FOOTER_OFFSET = 132;
+const PAGE_HEIGHT = windowHeight - FOOTER_OFFSET;
 
 function Setup() {
   const scrollViewRef = useRef<ScrollView>(null);
@@ -41,7 +43,9 @@ function Setup() {
           style={{
             justifyContent: "space-evenly",
             width: windowWidth,
+            height: PAGE_HEIGHT,
             paddingHorizontal: 20,
+            paddingVertical: 12,
           }}
         >
           <GlassCard style={{ overflow: "hidden" }}>
@@ -76,11 +80,13 @@ function Setup() {
         <View
           style={{
             width: windowWidth,
-            height: windowHeight,
+            height: PAGE_HEIGHT,
             padding: 20,
+            paddingTop: 12,
+            paddingBottom: 12,
           }}
         >
-          <GlassCard>
+          <GlassCard style={{ flex: 1 }}>
             <Title
               style={{ fontSize: 28, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}
             >
@@ -113,12 +119,13 @@ function Setup() {
           <View
             style={{
               width: windowWidth,
-              minHeight: windowHeight - 96,
+              height: PAGE_HEIGHT,
               paddingHorizontal: 20,
+              paddingTop: 12,
               paddingBottom: 12,
             }}
           >
-            <GlassCard style={{ flex: 1, minHeight: windowHeight * 0.74 }}>
+            <GlassCard style={{ flex: 1 }}>
               <View
                 style={{
                   paddingBottom: 12,
@@ -133,7 +140,7 @@ function Setup() {
                   {t("signin_info")}
                 </Paragraph>
               </View>
-              <LoginWebView minHeight={windowHeight * 0.58} />
+              <LoginWebView minHeight={PAGE_HEIGHT * 0.56} />
             </GlassCard>
           </View>
         )}
