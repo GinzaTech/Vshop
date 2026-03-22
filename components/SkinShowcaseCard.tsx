@@ -14,6 +14,7 @@ import { getContentTierVisual } from "~/utils/content-tier";
 interface SkinShowcaseCardProps {
   item: SkinShopItem;
   subtitle: string;
+  variant?: "store" | "bundle";
 }
 
 const WEAPON_NAMES = [
@@ -46,6 +47,7 @@ const buildPreviewLabel = (value?: string | null) => {
 const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   item,
   subtitle,
+  variant = "store",
 }: SkinShowcaseCardProps) {
   const { t } = useTranslation();
   const { showMediaPopup } = useMediaPopupStore();
@@ -124,6 +126,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
 
     return chips;
   }, [handleChromasPress, handleLevelsPress, item.chromas, item.displayName, item.levels]);
+  const isBundleVariant = variant === "bundle";
 
   return (
     <View
@@ -149,7 +152,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
             {subtitle}
           </Text>
 
-          <View style={styles.badgeRow}>
+          <View style={isBundleVariant ? styles.bundleBadgeRow : styles.badgeRow}>
             <View
               style={[
                 styles.metaBadge,
@@ -167,66 +170,110 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.metaBadge,
-                {
-                  backgroundColor: COLORS.SURFACE_MUTED,
-                  borderColor: COLORS.BORDER,
-                },
-              ]}
-            >
-              <Icon
-                name="arrow-up-bold-circle-outline"
-                size={15}
-                color={COLORS.TEXT_SECONDARY}
-              />
-              <Text style={styles.metaBadgeText}>{upgradeLabel}</Text>
-            </View>
+            {isBundleVariant ? (
+              <View style={styles.bundleStatsColumn}>
+                <View
+                  style={[
+                    styles.metaBadge,
+                    styles.bundleStatBadge,
+                    {
+                      backgroundColor: tier.badgeBackground,
+                      borderColor: tier.border,
+                    },
+                  ]}
+                >
+                  <Icon
+                    name="arrow-up-bold-circle-outline"
+                    size={15}
+                    color={tier.text}
+                  />
+                  <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+                    {upgradeLabel}
+                  </Text>
+                </View>
 
-            <View
-              style={[
-                styles.metaBadge,
-                {
-                  backgroundColor: COLORS.SURFACE_MUTED,
-                  borderColor: COLORS.BORDER,
-                },
-              ]}
-            >
-              <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-              <Text style={styles.metaBadgeText}>{item.price}</Text>
-            </View>
+                <View
+                  style={[
+                    styles.metaBadge,
+                    styles.bundleStatBadge,
+                    {
+                      backgroundColor: tier.badgeBackground,
+                      borderColor: tier.border,
+                    },
+                  ]}
+                >
+                  <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+                  <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+                    {item.price}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <>
+                <View
+                  style={[
+                    styles.metaBadge,
+                    {
+                      backgroundColor: COLORS.SURFACE_MUTED,
+                      borderColor: COLORS.BORDER,
+                    },
+                  ]}
+                >
+                  <Icon
+                    name="arrow-up-bold-circle-outline"
+                    size={15}
+                    color={COLORS.TEXT_SECONDARY}
+                  />
+                  <Text style={styles.metaBadgeText}>{upgradeLabel}</Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.metaBadge,
+                    {
+                      backgroundColor: COLORS.SURFACE_MUTED,
+                      borderColor: COLORS.BORDER,
+                    },
+                  ]}
+                >
+                  <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+                  <Text style={styles.metaBadgeText}>{item.price}</Text>
+                </View>
+              </>
+            )}
           </View>
 
-          <View style={styles.chipsRow}>
-            {previewChips.map((chip) => (
-              <TouchableOpacity
-                key={chip.key}
-                activeOpacity={0.85}
-                onPress={chip.onPress}
-                style={styles.previewChip}
-              >
-                <Text style={styles.previewChipText} numberOfLines={1}>
-                  {chip.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          {!isBundleVariant ? (
+            <View style={styles.chipsRow}>
+              {previewChips.map((chip) => (
+                <TouchableOpacity
+                  key={chip.key}
+                  activeOpacity={0.85}
+                  onPress={chip.onPress}
+                  style={styles.previewChip}
+                >
+                  <Text style={styles.previewChipText} numberOfLines={1}>
+                    {chip.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
 
-            {previewChips.length === 0 ? (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleLevelsPress}
-                style={styles.previewChip}
-              >
-                <Text style={styles.previewChipText} numberOfLines={1}>
-                  {t("levels").toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
+              {previewChips.length === 0 ? (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleLevelsPress}
+                  style={styles.previewChip}
+                >
+                  <Text style={styles.previewChipText} numberOfLines={1}>
+                    {t("levels").toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
-        <View style={styles.mediaColumn}>
+        <View style={isBundleVariant ? styles.bundleMediaColumn : styles.mediaColumn}>
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => toggleSkin(item.levels[0].uuid)}
@@ -252,6 +299,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
             onPress={handleLevelsPress}
             style={[
               styles.imageFrame,
+              isBundleVariant && styles.bundleImageFrame,
               {
                 backgroundColor: tier.visualBackground,
                 borderColor: tier.border,
@@ -309,6 +357,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
   },
+  bundleBadgeRow: {
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 16,
+  },
   metaBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -323,6 +376,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     marginLeft: 6,
+  },
+  bundleStatsColumn: {
+    marginTop: 10,
+    gap: 10,
+  },
+  bundleStatBadge: {
+    alignSelf: "flex-start",
   },
   rarityDot: {
     width: 9,
@@ -359,6 +419,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
   },
+  bundleMediaColumn: {
+    width: 140,
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
+  },
   favoriteButton: {
     width: 38,
     height: 38,
@@ -367,6 +432,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
+  },
+  bundleImageFrame: {
+    marginTop: 8,
   },
   imageFrame: {
     width: 128,

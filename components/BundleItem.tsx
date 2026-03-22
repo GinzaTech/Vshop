@@ -7,7 +7,13 @@ interface BundleItemProps {
 }
 
 const BundleItem = React.memo(function BundleItem({ item }: BundleItemProps) {
-  return <SkinShowcaseCard item={item} subtitle="Included in bundle" />;
+  return (
+    <SkinShowcaseCard
+      item={item}
+      subtitle="Included in bundle"
+      variant="bundle"
+    />
+  );
 });
 
 export default BundleItem;
