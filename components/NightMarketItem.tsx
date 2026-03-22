@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
@@ -18,10 +17,6 @@ export default function NightMarketItem(props: React.PropsWithChildren<props>) {
   const { showMediaPopup } = useMediaPopupStore();
   const { screenshotModeEnabled } = useFeatureStore();
   const tier = getContentTierVisual(props.item.contentTierUuid);
-  const upgradeLabel =
-    props.item.levels.length > 1
-      ? `Lv ${props.item.levels.length}/${props.item.levels.length}`
-      : "Lv 1";
 
   return (
     <View
@@ -66,27 +61,6 @@ export default function NightMarketItem(props: React.PropsWithChildren<props>) {
               />
               <Text style={[styles.metaBadgeText, { color: tier.text }]}>
                 {tier.label}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.badgeRow}>
-            <View
-              style={[
-                styles.metaBadge,
-                {
-                  backgroundColor: tier.badgeBackground,
-                  borderColor: tier.border,
-                },
-              ]}
-            >
-              <Icon
-                name="arrow-up-bold-circle-outline"
-                size={15}
-                color={tier.text}
-              />
-              <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-                {upgradeLabel}
               </Text>
             </View>
           </View>

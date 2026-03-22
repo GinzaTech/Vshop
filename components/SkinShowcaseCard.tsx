@@ -87,6 +87,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     const levelCount = item.levels.length || 1;
     return levelCount > 1 ? `Lv ${levelCount}/${levelCount}` : "Lv 1";
   }, [item.levels.length]);
+  const showUpgradeBadge = variant !== "store";
   const handleCardPress = useCallback(() => {
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
@@ -204,24 +205,26 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.metaBadge,
-            {
-              backgroundColor: tier.badgeBackground,
-              borderColor: tier.border,
-            },
-          ]}
-        >
-          <Icon
-            name="arrow-up-bold-circle-outline"
-            size={13}
-            color={tier.text}
-          />
-          <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-            {upgradeLabel}
-          </Text>
-        </View>
+        {showUpgradeBadge ? (
+          <View
+            style={[
+              styles.metaBadge,
+              {
+                backgroundColor: tier.badgeBackground,
+                borderColor: tier.border,
+              },
+            ]}
+          >
+            <Icon
+              name="arrow-up-bold-circle-outline"
+              size={13}
+              color={tier.text}
+            />
+            <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+              {upgradeLabel}
+            </Text>
+          </View>
+        ) : null}
 
         <View
           style={[
