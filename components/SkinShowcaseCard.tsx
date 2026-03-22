@@ -164,6 +164,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
             <View
               style={[
                 styles.metaBadge,
+                isBundleVariant && styles.bundleCompactBadge,
                 {
                   backgroundColor: tier.badgeBackground,
                   borderColor: tier.border,
@@ -336,8 +337,8 @@ const styles = StyleSheet.create({
   },
   bundleCard: {
     marginBottom: 14,
-    borderRadius: 24,
-    padding: 16,
+    borderRadius: 22,
+    padding: 14,
   },
   mainRow: {
     flexDirection: "row",
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   bundleContent: {
-    paddingRight: 12,
+    paddingRight: 10,
     justifyContent: "flex-start",
   },
   eyebrow: {
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   bundleTitle: {
-    fontSize: 17,
+    fontSize: 16,
   },
   subtitle: {
     marginTop: 6,
@@ -380,8 +381,8 @@ const styles = StyleSheet.create({
   },
   bundleBadgeRow: {
     alignItems: "flex-start",
-    gap: 10,
-    marginTop: 16,
+    gap: 8,
+    marginTop: 12,
   },
   metaBadge: {
     flexDirection: "row",
@@ -399,11 +400,17 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   bundleStatsColumn: {
-    marginTop: 8,
-    gap: 8,
+    marginTop: 6,
+    gap: 6,
+  },
+  bundleCompactBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   bundleStatBadge: {
     alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   rarityDot: {
     width: 9,
@@ -441,7 +448,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   bundleMediaColumn: {
-    width: 126,
+    width: 114,
     alignItems: "flex-end",
     justifyContent: "flex-start",
   },
@@ -455,17 +462,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   bundleFavoriteButton: {
-    width: 34,
-    height: 34,
-    marginBottom: 8,
+    width: 32,
+    height: 32,
+    marginBottom: 6,
   },
   bundleImageFrame: {
-    width: 116,
-    height: 116,
+    width: 104,
+    height: 104,
     marginTop: 0,
-    borderRadius: 22,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
   },
   imageFrame: {
     width: 128,
