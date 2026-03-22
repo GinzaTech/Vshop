@@ -39,95 +39,7 @@ import {
   buildMetadataTags,
 } from "~/components/GalleryProfile";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
-
-type ContentTierVisual = {
-  label: string;
-  accent: string;
-  text: string;
-  border: string;
-  cardBackground: string;
-  visualBackground: string;
-  badgeBackground: string;
-};
-
-const DEFAULT_CONTENT_TIER: ContentTierVisual = {
-  label: "Standard",
-  accent: "#7b838f",
-  text: "#2f343b",
-  border: "rgba(123, 131, 143, 0.26)",
-  cardBackground: "rgba(123, 131, 143, 0.10)",
-  visualBackground: "rgba(123, 131, 143, 0.18)",
-  badgeBackground: "rgba(123, 131, 143, 0.14)",
-};
-
-const CONTENT_TIER_VISUALS: Record<string, ContentTierVisual> = {
-  "12683d76-48d7-84a3-4e09-6985794f0445": {
-    label: "Select",
-    accent: "#5A9FE2",
-    text: "#214b77",
-    border: "rgba(90, 159, 226, 0.34)",
-    cardBackground: "rgba(90, 159, 226, 0.10)",
-    visualBackground: "rgba(90, 159, 226, 0.18)",
-    badgeBackground: "rgba(90, 159, 226, 0.16)",
-  },
-  "0cebb8be-46d7-c12a-d306-e9907bfc5a25": {
-    label: "Deluxe",
-    accent: "#009587",
-    text: "#0d5a54",
-    border: "rgba(0, 149, 135, 0.34)",
-    cardBackground: "rgba(0, 149, 135, 0.10)",
-    visualBackground: "rgba(0, 149, 135, 0.18)",
-    badgeBackground: "rgba(0, 149, 135, 0.16)",
-  },
-  "60bca009-4182-7998-dee7-b8a2558dc369": {
-    label: "Premium",
-    accent: "#D1548D",
-    text: "#7f2952",
-    border: "rgba(209, 84, 141, 0.34)",
-    cardBackground: "rgba(209, 84, 141, 0.10)",
-    visualBackground: "rgba(209, 84, 141, 0.18)",
-    badgeBackground: "rgba(209, 84, 141, 0.16)",
-  },
-  "e046854e-406c-37f4-6607-19a9ba8426fc": {
-    label: "Exclusive",
-    accent: "#F5955B",
-    text: "#88512a",
-    border: "rgba(245, 149, 91, 0.34)",
-    cardBackground: "rgba(245, 149, 91, 0.10)",
-    visualBackground: "rgba(245, 149, 91, 0.18)",
-    badgeBackground: "rgba(245, 149, 91, 0.16)",
-  },
-  "411e4a55-4e59-7757-41f0-86a53f101bb5": {
-    label: "Ultra",
-    accent: "#FAD663",
-    text: "#7c6424",
-    border: "rgba(250, 214, 99, 0.36)",
-    cardBackground: "rgba(250, 214, 99, 0.12)",
-    visualBackground: "rgba(250, 214, 99, 0.22)",
-    badgeBackground: "rgba(250, 214, 99, 0.18)",
-  },
-};
-
-const getContentTierVisual = (
-  contentTierUuid?: string,
-  contentTierName?: string
-) => {
-  if (contentTierUuid && CONTENT_TIER_VISUALS[contentTierUuid]) {
-    return CONTENT_TIER_VISUALS[contentTierUuid];
-  }
-
-  if (contentTierName) {
-    const matchedTier = Object.values(CONTENT_TIER_VISUALS).find(
-      (tier) => tier.label.toLowerCase() === contentTierName.toLowerCase()
-    );
-
-    if (matchedTier) {
-      return matchedTier;
-    }
-  }
-
-  return DEFAULT_CONTENT_TIER;
-};
+import { getContentTierVisual } from "~/utils/content-tier";
 
 const formatUpgradeLevel = (weapon: EquippedWeapon) => {
   if (!weapon.upgradeLevel) {
@@ -512,10 +424,15 @@ function Profile() {
         </View>
       </View>
 
-      <Text style={styles.heroTitle}>{user.name || "Agent"}</Text>
-      <Text style={styles.heroSubtitle}>
-        {user.TagLine ? `#{user.TagLine}` : "Connected Riot account"}
-      </Text>
+      <View style={styles.heroNameRow}>
+        <Text style={styles.heroTitle}>{user.name || "Agent"}</Text>
+        {user.TagLine ? (
+          <View style={styles.heroTagPill}>
+            <Text style={styles.heroTagText}>#{user.TagLine}</Text>
+          </View>
+        ) : null}
+      </View>
+      <Text style={styles.heroSubtitle}>Connected Riot account</Text>
 
       <View style={styles.heroMetaRow}>
         <View style={styles.heroMetaPill}>
@@ -1123,14 +1040,32 @@ const styles = StyleSheet.create({
     color: COLORS.PURE_WHITE,
     letterSpacing: 0.6,
   },
-  heroTitle: {
+  heroNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
     marginTop: 18,
+  },
+  heroTitle: {
     fontSize: 30,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
+  heroTagPill: {
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.chip,
+    backgroundColor: "rgba(255,255,255,0.14)",
+  },
+  heroTagText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
+    letterSpacing: 0.3,
+  },
   heroSubtitle: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 15,
     color: "rgba(255,255,255,0.78)",
   },

@@ -19,6 +19,7 @@ import { useMediaPopupStore } from "~/components/popups/MediaPopup";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIcon } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { getContentTierVisual } from "~/utils/content-tier";
 
 function Shop() {
   const user = useUserStore((state) => state.user);
@@ -46,6 +47,10 @@ function Shop() {
   const featured = filteredItems[0];
   const listItems = filteredItems.slice(featured ? 1 : 0);
   const initials = (user.name || "V").slice(0, 1).toUpperCase();
+  const featuredTier = React.useMemo(
+    () => (featured ? getContentTierVisual(featured.contentTierUuid) : null),
+    [featured]
+  );
 
   return (
     <ScrollView
@@ -132,7 +137,15 @@ function Shop() {
           imageStyle={styles.featuredImage}
           resizeMode="cover"
         >
-          <View style={styles.featuredOverlay}>
+          <View
+            style={[
+              styles.featuredOverlay,
+              featuredTier && {
+                backgroundColor: featuredTier.overlayBackground,
+                borderColor: featuredTier.border,
+              },
+            ]}
+          >
             <TouchableOpacity
               activeOpacity={0.85}
               style={styles.featuredHeart}
@@ -150,6 +163,21 @@ function Shop() {
             <View>
               <Text style={styles.featuredEyebrow}>Featured daily store</Text>
               <Text style={styles.featuredTitle}>{featured.displayName}</Text>
+              {featuredTier ? (
+                <View style={styles.featuredBadgeRow}>
+                  <View style={styles.featuredTierBadge}>
+                    <View
+                      style={[
+                        styles.featuredTierDot,
+                        { backgroundColor: featuredTier.accent },
+                      ]}
+                    />
+                    <Text style={styles.featuredTierText}>
+                      {featuredTier.label}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
               <View style={styles.featuredMetaRow}>
                 <Icon name="star-outline" size={16} color={COLORS.PURE_WHITE} />
                 <Text style={styles.featuredMetaText}>Wishlist ready</Text>
@@ -353,6 +381,8 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 30,
     backgroundColor: "rgba(23,26,31,0.40)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
   },
   featuredHeart: {
     alignSelf: "flex-end",
@@ -372,6 +402,31 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: COLORS.PURE_WHITE,
     fontSize: 32,
+    fontWeight: "700",
+  },
+  featuredBadgeRow: {
+    flexDirection: "row",
+    marginTop: 12,
+  },
+  featuredTierBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+  },
+  featuredTierDot: {
+    width: 8,
+    height: 8,
+    borderRadius: RADIUS.chip,
+    marginRight: 6,
+  },
+  featuredTierText: {
+    color: COLORS.PURE_WHITE,
+    fontSize: 13,
     fontWeight: "700",
   },
   featuredMetaRow: {

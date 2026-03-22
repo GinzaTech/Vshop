@@ -12,6 +12,7 @@ import { getDisplayIcon } from "~/utils/misc";
 import GlassCard from "~/components/ui/GlassCard";
 import ValorantButton from "~/components/ui/ValorantButton";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { getContentTierVisual } from "~/utils/content-tier";
 
 interface ShopItemProps {
   item: SkinShopItem;
@@ -60,14 +61,52 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
     () => skinIds.includes(item.levels[0].uuid),
     [item.levels, skinIds]
   );
+  const tier = useMemo(
+    () => getContentTierVisual(item.contentTierUuid),
+    [item.contentTierUuid]
+  );
 
   return (
-    <GlassCard style={styles.card}>
+    <GlassCard
+      style={[
+        styles.card,
+        {
+          backgroundColor: tier.cardBackground,
+          borderColor: tier.border,
+        },
+      ]}
+    >
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <View style={styles.priceBadge}>
-            <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-            <Text style={styles.price}>{item.price}</Text>
+          <View style={styles.badgeRow}>
+            <View
+              style={[
+                styles.priceBadge,
+                {
+                  backgroundColor: tier.badgeBackground,
+                  borderColor: tier.border,
+                },
+              ]}
+            >
+              <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+              <Text style={styles.price}>{item.price}</Text>
+            </View>
+            <View
+              style={[
+                styles.rarityBadge,
+                {
+                  backgroundColor: tier.badgeBackground,
+                  borderColor: tier.border,
+                },
+              ]}
+            >
+              <View
+                style={[styles.rarityDot, { backgroundColor: tier.accent }]}
+              />
+              <Text style={[styles.rarityText, { color: tier.text }]}>
+                {tier.label}
+              </Text>
+            </View>
           </View>
           <Text style={styles.title} numberOfLines={2}>
             {item.displayName}
@@ -79,18 +118,31 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
           onPress={() => toggleSkin(item.levels[0].uuid)}
           style={[
             styles.favoriteButton,
-            isFavorited && styles.favoriteButtonActive,
+            {
+              backgroundColor: isFavorited
+                ? tier.accent
+                : tier.badgeBackground,
+              borderColor: isFavorited ? tier.accent : tier.border,
+            },
           ]}
         >
           <Icon
             name={isFavorited ? "heart" : "heart-outline"}
             size={18}
-            color={isFavorited ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
+            color={isFavorited ? COLORS.PURE_WHITE : tier.text}
           />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.imageFrame}>
+      <View
+        style={[
+          styles.imageFrame,
+          {
+            backgroundColor: tier.visualBackground,
+            borderColor: tier.border,
+          },
+        ]}
+      >
         <Image
           resizeMode="contain"
           style={styles.image}
@@ -104,7 +156,7 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
             <Icon
               name={star <= rating ? "star" : "star-outline"}
               size={20}
-              color={star <= rating ? COLORS.ACCENT : COLORS.TEXT_SECONDARY}
+              color={star <= rating ? tier.accent : COLORS.TEXT_SECONDARY}
             />
           </TouchableOpacity>
         ))}
@@ -141,14 +193,20 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
   },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   priceBadge: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: COLORS.SURFACE_MUTED,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: RADIUS.chip,
+    borderWidth: 1,
   },
   price: {
     color: COLORS.TEXT_PRIMARY,
@@ -159,6 +217,25 @@ const styles = StyleSheet.create({
   currencyIcon: {
     width: 14,
     height: 14,
+  },
+  rarityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+  },
+  rarityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: RADIUS.chip,
+    marginRight: 6,
+  },
+  rarityText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   title: {
     color: COLORS.TEXT_PRIMARY,
@@ -176,17 +253,17 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: RADIUS.chip,
     backgroundColor: COLORS.SURFACE_MUTED,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
     alignItems: "center",
     justifyContent: "center",
-  },
-  favoriteButtonActive: {
-    backgroundColor: COLORS.PURE_BLACK,
   },
   imageFrame: {
     marginTop: 18,
     borderRadius: 20,
     backgroundColor: COLORS.SURFACE_MUTED,
     padding: 14,
+    borderWidth: 1,
   },
   image: {
     width: "100%",

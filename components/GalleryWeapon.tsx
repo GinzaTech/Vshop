@@ -14,6 +14,7 @@ import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIcon } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { getContentTierVisual } from "~/utils/content-tier";
 
 interface props {
   item: GalleryItem;
@@ -25,12 +26,29 @@ export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
   const [menuVisible, setMenuVisible] = useState(false);
   const { showMediaPopup } = useMediaPopupStore();
   const { screenshotModeEnabled } = useFeatureStore();
+  const tier = getContentTierVisual(props.item.contentTierUuid);
 
   return (
     <View style={styles.wrapper}>
-      <GlassCard style={styles.card}>
+      <GlassCard
+        style={[
+          styles.card,
+          {
+            backgroundColor: tier.cardBackground,
+            borderColor: tier.border,
+          },
+        ]}
+      >
         <View style={styles.row}>
-          <View style={styles.imageWrap}>
+          <View
+            style={[
+              styles.imageWrap,
+              {
+                backgroundColor: tier.visualBackground,
+                borderColor: tier.border,
+              },
+            ]}
+          >
             <Image
               source={getDisplayIcon(props.item, screenshotModeEnabled)}
               style={styles.image}
@@ -43,6 +61,22 @@ export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
               {props.item.displayName}
             </Text>
             <View style={styles.metaRow}>
+              <View
+                style={[
+                  styles.metaPill,
+                  {
+                    backgroundColor: tier.badgeBackground,
+                    borderColor: tier.border,
+                  },
+                ]}
+              >
+                <View
+                  style={[styles.metaDot, { backgroundColor: tier.accent }]}
+                />
+                <Text style={[styles.metaText, { color: tier.text }]}>
+                  {tier.label}
+                </Text>
+              </View>
               <View style={styles.metaPill}>
                 <Icon
                   name={props.item.onWishlist ? "heart" : "star-outline"}
@@ -119,13 +153,14 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   imageWrap: {
     width: 112,
-    height: 70,
+    height: 78,
     borderRadius: 18,
     backgroundColor: COLORS.SURFACE_MUTED,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
@@ -144,7 +179,9 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     marginTop: 10,
+    gap: 8,
   },
   metaPill: {
     flexDirection: "row",
@@ -154,6 +191,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: RADIUS.chip,
     backgroundColor: COLORS.SURFACE_MUTED,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    marginBottom: 6,
+  },
+  metaDot: {
+    width: 8,
+    height: 8,
+    borderRadius: RADIUS.chip,
   },
   metaText: {
     color: COLORS.TEXT_SECONDARY,

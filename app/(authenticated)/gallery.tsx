@@ -131,7 +131,7 @@ function Gallery() {
               () => 0,
               (_type, dim) => {
                 dim.width = Dimensions.get("window").width;
-                dim.height = 116;
+                dim.height = 144;
               }
             )
           }
