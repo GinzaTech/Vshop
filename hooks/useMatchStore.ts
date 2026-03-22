@@ -140,9 +140,28 @@ export const useMatchStore = create<MatchState>((set, get) => ({
                     const deaths = myself.stats?.deaths || 0;
                     const assists = myself.stats?.assists || 0;
                     const score = myself.stats?.score || 0;
-                    const headshots = myself.stats?.headshots || 0;
-                    const bodyshots = myself.stats?.bodyshots || 0;
-                    const legshots = myself.stats?.legshots || 0;
+                    const roundResults = Array.isArray(details.roundResults)
+                        ? details.roundResults
+                        : [];
+                    const damageEvents = roundResults.flatMap((round: any) =>
+                        (Array.isArray(round?.playerStats) ? round.playerStats : [])
+                            .filter((playerStat: any) => playerStat.subject === user.id)
+                            .flatMap((playerStat: any) =>
+                                Array.isArray(playerStat?.damage) ? playerStat.damage : []
+                            )
+                    );
+                    const headshots = damageEvents.reduce(
+                        (total: number, damage: any) => total + (damage?.headshots || 0),
+                        0
+                    );
+                    const bodyshots = damageEvents.reduce(
+                        (total: number, damage: any) => total + (damage?.bodyshots || 0),
+                        0
+                    );
+                    const legshots = damageEvents.reduce(
+                        (total: number, damage: any) => total + (damage?.legshots || 0),
+                        0
+                    );
                     const totalShots = headshots + bodyshots + legshots;
 
                     const mapInfo = assets.maps ? assets.maps.find((m: any) => m.mapUrl === details.matchInfo?.mapId) : null;
