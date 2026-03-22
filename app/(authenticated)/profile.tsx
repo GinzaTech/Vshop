@@ -871,13 +871,22 @@ function Profile() {
     [formatCategoryLabel, loadoutByCategory, orderedCategories, palette]
   );
 
-  const renderScroll = (
+  const renderPageHeader = () => (
+    <>
+      {renderProfileHero()}
+      {renderSegmentedControl()}
+    </>
+  );
+
+  const renderPageScroll = (
     children: React.ReactNode,
-    contentStyle: StyleProp<ViewStyle> = styles.scrollContent
+    contentStyle: StyleProp<ViewStyle> = styles.pageScrollContent,
+    bodyStyle: StyleProp<ViewStyle> = styles.pageBody
   ) => (
     <ScrollView
-      style={styles.tabScroll}
+      style={styles.pageScroll}
       contentContainerStyle={contentStyle}
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -887,7 +896,8 @@ function Profile() {
         />
       }
     >
-      {children}
+      {renderPageHeader()}
+      <View style={bodyStyle}>{children}</View>
     </ScrollView>
   );
 
@@ -905,7 +915,7 @@ function Profile() {
   };
 
   const renderSkinsTab = () =>
-    renderScroll(
+    renderPageScroll(
       orderedCategories.map((category) => {
         const weapons = loadoutByCategory[category];
         if (!weapons?.length) return null;
@@ -924,92 +934,95 @@ function Profile() {
     );
 
   const renderCollectionTab = () => (
-    <View style={styles.collectionContainer}>
-      <Searchbar
-        placeholder={t("equip_page.search_placeholder")}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        style={[
-          styles.searchBar,
-          { backgroundColor: palette.card, borderColor: palette.cardBorder },
-        ]}
-        inputStyle={{ color: palette.textPrimary }}
-        iconColor={palette.textSecondary}
-      />
-      <FlatList
-        data={filteredCollection}
-        keyExtractor={(item) => item.weaponId}
-        numColumns={2}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        contentContainerStyle={styles.collectionList}
-        columnWrapperStyle={styles.collectionRow}
-        ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: palette.textSecondary }]}>
-            {t("equip_page.empty")}
-          </Text>
-        }
-        renderItem={({ item }) => (
-          (() => {
-            const tier = getContentTierVisual(
-              item.contentTierUuid,
-              item.contentTierName
-            );
+    <FlatList
+      style={styles.collectionContainer}
+      data={filteredCollection}
+      keyExtractor={(item) => item.weaponId}
+      numColumns={2}
+      refreshing={refreshing}
+      onRefresh={handleRefresh}
+      contentContainerStyle={styles.collectionList}
+      columnWrapperStyle={styles.collectionRow}
+      showsVerticalScrollIndicator={false}
+      ListHeaderComponent={
+        <>
+          {renderPageHeader()}
+          <Searchbar
+            placeholder={t("equip_page.search_placeholder")}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={[
+              styles.searchBar,
+              { backgroundColor: palette.card, borderColor: palette.cardBorder },
+            ]}
+            inputStyle={{ color: palette.textPrimary }}
+            iconColor={palette.textSecondary}
+          />
+        </>
+      }
+      ListEmptyComponent={
+        <Text style={[styles.emptyText, { color: palette.textSecondary }]}>
+          {t("equip_page.empty")}
+        </Text>
+      }
+      renderItem={({ item }) => {
+        const tier = getContentTierVisual(
+          item.contentTierUuid,
+          item.contentTierName
+        );
 
-            return (
-              <View
-                style={[
-                  styles.collectionCard,
-                  {
-                    backgroundColor: tier.cardBackground,
-                    borderColor: tier.border,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.collectionVisual,
-                    {
-                      backgroundColor: tier.visualBackground,
-                      borderColor: tier.border,
-                    },
-                  ]}
-                >
-                  <Image
-                    source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
-                    style={styles.collectionImage}
-                    contentFit="contain"
-                  />
-                </View>
-                {renderWeaponBadges(item)}
-                <Text
-                  style={[
-                    styles.collectionSkinName,
-                    { color: palette.textPrimary },
-                  ]}
-                  numberOfLines={2}
-                >
-                  {item.skinName}
-                </Text>
-                <Text
-                  style={[
-                    styles.collectionWeaponName,
-                    { color: palette.textSecondary },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.weaponName}
-                </Text>
-              </View>
-            );
-          })()
-        )}
-      />
-    </View>
+        return (
+          <View
+            style={[
+              styles.collectionCard,
+              {
+                backgroundColor: tier.cardBackground,
+                borderColor: tier.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.collectionVisual,
+                {
+                  backgroundColor: tier.visualBackground,
+                  borderColor: tier.border,
+                },
+              ]}
+            >
+              <Image
+                source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
+                style={styles.collectionImage}
+                contentFit="contain"
+              />
+            </View>
+            {renderWeaponBadges(item)}
+            <Text
+              style={[
+                styles.collectionSkinName,
+                { color: palette.textPrimary },
+              ]}
+              numberOfLines={2}
+            >
+              {item.skinName}
+            </Text>
+            <Text
+              style={[
+                styles.collectionWeaponName,
+                { color: palette.textSecondary },
+              ]}
+              numberOfLines={1}
+            >
+              {item.weaponName}
+            </Text>
+          </View>
+        );
+      }}
+    />
   );
 
   const renderLoadoutTab = () =>
-    renderScroll(
+    renderPageScroll(
       <>
         {renderIdentitySection()}
         {renderSpraySection()}
@@ -1020,15 +1033,22 @@ function Profile() {
   const renderStatusScroll = (
     text: string,
     textStyle: StyleProp<TextStyle>
-  ) => renderScroll(<Text style={textStyle}>{text}</Text>, styles.centered);
+  ) =>
+    renderPageScroll(
+      <Text style={textStyle}>{text}</Text>,
+      styles.pageScrollContent,
+      styles.pageStatus
+    );
 
   let content: React.ReactNode = null;
 
   if (loading) {
-    content = (
-      <View style={styles.centered}>
+    content = renderPageScroll(
+      <View style={styles.pageStatus}>
         <ActivityIndicator animating color={palette.accent} />
-      </View>
+      </View>,
+      styles.pageScrollContent,
+      styles.pageStatus
     );
   } else if (error) {
     content = renderStatusScroll(error, [
@@ -1057,9 +1077,7 @@ function Profile() {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
-      {renderProfileHero()}
-      {renderSegmentedControl()}
-      <View style={styles.contentWrapper}>{content}</View>
+      {content}
     </View>
   );
 }
@@ -1169,15 +1187,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
-  contentWrapper: {
+  pageScroll: {
     flex: 1,
   },
-  tabScroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
+  pageScrollContent: {
     paddingBottom: 140,
+  },
+  pageBody: {
+    paddingHorizontal: 16,
+  },
+  pageStatus: {
+    minHeight: 240,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
   section: {
     marginBottom: 16,
@@ -1399,8 +1422,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   collectionList: {
-    padding: 10,
-    paddingBottom: 32,
+    paddingBottom: 140,
   },
   collectionRow: {
     justifyContent: "space-between",
