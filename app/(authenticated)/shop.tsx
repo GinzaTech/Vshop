@@ -1,6 +1,7 @@
 import React from "react";
 import {
   ImageBackground,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,6 +30,9 @@ function Shop() {
   const { screenshotModeEnabled } = useFeatureStore();
   const [query, setQuery] = React.useState("");
   const [mode, setMode] = React.useState<"all" | "wishlist">("all");
+  const featuredTapTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const timestamp = new Date().getTime() + user.shops.remainingSecs.main * 1000;
 
@@ -60,6 +64,38 @@ function Shop() {
     () => (featured ? getContentTierVisual(featured.contentTierUuid) : null),
     [featured]
   );
+  const handleFeaturedPreview = React.useCallback(() => {
+    if (!featured) return;
+
+    showMediaPopup(
+      featured.levels.map(
+        (level) => level.streamedVideo || level.displayIcon || ""
+      ),
+      "Preview"
+    );
+  }, [featured, showMediaPopup]);
+  const handleFeaturedCardPress = React.useCallback(() => {
+    if (!featured) return;
+
+    if (featuredTapTimeoutRef.current) {
+      clearTimeout(featuredTapTimeoutRef.current);
+      featuredTapTimeoutRef.current = null;
+      toggleSkin(featured.levels[0].uuid);
+      return;
+    }
+
+    featuredTapTimeoutRef.current = setTimeout(() => {
+      featuredTapTimeoutRef.current = null;
+    }, 220);
+  }, [featured, toggleSkin]);
+
+  React.useEffect(() => {
+    return () => {
+      if (featuredTapTimeoutRef.current) {
+        clearTimeout(featuredTapTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <ScrollView
@@ -155,21 +191,7 @@ function Shop() {
               },
             ]}
           >
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.featuredHeart}
-              onPress={() => toggleSkin(featured.levels[0].uuid)}
-            >
-              <Icon
-                name={
-                  skinIds.includes(featured.levels[0].uuid) ? "heart" : "heart-outline"
-                }
-                size={18}
-                color={COLORS.PURE_WHITE}
-              />
-            </TouchableOpacity>
-
-            <View>
+            <Pressable onPress={handleFeaturedCardPress} style={styles.featuredContent}>
               <Text style={styles.featuredEyebrow}>Featured daily store</Text>
               <Text style={styles.featuredTitle}>{featured.displayName}</Text>
               {featuredTier ? (
@@ -185,30 +207,29 @@ function Shop() {
                       {featuredTier.label}
                     </Text>
                   </View>
+                  {skinIds.includes(featured.levels[0].uuid) ? (
+                    <View style={styles.featuredSavedBadge}>
+                      <Text style={styles.featuredSavedText}>Saved</Text>
+                    </View>
+                  ) : null}
                 </View>
               ) : null}
               <View style={styles.featuredMetaRow}>
                 <Icon name="star-outline" size={16} color={COLORS.PURE_WHITE} />
-                <Text style={styles.featuredMetaText}>Wishlist ready</Text>
+                <Text style={styles.featuredMetaText}>Double tap to save</Text>
               </View>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.featuredAction}
-                onPress={() =>
-                  showMediaPopup(
-                    featured.levels.map(
-                      (level) => level.streamedVideo || level.displayIcon || ""
-                    ),
-                    "Preview"
-                  )
-                }
-              >
-                <Text style={styles.featuredActionText}>See more</Text>
-                <View style={styles.featuredActionIcon}>
-                  <Icon name="arrow-right" size={18} color={COLORS.PURE_BLACK} />
-                </View>
-              </TouchableOpacity>
-            </View>
+            </Pressable>
+
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.featuredAction}
+              onPress={handleFeaturedPreview}
+            >
+              <Text style={styles.featuredActionText}>See more</Text>
+              <View style={styles.featuredActionIcon}>
+                <Icon name="arrow-right" size={18} color={COLORS.PURE_BLACK} />
+              </View>
+            </TouchableOpacity>
           </View>
         </ImageBackground>
       ) : (
@@ -406,14 +427,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.14)",
   },
-  featuredHeart: {
-    alignSelf: "flex-end",
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.chip,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(23,26,31,0.44)",
+  featuredContent: {
+    flex: 1,
   },
   featuredEyebrow: {
     color: COLORS.PURE_WHITE,
@@ -428,6 +443,8 @@ const styles = StyleSheet.create({
   },
   featuredBadgeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
     marginTop: 12,
   },
   featuredTierBadge: {
@@ -447,6 +464,19 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   featuredTierText: {
+    color: COLORS.PURE_WHITE,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  featuredSavedBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    backgroundColor: "rgba(23,26,31,0.44)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+  },
+  featuredSavedText: {
     color: COLORS.PURE_WHITE,
     fontSize: 13,
     fontWeight: "700",
