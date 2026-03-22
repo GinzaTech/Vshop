@@ -12,7 +12,7 @@ import { Image } from "expo-image";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useUserStore } from "~/hooks/useUserStore";
-import { matchDetails } from "~/utils/valorant-api";
+import { useMatchStore } from "~/hooks/useMatchStore";
 import { getAssets, getAgent } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
@@ -21,9 +21,13 @@ export default function MatchDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const user = useUserStore((state) => state.user);
+  const cachedDetails = useMatchStore((state) =>
+    typeof id === "string" ? state.detailsById[id] : null
+  );
+  const fetchMatchDetails = useMatchStore((state) => state.fetchMatchDetails);
 
-  const [details, setDetails] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [details, setDetails] = React.useState<any>(cachedDetails ?? null);
+  const [loading, setLoading] = React.useState(!cachedDetails);
 
   React.useEffect(() => {
     const fetchDetails = async () => {
@@ -32,13 +36,14 @@ export default function MatchDetailsScreen() {
         return;
       }
 
+      if (cachedDetails) {
+        setDetails(cachedDetails);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const data = await matchDetails(
-          user.accessToken,
-          user.entitlementsToken,
-          user.region,
-          id as string
-        );
+        const data = await fetchMatchDetails(user, id as string);
         setDetails(data);
       } catch (error) {
         console.error("Error fetching details:", error);
@@ -48,7 +53,7 @@ export default function MatchDetailsScreen() {
     };
 
     fetchDetails();
-  }, [id, user]);
+  }, [cachedDetails, fetchMatchDetails, id, user]);
 
   if (loading) {
     return (

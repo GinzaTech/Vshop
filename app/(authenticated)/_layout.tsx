@@ -5,6 +5,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
+import AppWarmup from "~/components/AppWarmup";
 import MediaPopup from "~/components/popups/MediaPopup";
 import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 
@@ -89,6 +90,7 @@ function Layout() {
 
   return (
     <>
+      <AppWarmup />
       <Tabs
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
