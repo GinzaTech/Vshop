@@ -16,6 +16,15 @@ import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 
+const WIN_COLOR = "#5f7a6b";
+const WIN_SURFACE = "rgba(95, 122, 107, 0.16)";
+const WIN_BORDER = "rgba(95, 122, 107, 0.34)";
+const WIN_SCRIM = "rgba(225, 235, 229, 0.74)";
+const LOSS_COLOR = "#8a6770";
+const LOSS_SURFACE = "rgba(138, 103, 112, 0.16)";
+const LOSS_BORDER = "rgba(138, 103, 112, 0.30)";
+const LOSS_SCRIM = "rgba(236, 229, 232, 0.76)";
+
 const formatLabel = (value?: string | null) => {
   if (!value) return "Unknown";
 
@@ -150,17 +159,25 @@ export default function MatchHistory() {
           );
         }
 
-        const resultColor = item.stats.won ? COLORS.SUCCESS : COLORS.ACCENT_DEEP;
-        const resultSurface = item.stats.won
-          ? "rgba(95, 122, 107, 0.12)"
-          : "rgba(47, 52, 59, 0.12)";
+        const resultColor = item.stats.won ? WIN_COLOR : LOSS_COLOR;
+        const resultSurface = item.stats.won ? WIN_SURFACE : LOSS_SURFACE;
+        const resultBorder = item.stats.won ? WIN_BORDER : LOSS_BORDER;
+        const mapScrimColor = item.stats.won ? WIN_SCRIM : LOSS_SCRIM;
 
         return (
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => router.push(`/match_details/${item.MatchID}`)}
           >
-            <View style={styles.matchCard}>
+            <View
+              style={[
+                styles.matchCard,
+                {
+                  backgroundColor: resultSurface,
+                  borderColor: resultBorder,
+                },
+              ]}
+            >
               <View
                 style={[
                   styles.resultBar,
@@ -175,7 +192,15 @@ export default function MatchHistory() {
                   contentFit="cover"
                 />
               ) : null}
-              <View style={styles.mapScrim} />
+              <View style={[styles.mapScrim, { backgroundColor: mapScrimColor }]} />
+              <View
+                style={[
+                  styles.resultWash,
+                  {
+                    backgroundColor: resultSurface,
+                  },
+                ]}
+              />
 
               <View style={styles.matchCardContent}>
                 <View style={styles.cardTopRow}>
@@ -229,14 +254,29 @@ export default function MatchHistory() {
                   </View>
 
                   <View style={styles.mapBlock}>
-                    <Text style={styles.mapTitle}>{item.stats.mapName}</Text>
+                    <View
+                      style={[
+                        styles.mapBadge,
+                        {
+                          backgroundColor: resultSurface,
+                          borderColor: resultBorder,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.mapBadgeText, { color: resultColor }]}>
+                        MAP
+                      </Text>
+                    </View>
+                    <Text style={[styles.mapTitle, { color: resultColor }]}>
+                      {item.stats.mapName}
+                    </Text>
                     <Text style={styles.mapMeta}>
                       {item.stats.roundsPlayed} rounds played
                     </Text>
                   </View>
 
                   <View style={styles.scoreBlock}>
-                    <Text style={styles.scoreValue}>
+                    <Text style={[styles.scoreValue, { color: resultColor }]}>
                       {item.stats.roundsWon} - {item.stats.roundsLost}
                     </Text>
                     <Text style={styles.scoreMeta}>Scoreline</Text>
@@ -356,8 +396,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderRadius: RADIUS.card,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    backgroundColor: COLORS.SURFACE,
     ...GLOBAL_STYLES.shadow,
   },
   resultBar: {
@@ -370,11 +408,14 @@ const styles = StyleSheet.create({
   },
   mapImage: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.1,
+    opacity: 0.24,
   },
   mapScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(241,244,248,0.92)",
+  },
+  resultWash: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.45,
   },
   matchCardContent: {
     padding: 16,
@@ -448,8 +489,20 @@ const styles = StyleSheet.create({
   mapBlock: {
     flex: 1,
   },
+  mapBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  mapBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+  },
   mapTitle: {
-    color: COLORS.TEXT_PRIMARY,
     fontSize: 18,
     fontWeight: "700",
   },
