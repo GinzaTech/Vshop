@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useMemo, useRef } from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import CurrencyIcon from "./CurrencyIcon";
@@ -44,6 +44,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   const skinIds = useWishlistStore((state) => state.skinIds);
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
   const { screenshotModeEnabled } = useFeatureStore();
+  const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handlePreviewPress = useCallback(() => {
     const media = [
@@ -75,11 +76,26 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     const levelCount = item.levels.length || 1;
     return levelCount > 1 ? `Lv ${levelCount}/${levelCount}` : "Lv 1";
   }, [item.levels.length]);
+  const handleCardPress = useCallback(() => {
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = null;
+      toggleSkin(item.levels[0].uuid);
+      return;
+    }
+
+    previewTimeoutRef.current = setTimeout(() => {
+      previewTimeoutRef.current = null;
+      handlePreviewPress();
+    }, 220);
+  }, [handlePreviewPress, item.levels, toggleSkin]);
 
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={handleCardPress}
+      style={({ pressed }) => [
         styles.card,
+        pressed && styles.cardPressed,
         {
           backgroundColor: tier.cardBackground,
           borderColor: tier.border,
@@ -90,28 +106,22 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         <Text style={styles.eyebrow} numberOfLines={1}>
           {weaponType}
         </Text>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => toggleSkin(item.levels[0].uuid)}
-          style={[
-            styles.favoriteButton,
-            {
-              backgroundColor: isFavorited ? tier.accent : tier.badgeBackground,
-              borderColor: isFavorited ? tier.accent : tier.border,
-            },
-          ]}
-        >
-          <Icon
-            name={isFavorited ? "heart" : "heart-outline"}
-            size={16}
-            color={isFavorited ? COLORS.PURE_WHITE : tier.text}
-          />
-        </TouchableOpacity>
+        {isFavorited ? (
+          <View
+            style={[
+              styles.savedBadge,
+              {
+                backgroundColor: tier.badgeBackground,
+                borderColor: tier.border,
+              },
+            ]}
+          >
+            <Text style={[styles.savedBadgeText, { color: tier.text }]}>Saved</Text>
+          </View>
+        ) : null}
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={handlePreviewPress}
+      <View
         style={[
           styles.visualFrame,
           {
@@ -125,7 +135,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
           style={styles.image}
           source={getDisplayIcon(item, screenshotModeEnabled)}
         />
-      </TouchableOpacity>
+      </View>
 
       <Text style={styles.title} numberOfLines={2}>
         {item.displayName}
@@ -135,6 +145,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         <View
           style={[
             styles.metaBadge,
+            styles.priceBadge,
             {
               backgroundColor: tier.badgeBackground,
               borderColor: tier.border,
@@ -165,9 +176,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
             {upgradeLabel}
           </Text>
         </View>
-      </View>
 
-      <View style={styles.priceRow}>
         <View
           style={[
             styles.metaBadge,
@@ -184,7 +193,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
           </Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 });
 
@@ -195,6 +204,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
     borderWidth: 1,
     padding: 14,
+  },
+  cardPressed: {
+    opacity: 0.92,
   },
   cardHeader: {
     flexDirection: "row",
@@ -209,13 +221,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-  favoriteButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
+  savedBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+  },
+  savedBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
   visualFrame: {
     width: "100%",
@@ -245,9 +261,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 10,
   },
-  priceRow: {
-    marginTop: 8,
-  },
   metaBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -258,7 +271,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   priceBadge: {
-    minWidth: 78,
+    minWidth: 82,
   },
   metaBadgeText: {
     color: COLORS.TEXT_PRIMARY,
