@@ -26,7 +26,11 @@ export default function Bundle({ bundle, remainingSecs }: props) {
       <View
         style={[
           styles.overlay,
-          { backgroundColor: screenshotModeEnabled ? COLORS.PURE_BLACK : "rgba(17,17,17,0.42)" },
+          {
+            backgroundColor: screenshotModeEnabled
+              ? COLORS.PURE_BLACK
+              : "rgba(23,26,31,0.58)",
+          },
         ]}
       >
         <View style={styles.metaRow}>
@@ -78,7 +82,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: RADIUS.chip,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(23,26,31,0.42)",
   },
   badgeText: {
     color: COLORS.PURE_WHITE,
@@ -88,7 +92,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: RADIUS.chip,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(23,26,31,0.42)",
   },
   bottom: {
     gap: 8,

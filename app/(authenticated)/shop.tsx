@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 20,
     borderRadius: 30,
-    backgroundColor: "rgba(17,17,17,0.24)",
+    backgroundColor: "rgba(23,26,31,0.40)",
   },
   featuredHeart: {
     alignSelf: "flex-end",
@@ -361,12 +361,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.chip,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "rgba(23,26,31,0.44)",
   },
   featuredEyebrow: {
     color: COLORS.PURE_WHITE,
     fontSize: 14,
-    opacity: 0.82,
+    opacity: 0.92,
   },
   featuredTitle: {
     marginTop: 6,
@@ -383,13 +383,16 @@ const styles = StyleSheet.create({
   featuredMetaText: {
     color: COLORS.PURE_WHITE,
     fontSize: 15,
+    textShadowColor: "rgba(0,0,0,0.28)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   featuredAction: {
     marginTop: 20,
     minHeight: 68,
     borderRadius: 24,
     paddingHorizontal: 20,
-    backgroundColor: "rgba(17,17,17,0.82)",
+    backgroundColor: "rgba(23,26,31,0.88)",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
