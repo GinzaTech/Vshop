@@ -1,6 +1,14 @@
-import React, { useCallback, useMemo, useRef } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Image, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { BlurView } from "expo-blur";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
@@ -45,6 +53,9 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
   const { screenshotModeEnabled } = useFeatureStore();
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [cardWidth, setCardWidth] = useState(0);
+  const sweepTranslateX = useSharedValue(-160);
+  const sweepOpacity = useSharedValue(0);
 
   const handlePreviewPress = useCallback(() => {
     const media = [
@@ -81,6 +92,16 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       clearTimeout(previewTimeoutRef.current);
       previewTimeoutRef.current = null;
       toggleSkin(item.levels[0].uuid);
+      sweepTranslateX.value = -Math.max(cardWidth * 0.7, 120);
+      sweepOpacity.value = 0;
+      sweepOpacity.value = withSequence(
+        withTiming(0.95, { duration: 120 }),
+        withTiming(0, { duration: 360 })
+      );
+      sweepTranslateX.value = withTiming(cardWidth + 120, {
+        duration: 520,
+        easing: Easing.out(Easing.cubic),
+      });
       return;
     }
 
@@ -88,11 +109,30 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       previewTimeoutRef.current = null;
       handlePreviewPress();
     }, 220);
-  }, [handlePreviewPress, item.levels, toggleSkin]);
+  }, [cardWidth, handlePreviewPress, item.levels, sweepOpacity, sweepTranslateX, toggleSkin]);
+  const handleCardLayout = useCallback((event: LayoutChangeEvent) => {
+    setCardWidth(event.nativeEvent.layout.width);
+  }, []);
+  const sweepStyle = useAnimatedStyle(() => ({
+    opacity: sweepOpacity.value,
+    transform: [
+      { translateX: sweepTranslateX.value },
+      { rotate: "14deg" },
+    ],
+  }));
+
+  useEffect(() => {
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Pressable
       onPress={handleCardPress}
+      onLayout={handleCardLayout}
       style={({ pressed }) => [
         styles.card,
         pressed && styles.cardPressed,
@@ -102,6 +142,12 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         },
       ]}
     >
+      <Animated.View pointerEvents="none" style={[styles.sweepOverlay, sweepStyle]}>
+        <BlurView intensity={55} tint="light" style={styles.sweepBlur}>
+          <View style={styles.sweepTint} />
+        </BlurView>
+      </Animated.View>
+
       <View style={styles.cardHeader}>
         <Text style={styles.eyebrow} numberOfLines={1}>
           {weaponType}
@@ -199,11 +245,13 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
 
 const styles = StyleSheet.create({
   card: {
+    position: "relative",
     flex: 1,
     minHeight: 238,
     borderRadius: RADIUS.card,
     borderWidth: 1,
     padding: 14,
+    overflow: "hidden",
   },
   cardPressed: {
     opacity: 0.92,
@@ -232,6 +280,23 @@ const styles = StyleSheet.create({
   savedBadgeText: {
     fontSize: 11,
     fontWeight: "700",
+  },
+  sweepOverlay: {
+    position: "absolute",
+    top: -16,
+    bottom: -16,
+    left: 0,
+    width: 92,
+    borderRadius: 30,
+    overflow: "hidden",
+  },
+  sweepBlur: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  sweepTint: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.14)",
   },
   visualFrame: {
     width: "100%",
