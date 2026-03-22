@@ -586,7 +586,15 @@ function Profile() {
             </Text>
             {renderMetadataTags(metadataTags)}
           </View>
-          <View style={styles.weaponImageWrapper}>
+          <View
+            style={[
+              styles.weaponImageWrapper,
+              {
+                backgroundColor: palette.chipBackground,
+                borderColor: palette.cardBorder,
+              },
+            ]}
+          >
             <Image
               source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
               style={styles.weaponImage}
@@ -599,7 +607,7 @@ function Profile() {
     [palette, renderMetadataTags]
   );
 
-  const renderSkinCard = React.useCallback(
+  const renderSkinGridCard = React.useCallback(
     (weapon: EquippedWeapon, category: string) => {
       const metadataTags = buildMetadataTags(weapon);
 
@@ -607,30 +615,38 @@ function Profile() {
         <View
           key={`${category}-${weapon.weaponId}`}
           style={[
-            styles.weaponCard,
+            styles.skinGridCard,
             { backgroundColor: palette.card, borderColor: palette.cardBorder },
           ]}
         >
-          <View style={styles.weaponDetails}>
+          <View
+            style={[
+              styles.skinGridVisual,
+              {
+                backgroundColor: palette.chipBackground,
+                borderColor: palette.cardBorder,
+              },
+            ]}
+          >
+            <Image
+              source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
+              style={styles.skinGridImage}
+              contentFit="contain"
+            />
+          </View>
+          <View style={styles.skinGridDetails}>
             <Text
-              style={[styles.cardTitle, { color: palette.textPrimary }]}
+              style={[styles.skinGridTitle, { color: palette.textPrimary }]}
               numberOfLines={2}
             >
               {weapon.skinName}
             </Text>
             <Text
-              style={[styles.cardSubtitle, { color: palette.textSecondary }]}
+              style={[styles.skinGridSubtitle, { color: palette.textSecondary }]}
             >
               {weapon.weaponName}
             </Text>
             {renderMetadataTags(metadataTags)}
-          </View>
-          <View style={styles.weaponImageWrapper}>
-            <Image
-              source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
-              style={styles.weaponImage}
-              contentFit="contain"
-            />
           </View>
         </View>
       );
@@ -693,7 +709,23 @@ function Profile() {
   };
 
   const renderSkinsTab = () =>
-    renderScroll(renderWeaponCategories(renderSkinCard, styles.section));
+    renderScroll(
+      orderedCategories.map((category) => {
+        const weapons = loadoutByCategory[category];
+        if (!weapons?.length) return null;
+
+        return (
+          <View key={category} style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
+              {formatCategoryLabel(category)}
+            </Text>
+            <View style={styles.skinGrid}>
+              {weapons.map((weapon) => renderSkinGridCard(weapon, category))}
+            </View>
+          </View>
+        );
+      })
+    );
 
   const renderCollectionTab = () => (
     <View style={styles.collectionContainer}>
@@ -1019,7 +1051,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: RADIUS.card,
     padding: 14,
-    minHeight: 116,
+    minHeight: 128,
     borderWidth: 1,
     alignItems: "center",
   },
@@ -1055,14 +1087,55 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   weaponImageWrapper: {
-    width: 120,
-    height: "100%",
+    width: 116,
+    height: 96,
     justifyContent: "center",
     alignItems: "center",
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 10,
+    overflow: "hidden",
   },
   weaponImage: {
     width: "100%",
     height: "100%",
+  },
+  skinGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  skinGridCard: {
+    width: "48%",
+    marginBottom: 12,
+    borderRadius: RADIUS.card,
+    padding: 12,
+    borderWidth: 1,
+  },
+  skinGridVisual: {
+    width: "100%",
+    height: 116,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  skinGridImage: {
+    width: "100%",
+    height: "100%",
+  },
+  skinGridDetails: {
+    marginTop: 12,
+  },
+  skinGridTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  skinGridSubtitle: {
+    fontSize: 12,
   },
   collectionContainer: {
     flex: 1,
