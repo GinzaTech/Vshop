@@ -46,6 +46,15 @@ function Shop() {
 
   const featured = filteredItems[0];
   const listItems = filteredItems.slice(featured ? 1 : 0);
+  const listRows = React.useMemo(() => {
+    const rows: SkinShopItem[][] = [];
+
+    for (let index = 0; index < listItems.length; index += 2) {
+      rows.push(listItems.slice(index, index + 2));
+    }
+
+    return rows;
+  }, [listItems]);
   const initials = (user.name || "V").slice(0, 1).toUpperCase();
   const featuredTier = React.useMemo(
     () => (featured ? getContentTierVisual(featured.contentTierUuid) : null),
@@ -217,8 +226,13 @@ function Shop() {
             <Text style={styles.sectionTitle}>Daily rotation</Text>
             <Text style={styles.sectionAction}>{listItems.length} items</Text>
           </View>
-          {listItems.map((item) => (
-            <ShopItem item={item} key={item.uuid} />
+          {listRows.map((row, rowIndex) => (
+            <View key={`row-${rowIndex}`} style={styles.gridRow}>
+              {row.map((item) => (
+                <ShopItem item={item} key={item.uuid} />
+              ))}
+              {row.length === 1 ? <View style={styles.gridSpacer} /> : null}
+            </View>
           ))}
         </>
       ) : null}
@@ -314,6 +328,14 @@ const styles = StyleSheet.create({
   sectionAction: {
     fontSize: 14,
     color: COLORS.TEXT_SECONDARY,
+  },
+  gridRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  gridSpacer: {
+    flex: 1,
   },
   chips: {
     flexDirection: "row",

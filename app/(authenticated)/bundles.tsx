@@ -70,8 +70,20 @@ function Bundles() {
                   <Text style={styles.sectionTitle}>Included items</Text>
                   <Text style={styles.sectionMeta}>{bundle.items.length} skins</Text>
                 </View>
-                {bundle.items.map((item) => (
-                  <BundleItem item={item} key={item.uuid} />
+                {bundle.items.reduce<SkinShopItem[][]>((rows, item, index) => {
+                  if (index % 2 === 0) {
+                    rows.push([item]);
+                  } else {
+                    rows[rows.length - 1].push(item);
+                  }
+                  return rows;
+                }, []).map((row, rowIndex) => (
+                  <View key={`${bundle.uuid}-row-${rowIndex}`} style={styles.gridRow}>
+                    {row.map((item) => (
+                      <BundleItem item={item} key={item.uuid} />
+                    ))}
+                    {row.length === 1 ? <View style={styles.gridSpacer} /> : null}
+                  </View>
                 ))}
               </>
             ) : null}
@@ -141,6 +153,14 @@ const styles = StyleSheet.create({
   },
   sectionMeta: {
     color: COLORS.TEXT_SECONDARY,
+  },
+  gridRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  gridSpacer: {
+    flex: 1,
   },
   emptyContainer: {
     flex: 1,

@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTranslation } from "react-i18next";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
@@ -13,7 +12,6 @@ import { getContentTierVisual } from "~/utils/content-tier";
 
 interface SkinShowcaseCardProps {
   item: SkinShopItem;
-  subtitle: string;
   variant?: "store" | "bundle";
 }
 
@@ -38,40 +36,25 @@ const WEAPON_NAMES = [
   "Melee",
 ];
 
-const buildPreviewLabel = (value?: string | null) => {
-  if (!value) return null;
-
-  return value.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
-};
-
 const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   item,
-  subtitle,
   variant = "store",
 }: SkinShowcaseCardProps) {
-  const { t } = useTranslation();
   const { showMediaPopup } = useMediaPopupStore();
   const skinIds = useWishlistStore((state) => state.skinIds);
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
   const { screenshotModeEnabled } = useFeatureStore();
 
-  const handleLevelsPress = useCallback(() => {
-    showMediaPopup(
-      item.levels.map(
-        (level) => level.streamedVideo || level.displayIcon || ""
-      ),
-      t("levels")
-    );
-  }, [item.levels, showMediaPopup, t]);
+  const handlePreviewPress = useCallback(() => {
+    const media = [
+      ...item.levels.map((level) => level.streamedVideo || level.displayIcon || ""),
+      ...item.chromas.map((chroma) => chroma.streamedVideo || chroma.fullRender || ""),
+    ].filter(Boolean);
 
-  const handleChromasPress = useCallback(() => {
-    showMediaPopup(
-      item.chromas.map(
-        (chroma) => chroma.streamedVideo || chroma.fullRender
-      ),
-      t("chromas")
-    );
-  }, [item.chromas, showMediaPopup, t]);
+    if (media.length > 0) {
+      showMediaPopup(media, item.displayName);
+    }
+  }, [item.chromas, item.displayName, item.levels, showMediaPopup]);
 
   const isFavorited = useMemo(
     () => skinIds.includes(item.levels[0].uuid),
@@ -83,251 +66,122 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   );
   const weaponType = useMemo(() => {
     const lowerName = item.displayName.toLowerCase();
-    return WEAPON_NAMES.find((weapon) =>
-      lowerName.includes(weapon.toLowerCase())
+    return (
+      WEAPON_NAMES.find((weapon) => lowerName.includes(weapon.toLowerCase())) ||
+      (variant === "bundle" ? "Bundle skin" : "Store skin")
     );
-  }, [item.displayName]);
+  }, [item.displayName, variant]);
   const upgradeLabel = useMemo(() => {
     const levelCount = item.levels.length || 1;
     return levelCount > 1 ? `Lv ${levelCount}/${levelCount}` : "Lv 1";
   }, [item.levels.length]);
-  const previewChips = useMemo(() => {
-    const chips: {
-      key: "levels" | "chromas";
-      label: string;
-      onPress: () => void;
-    }[] = [];
-
-    const levelLabel = buildPreviewLabel(
-      item.levels[item.levels.length - 1]?.displayName ||
-        item.levels[0]?.displayName ||
-        item.displayName
-    );
-    if (levelLabel) {
-      chips.push({
-        key: "levels",
-        label: levelLabel,
-        onPress: handleLevelsPress,
-      });
-    }
-
-    const chromaLabel = buildPreviewLabel(
-      item.chromas.find(
-        (chroma) => chroma.displayName && chroma.displayName !== item.displayName
-      )?.displayName
-    );
-    if (chromaLabel) {
-      chips.push({
-        key: "chromas",
-        label: chromaLabel,
-        onPress: handleChromasPress,
-      });
-    }
-
-    return chips;
-  }, [handleChromasPress, handleLevelsPress, item.chromas, item.displayName, item.levels]);
-  const isBundleVariant = variant === "bundle";
 
   return (
     <View
       style={[
         styles.card,
-        isBundleVariant && styles.bundleCard,
         {
           backgroundColor: tier.cardBackground,
           borderColor: tier.border,
         },
       ]}
     >
-      <View style={styles.mainRow}>
-        <View style={[styles.content, isBundleVariant && styles.bundleContent]}>
-          {!isBundleVariant ? (
-            <Text style={styles.eyebrow} numberOfLines={1}>
-              {weaponType || "Weapon"}
-            </Text>
-          ) : null}
+      <View style={styles.cardHeader}>
+        <Text style={styles.eyebrow} numberOfLines={1}>
+          {weaponType}
+        </Text>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => toggleSkin(item.levels[0].uuid)}
+          style={[
+            styles.favoriteButton,
+            {
+              backgroundColor: isFavorited ? tier.accent : tier.badgeBackground,
+              borderColor: isFavorited ? tier.accent : tier.border,
+            },
+          ]}
+        >
+          <Icon
+            name={isFavorited ? "heart" : "heart-outline"}
+            size={16}
+            color={isFavorited ? COLORS.PURE_WHITE : tier.text}
+          />
+        </TouchableOpacity>
+      </View>
 
-          <Text
-            style={[styles.title, isBundleVariant && styles.bundleTitle]}
-            numberOfLines={1}
-          >
-            {item.displayName}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={handlePreviewPress}
+        style={[
+          styles.visualFrame,
+          {
+            backgroundColor: tier.visualBackground,
+            borderColor: tier.border,
+          },
+        ]}
+      >
+        <Image
+          resizeMode="contain"
+          style={styles.image}
+          source={getDisplayIcon(item, screenshotModeEnabled)}
+        />
+      </TouchableOpacity>
+
+      <Text style={styles.title} numberOfLines={2}>
+        {item.displayName}
+      </Text>
+
+      <View style={styles.metaRow}>
+        <View
+          style={[
+            styles.metaBadge,
+            {
+              backgroundColor: tier.badgeBackground,
+              borderColor: tier.border,
+            },
+          ]}
+        >
+          <View style={[styles.rarityDot, { backgroundColor: tier.accent }]} />
+          <Text style={[styles.metaBadgeText, { color: tier.text }]} numberOfLines={1}>
+            {tier.label}
           </Text>
-
-          {!isBundleVariant ? (
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
-
-          <View style={isBundleVariant ? styles.bundleBadgeRow : styles.badgeRow}>
-            {isBundleVariant ? (
-              <View style={styles.bundleMetaStack}>
-                <View style={styles.bundleTopMetaRow}>
-                  <View
-                    style={[
-                      styles.metaBadge,
-                      styles.bundleCompactBadge,
-                      {
-                        backgroundColor: tier.badgeBackground,
-                        borderColor: tier.border,
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[styles.rarityDot, { backgroundColor: tier.accent }]}
-                    />
-                    <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-                      {tier.label}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.metaBadge,
-                      styles.bundleStatBadge,
-                      {
-                        backgroundColor: tier.badgeBackground,
-                        borderColor: tier.border,
-                      },
-                    ]}
-                  >
-                    <Icon
-                      name="arrow-up-bold-circle-outline"
-                      size={15}
-                      color={tier.text}
-                    />
-                    <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-                      {upgradeLabel}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.bundleStatsColumn}>
-                  <View
-                    style={[
-                      styles.metaBadge,
-                      styles.bundleStatBadge,
-                      {
-                        backgroundColor: tier.badgeBackground,
-                        borderColor: tier.border,
-                      },
-                    ]}
-                  >
-                    <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-                    <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-                      {item.price}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <>
-                <View
-                  style={[
-                    styles.metaBadge,
-                    {
-                      backgroundColor: COLORS.SURFACE_MUTED,
-                      borderColor: COLORS.BORDER,
-                    },
-                  ]}
-                >
-                  <Icon
-                    name="arrow-up-bold-circle-outline"
-                    size={15}
-                    color={COLORS.TEXT_SECONDARY}
-                  />
-                  <Text style={styles.metaBadgeText}>
-                    {upgradeLabel}
-                  </Text>
-                </View>
-
-                <View
-                  style={[
-                    styles.metaBadge,
-                    {
-                      backgroundColor: COLORS.SURFACE_MUTED,
-                      borderColor: COLORS.BORDER,
-                    },
-                  ]}
-                >
-                  <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-                  <Text style={styles.metaBadgeText}>{item.price}</Text>
-                </View>
-              </>
-            )}
-          </View>
-
-          {!isBundleVariant ? (
-            <View style={styles.chipsRow}>
-              {previewChips.map((chip) => (
-                <TouchableOpacity
-                  key={chip.key}
-                  activeOpacity={0.85}
-                  onPress={chip.onPress}
-                  style={styles.previewChip}
-                >
-                  <Text style={styles.previewChipText} numberOfLines={1}>
-                    {chip.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-
-              {previewChips.length === 0 ? (
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={handleLevelsPress}
-                  style={styles.previewChip}
-                >
-                  <Text style={styles.previewChipText} numberOfLines={1}>
-                    {t("levels").toUpperCase()}
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-          ) : null}
         </View>
 
-        <View style={isBundleVariant ? styles.bundleMediaColumn : styles.mediaColumn}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => toggleSkin(item.levels[0].uuid)}
-            style={[
-              styles.favoriteButton,
-              isBundleVariant && styles.bundleFavoriteButton,
-              {
-                backgroundColor: isFavorited
-                  ? tier.accent
-                  : tier.badgeBackground,
-                borderColor: isFavorited ? tier.accent : tier.border,
-              },
-            ]}
-          >
-            <Icon
-              name={isFavorited ? "heart" : "heart-outline"}
-              size={18}
-              color={isFavorited ? COLORS.PURE_WHITE : tier.text}
-            />
-          </TouchableOpacity>
+        <View
+          style={[
+            styles.metaBadge,
+            {
+              backgroundColor: tier.badgeBackground,
+              borderColor: tier.border,
+            },
+          ]}
+        >
+          <Icon
+            name="arrow-up-bold-circle-outline"
+            size={13}
+            color={tier.text}
+          />
+          <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+            {upgradeLabel}
+          </Text>
+        </View>
+      </View>
 
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={handleLevelsPress}
-            style={[
-              styles.imageFrame,
-              isBundleVariant && styles.bundleImageFrame,
-              {
-                backgroundColor: tier.visualBackground,
-                borderColor: tier.border,
-              },
-            ]}
-          >
-            <Image
-              resizeMode="contain"
-              style={styles.image}
-              source={getDisplayIcon(item, screenshotModeEnabled)}
-            />
-          </TouchableOpacity>
+      <View style={styles.priceRow}>
+        <View
+          style={[
+            styles.metaBadge,
+            styles.priceBadge,
+            {
+              backgroundColor: tier.badgeBackground,
+              borderColor: tier.border,
+            },
+          ]}
+        >
+          <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+          <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+            {item.price}
+          </Text>
         </View>
       </View>
     </View>
@@ -336,172 +190,91 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: 16,
-    borderRadius: 28,
+    flex: 1,
+    minHeight: 238,
+    borderRadius: RADIUS.card,
     borderWidth: 1,
-    padding: 18,
-  },
-  bundleCard: {
-    marginBottom: 14,
-    borderRadius: 22,
     padding: 14,
   },
-  mainRow: {
+  cardHeader: {
     flexDirection: "row",
-    alignItems: "stretch",
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    paddingRight: 16,
-  },
-  bundleContent: {
-    paddingRight: 10,
-    justifyContent: "flex-start",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
   },
   eyebrow: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  title: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 19,
-    fontWeight: "700",
-  },
-  bundleTitle: {
-    fontSize: 16,
-  },
-  subtitle: {
-    marginTop: 6,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 15,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 16,
-  },
-  bundleBadgeRow: {
-    alignItems: "flex-start",
-    gap: 8,
-    marginTop: 12,
-  },
-  bundleMetaStack: {
-    alignItems: "flex-start",
-    gap: 6,
-  },
-  bundleTopMetaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 8,
-  },
-  metaBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: RADIUS.chip,
-    borderWidth: 1,
-  },
-  metaBadgeText: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 14,
-    fontWeight: "700",
-    marginLeft: 6,
-  },
-  bundleStatsColumn: {
-    gap: 6,
-  },
-  bundleCompactBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  bundleStatBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  rarityDot: {
-    width: 9,
-    height: 9,
-    borderRadius: RADIUS.chip,
-    marginRight: 6,
-  },
-  currencyIcon: {
-    width: 14,
-    height: 14,
-  },
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 14,
-  },
-  previewChip: {
-    maxWidth: "100%",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: RADIUS.chip,
-    borderWidth: 1,
-    backgroundColor: COLORS.SURFACE_MUTED,
-    borderColor: COLORS.BORDER,
-  },
-  previewChipText: {
+    flex: 1,
+    marginRight: 10,
     color: COLORS.TEXT_SECONDARY,
     fontSize: 13,
-    fontWeight: "700",
-  },
-  mediaColumn: {
-    width: 140,
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
-  bundleMediaColumn: {
-    width: 114,
-    alignItems: "flex-end",
-    justifyContent: "flex-start",
+    fontWeight: "600",
   },
   favoriteButton: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.chip,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
-  bundleFavoriteButton: {
-    width: 32,
-    height: 32,
-    marginBottom: 6,
-  },
-  bundleImageFrame: {
-    width: 104,
-    height: 104,
-    marginTop: 0,
-    borderRadius: 20,
+  visualFrame: {
+    width: "100%",
+    height: 112,
+    borderRadius: 18,
+    borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 10,
-  },
-  imageFrame: {
-    width: 128,
-    height: 128,
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   image: {
     width: "100%",
     height: "100%",
+  },
+  title: {
+    marginTop: 12,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 20,
+    minHeight: 40,
+  },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10,
+  },
+  priceRow: {
+    marginTop: 8,
+  },
+  metaBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+  },
+  priceBadge: {
+    minWidth: 78,
+  },
+  metaBadgeText: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 6,
+  },
+  rarityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  currencyIcon: {
+    width: 13,
+    height: 13,
   },
 });
 
