@@ -30,8 +30,8 @@ function ReAuth() {
           {t("welcome_back_info")}
         </Paragraph>
       </View>
-      <GlassCard style={{ flex: 1, minHeight: windowHeight * 0.76 }}>
-        <LoginWebView minHeight={windowHeight * 0.64} />
+      <GlassCard style={{ flex: 1, minHeight: windowHeight * 0.8 }}>
+        <LoginWebView minHeight={windowHeight * 0.68} />
       </GlassCard>
     </View>
   );

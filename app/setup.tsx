@@ -140,7 +140,7 @@ function Setup() {
                   {t("signin_info")}
                 </Paragraph>
               </View>
-              <LoginWebView minHeight={PAGE_HEIGHT * 0.56} />
+              <LoginWebView minHeight={PAGE_HEIGHT * 0.62} />
             </GlassCard>
           </View>
         )}
