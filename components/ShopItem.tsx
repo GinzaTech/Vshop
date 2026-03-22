@@ -10,7 +10,6 @@ import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIcon } from "~/utils/misc";
 import GlassCard from "~/components/ui/GlassCard";
-import ValorantButton from "~/components/ui/ValorantButton";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 
@@ -76,42 +75,36 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
         },
       ]}
     >
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <View style={styles.badgeRow}>
-            <View
-              style={[
-                styles.priceBadge,
-                {
-                  backgroundColor: tier.badgeBackground,
-                  borderColor: tier.border,
-                },
-              ]}
-            >
-              <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-              <Text style={styles.price}>{item.price}</Text>
-            </View>
-            <View
-              style={[
-                styles.rarityBadge,
-                {
-                  backgroundColor: tier.badgeBackground,
-                  borderColor: tier.border,
-                },
-              ]}
-            >
-              <View
-                style={[styles.rarityDot, { backgroundColor: tier.accent }]}
-              />
-              <Text style={[styles.rarityText, { color: tier.text }]}>
-                {tier.label}
-              </Text>
-            </View>
+      <View style={styles.topRow}>
+        <View style={styles.badgeRow}>
+          <View
+            style={[
+              styles.priceBadge,
+              {
+                backgroundColor: tier.badgeBackground,
+                borderColor: tier.border,
+              },
+            ]}
+          >
+            <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+            <Text style={styles.price}>{item.price}</Text>
           </View>
-          <Text style={styles.title} numberOfLines={2}>
-            {item.displayName}
-          </Text>
-          <Text style={styles.subtitle}>Daily store pick</Text>
+          <View
+            style={[
+              styles.rarityBadge,
+              {
+                backgroundColor: tier.badgeBackground,
+                borderColor: tier.border,
+              },
+            ]}
+          >
+            <View
+              style={[styles.rarityDot, { backgroundColor: tier.accent }]}
+            />
+            <Text style={[styles.rarityText, { color: tier.text }]}>
+              {tier.label}
+            </Text>
+          </View>
         </View>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -134,47 +127,84 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
         </TouchableOpacity>
       </View>
 
-      <View
-        style={[
-          styles.imageFrame,
-          {
-            backgroundColor: tier.visualBackground,
-            borderColor: tier.border,
-          },
-        ]}
-      >
-        <Image
-          resizeMode="contain"
-          style={styles.image}
-          source={getDisplayIcon(item, screenshotModeEnabled)}
-        />
-      </View>
+      <View style={styles.mainRow}>
+        <View style={styles.content}>
+          <Text style={styles.title} numberOfLines={2}>
+            {item.displayName}
+          </Text>
+          <Text style={styles.subtitle}>Daily store pick</Text>
 
-      <View style={styles.ratingContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity key={star} onPress={() => handleRate(star)}>
-            <Icon
-              name={star <= rating ? "star" : "star-outline"}
-              size={20}
-              color={star <= rating ? tier.accent : COLORS.TEXT_SECONDARY}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
+          <View style={styles.ratingContainer}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <TouchableOpacity key={star} onPress={() => handleRate(star)}>
+                <Icon
+                  name={star <= rating ? "star" : "star-outline"}
+                  size={18}
+                  color={star <= rating ? tier.accent : COLORS.TEXT_SECONDARY}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
 
-      <View style={styles.actions}>
-        <ValorantButton
-          title={t("levels")}
-          onPress={handleLevelsPress}
-          variant="secondary"
-          style={styles.button}
-        />
-        <ValorantButton
-          title={t("chromas")}
-          onPress={handleChromasPress}
-          variant="secondary"
-          style={styles.button}
-        />
+          <View style={styles.actions}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleLevelsPress}
+              style={[
+                styles.actionChip,
+                {
+                  backgroundColor: tier.badgeBackground,
+                  borderColor: tier.border,
+                },
+              ]}
+            >
+              <Icon
+                name="arrow-up-bold-circle-outline"
+                size={16}
+                color={tier.text}
+              />
+              <Text style={[styles.actionChipText, { color: tier.text }]}>
+                {t("levels")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleChromasPress}
+              style={[
+                styles.actionChip,
+                {
+                  backgroundColor: tier.badgeBackground,
+                  borderColor: tier.border,
+                },
+              ]}
+            >
+              <Icon
+                name="palette-outline"
+                size={16}
+                color={tier.text}
+              />
+              <Text style={[styles.actionChipText, { color: tier.text }]}>
+                {t("chromas")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.imageFrame,
+            {
+              backgroundColor: tier.visualBackground,
+              borderColor: tier.border,
+            },
+          ]}
+        >
+          <Image
+            resizeMode="contain"
+            style={styles.image}
+            source={getDisplayIcon(item, screenshotModeEnabled)}
+          />
+        </View>
       </View>
     </GlassCard>
   );
@@ -184,14 +214,20 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 16,
   },
-  header: {
+  topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12,
+    alignItems: "center",
+    gap: 10,
   },
-  headerText: {
+  mainRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+  },
+  content: {
     flex: 1,
+    paddingRight: 12,
   },
   badgeRow: {
     flexDirection: "row",
@@ -239,18 +275,17 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
-    marginTop: 12,
   },
   subtitle: {
-    marginTop: 6,
+    marginTop: 4,
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 14,
+    fontSize: 13,
   },
   favoriteButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: RADIUS.chip,
     backgroundColor: COLORS.SURFACE_MUTED,
     borderWidth: 1,
@@ -259,30 +294,44 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   imageFrame: {
-    marginTop: 18,
     borderRadius: 20,
     backgroundColor: COLORS.SURFACE_MUTED,
-    padding: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderWidth: 1,
+    width: 126,
+    height: 112,
+    alignItems: "center",
+    justifyContent: "center",
   },
   image: {
     width: "100%",
-    height: 168,
+    height: "100%",
   },
   ratingContainer: {
     flexDirection: "row",
     justifyContent: "flex-start",
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: 12,
+    marginBottom: 12,
     gap: 4,
   },
   actions: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
+    flexWrap: "wrap",
+    gap: 8,
   },
-  button: {
-    flex: 1,
+  actionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+  },
+  actionChipText: {
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: "700",
   },
 });
 
