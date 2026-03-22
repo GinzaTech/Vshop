@@ -1,10 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { Dimensions, View } from "react-native";
 import { Paragraph, Title } from "react-native-paper";
 
 import LoginWebView from "~/components/LoginWebView";
 import { COLORS } from "~/constants/DesignSystem";
 import GlassCard from "~/components/ui/GlassCard";
+
+const { height: windowHeight } = Dimensions.get("window");
 
 function ReAuth() {
   const { t } = useTranslation();
@@ -28,8 +30,8 @@ function ReAuth() {
           {t("welcome_back_info")}
         </Paragraph>
       </View>
-      <GlassCard style={{ flex: 1 }}>
-        <LoginWebView />
+      <GlassCard style={{ flex: 1, minHeight: windowHeight * 0.76 }}>
+        <LoginWebView minHeight={windowHeight * 0.64} />
       </GlassCard>
     </View>
   );

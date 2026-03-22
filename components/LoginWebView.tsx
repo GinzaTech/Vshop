@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { StyleProp, StyleSheet, useWindowDimensions, View, ViewStyle } from "react-native";
 import { useUserStore } from "~/hooks/useUserStore";
 import { getAccessTokenFromUri } from "~/utils/misc";
 import {
@@ -16,7 +17,6 @@ import {
 
 } from "~/utils/valorant-api";
 import Loading from "./Loading";
-import { View } from "react-native";
 import WebView from "react-native-webview";
 import { loadAssets } from "~/utils/valorant-assets";
 import { loadAgent } from "~/utils/valorant-assets";
@@ -26,11 +26,22 @@ import { clearAllCookies } from "~/utils/cookies";
 const LOGIN_URL =
   "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid";
 
-export default function LoginWebView() {
+interface LoginWebViewProps {
+  minHeight?: number;
+  style?: StyleProp<ViewStyle>;
+}
+
+export default function LoginWebView({
+  minHeight,
+  style,
+}: LoginWebViewProps) {
   const router = useRouter();
   const { setUser } = useUserStore();
   const [loading, setLoading] = useState<string | null>(null);
   const { t } = useTranslation();
+  const { height } = useWindowDimensions();
+  const resolvedMinHeight =
+    minHeight ?? Math.max(500, Math.min(height * 0.68, 640));
 
   const handleWebViewChange = async (newNavState: {
     url?: string;
@@ -122,16 +133,17 @@ export default function LoginWebView() {
 
   return (
     <View
-      style={{
-        flex: 1,
-        minHeight: 420,
-        borderRadius: 24,
-        overflow: "hidden",
-        backgroundColor: COLORS.SURFACE,
-      }}
+      style={[
+        styles.container,
+        {
+          minHeight: resolvedMinHeight,
+        },
+        style,
+      ]}
       renderToHardwareTextureAndroid
     >
       <WebView
+        style={styles.webView}
         userAgent="Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Mobile Safari/537.36"
         source={{
           uri: LOGIN_URL,
@@ -148,3 +160,16 @@ export default function LoginWebView() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    borderRadius: 24,
+    overflow: "hidden",
+    backgroundColor: COLORS.SURFACE,
+  },
+  webView: {
+    flex: 1,
+    backgroundColor: COLORS.SURFACE,
+  },
+});

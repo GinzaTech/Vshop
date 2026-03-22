@@ -113,15 +113,15 @@ function Setup() {
           <View
             style={{
               width: windowWidth,
-              height: windowHeight,
+              minHeight: windowHeight - 96,
               paddingHorizontal: 20,
+              paddingBottom: 12,
             }}
           >
-            <GlassCard style={{ flex: 1 }}>
+            <GlassCard style={{ flex: 1, minHeight: windowHeight * 0.74 }}>
               <View
                 style={{
-                  paddingBottom: 16,
-                  maxHeight: "18%",
+                  paddingBottom: 12,
                 }}
               >
                 <Title
@@ -133,7 +133,7 @@ function Setup() {
                   {t("signin_info")}
                 </Paragraph>
               </View>
-              <LoginWebView />
+              <LoginWebView minHeight={windowHeight * 0.58} />
             </GlassCard>
           </View>
         )}
