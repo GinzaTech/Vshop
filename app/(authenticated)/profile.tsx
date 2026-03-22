@@ -952,7 +952,8 @@ const styles = StyleSheet.create({
   heroCard: {
     marginHorizontal: 16,
     marginTop: 14,
-    padding: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderRadius: RADIUS.card,
   },
   heroTopRow: {
@@ -990,7 +991,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    marginTop: 14,
+    marginTop: 12,
   },
   heroTitle: {
     fontSize: 28,
@@ -1011,7 +1012,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   heroSubtitle: {
-    marginTop: 6,
+    marginTop: 4,
     fontSize: 14,
     color: "rgba(255,255,255,0.78)",
   },
@@ -1019,7 +1020,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginTop: 12,
+    marginTop: 10,
   },
   heroMetaPill: {
     flexDirection: "row",
@@ -1039,7 +1040,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 10,
-    marginTop: 16,
+    marginTop: 12,
   },
   heroStatCard: {
     flex: 1,
