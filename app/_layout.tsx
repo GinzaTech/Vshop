@@ -3,13 +3,13 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
-  DarkTheme as PaperDarkTheme,
+  DefaultTheme as PaperTheme,
   Provider as PaperProvider,
 } from "react-native-paper";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import merge from "deepmerge";
 import {
-  DarkTheme as NavigationDarkTheme,
+  DefaultTheme as NavigationTheme,
   ThemeProvider,
 } from "@react-navigation/native";
 import { Platform } from "react-native";
@@ -21,14 +21,22 @@ import { useTranslation } from "react-i18next";
 import { initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import PlausibleProvider from "~/components/PlausibleProvider";
+import { COLORS } from "~/constants/DesignSystem";
 
-export const CombinedDarkTheme = {
-  ...merge(PaperDarkTheme, NavigationDarkTheme),
+export const CombinedAppTheme = {
+  ...merge(PaperTheme, NavigationTheme),
+  dark: false,
   colors: {
-    ...merge(PaperDarkTheme.colors, NavigationDarkTheme.colors),
-    primary: "#fa4454",
-    accent: "#fa4454",
-    outlineVariant: "rgba(255, 255, 255, 0.1)",
+    ...merge(PaperTheme.colors, NavigationTheme.colors),
+    primary: COLORS.PURE_BLACK,
+    accent: COLORS.PURE_BLACK,
+    background: COLORS.BACKGROUND,
+    surface: COLORS.SURFACE,
+    card: COLORS.SURFACE,
+    text: COLORS.TEXT_PRIMARY,
+    placeholder: COLORS.TEXT_SECONDARY,
+    backdrop: COLORS.OVERLAY,
+    outlineVariant: COLORS.BORDER,
     onPrimary: "#ffffff",
   },
 };
@@ -36,9 +44,14 @@ export const CombinedDarkTheme = {
 SplashScreen.preventAutoHideAsync();
 
 const CustomHeader = ({ options, navigation }: any) => (
-  <Appbar.Header style={{ backgroundColor: CombinedDarkTheme.colors.primary }}>
-    <Appbar.BackAction onPress={navigation.goBack} />
-    <Appbar.Content title={options.title} />
+  <Appbar.Header
+    style={{ backgroundColor: CombinedAppTheme.colors.background, elevation: 0 }}
+  >
+    <Appbar.BackAction color={CombinedAppTheme.colors.text} onPress={navigation.goBack} />
+    <Appbar.Content
+      title={options.title}
+      titleStyle={{ color: CombinedAppTheme.colors.text }}
+    />
   </Appbar.Header>
 );
 
@@ -70,20 +83,20 @@ function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PlausibleProvider>
         <SafeAreaView
-          style={{ backgroundColor: CombinedDarkTheme.colors.primary }}
+          style={{ backgroundColor: CombinedAppTheme.colors.background }}
         />
-        <PaperProvider theme={CombinedDarkTheme}>
+        <PaperProvider theme={CombinedAppTheme}>
           <StripeProvider
             publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLIC_KEY ?? ""}
           >
-            <ThemeProvider value={CombinedDarkTheme}>
+            <ThemeProvider value={CombinedAppTheme}>
 
               <Stack
                 screenOptions={{
                   headerStyle: {
-                    backgroundColor: CombinedDarkTheme.colors.primary,
+                    backgroundColor: CombinedAppTheme.colors.background,
                   },
-                  headerTintColor: "#fff",
+                  headerTintColor: CombinedAppTheme.colors.text,
                   header: CustomHeader,
                   gestureEnabled: false,
                 }}

@@ -7,6 +7,7 @@ import { startActivityAsync, ActivityAction } from "expo-intent-launcher";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { AppState, Platform } from "react-native";
 import * as Application from "expo-application";
+import { COLORS } from "~/constants/DesignSystem";
 
 export default function BatteryOptimizationWarning() {
   const [batteryOptimizationEnabled, setBatteryOptimizationEnabled] =
@@ -46,7 +47,13 @@ export default function BatteryOptimizationWarning() {
   return (
     <Banner
       visible={notificationEnabled && batteryOptimizationEnabled}
-      style={{ backgroundColor: "#ffa70025" }}
+      style={{
+        backgroundColor: COLORS.WARNING_SURFACE,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: COLORS.WARNING_BORDER,
+        marginBottom: 16,
+      }}
       actions={[
         {
           label: t("battery_optimization_warning.action"),
@@ -54,7 +61,7 @@ export default function BatteryOptimizationWarning() {
         },
       ]}
       icon={({ color, size }) => (
-        <Icon name="battery-alert" color={color} size={size} />
+        <Icon name="battery-alert" color={COLORS.WARNING} size={size} />
       )}
     >
       {t("battery_optimization_warning.description")}

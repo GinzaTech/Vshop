@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next";
-import { StyleSheet, View, Text, Image, Platform } from "react-native";
-import { useTheme } from "react-native-paper";
+import { StyleSheet, View, Text, Image } from "react-native";
+
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIcon } from "~/utils/misc";
 import GlassCard from "~/components/ui/GlassCard";
 import ValorantButton from "~/components/ui/ValorantButton";
-import { COLORS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
 interface props {
   item: SkinShopItem;
@@ -17,26 +17,29 @@ export default function BundleItem(props: React.PropsWithChildren<props>) {
   const { t } = useTranslation();
   const { showMediaPopup } = useMediaPopupStore();
   const { screenshotModeEnabled } = useFeatureStore();
-  const { colors } = useTheme();
 
   return (
     <GlassCard style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={1}>
-          {props.item.displayName}
-        </Text>
         <View style={styles.priceContainer}>
-          <Text style={styles.price}>{props.item.price}</Text>
           <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-          <Text style={styles.separateText}>({t("separate")})</Text>
+          <Text style={styles.price}>{props.item.price}</Text>
         </View>
+        <Text style={styles.separateText}>Included in bundle</Text>
       </View>
 
-      <Image
-        resizeMode="contain"
-        style={styles.image}
-        source={getDisplayIcon(props.item, screenshotModeEnabled)}
-      />
+      <Text style={styles.title} numberOfLines={2}>
+        {props.item.displayName}
+      </Text>
+      <Text style={styles.subtitle}>{t("separate")}</Text>
+
+      <View style={styles.imageFrame}>
+        <Image
+          resizeMode="contain"
+          style={styles.image}
+          source={getDisplayIcon(props.item, screenshotModeEnabled)}
+        />
+      </View>
 
       <View style={styles.actions}>
         <ValorantButton
@@ -72,57 +75,64 @@ export default function BundleItem(props: React.PropsWithChildren<props>) {
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 10,
-    marginBottom: 10,
+    marginBottom: 16,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 10,
+    alignItems: "center",
   },
   title: {
-    color: COLORS.PURE_WHITE,
-    fontSize: 16,
-    fontWeight: "bold",
-    flex: 1,
-    marginRight: 10,
-    textTransform: "uppercase",
-    fontFamily: Platform.OS === 'ios' ? 'DIN Alternate' : 'sans-serif-condensed',
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 20,
+    fontWeight: "700",
+    marginTop: 12,
+  },
+  subtitle: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
+    marginTop: 6,
   },
   priceContainer: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: COLORS.SURFACE_MUTED,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
   },
   price: {
-    color: COLORS.GLASS_WHITE_DIM,
+    color: COLORS.TEXT_PRIMARY,
     fontSize: 14,
-    fontWeight: "600",
-    marginRight: 4,
+    fontWeight: "700",
+    marginLeft: 6,
   },
   currencyIcon: {
     width: 14,
     height: 14,
   },
   separateText: {
-    color: COLORS.GLASS_WHITE_DIM,
-    fontSize: 10,
-    marginLeft: 4,
-    fontStyle: 'italic'
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
+  },
+  imageFrame: {
+    marginTop: 18,
+    borderRadius: 20,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    padding: 14,
   },
   image: {
     width: "100%",
-    height: 120, // Slightly smaller than ShopItem
-    marginBottom: 10,
+    height: 140,
   },
   actions: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
-    marginTop: 6
+    marginTop: 16,
   },
   button: {
     flex: 1,
-    minHeight: 44, // Taller touch target
+    minHeight: 44,
   },
 });

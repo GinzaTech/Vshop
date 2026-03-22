@@ -1,6 +1,5 @@
 import React from "react";
 import { Text, StyleSheet, View } from "react-native";
-import { Card, useTheme } from "react-native-paper"; // Keep for types if needed, or remove
 import Animated, { FadeIn } from "react-native-reanimated";
 import { getEquipmentImage } from "./popups/equipHelpers";
 import GlassCard from "~/components/ui/GlassCard";
@@ -67,13 +66,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: "700",
-    color: COLORS.PURE_WHITE,
+    color: COLORS.TEXT_PRIMARY,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 12,
     lineHeight: 16,
-    color: COLORS.GLASS_WHITE_DIM,
+    color: COLORS.TEXT_SECONDARY,
   },
 });
 

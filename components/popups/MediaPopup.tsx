@@ -1,9 +1,11 @@
-import { Portal, Modal, Button, Text, useTheme } from "react-native-paper";
-import { View } from "react-native";
+import { useState } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, Portal, Text, useTheme } from "react-native-paper";
 import { ResizeMode, Video } from "expo-av";
 import { create } from "zustand";
-import { useState } from "react";
 import { Image } from "expo-image";
+
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
 interface IStore {
   uris: string[];
@@ -13,6 +15,7 @@ interface IStore {
   hideMediaPopup: () => void;
   setSelectedIndex: (index: number) => void;
 }
+
 export const useMediaPopupStore = create<IStore>((set) => ({
   uris: [],
   text: "",
@@ -33,87 +36,63 @@ function MediaPopup() {
     <Portal>
       <Modal
         visible={uris.length > 0}
-        onDismiss={() => {
-          hideMediaPopup();
-        }}
+        onDismiss={hideMediaPopup}
+        contentContainerStyle={styles.modalContainer}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-          }}
-        >
-          <View style={{ padding: 10 }}>
-            {uris.length > 0 &&
-              (uris[selectedIndex].endsWith(".png") ||
-              uris[selectedIndex].endsWith(".jpg") ? (
-                <Image
-                  style={{
-                    aspectRatio: 16 / 9,
-                    width: "100%",
-                    borderTopLeftRadius: 5,
-                    borderTopRightRadius: 5,
-                    backgroundColor: "#000",
-                  }}
-                  contentFit="contain"
-                  source={{ uri: uris[selectedIndex] }}
-                  onLoadStart={() => setLoading(true)}
-                  onLoad={() => setLoading(false)}
-                />
-              ) : (
-                <Video
-                  source={{ uri: uris[selectedIndex] }}
-                  style={{
-                    aspectRatio: 16 / 9,
-                    width: "100%",
-                    borderTopLeftRadius: 5,
-                    borderTopRightRadius: 5,
-                  }}
-                  resizeMode={ResizeMode.CONTAIN}
-                  shouldPlay
-                  isMuted={false}
-                  isLooping={true}
-                  onLoadStart={() => setLoading(true)}
-                  onLoad={() => setLoading(false)}
-                />
-              ))}
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "#000",
-                borderBottomLeftRadius: 5,
-                borderBottomRightRadius: 5,
-              }}
-            >
-              <Text
-                style={{
-                  textTransform: "uppercase",
-                  color: colors.primary,
-                  fontSize: 15,
-                  marginRight: 5,
-                }}
-              >
-                {text}
-              </Text>
-              {uris.map((uri, i) => (
-                <View
-                  style={{
-                    borderBottomWidth: i === selectedIndex ? 1 : 0,
-                    borderBottomColor: colors.primary,
-                  }}
-                  key={i}
-                >
-                  <Button
-                    onPress={() => setSelectedIndex(i)}
-                    loading={i === selectedIndex && loading}
-                  >
-                    {i + 1}
-                  </Button>
-                </View>
-              ))}
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+
+          {uris.length > 0 &&
+            (uris[selectedIndex].endsWith(".png") ||
+            uris[selectedIndex].endsWith(".jpg") ? (
+              <Image
+                style={styles.media}
+                contentFit="contain"
+                source={{ uri: uris[selectedIndex] }}
+                onLoadStart={() => setLoading(true)}
+                onLoad={() => setLoading(false)}
+              />
+            ) : (
+              <Video
+                source={{ uri: uris[selectedIndex] }}
+                style={styles.media}
+                resizeMode={ResizeMode.CONTAIN}
+                shouldPlay
+                isMuted={false}
+                isLooping
+                onLoadStart={() => setLoading(true)}
+                onLoad={() => setLoading(false)}
+              />
+            ))}
+
+          <View style={styles.footer}>
+            <Text style={[styles.title, { color: colors.text }]}>{text}</Text>
+
+            <View style={styles.tabs}>
+              {uris.map((_uri, index) => {
+                const active = index === selectedIndex;
+                return (
+                  <View key={index} style={styles.tabWrap}>
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => setSelectedIndex(index)}
+                      style={[
+                        styles.tabButton,
+                        active && styles.tabButtonActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.tabButtonLabel,
+                          active && styles.tabButtonLabelActive,
+                        ]}
+                      >
+                        {active && loading ? "..." : index + 1}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -121,5 +100,74 @@ function MediaPopup() {
     </Portal>
   );
 }
+
+const styles = StyleSheet.create({
+  modalContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  sheet: {
+    width: "100%",
+    borderRadius: 28,
+    backgroundColor: COLORS.SURFACE,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+  },
+  handle: {
+    alignSelf: "center",
+    width: 52,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: COLORS.BORDER,
+    marginBottom: 14,
+  },
+  media: {
+    aspectRatio: 16 / 9,
+    width: "100%",
+    borderRadius: RADIUS.card,
+    backgroundColor: COLORS.SURFACE_MUTED,
+  },
+  footer: {
+    marginTop: 14,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    textTransform: "capitalize",
+  },
+  tabs: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 12,
+  },
+  tabWrap: {
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tabButton: {
+    minWidth: 44,
+    minHeight: 40,
+    borderRadius: RADIUS.chip,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.SURFACE,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+  },
+  tabButtonActive: {
+    backgroundColor: COLORS.PURE_BLACK,
+    borderColor: COLORS.PURE_BLACK,
+  },
+  tabButtonLabel: {
+    color: COLORS.TEXT_PRIMARY,
+    fontWeight: "700",
+  },
+  tabButtonLabelActive: {
+    color: COLORS.PURE_WHITE,
+  },
+});
 
 export default MediaPopup;

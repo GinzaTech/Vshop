@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { RoleSelector, AgentGrid, AgentModal } from "~/components/GalleryAgent";
 import useAgentGallery from "~/components/GalleryAgent";
+import { COLORS } from "~/constants/DesignSystem";
 
 const ROLES = [
   { id: "Duelist", name: "Duelist", icon: require("../../assets/images/Duelist.png") },
@@ -42,7 +43,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-start",
     alignItems: "center",
-    backgroundColor: "#1e1e1e",
+    backgroundColor: COLORS.BACKGROUND,
     paddingTop: 20,
   },
 });

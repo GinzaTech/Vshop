@@ -1,186 +1,269 @@
-import { Drawer } from "expo-router/drawer";
+import type { ComponentProps } from "react";
+import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Image } from "expo-image";
-import { Platform, View } from "react-native";
-import { DrawerItemList } from "@react-navigation/drawer";
-import { Appbar, Text, useTheme } from "react-native-paper";
-import * as Application from "expo-application";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import MediaPopup from "~/components/popups/MediaPopup";
-import { Link } from "expo-router";
 
-function CustomDrawerContent(props: any) {
-    return (
-        <>
-            <View
-                style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    padding: 10,
-                    paddingVertical: 20,
-                }}
+import MediaPopup from "~/components/popups/MediaPopup";
+import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
+
+const PRIMARY_ROUTES: Record<
+  string,
+  { icon: ComponentProps<typeof Icon>["name"]; label: string }
+> = {
+  bundles: { icon: "package-variant-closed", label: "Bundles" },
+  shop: { icon: "shopping-outline", label: "Store" },
+  night_market: { icon: "weather-night", label: "Market" },
+  profile: { icon: "account-circle-outline", label: "Profile" },
+  settings: { icon: "dots-grid", label: "More" },
+};
+
+function FloatingTabBar({ state, descriptors, navigation }: any) {
+  const insets = useSafeAreaInsets();
+  const activeRoute = state.routes[state.index];
+
+  if (!(activeRoute?.name in PRIMARY_ROUTES)) {
+    return null;
+  }
+
+  const visibleRoutes = state.routes.filter(
+    (route: any) => route.name in PRIMARY_ROUTES
+  );
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.tabBarWrap,
+        { paddingBottom: Math.max(insets.bottom, 12) },
+      ]}
+    >
+      <View style={styles.tabBar}>
+        {visibleRoutes.map((route: any) => {
+          const routeIndex = state.routes.findIndex(
+            (item: any) => item.key === route.key
+          );
+          const focused = state.index === routeIndex;
+          const { icon, label } = PRIMARY_ROUTES[route.name];
+          const options = descriptors[route.key]?.options ?? {};
+
+          return (
+            <Pressable
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              onPress={() => {
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+
+                if (!focused && !event.defaultPrevented) {
+                  navigation.navigate(route.name);
+                }
+              }}
+              style={styles.tabButton}
             >
-                <Image
-                    style={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 10,
-                        marginRight: 10,
-                    }}
-                    source={require("~/assets/images/logo-50.png")}
+              <View style={[styles.tabIconWrap, focused && styles.tabIconWrapActive]}>
+                <Icon
+                  name={icon}
+                  size={22}
+                  color={focused ? COLORS.PURE_BLACK : COLORS.PURE_WHITE}
                 />
-                <View>
-                    <Text style={{ fontSize: 22, fontWeight: "bold" }}>VShop</Text>
-                    <Text style={{ fontSize: 12 }}>
-                        v{Application.nativeApplicationVersion}
-                    </Text>
-                </View>
-            </View>
-            <DrawerItemList {...props} />
-        </>
-    );
+              </View>
+              <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 }
 
 function Layout() {
-    const { t } = useTranslation();
-    const { colors } = useTheme();
+  const { t } = useTranslation();
 
-    return (
-        <>
-            <Drawer
-                drawerContent={(props) => <CustomDrawerContent {...props} />}
-                screenOptions={{
-                    header: ({ options, navigation }) => (
-                        <Appbar.Header style={{ backgroundColor: colors.primary }}>
-                            <Appbar.Action icon="menu" onPress={navigation.openDrawer} />
-                            <Appbar.Content title={options.title} />
-                        </Appbar.Header>
-                    ),
-                }}
-            >
-                {/* Các màn hình khác */}
-                <Drawer.Screen
-                    name="bundles"
-                    options={{
-                        title: t("bundles"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="package" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="shop"
-                    options={{
-                        title: t("shop"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="basket" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="equip"
-                    options={{
-                        title: t("equip"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="anchor" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="accessories"
-                    options={{
-                        title: t("accessories"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="anchor" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="night_market"
-                    options={{
-                        title: t("nightmarket"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="weather-night" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="profile"
-                    options={{
-                        title: t("profile"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="account" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="gallery"
-                    options={{
-                        title: t("gallery"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="camera-burst" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="agent"
-                    options={{
-                        title: t("agent"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="account-group" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="combat"
-                    options={{
-                        title: t("combat"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="target" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="history"
-                    options={{
-                        title: t("history") || "Match History",
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="history" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="crosshair"
-                    options={{
-                        title: t("crosshair") || "Crosshair",
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="crosshairs-gps" color={color} size={size} />
-                        ),
-                    }}
-                />
-                <Drawer.Screen
-                    name="match_details/[id]"
-                    options={{
-                        drawerItemStyle: { display: "none" },
-                        headerShown: false,
-                        drawerLabel: () => null,
-                        title: "",
-                    }}
-                />
-                <Drawer.Screen
-                    name="settings"
-                    options={{
-                        title: t("settings"),
-                        drawerIcon: ({ color, size }) => (
-                            <Icon name="cog" color={color} size={size} />
-                        ),
-                    }}
-                />
-            </Drawer>
-            <MediaPopup />
-            {Platform.OS === "android"}
-        </>
-    );
+  return (
+    <>
+      <Tabs
+        tabBar={(props) => <FloatingTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+          tabBarShowLabel: false,
+        }}
+      >
+        <Tabs.Screen
+          name="bundles"
+          options={{
+            title: t("bundles"),
+          }}
+        />
+        <Tabs.Screen
+          name="shop"
+          options={{
+            title: t("shop"),
+          }}
+        />
+        <Tabs.Screen
+          name="night_market"
+          options={{
+            title: t("nightmarket"),
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: t("profile"),
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: t("settings"),
+          }}
+        />
+        <Tabs.Screen
+          name="accessories"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("accessories"),
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="agent"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("agent") || "Agent",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="combat"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("combat") || "Combat",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="crosshair"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("crosshair") || "Crosshair",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="equip"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("equip"),
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="gallery"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("gallery"),
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="history"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("history") || "History",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="match_details/[id]"
+          options={{
+            href: null,
+            headerShown: false,
+          }}
+        />
+      </Tabs>
+      <MediaPopup />
+    </>
+  );
 }
+
+const styles = StyleSheet.create({
+  secondaryHeader: {
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  tabBarWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+  },
+  tabBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "88%",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 32,
+    backgroundColor: COLORS.PURE_BLACK,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    ...GLOBAL_STYLES.shadow,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  tabIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.chip,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabIconWrapActive: {
+    backgroundColor: COLORS.PURE_WHITE,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.64)",
+  },
+  tabLabelActive: {
+    color: COLORS.PURE_WHITE,
+  },
+});
 
 export default Layout;

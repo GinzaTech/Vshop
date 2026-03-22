@@ -12,6 +12,7 @@ import {
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useState } from "react";
 import * as Application from "expo-application";
+import { COLORS } from "~/constants/DesignSystem";
 
 export default function UpdatePopup() {
   const [visible, setVisible] = useState(false);
@@ -53,14 +54,16 @@ export default function UpdatePopup() {
                 <Icon
                   name="update"
                   size={25}
-                  color="white"
+                  color={COLORS.TEXT_PRIMARY}
                   style={{ marginRight: 5 }}
                 />
-                <Title style={{ color: "#fff" }}>
+                <Title style={{ color: COLORS.TEXT_PRIMARY }}>
                   {t("update.available.title")}
                 </Title>
               </View>
-              <Paragraph>{t("update.available.description")}</Paragraph>
+              <Paragraph style={{ color: COLORS.TEXT_SECONDARY }}>
+                {t("update.available.description")}
+              </Paragraph>
             </Card.Content>
             <Card.Actions style={{ justifyContent: "flex-end" }}>
               <Button onPress={() => setVisible(false)}>{t("no")}</Button>

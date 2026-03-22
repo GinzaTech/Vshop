@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList, Dimensions, ImageSourcePropType } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { getAgent } from "~/utils/valorant-assets";
+import { COLORS } from "~/constants/DesignSystem";
 
 const { width } = Dimensions.get("window");
 const BOX_SIZE = width / 5 - 10;
@@ -196,10 +197,11 @@ const styles = StyleSheet.create({
     roleButton: {
         alignItems: "center",
         marginHorizontal: 10,
+        paddingBottom: 6,
     },
     selectedRoleButton: {
         borderBottomWidth: 2,
-        borderBottomColor: "#ff4655",
+        borderBottomColor: COLORS.PURE_BLACK,
     },
     roleIcon: {
         width: 40,
@@ -207,7 +209,7 @@ const styles = StyleSheet.create({
         resizeMode: "contain",
     },
     roleText: {
-        color: "#fff",
+        color: COLORS.TEXT_PRIMARY,
         fontSize: 12,
         marginTop: 5,
     },
@@ -218,8 +220,10 @@ const styles = StyleSheet.create({
         width: BOX_SIZE,
         height: BOX_SIZE,
         margin: 5,
-        backgroundColor: "#2e2e2e",
-        borderRadius: 8,
+        backgroundColor: COLORS.SURFACE,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: COLORS.BORDER,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -231,7 +235,7 @@ const styles = StyleSheet.create({
 
     modalContainer: {
         flex: 1,
-        backgroundColor: "#000",
+        backgroundColor: COLORS.BACKGROUND,
         justifyContent: "center",
         padding: 20,
     },
@@ -239,13 +243,13 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         alignItems: "center",
-        backgroundColor: "#000",
-        color: "#fff",
+        backgroundColor: COLORS.BACKGROUND,
+        color: COLORS.TEXT_PRIMARY,
     },
     agentName: {
         fontSize: 30,
         fontWeight: "bold",
-        color: "#fff",
+        color: COLORS.TEXT_PRIMARY,
         marginBottom: 10,
     },
     agentImage: {
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
     },
     agentDescription: {
         fontSize: 16,
-        color: "#fff",
+        color: COLORS.TEXT_SECONDARY,
         textAlign: "center",
         marginBottom: 20,
     },
@@ -288,12 +292,12 @@ const styles = StyleSheet.create({
     },
     abilityName: {
         fontSize: 14,
-        color: "#fff",
+        color: COLORS.TEXT_PRIMARY,
         textAlign: "center",
     },
     abilityDescription: {
         fontSize: 12,
-        color: "#fff",
+        color: COLORS.TEXT_SECONDARY,
         textAlign: "center",
         marginTop: 5,
     },

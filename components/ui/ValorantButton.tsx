@@ -1,7 +1,7 @@
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet, View, StyleProp, ViewStyle, TextStyle } from "react-native";
 import * as Haptics from "expo-haptics";
-import { COLORS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { BlurView } from "expo-blur";
 
 interface ValorantButtonProps {
@@ -29,13 +29,13 @@ export default function ValorantButton({
     const isGlass = variant === "glass";
     const backgroundColor =
         variant === "primary"
-            ? COLORS.VALORANT_RED
+            ? COLORS.PURE_BLACK
             : variant === "secondary"
-                ? COLORS.VALORANT_BLACK
+                ? COLORS.SURFACE_MUTED
                 : "transparent";
 
     const borderColor =
-        variant === "secondary" ? COLORS.GLASS_BORDER : "transparent";
+        variant === "secondary" ? COLORS.BORDER : "transparent";
 
     const Content = (
         <View style={[styles.contentContainer, { backgroundColor: isGlass ? "rgba(255,70,85, 0.1)" : backgroundColor, borderColor, borderWidth: variant === "secondary" ? 1 : 0 }]}>
@@ -44,12 +44,17 @@ export default function ValorantButton({
                 style={[
                     styles.text,
                     {
-                        color: variant === "primary" ? COLORS.PURE_WHITE : COLORS.VALORANT_RED,
+                        color:
+                            variant === "primary"
+                                ? COLORS.PURE_WHITE
+                                : variant === "secondary"
+                                    ? COLORS.TEXT_PRIMARY
+                                    : COLORS.PURE_BLACK,
                     },
                     textStyle,
                 ]}
             >
-                {title.toUpperCase()}
+                {title}
             </Text>
         </View>
     );
@@ -74,22 +79,21 @@ export default function ValorantButton({
 const styles = StyleSheet.create({
     container: {
         overflow: "hidden",
-        borderRadius: 4,
+        borderRadius: RADIUS.button,
     },
     blur: {
-        borderRadius: 4,
+        borderRadius: RADIUS.button,
     },
     contentContainer: {
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 20,
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "row",
-        borderRadius: 4,
+        borderRadius: RADIUS.button,
     },
     text: {
-        fontWeight: "bold",
-        letterSpacing: 1.5,
+        fontWeight: "700",
         fontSize: 14,
     },
     iconContainer: {

@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, ViewProps } from "react-native";
 import { BlurView } from "expo-blur";
-import { COLORS, GLOBAL_STYLES } from "~/constants/DesignSystem";
+import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 
 interface GlassCardProps extends ViewProps {
     style?: StyleProp<ViewStyle>;
@@ -13,8 +13,8 @@ interface GlassCardProps extends ViewProps {
 export default function GlassCard({
     style,
     children,
-    intensity = 20,
-    tint = "dark",
+    intensity = 18,
+    tint = "light",
     ...props
 }: GlassCardProps) {
     return (
@@ -28,13 +28,11 @@ export default function GlassCard({
 const styles = StyleSheet.create({
     container: {
         ...GLOBAL_STYLES.glassContainer,
-        borderRadius: 16,
+        borderRadius: RADIUS.card,
         ...GLOBAL_STYLES.shadow,
-        // Ensure the container can grow
         flexShrink: 1,
     },
     content: {
         padding: 16,
-        // Content determines the size
     },
 });

@@ -1,40 +1,47 @@
 import React from "react";
-import { Checkbox, List, Text, TouchableRipple } from "react-native-paper";
+import {
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  ToastAndroid,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  Switch,
+  Text,
+} from "react-native-paper";
 import { useTranslation } from "react-i18next";
-import { Linking, ToastAndroid, ScrollView } from "react-native";
-import CookieManager from "@react-native-cookies/cookies";
-import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Clipboard from "expo-clipboard";
+import * as Notifications from "expo-notifications";
+import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useRouter } from "expo-router";
+
 import { useUserStore } from "~/hooks/useUserStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { defaultUser } from "~/utils/valorant-api";
-import * as Clipboard from "expo-clipboard";
-import { useRouter } from "expo-router";
-import {
-  checkShop,
-  initBackgroundFetch,
-  stopBackgroundFetch,
-} from "~/utils/wishlist";
-import * as Notifications from "expo-notifications";
+import { checkShop, initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import BatteryOptimizationWarning from "~/components/BatteryOptimizationWarning";
+import GlassCard from "~/components/ui/GlassCard";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { clearAllCookies } from "~/utils/cookies";
 
 function Settings() {
   const { t } = useTranslation();
   const router = useRouter();
   const { user, setUser } = useUserStore();
-  const { screenshotModeEnabled, toggleScreenshotMode } =
-    useFeatureStore();
-  const notificationEnabled = useWishlistStore(
-    (state) => state.notificationEnabled
-  );
+  const { screenshotModeEnabled, toggleScreenshotMode } = useFeatureStore();
+  const notificationEnabled = useWishlistStore((state) => state.notificationEnabled);
   const setNotificationEnabled = useWishlistStore(
     (state) => state.setNotificationEnabled
   );
   const wishlistedSkins = useWishlistStore((state) => state.skinIds);
 
   const handleLogout = async () => {
-    await CookieManager.clearAll(true);
+    await clearAllCookies(true);
     await AsyncStorage.removeItem("region");
     setUser(defaultUser);
     stopBackgroundFetch();
@@ -42,182 +49,306 @@ function Settings() {
     router.replace("/setup");
   };
 
-  const toggleNotificationEnabled = async () => {
-
-      if (!notificationEnabled) {
-        const permission = await Notifications.requestPermissionsAsync();
-        if (permission.granted) {
-          await initBackgroundFetch();
-          setNotificationEnabled(true);
-          ToastAndroid.show(
-            t("wishlist.notification.enabled"),
-            ToastAndroid.LONG
-          );
-        } else {
-          ToastAndroid.show(
-            t("wishlist.notification.no_permission"),
-            ToastAndroid.LONG
-          );
+  const toggleNotificationState = async () => {
+    if (!notificationEnabled) {
+      const permission = await Notifications.requestPermissionsAsync();
+      if (permission.granted) {
+        await initBackgroundFetch();
+        setNotificationEnabled(true);
+        if (Platform.OS === "android") {
+          ToastAndroid.show(t("wishlist.notification.enabled"), ToastAndroid.LONG);
         }
-      } else {
-        await stopBackgroundFetch();
-        setNotificationEnabled(false);
-        ToastAndroid.show(
-          t("wishlist.notification.disabled"),
-          ToastAndroid.LONG
-        );
+      } else if (Platform.OS === "android") {
+        ToastAndroid.show(t("wishlist.notification.no_permission"), ToastAndroid.LONG);
       }
-  };
-
-  const showLastExecution = async () => {
-    const lastWishlistCheck = await AsyncStorage.getItem("lastWishlistCheck");
-    const ms = Number.parseInt(lastWishlistCheck || "0");
-    if (ms > 0) {
-      const hours = Math.floor((new Date().getTime() - ms) / 1000 / 60 / 60);
-      const minutes = Math.floor((new Date().getTime() - ms) / 1000 / 60);
-      ToastAndroid.show(
-        `Last checked: ${
-          hours === 0 ? `${minutes} minutes` : `${hours} hours`
-        } ago`,
-        ToastAndroid.LONG
-      );
     } else {
-      ToastAndroid.show("Never checked", ToastAndroid.LONG);
+      await stopBackgroundFetch();
+      setNotificationEnabled(false);
+      if (Platform.OS === "android") {
+        ToastAndroid.show(t("wishlist.notification.disabled"), ToastAndroid.LONG);
+      }
     }
   };
 
+  const shortcutItems = [
+    { label: t("accessories"), icon: "cards-outline", route: "/accessories" },
+    { label: t("gallery"), icon: "image-multiple-outline", route: "/gallery" },
+    { label: t("agent") || "Agent", icon: "account-group-outline", route: "/agent" },
+    { label: t("combat") || "Combat", icon: "target", route: "/combat" },
+    { label: t("history") || "History", icon: "history", route: "/history" },
+    { label: t("crosshair") || "Crosshair", icon: "crosshairs-gps", route: "/crosshair" },
+    { label: t("equip"), icon: "shield-sword-outline", route: "/equip" },
+  ];
+
+  const renderRow = ({
+    icon,
+    title,
+    description,
+    onPress,
+    right,
+    danger,
+  }: {
+    icon: React.ComponentProps<typeof Icon>["name"];
+    title: string;
+    description?: string;
+    onPress?: () => void;
+    right?: React.ReactNode;
+    danger?: boolean;
+  }) => (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={styles.row}
+      disabled={!onPress}
+    >
+      <View style={styles.rowLeft}>
+        <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
+          <Icon
+            name={icon}
+            size={18}
+            color={danger ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.rowTitle}>{title}</Text>
+          {description ? <Text style={styles.rowDescription}>{description}</Text> : null}
+        </View>
+      </View>
+      {right ?? <Icon name="chevron-right" size={20} color={COLORS.TEXT_SECONDARY} />}
+    </TouchableOpacity>
+  );
+
   return (
-    <ScrollView>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.hero}>
+        <Text style={styles.title}>Explore more</Text>
+        <Text style={styles.subtitle}>
+          Customize the app, manage your account, and jump into the extra tools.
+        </Text>
+      </View>
+
       <BatteryOptimizationWarning />
-      <List.Section title={t("general")}>
-        <TouchableRipple
-          onPress={() => {
-            router.navigate("/language");
-          }}
-        >
-          <List.Item
-            title={t("language")}
-            left={(props) => <List.Icon {...props} icon="translate" />}
-          />
-        </TouchableRipple>
-        {Platform.OS === "android" && (
-          <>
-            <TouchableRipple
-              onPress={toggleNotificationEnabled}
-              onLongPress={showLastExecution}
-            >
-              <List.Item
-                title={t("wishlist.notification.name")}
-                description={t("wishlist.notification.info")}
-                left={(props) => (
-                  <List.Icon {...props} icon="cellphone-message" />
-                )}
-                right={() => (
-                  <Checkbox
-                    status={notificationEnabled ? "checked" : "unchecked"}
-                    onPress={toggleNotificationEnabled}
-                  />
-                )}
-              />
-            </TouchableRipple>
-          </>
-        )}
-      </List.Section>
-      <List.Section title={t("links")}>
-        <TouchableRipple
-          onPress={() => Linking.openURL("https://vshop.one/discord")}
-        >
-          <List.Item
-            title={t("discord_server")}
-            left={(props) => <List.Icon {...props} icon="link" />}
-          />
-        </TouchableRipple>
-        <TouchableRipple
-          onPress={() => Linking.openURL("https://vshop.one/credits")}
-        >
-          <List.Item
-            title={t("credits")}
-            left={(props) => <List.Icon {...props} icon="link" />}
-          />
-        </TouchableRipple>
-        <TouchableRipple
-          onPress={() => Linking.openURL("https://vshop.one/privacy")}
-        >
-          <List.Item
-            title={t("privacy_policy")}
-            left={(props) => <List.Icon {...props} icon="link" />}
-          />
-        </TouchableRipple>
-        <TouchableRipple
-          onPress={() =>
+
+      <View style={styles.shortcutGrid}>
+        {shortcutItems.map((item) => (
+          <TouchableOpacity
+            key={item.route}
+            activeOpacity={0.85}
+            style={styles.shortcutCard}
+            onPress={() => router.push(item.route as never)}
+          >
+            <View style={styles.shortcutIcon}>
+              <Icon name={item.icon} size={20} color={COLORS.TEXT_PRIMARY} />
+            </View>
+            <Text style={styles.shortcutLabel}>{item.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={styles.sectionTitle}>Preferences</Text>
+      <GlassCard style={styles.card}>
+        {renderRow({
+          icon: "translate",
+          title: t("language"),
+          onPress: () => router.push("/language"),
+        })}
+        {Platform.OS === "android"
+          ? renderRow({
+              icon: "cellphone-message",
+              title: t("wishlist.notification.name"),
+              description: t("wishlist.notification.info"),
+              onPress: toggleNotificationState,
+              right: (
+                <Switch
+                  value={notificationEnabled}
+                  onValueChange={toggleNotificationState}
+                  color={COLORS.PURE_BLACK}
+                />
+              ),
+            })
+          : null}
+        {__DEV__
+          ? renderRow({
+              icon: "cellphone-screenshot",
+              title: t("screenshot_mode"),
+              onPress: toggleScreenshotMode,
+              right: (
+                <Switch
+                  value={screenshotModeEnabled}
+                  onValueChange={toggleScreenshotMode}
+                  color={COLORS.PURE_BLACK}
+                />
+              ),
+            })
+          : null}
+        {__DEV__
+          ? renderRow({
+              icon: "bell-badge-outline",
+              title: "Wishlist notification test",
+              onPress: () => checkShop(wishlistedSkins),
+            })
+          : null}
+      </GlassCard>
+
+      <Text style={styles.sectionTitle}>Links</Text>
+      <GlassCard style={styles.card}>
+        {renderRow({
+          icon: "discord",
+          title: t("discord_server"),
+          onPress: () => Linking.openURL("https://vshop.one/discord"),
+        })}
+        {renderRow({
+          icon: "information-outline",
+          title: t("credits"),
+          onPress: () => Linking.openURL("https://vshop.one/credits"),
+        })}
+        {renderRow({
+          icon: "shield-check-outline",
+          title: t("privacy_policy"),
+          onPress: () => Linking.openURL("https://vshop.one/privacy"),
+        })}
+        {renderRow({
+          icon: "account-remove-outline",
+          title: t("delete_account"),
+          onPress: () =>
             Linking.openURL(
               "https://support-valorant.riotgames.com/hc/en-us/articles/360050328414-Deleting-Your-Riot-Account-and-All-Your-Data"
-            )
-          }
-        >
-          <List.Item
-            title={t("delete_account")}
-            left={(props) => <List.Icon {...props} icon="link" />}
-          />
-        </TouchableRipple>
-      </List.Section>
-      <List.Section title={t("account")}>
-        <TouchableRipple onPress={() => Clipboard.setStringAsync(user.id)}>
-          <List.Item
-            title={t("copy_riot_id")}
-            left={(props) => <List.Icon {...props} icon="content-copy" />}
-          />
-        </TouchableRipple>
-        <TouchableRipple onPress={handleLogout}>
-          <List.Item
-            title={t("logout")}
-            left={(props) => <List.Icon {...props} icon="logout" />}
-          />
-        </TouchableRipple>
-      </List.Section>
-      {__DEV__ && (
-        <List.Section title="Development">
-          <TouchableRipple onPress={toggleScreenshotMode}>
-            <List.Item
-              title={t("screenshot_mode")}
-              left={(props) => (
-                <List.Icon {...props} icon="cellphone-screenshot" />
-              )}
-              right={() => (
-                <Checkbox
-                  status={screenshotModeEnabled ? "checked" : "unchecked"}
-                  onPress={toggleScreenshotMode}
-                />
-              )}
-            />
-          </TouchableRipple>
-          <TouchableRipple onPress={() => checkShop(wishlistedSkins)}>
-            <List.Item
-              title="Wishlist notification test"
-              left={(props) => (
-                <List.Icon {...props} icon="cellphone-message" />
-              )}
-            />
-          </TouchableRipple>
-        </List.Section>
-      )}
+            ),
+        })}
+      </GlassCard>
 
-      <Text
-        style={{
-          textAlign: "center",
-          fontSize: 12,
-          color: "gray",
-          marginTop: 5,
-          paddingHorizontal: 15,
-        }}
-      >
-        VShop is not endorsed by Riot Games in any way.
-        {"\n"}
-        Riot Games, Valorant, and all associated properties are trademarks or
-        registered trademarks of Riot Games, Inc.
+      <Text style={styles.sectionTitle}>Account</Text>
+      <GlassCard style={styles.card}>
+        {renderRow({
+          icon: "content-copy",
+          title: t("copy_riot_id"),
+          description: user.id,
+          onPress: () => Clipboard.setStringAsync(user.id),
+        })}
+        {renderRow({
+          icon: "logout",
+          title: t("logout"),
+          onPress: handleLogout,
+          danger: true,
+        })}
+      </GlassCard>
+
+      <Text style={styles.disclaimer}>
+        VShop is not endorsed by Riot Games in any way. Riot Games, Valorant,
+        and all associated properties are trademarks or registered trademarks of
+        Riot Games, Inc.
       </Text>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 140,
+  },
+  hero: {
+    marginTop: 6,
+    marginBottom: 18,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  subtitle: {
+    marginTop: 6,
+    fontSize: 15,
+    lineHeight: 22,
+    color: COLORS.TEXT_SECONDARY,
+  },
+  shortcutGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  shortcutCard: {
+    width: "48%",
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: COLORS.SURFACE,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+  },
+  shortcutIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.chip,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.SURFACE_MUTED,
+    marginBottom: 18,
+  },
+  shortcutLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  sectionTitle: {
+    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  card: {
+    marginBottom: 22,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+  },
+  rowLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  rowIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.chip,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.SURFACE_MUTED,
+  },
+  rowIconDanger: {
+    backgroundColor: COLORS.ACCENT,
+  },
+  rowTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  rowDescription: {
+    marginTop: 2,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
+  },
+  disclaimer: {
+    textAlign: "center",
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.TEXT_SECONDARY,
+    paddingHorizontal: 12,
+  },
+});
 
 export default Settings;

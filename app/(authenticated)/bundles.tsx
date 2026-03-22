@@ -1,89 +1,155 @@
 import React from "react";
-import { ScrollView, View } from "react-native";
-import { Text } from "react-native-paper";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTranslation } from "react-i18next";
+
 import BundleImage from "~/components/BundleImage";
 import BundleItem from "~/components/BundleItem";
-import { useUserStore } from "~/hooks/useUserStore";
-import Icon from "@expo/vector-icons/MaterialIcons";
-import { useTranslation } from "react-i18next";
 import CurrencyIcon from "~/components/CurrencyIcon";
+import { useUserStore } from "~/hooks/useUserStore";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
 function Bundles() {
   const { t } = useTranslation();
   const user = useUserStore(({ user }) => user);
 
-  return user.shops.bundles.length !== 0 ? (
-    <ScrollView>
-      {/* Header - Copied from Shop.tsx for consistency */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingVertical: 10,
-          paddingHorizontal: 16,
-        }}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <CurrencyIcon icon="vp" style={{
-            width: 20,
-            height: 20,
-            marginTop: 4
-          }} />
-          <Text style={{
-            color: "white",
-            fontSize: 16,
-            fontWeight: "bold",
-            marginLeft: 8,
-            marginTop: 3
-          }}>
-            {user.balances.vp.toString()}
-          </Text>
+  if (user.shops.bundles.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <View style={styles.emptyIcon}>
+          <Icon name="package-variant-closed" size={38} color={COLORS.TEXT_PRIMARY} />
         </View>
-        {/* Bundles have individual timers, but we can show main timer or nothing. 
-              Let's show main timer as global shop reset context, or just empty if confusing. 
-              Shop.tsx shows main timer. Keeping it consistent. */}
-        {/* <Countdown timestamp={timestamp} /> */}
-        {/* Actually, bundles usually expire differently. Let's JUST show balance to keep it clean, 
-              since each bundle card has its own timer in BundleImage */ }
+        <Text style={styles.emptyTitle}>{t("no_bundle")}</Text>
+        <Text style={styles.emptySubtitle}>
+          The featured collection is empty right now. Check back later.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.title}>Featured bundles</Text>
+      <Text style={styles.subtitle}>
+        Explore the current collection and preview every included skin.
+      </Text>
+
+      <View style={styles.balancePill}>
+        <CurrencyIcon icon="vp" style={styles.balanceIcon} />
+        <Text style={styles.balanceText}>{user.balances.vp}</Text>
       </View>
 
-      {user.shops.bundles.map((bundle, i) => (
-        <View key={bundle.uuid}>
+      {user.shops.bundles.map((bundle, index) => (
+        <View key={bundle.uuid} style={styles.bundleBlock}>
           <BundleImage
             bundle={bundle}
-            remainingSecs={user.shops.remainingSecs.bundles[i]}
+            remainingSecs={user.shops.remainingSecs.bundles[index]}
           />
-          {bundle.items.map((item, i) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Included items</Text>
+            <Text style={styles.sectionMeta}>{bundle.items.length} skins</Text>
+          </View>
+          {bundle.items.map((item) => (
             <BundleItem item={item} key={item.uuid} />
           ))}
         </View>
       ))}
     </ScrollView>
-  ) : (
-    <View
-      style={{
-        flex: 1,
-        alignContent: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Icon
-        style={{ textAlign: "center" }}
-        name="question-mark"
-        size={80}
-        color="#fff"
-      />
-      <Text
-        style={{
-          textAlign: "center",
-          fontSize: 14,
-          marginTop: 10,
-        }}
-      >
-        {t("no_bundle")}
-      </Text>
-    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 140,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+    marginTop: 6,
+  },
+  subtitle: {
+    marginTop: 6,
+    marginBottom: 18,
+    fontSize: 15,
+    lineHeight: 22,
+    color: COLORS.TEXT_SECONDARY,
+  },
+  balancePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.SURFACE,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    borderRadius: RADIUS.chip,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 22,
+  },
+  balanceIcon: {
+    width: 14,
+    height: 14,
+    marginRight: 8,
+  },
+  balanceText: {
+    color: COLORS.TEXT_PRIMARY,
+    fontWeight: "700",
+  },
+  bundleBlock: {
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    fontSize: 19,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  sectionMeta: {
+    color: COLORS.TEXT_SECONDARY,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 28,
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  emptyIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: RADIUS.chip,
+    backgroundColor: COLORS.SURFACE,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    marginBottom: 18,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  emptySubtitle: {
+    marginTop: 8,
+    textAlign: "center",
+    color: COLORS.TEXT_SECONDARY,
+  },
+});
 
 export default Bundles;

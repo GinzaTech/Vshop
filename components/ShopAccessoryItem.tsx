@@ -1,79 +1,92 @@
 import React from "react";
-import { StyleSheet, View, Text, Image, Platform } from "react-native";
-import { useTheme } from "react-native-paper";
+import { StyleSheet, View, Text, Image } from "react-native";
+
 import CurrencyIcon from "./CurrencyIcon";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIcon } from "~/utils/misc";
 import GlassCard from "~/components/ui/GlassCard";
-import { COLORS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
 interface props {
   item: AccessoryShopItem;
 }
 
-export default function ShopAccessoryItem({ item }: React.PropsWithChildren<props>) {
+export default function ShopAccessoryItem({
+  item,
+}: React.PropsWithChildren<props>) {
   const { screenshotModeEnabled } = useFeatureStore();
-  const { colors } = useTheme();
 
   return (
     <GlassCard style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={1}>
-          {item.displayName}
-        </Text>
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>{item.price}</Text>
+        <View style={styles.priceBadge}>
           <CurrencyIcon icon="kc" style={styles.currencyIcon} />
+          <Text style={styles.price}>{item.price}</Text>
         </View>
       </View>
 
-      <Image
-        resizeMode="contain"
-        style={styles.image}
-        source={getDisplayIcon(item, screenshotModeEnabled)}
-      />
+      <Text style={styles.title} numberOfLines={2}>
+        {item.displayName}
+      </Text>
+      <Text style={styles.subtitle}>Accessory rotation</Text>
+
+      <View style={styles.imageFrame}>
+        <Image
+          resizeMode="contain"
+          style={styles.image}
+          source={getDisplayIcon(item, screenshotModeEnabled)}
+        />
+      </View>
     </GlassCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 10,
-    marginBottom: 15,
-    padding: 10,
+    marginBottom: 16,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 10,
-  },
-  title: {
-    color: COLORS.PURE_WHITE,
-    fontSize: 18,
-    fontWeight: "bold",
-    flex: 1,
-    marginRight: 10,
-    textTransform: "uppercase",
-    fontFamily: Platform.OS === 'ios' ? 'DIN Alternate' : 'sans-serif-condensed',
-  },
-  priceContainer: {
-    flexDirection: "row",
     alignItems: "center",
   },
+  title: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 22,
+    fontWeight: "700",
+    marginTop: 12,
+  },
+  subtitle: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 14,
+    marginTop: 6,
+  },
+  priceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.SURFACE_MUTED,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+  },
   price: {
-    color: COLORS.GLASS_WHITE_DIM,
-    fontSize: 16,
-    fontWeight: "600",
-    marginRight: 4,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 6,
   },
   currencyIcon: {
-    width: 16,
-    height: 16,
+    width: 14,
+    height: 14,
+  },
+  imageFrame: {
+    marginTop: 18,
+    borderRadius: 20,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    padding: 16,
   },
   image: {
     width: "100%",
-    height: 150, // Large image matching ShopItem
-    marginBottom: 10,
+    height: 150,
   },
 });

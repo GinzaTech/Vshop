@@ -1,28 +1,49 @@
 import { StyleSheet } from "react-native";
 
 export const COLORS = {
-    VALORANT_RED: "#ff4655",
-    VALORANT_VIOLET: "#bd3944",
-    VALORANT_BLACK: "#0f1923",
-    VALORANT_DARK_BLUE: "#1f2326",
-    GLASS_WHITE: "rgba(255, 255, 255, 0.9)",
-    GLASS_WHITE_DIM: "rgba(255, 255, 255, 0.6)",
-    GLASS_BORDER: "rgba(255, 255, 255, 0.1)",
-    PURE_WHITE: "#ffffff",
+  ACCENT: "#ff6b57",
+  ACCENT_DEEP: "#201f1d",
+  BACKGROUND: "#f3f0ea",
+  SURFACE: "#ffffff",
+  SURFACE_MUTED: "#ece8e1",
+  TEXT_PRIMARY: "#181717",
+  TEXT_SECONDARY: "#7e7a74",
+  BORDER: "rgba(24, 23, 23, 0.08)",
+  OVERLAY: "rgba(24, 23, 23, 0.42)",
+  PURE_WHITE: "#ffffff",
+  PURE_BLACK: "#111111",
+  SUCCESS: "#3f8f74",
+  WARNING: "#d77b43",
+  WARNING_SURFACE: "#fff3dd",
+  WARNING_BORDER: "#f2d8a6",
+  VALORANT_RED: "#ff6b57",
+  VALORANT_VIOLET: "#d97561",
+  VALORANT_BLACK: "#201f1d",
+  VALORANT_DARK_BLUE: "#32363b",
+  GLASS_WHITE: "rgba(255, 255, 255, 0.92)",
+  GLASS_WHITE_DIM: "rgba(24, 23, 23, 0.55)",
+  GLASS_BORDER: "rgba(24, 23, 23, 0.08)",
+};
+
+export const RADIUS = {
+  screen: 32,
+  card: 24,
+  chip: 999,
+  button: 22,
 };
 
 export const GLOBAL_STYLES = StyleSheet.create({
-    glassContainer: {
-        backgroundColor: "rgba(15, 25, 35, 0.6)", // Semi-transparent black for fallback
-        borderColor: COLORS.GLASS_BORDER,
-        borderWidth: 1,
-        overflow: "hidden",
-    },
-    shadow: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 8,
-    },
+  glassContainer: {
+    backgroundColor: COLORS.SURFACE,
+    borderColor: COLORS.BORDER,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  shadow: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 10,
+  },
 });

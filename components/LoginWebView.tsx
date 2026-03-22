@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import CookieManager from "@react-native-cookies/cookies";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -21,6 +20,8 @@ import { View } from "react-native";
 import WebView from "react-native-webview";
 import { loadAssets } from "~/utils/valorant-assets";
 import { loadAgent } from "~/utils/valorant-assets";
+import { COLORS } from "~/constants/DesignSystem";
+import { clearAllCookies } from "~/utils/cookies";
 
 const LOGIN_URL =
   "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid";
@@ -108,7 +109,7 @@ export default function LoginWebView() {
         console.log(e);
 
         if (!__DEV__) {
-          await CookieManager.clearAll(true);
+          await clearAllCookies(true);
           router.replace("/setup"); // Fallback to setup, so user doesn't get stuck
         }
       }
@@ -122,7 +123,11 @@ export default function LoginWebView() {
   return (
     <View
       style={{
-        height: "80%",
+        flex: 1,
+        minHeight: 420,
+        borderRadius: 24,
+        overflow: "hidden",
+        backgroundColor: COLORS.SURFACE,
       }}
       renderToHardwareTextureAndroid
     >

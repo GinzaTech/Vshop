@@ -2,11 +2,13 @@ import { View } from "react-native";
 import { Text } from "react-native-paper";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useState } from "react";
+import { COLORS } from "~/constants/DesignSystem";
 
 interface props {
   timestamp: number;
+  color?: string;
 }
-export default function Countdown({ timestamp }: props) {
+export default function Countdown({ timestamp, color = COLORS.TEXT_PRIMARY }: props) {
   const [diff, setDiff] = useState(timestamp - new Date().getTime());
 
   useEffect(() => {
@@ -39,10 +41,11 @@ export default function Countdown({ timestamp }: props) {
         alignItems: "center",
       }}
     >
-      <Icon name="timer" size={15} color="white" style={{ marginRight: 3 }} />
+      <Icon name="timer" size={15} color={color} style={{ marginRight: 3 }} />
       <Text
         style={{
           fontSize: 13,
+          color,
         }}
       >
         {days > 0

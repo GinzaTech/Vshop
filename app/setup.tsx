@@ -13,6 +13,8 @@ import { regions } from "~/utils/misc";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUserStore } from "~/hooks/useUserStore";
 import LoginWebView from "~/components/LoginWebView";
+import GlassCard from "~/components/ui/GlassCard";
+import { COLORS } from "~/constants/DesignSystem";
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get("window");
 
@@ -39,28 +41,37 @@ function Setup() {
           style={{
             justifyContent: "space-evenly",
             width: windowWidth,
+            paddingHorizontal: 20,
           }}
         >
-          <Image
-            style={{
-              height: "70%",
-              width: windowWidth,
-            }}
-            contentFit="contain"
-            source={require("~/assets/images/mockup.png")}
-          />
-          <View
-            style={{
-              flexDirection: "column",
-              width: windowWidth,
-              marginHorizontal: 20,
-            }}
-          >
-            <Title style={{ fontSize: 25, fontWeight: "bold", color: "#fff" }}>
-              {t("welcome")}
-            </Title>
-            <Paragraph>{t("promotional")}</Paragraph>
-          </View>
+          <GlassCard style={{ overflow: "hidden" }}>
+            <Image
+              style={{
+                height: windowHeight * 0.44,
+                width: "100%",
+              }}
+              contentFit="cover"
+              source={require("~/assets/images/mockup.png")}
+            />
+            <View
+              style={{
+                flexDirection: "column",
+                padding: 20,
+              }}
+            >
+              <Paragraph style={{ color: COLORS.TEXT_SECONDARY }}>
+                VShop mobile
+              </Paragraph>
+              <Title
+                style={{ fontSize: 30, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}
+              >
+                {t("welcome")}
+              </Title>
+              <Paragraph style={{ color: COLORS.TEXT_SECONDARY }}>
+                {t("promotional")}
+              </Paragraph>
+            </View>
+          </GlassCard>
         </View>
         <View
           style={{
@@ -69,90 +80,103 @@ function Setup() {
             padding: 20,
           }}
         >
-          <Title style={{ fontSize: 25, fontWeight: "bold", color: "#fff" }}>
-            {t("region")}
-          </Title>
-          <Paragraph style={{ color: "orange", marginBottom: 10 }}>
-            {t("region_info")}
-          </Paragraph>
-          <RadioButton.Group
-            onValueChange={(value) => {
-              setUser({ ...user, region: value });
-              AsyncStorage.setItem("region", value);
-            }}
-            value={user.region}
-          >
-            {regions.map((region) => (
-              <RadioButton.Item
-                key={region}
-                label={`${t(`regions.${region}`)} (${region.toUpperCase()})`}
-                value={region}
-              />
-            ))}
-          </RadioButton.Group>
+          <GlassCard>
+            <Title
+              style={{ fontSize: 28, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}
+            >
+              {t("region")}
+            </Title>
+            <Paragraph style={{ color: COLORS.TEXT_SECONDARY, marginBottom: 10 }}>
+              {t("region_info")}
+            </Paragraph>
+            <RadioButton.Group
+              onValueChange={(value) => {
+                setUser({ ...user, region: value });
+                AsyncStorage.setItem("region", value);
+              }}
+              value={user.region}
+            >
+              {regions.map((region) => (
+                <RadioButton.Item
+                  key={region}
+                  label={`${t(`regions.${region}`)} (${region.toUpperCase()})`}
+                  value={region}
+                  color={COLORS.PURE_BLACK}
+                  uncheckedColor={COLORS.TEXT_SECONDARY}
+                  labelStyle={{ color: COLORS.TEXT_PRIMARY }}
+                />
+              ))}
+            </RadioButton.Group>
+          </GlassCard>
         </View>
         {user.region.length > 0 && (
           <View
             style={{
               width: windowWidth,
               height: windowHeight,
+              paddingHorizontal: 20,
             }}
           >
-            <View
-              style={{
-                paddingHorizontal: 20,
-                paddingTop: 20,
-                maxHeight: "15%",
-              }}
-            >
-              <Title
-                style={{ fontSize: 25, fontWeight: "bold", color: "#fff" }}
+            <GlassCard style={{ flex: 1 }}>
+              <View
+                style={{
+                  paddingBottom: 16,
+                  maxHeight: "18%",
+                }}
               >
-                {t("signin")}
-              </Title>
-              <Paragraph style={{ marginBottom: 10 }}>
-                {t("signin_info")}
-              </Paragraph>
-            </View>
-            <LoginWebView />
+                <Title
+                  style={{ fontSize: 28, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}
+                >
+                  {t("signin")}
+                </Title>
+                <Paragraph style={{ marginBottom: 10, color: COLORS.TEXT_SECONDARY }}>
+                  {t("signin_info")}
+                </Paragraph>
+              </View>
+              <LoginWebView />
+            </GlassCard>
           </View>
         )}
       </ScrollView>
-      <View>
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            onPress={() => {
-              const x = offsetX - windowWidth;
-              scrollViewRef.current?.scrollTo({
-                x,
-                animated: true,
-              });
-              setOffsetX(x);
-            }}
-            style={{ width: "50%" }}
-            disabled={Math.round(offsetX) === 0}
-          >
-            {t("back")}
-          </Button>
-          <Button
-            onPress={() => {
-              const x = offsetX + windowWidth;
-              scrollViewRef.current?.scrollTo({
-                x,
-                animated: true,
-              });
-              setOffsetX(x);
-            }}
-            style={{ width: "50%" }}
-            disabled={
-              Math.round(offsetX / windowWidth) === 2 ||
-              (Math.round(offsetX / windowWidth) === 1 &&
-                user.region.length <= 0)
-            }
-          >
-            {t("next")}
-          </Button>
-        </View>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+        <GlassCard>
+          <View style={{ flexDirection: "row" }}>
+            <Button
+              onPress={() => {
+                const x = offsetX - windowWidth;
+                scrollViewRef.current?.scrollTo({
+                  x,
+                  animated: true,
+                });
+                setOffsetX(x);
+              }}
+              style={{ width: "50%" }}
+              disabled={Math.round(offsetX) === 0}
+              labelStyle={{ color: COLORS.TEXT_SECONDARY }}
+            >
+              {t("back")}
+            </Button>
+            <Button
+              onPress={() => {
+                const x = offsetX + windowWidth;
+                scrollViewRef.current?.scrollTo({
+                  x,
+                  animated: true,
+                });
+                setOffsetX(x);
+              }}
+              style={{ width: "50%" }}
+              disabled={
+                Math.round(offsetX / windowWidth) === 2 ||
+                (Math.round(offsetX / windowWidth) === 1 &&
+                  user.region.length <= 0)
+              }
+              labelStyle={{ color: COLORS.PURE_BLACK }}
+            >
+              {t("next")}
+            </Button>
+          </View>
+        </GlassCard>
       </View>
       <SafeAreaView style={{ backgroundColor: colors.background }} />
     </>

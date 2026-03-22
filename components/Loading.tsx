@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
+import { COLORS } from "~/constants/DesignSystem";
 
 interface props {
   msg?: string;
@@ -11,10 +12,13 @@ export default function Loading({ msg }: props) {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: COLORS.BACKGROUND,
       }}
     >
-      <ActivityIndicator animating={true} color={"#fa4454"} size="large" />
-      {msg && <Text style={{ marginTop: 10, color: "#fff" }}>{msg}</Text>}
+      <ActivityIndicator animating={true} color={COLORS.ACCENT} size="large" />
+      {msg && (
+        <Text style={{ marginTop: 10, color: COLORS.TEXT_PRIMARY }}>{msg}</Text>
+      )}
     </View>
   );
 }

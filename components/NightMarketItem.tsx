@@ -1,87 +1,146 @@
 import { useTranslation } from "react-i18next";
-import {
-  Card,
-  Title,
-  Paragraph,
-  Button,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Image, StyleSheet, Text, View } from "react-native";
+
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
 import { getDisplayIcon } from "~/utils/misc";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
+import GlassCard from "~/components/ui/GlassCard";
+import ValorantButton from "~/components/ui/ValorantButton";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
 interface props {
   item: NightMarketItem;
 }
+
 export default function NightMarketItem(props: React.PropsWithChildren<props>) {
   const { t } = useTranslation();
   const { showMediaPopup } = useMediaPopupStore();
   const { screenshotModeEnabled } = useFeatureStore();
-  const { colors } = useTheme();
 
   return (
-    <>
-      <Card style={{ margin: 5, backgroundColor: colors.surface }}>
-        <Card.Content>
-          <Title>{props.item.displayName}</Title>
-          <Paragraph>
-            <Text
-              style={{
-                textDecorationLine: "line-through",
-                textDecorationStyle: "solid",
-                fontSize: 12,
-              }}
-            >
-              {props.item.price}
-            </Text>{" "}
-            {props.item.discountedPrice} <CurrencyIcon icon="vp" /> (
-            <Text
-              style={{
-                color: "green",
-              }}
-            >
-              -{props.item.discountPercent}%
-            </Text>
-            )
-          </Paragraph>
-        </Card.Content>
-        <Card.Cover
+    <GlassCard style={styles.card}>
+      <View style={styles.header}>
+        <View style={styles.discountBadge}>
+          <Text style={styles.discountLabel}>-{props.item.discountPercent}%</Text>
+        </View>
+        <View style={styles.priceRow}>
+          <Text style={styles.originalPrice}>{props.item.price}</Text>
+          <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+          <Text style={styles.salePrice}>{props.item.discountedPrice}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.title}>{props.item.displayName}</Text>
+      <Text style={styles.subtitle}>Night market deal</Text>
+
+      <View style={styles.imageFrame}>
+        <Image
           resizeMode="contain"
-          style={{
-            backgroundColor: colors.surface,
-            padding: 10,
-          }}
+          style={styles.image}
           source={getDisplayIcon(props.item, screenshotModeEnabled)}
         />
-        <Card.Actions>
-          <Button
-            onPress={() =>
-              showMediaPopup(
-                props.item.levels.map(
-                  (level) => level.streamedVideo || level.displayIcon || ""
-                ),
-                t("levels")
-              )
-            }
-          >
-            {t("levels")}
-          </Button>
-          <Button
-            onPress={() =>
-              showMediaPopup(
-                props.item.chromas.map(
-                  (chroma) => chroma.streamedVideo || chroma.fullRender
-                ),
-                t("chromas")
-              )
-            }
-          >
-            {t("chromas")}
-          </Button>
-        </Card.Actions>
-      </Card>
-    </>
+      </View>
+
+      <View style={styles.actions}>
+        <ValorantButton
+          title={t("levels")}
+          onPress={() =>
+            showMediaPopup(
+              props.item.levels.map(
+                (level) => level.streamedVideo || level.displayIcon || ""
+              ),
+              t("levels")
+            )
+          }
+          variant="secondary"
+          style={styles.button}
+        />
+        <ValorantButton
+          title={t("chromas")}
+          onPress={() =>
+            showMediaPopup(
+              props.item.chromas.map(
+                (chroma) => chroma.streamedVideo || chroma.fullRender
+              ),
+              t("chromas")
+            )
+          }
+          variant="secondary"
+          style={styles.button}
+        />
+      </View>
+    </GlassCard>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    marginBottom: 16,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  discountBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    backgroundColor: COLORS.PURE_BLACK,
+  },
+  discountLabel: {
+    color: COLORS.PURE_WHITE,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  originalPrice: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
+    textDecorationLine: "line-through",
+  },
+  salePrice: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  currencyIcon: {
+    width: 14,
+    height: 14,
+  },
+  title: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 22,
+    fontWeight: "700",
+    marginTop: 12,
+  },
+  subtitle: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 14,
+    marginTop: 6,
+  },
+  imageFrame: {
+    marginTop: 18,
+    borderRadius: 20,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    padding: 16,
+  },
+  image: {
+    width: "100%",
+    height: 150,
+  },
+  actions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 16,
+  },
+  button: {
+    flex: 1,
+  },
+});

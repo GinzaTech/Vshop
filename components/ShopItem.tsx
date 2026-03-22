@@ -1,16 +1,17 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
+
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIcon } from "~/utils/misc";
-import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { StyleSheet, View, Text, Image, Platform, TouchableOpacity } from "react-native";
 import GlassCard from "~/components/ui/GlassCard";
 import ValorantButton from "~/components/ui/ValorantButton";
-import { COLORS } from "~/constants/DesignSystem";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
 interface ShopItemProps {
   item: SkinShopItem;
@@ -19,20 +20,22 @@ interface ShopItemProps {
 const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) => {
   const { t } = useTranslation();
   const { showMediaPopup } = useMediaPopupStore();
-  const { skinIds } = useWishlistStore();
+  const skinIds = useWishlistStore((state) => state.skinIds);
+  const toggleSkin = useWishlistStore((state) => state.toggleSkin);
   const { screenshotModeEnabled } = useFeatureStore();
   const [rating, setRating] = useState(0);
 
   useEffect(() => {
-    // Load rating
-    AsyncStorage.getItem(`RATING_${item.uuid}`).then((val) => {
-      if (val) setRating(parseInt(val, 10));
+    AsyncStorage.getItem(`RATING_${item.uuid}`).then((value) => {
+      if (value) {
+        setRating(Number.parseInt(value, 10));
+      }
     });
   }, [item.uuid]);
 
-  const handleRate = async (newRating: number) => {
-    setRating(newRating);
-    await AsyncStorage.setItem(`RATING_${item.uuid}`, newRating.toString());
+  const handleRate = async (nextRating: number) => {
+    setRating(nextRating);
+    await AsyncStorage.setItem(`RATING_${item.uuid}`, nextRating.toString());
   };
 
   const handleLevelsPress = useCallback(() => {
@@ -53,25 +56,47 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
     );
   }, [item.chromas, showMediaPopup, t]);
 
-  const isFavorited = useMemo(() => skinIds.includes(item.levels[0].uuid), [skinIds, item.levels]);
+  const isFavorited = useMemo(
+    () => skinIds.includes(item.levels[0].uuid),
+    [item.levels, skinIds]
+  );
 
   return (
     <GlassCard style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={1}>
-          {isFavorited ? `⭐ ${item.displayName}` : item.displayName}
-        </Text>
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>{item.price}</Text>
-          <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+        <View style={styles.headerText}>
+          <View style={styles.priceBadge}>
+            <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+            <Text style={styles.price}>{item.price}</Text>
+          </View>
+          <Text style={styles.title} numberOfLines={2}>
+            {item.displayName}
+          </Text>
+          <Text style={styles.subtitle}>Daily store pick</Text>
         </View>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => toggleSkin(item.levels[0].uuid)}
+          style={[
+            styles.favoriteButton,
+            isFavorited && styles.favoriteButtonActive,
+          ]}
+        >
+          <Icon
+            name={isFavorited ? "heart" : "heart-outline"}
+            size={18}
+            color={isFavorited ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
+          />
+        </TouchableOpacity>
       </View>
 
-      <Image
-        resizeMode="contain"
-        style={styles.image}
-        source={getDisplayIcon(item, screenshotModeEnabled)}
-      />
+      <View style={styles.imageFrame}>
+        <Image
+          resizeMode="contain"
+          style={styles.image}
+          source={getDisplayIcon(item, screenshotModeEnabled)}
+        />
+      </View>
 
       <View style={styles.ratingContainer}>
         {[1, 2, 3, 4, 5].map((star) => (
@@ -79,7 +104,7 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
             <Icon
               name={star <= rating ? "star" : "star-outline"}
               size={20}
-              color={star <= rating ? COLORS.VALORANT_RED : COLORS.GLASS_WHITE_DIM}
+              color={star <= rating ? COLORS.ACCENT : COLORS.TEXT_SECONDARY}
             />
           </TouchableOpacity>
         ))}
@@ -105,48 +130,74 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
 
 const styles = StyleSheet.create({
   card: {
-    margin: 10,
-    marginBottom: 15,
+    marginBottom: 16,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 10,
+    gap: 12,
   },
-  title: {
-    color: COLORS.PURE_WHITE,
-    fontSize: 18,
-    fontWeight: "bold",
+  headerText: {
     flex: 1,
-    marginRight: 10,
-    textTransform: "uppercase",
-    fontFamily: Platform.OS === 'ios' ? 'DIN Alternate' : 'sans-serif-condensed', // Attempting to match Valorant font style
   },
-  priceContainer: {
+  priceBadge: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.SURFACE_MUTED,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
   },
   price: {
-    color: COLORS.GLASS_WHITE_DIM,
-    fontSize: 16,
-    fontWeight: "600",
-    marginRight: 4,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 6,
   },
   currencyIcon: {
-    width: 16,
-    height: 16,
+    width: 14,
+    height: 14,
+  },
+  title: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 22,
+    fontWeight: "700",
+    marginTop: 12,
+  },
+  subtitle: {
+    marginTop: 6,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 14,
+  },
+  favoriteButton: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.chip,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  favoriteButtonActive: {
+    backgroundColor: COLORS.PURE_BLACK,
+  },
+  imageFrame: {
+    marginTop: 18,
+    borderRadius: 20,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    padding: 14,
   },
   image: {
     width: "100%",
-    height: 150,
-    marginBottom: 10,
+    height: 168,
   },
   ratingContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 15,
-    gap: 4
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    marginTop: 16,
+    marginBottom: 16,
+    gap: 4,
   },
   actions: {
     flexDirection: "row",

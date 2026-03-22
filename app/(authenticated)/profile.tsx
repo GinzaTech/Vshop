@@ -15,7 +15,9 @@ import { ActivityIndicator, Searchbar, useTheme } from "react-native-paper";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
+import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
+import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
 import { playerLoadout } from "~/utils/valorant-api";
 import { getAssets } from "~/utils/valorant-assets";
@@ -36,8 +38,9 @@ import {
   formatSpraySlot,
   buildMetadataTags,
 } from "~/components/GalleryProfile";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
-function Equip() {
+function Profile() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
@@ -54,16 +57,16 @@ function Equip() {
 
   const palette = React.useMemo(
     () => {
-      const accent = colors?.primary ?? "#ff4655";
+      const accent = colors?.primary ?? COLORS.PURE_BLACK;
 
       return {
         accent,
-        background: colors?.background ?? "#05060a",
-        card: "#0d111b",
-        cardBorder: "rgba(255,255,255,0.12)",
-        chipBackground: "rgba(255,255,255,0.08)",
-        textPrimary: colors?.onSurface ?? "#ffffff",
-        textSecondary: "rgba(255,255,255,0.68)",
+        background: colors?.background ?? COLORS.BACKGROUND,
+        card: COLORS.SURFACE,
+        cardBorder: COLORS.BORDER,
+        chipBackground: COLORS.SURFACE_MUTED,
+        textPrimary: colors?.text ?? COLORS.TEXT_PRIMARY,
+        textSecondary: COLORS.TEXT_SECONDARY,
       };
     },
     [colors]
@@ -74,6 +77,16 @@ function Equip() {
     user.entitlementsToken &&
     user.region &&
     user.id
+  );
+  const regionLabel = user.region ? user.region.toUpperCase() : "VAL";
+
+  const profileStats = React.useMemo(
+    () => [
+      { key: "vp", label: "VP", value: user.balances.vp, icon: "vp" as const },
+      { key: "rad", label: "RAD", value: user.balances.rad, icon: "rad" as const },
+      { key: "kc", label: "KC", value: user.balances.kc, icon: "kc" as const },
+    ],
+    [user.balances.kc, user.balances.rad, user.balances.vp]
   );
 
   const tabItems = React.useMemo(
@@ -369,6 +382,56 @@ function Equip() {
           </TouchableOpacity>
         );
       })}
+    </View>
+  );
+
+  const renderProfileHero = () => (
+    <View style={[styles.heroCard, { backgroundColor: palette.accent }]}>
+      <View style={styles.heroTopRow}>
+        <View style={styles.heroBadge}>
+          <Icon name="shield-account-outline" size={16} color={COLORS.PURE_WHITE} />
+          <Text style={styles.heroBadgeText}>Loadout profile</Text>
+        </View>
+        <View style={styles.heroRegionPill}>
+          <Text style={styles.heroRegionText}>{regionLabel}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.heroTitle}>{user.name || "Agent"}</Text>
+      <Text style={styles.heroSubtitle}>
+        {user.TagLine ? `#{user.TagLine}` : "Connected Riot account"}
+      </Text>
+
+      <View style={styles.heroMetaRow}>
+        <View style={styles.heroMetaPill}>
+          <Icon name="star-circle-outline" size={14} color={COLORS.PURE_WHITE} />
+          <Text style={styles.heroMetaText}>
+            Level {identityDetails?.level ?? user.progress.level}
+          </Text>
+        </View>
+        <View style={styles.heroMetaPill}>
+          <Icon
+            name={hasAuth ? "check-decagram-outline" : "alert-circle-outline"}
+            size={14}
+            color={COLORS.PURE_WHITE}
+          />
+          <Text style={styles.heroMetaText}>
+            {hasAuth ? "Account synced" : "Sign in required"}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.heroStatsRow}>
+        {profileStats.map((stat) => (
+          <View key={stat.key} style={styles.heroStatCard}>
+            <View style={styles.heroStatLabelRow}>
+              <CurrencyIcon icon={stat.icon} style={styles.heroStatIcon} />
+              <Text style={styles.heroStatLabel}>{stat.label}</Text>
+            </View>
+            <Text style={styles.heroStatValue}>{stat.value}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 
@@ -737,6 +800,7 @@ function Equip() {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
+      {renderProfileHero()}
       {renderSegmentedControl()}
       <View style={styles.contentWrapper}>{content}</View>
     </View>
@@ -747,6 +811,107 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  heroCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 18,
+    borderRadius: RADIUS.card,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  heroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  heroBadgeText: {
+    marginLeft: 8,
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
+  },
+  heroRegionPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  heroRegionText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
+    letterSpacing: 0.6,
+  },
+  heroTitle: {
+    marginTop: 18,
+    fontSize: 30,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
+  },
+  heroSubtitle: {
+    marginTop: 6,
+    fontSize: 15,
+    color: "rgba(255,255,255,0.78)",
+  },
+  heroMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 16,
+  },
+  heroMetaPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  heroMetaText: {
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.PURE_WHITE,
+  },
+  heroStatsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 18,
+  },
+  heroStatCard: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  heroStatLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  heroStatIcon: {
+    width: 14,
+    height: 14,
+  },
+  heroStatLabel: {
+    marginLeft: 6,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.72)",
+  },
+  heroStatValue: {
+    marginTop: 10,
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
+  },
   contentWrapper: {
     flex: 1,
   },
@@ -755,7 +920,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 140,
   },
   section: {
     marginBottom: 16,
@@ -764,14 +929,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 12,
-    textTransform: "uppercase",
-    letterSpacing: 0.2,
   },
   segmentContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     borderRadius: 28,
     marginHorizontal: 16,
     marginTop: 16,
@@ -788,11 +951,10 @@ const styles = StyleSheet.create({
   segmentLabel: {
     fontSize: 15,
     fontWeight: "700",
-    textTransform: "uppercase",
   },
   identityContainer: {
     flexDirection: "row",
-    borderRadius: 18,
+    borderRadius: RADIUS.card,
     overflow: "hidden",
     borderWidth: 1,
   },
@@ -822,7 +984,7 @@ const styles = StyleSheet.create({
   sprayCard: {
     width: "46%",
     margin: 6,
-    borderRadius: 18,
+    borderRadius: RADIUS.card,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
@@ -855,9 +1017,9 @@ const styles = StyleSheet.create({
   weaponCard: {
     flexDirection: "row",
     marginBottom: 12,
-    borderRadius: 16,
-    padding: 12,
-    height: 110,
+    borderRadius: RADIUS.card,
+    padding: 14,
+    minHeight: 116,
     borderWidth: 1,
     alignItems: "center",
   },
@@ -881,8 +1043,8 @@ const styles = StyleSheet.create({
   },
   weaponTag: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 5,
+    borderRadius: 999,
     marginRight: 6,
     marginBottom: 4,
     borderWidth: 1,
@@ -908,7 +1070,7 @@ const styles = StyleSheet.create({
   searchBar: {
     margin: 16,
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 20,
     elevation: 0,
     borderWidth: 1,
   },
@@ -922,8 +1084,8 @@ const styles = StyleSheet.create({
   collectionCard: {
     flex: 1,
     margin: 6,
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: RADIUS.card,
+    padding: 14,
     alignItems: "center",
     borderWidth: 1,
     minHeight: 180,
@@ -960,4 +1122,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Equip;
+export default Profile;

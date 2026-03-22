@@ -22,6 +22,7 @@ const Combat = () => {
                     abilities: agent.abilities || [],
                 }));
                 setAgents(normalizedAgents);
+                setFilteredAgents(normalizedAgents);
             } catch (error) {
                 console.error("Error fetching agents:", error);
             }
@@ -33,6 +34,7 @@ const Combat = () => {
 
         if (role === selectedRole) {
             setSelectedRole(null);
+            setFilteredAgents(agents);
         } else {
             setSelectedRole(role);
             const translatedRole = t(role);
