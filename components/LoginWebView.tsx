@@ -41,7 +41,7 @@ export default function LoginWebView({
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
   const resolvedMinHeight =
-    minHeight ?? Math.max(540, Math.min(height * 0.72, 680));
+    minHeight ?? Math.max(620, Math.min(height * 0.83, 760));
 
   const handleWebViewChange = async (newNavState: {
     url?: string;
