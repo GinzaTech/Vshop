@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#fa4454"
+      "backgroundColor": "#2f343b"
     },
     "ios": {
       "bundleIdentifier": "dev.vasc.vshop",
@@ -20,7 +20,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#fa4454"
+        "backgroundColor": "#2f343b"
       },
       "permissions": [
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
@@ -45,7 +45,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#fa4454"
+          "color": "#7b838f"
         }
       ],
       "react-native-background-fetch"

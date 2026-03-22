@@ -29,8 +29,8 @@ export const CombinedAppTheme = {
   dark: false,
   colors: {
     ...merge(PaperTheme.colors, NavigationTheme.colors),
-    primary: COLORS.PURE_BLACK,
-    accent: COLORS.PURE_BLACK,
+    primary: COLORS.ACCENT_DEEP,
+    accent: COLORS.ACCENT,
     background: COLORS.BACKGROUND,
     surface: COLORS.SURFACE,
     card: COLORS.SURFACE,
