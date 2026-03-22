@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  FlatList,
   RefreshControl,
   ScrollView,
   StyleProp,
@@ -19,7 +18,7 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
-import { playerLoadout } from "~/utils/valorant-api";
+import { ownedItems, playerLoadout } from "~/utils/valorant-api";
 import { getAssets } from "~/utils/valorant-assets";
 import {
   CATEGORY_ORDER,
@@ -34,11 +33,14 @@ import {
   EquippedWeapon,
   EquippedSpray,
   IdentityDetails,
+  OwnedWeaponCollectionItem,
+  WEAPON_NAME_ORDER,
   resolveCategory,
   formatSpraySlot,
 } from "~/components/GalleryProfile";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
+import { VItemTypes } from "~/utils/misc";
 
 const formatUpgradeLevel = (weapon: EquippedWeapon) => {
   if (!weapon.upgradeLevel) {
@@ -55,6 +57,22 @@ const formatUpgradeLevel = (weapon: EquippedWeapon) => {
   return `Lv ${weapon.upgradeLevel}`;
 };
 
+const getWeaponNameWeight = (weaponName: string) => {
+  const index = WEAPON_NAME_ORDER.indexOf(
+    weaponName as (typeof WEAPON_NAME_ORDER)[number]
+  );
+  return index === -1 ? WEAPON_NAME_ORDER.length : index;
+};
+
+const inferWeaponNameFromSkin = (skinName: string) => {
+  const normalized = skinName.toLowerCase();
+  const matchedWeapon = WEAPON_NAME_ORDER.find((weaponName) =>
+    normalized.includes(weaponName.toLowerCase())
+  );
+
+  return matchedWeapon ?? "Other";
+};
+
 function Profile() {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -67,6 +85,7 @@ function Profile() {
   const [rawGuns, setRawGuns] = React.useState<PlayerLoadoutGun[]>([]);
   const [rawSprays, setRawSprays] = React.useState<PlayerLoadoutSpray[]>([]);
   const [identity, setIdentity] = React.useState<PlayerLoadoutIdentity | null>(null);
+  const [ownedSkinLevelIds, setOwnedSkinLevelIds] = React.useState<string[]>([]);
   const [weaponMetadata, setWeaponMetadata] = React.useState<WeaponMetadataMap>({});
   const [searchQuery, setSearchQuery] = React.useState("");
 
@@ -155,16 +174,44 @@ function Profile() {
       setError(null);
 
       try {
-        const response = (await playerLoadout(
-          user.accessToken,
-          user.entitlementsToken,
-          user.region,
-          user.id
-        )) as PlayerLoadoutData;
+        const [loadoutResult, ownedItemsResult] = await Promise.allSettled([
+          playerLoadout(
+            user.accessToken,
+            user.entitlementsToken,
+            user.region,
+            user.id
+          ) as Promise<PlayerLoadoutData>,
+          ownedItems(
+            user.accessToken,
+            user.entitlementsToken,
+            user.region,
+            user.id,
+            VItemTypes.SkinLevel
+          ),
+        ]);
 
+        if (loadoutResult.status !== "fulfilled") {
+          throw loadoutResult.reason;
+        }
+
+        const response = loadoutResult.value;
         setRawGuns(response.Guns || []);
         setRawSprays(response.Sprays || []);
         setIdentity(response.Identity || null);
+
+        if (ownedItemsResult.status === "fulfilled") {
+          const nextOwnedSkinLevelIds =
+            ownedItemsResult.value.EntitlementsByTypes.flatMap((entry) =>
+              entry.Entitlements.map((entitlement) => entitlement.ItemID)
+            );
+
+          setOwnedSkinLevelIds(nextOwnedSkinLevelIds);
+        } else {
+          if (__DEV__) console.error(ownedItemsResult.reason);
+          setOwnedSkinLevelIds(
+            (response.Guns || []).map((gun) => gun.SkinLevelID).filter(Boolean)
+          );
+        }
       } catch (err) {
         if (__DEV__) console.error(err);
         setError(t("equip_page.error_loading"));
@@ -204,6 +251,7 @@ function Profile() {
       setRawGuns([]);
       setRawSprays([]);
       setIdentity(null);
+      setOwnedSkinLevelIds([]);
       setError(t("equip_page.missing_auth"));
       setLoading(false);
       return;
@@ -211,6 +259,22 @@ function Profile() {
 
     fetchLoadoutData();
   }, [fetchLoadoutData, hasAuth, t]);
+
+  const skinWeaponMap = React.useMemo(
+    () =>
+      Object.values(weaponMetadata).reduce<
+        Record<string, { weaponName: string; category: string }>
+      >((acc, metadata) => {
+        metadata.skins?.forEach((skin) => {
+          acc[skin.uuid] = {
+            weaponName: metadata.displayName,
+            category: resolveCategory(metadata),
+          };
+        });
+        return acc;
+      }, {}),
+    [weaponMetadata]
+  );
 
   const loadoutDetails = React.useMemo<EquippedWeapon[]>(() => {
     const assets = getAssets();
@@ -354,14 +418,118 @@ function Profile() {
     };
   }, [identity]);
 
+  const ownedCollection = React.useMemo<OwnedWeaponCollectionItem[]>(() => {
+    const assets = getAssets();
+    const collectionMap = new Map<
+      string,
+      { skin: ValorantSkin; ownedLevels: Set<string> }
+    >();
+
+    ownedSkinLevelIds.forEach((levelId) => {
+      const skin = assets.skins.find((item) =>
+        item.levels.some((level) => level.uuid === levelId)
+      );
+
+      if (!skin) {
+        return;
+      }
+
+      const existing = collectionMap.get(skin.uuid);
+      if (existing) {
+        existing.ownedLevels.add(levelId);
+        return;
+      }
+
+      collectionMap.set(skin.uuid, {
+        skin,
+        ownedLevels: new Set([levelId]),
+      });
+    });
+
+    return Array.from(collectionMap.values())
+      .map(({ skin, ownedLevels }) => {
+        const weaponInfo = skinWeaponMap[skin.uuid];
+        const weaponName =
+          weaponInfo?.weaponName || inferWeaponNameFromSkin(skin.displayName);
+        const category =
+          weaponInfo?.category || (weaponName === "Melee" ? "Melee" : "Other");
+        const highestOwnedLevelIndex = skin.levels.reduce(
+          (highestIndex, level, index) =>
+            ownedLevels.has(level.uuid) ? index : highestIndex,
+          -1
+        );
+        const tier = getContentTierVisual(skin.contentTierUuid);
+
+        return {
+          collectionId: skin.uuid,
+          weaponId: skin.uuid,
+          weaponName,
+          category,
+          skinName: skin.displayName,
+          image:
+            skin.chromas?.[0]?.fullRender ||
+            skin.chromas?.[0]?.displayIcon ||
+            skin.levels?.[highestOwnedLevelIndex]?.displayIcon ||
+            skin.levels?.[0]?.displayIcon ||
+            skin.displayIcon,
+          contentTierUuid: skin.contentTierUuid,
+          contentTierName: tier.label,
+          upgradeLevel:
+            highestOwnedLevelIndex >= 0 ? highestOwnedLevelIndex + 1 : 1,
+          maxUpgradeLevel: skin.levels.length,
+        };
+      })
+      .sort((a, b) => {
+        const weaponDiff =
+          getWeaponNameWeight(a.weaponName) - getWeaponNameWeight(b.weaponName);
+        if (weaponDiff !== 0) {
+          return weaponDiff;
+        }
+
+        return a.skinName.localeCompare(b.skinName);
+      });
+  }, [ownedSkinLevelIds, skinWeaponMap]);
+
   const filteredCollection = React.useMemo(() => {
-    if (!searchQuery.trim()) return loadoutSorted;
+    if (!searchQuery.trim()) {
+      return ownedCollection;
+    }
 
     const query = searchQuery.trim().toLowerCase();
-    return loadoutSorted.filter((item) =>
-      item.skinName.toLowerCase().includes(query)
+    return ownedCollection.filter((item) =>
+      item.skinName.toLowerCase().includes(query) ||
+      item.weaponName.toLowerCase().includes(query)
     );
-  }, [loadoutSorted, searchQuery]);
+  }, [ownedCollection, searchQuery]);
+
+  const collectionByWeapon = React.useMemo(
+    () =>
+      filteredCollection.reduce<Record<string, OwnedWeaponCollectionItem[]>>(
+        (acc, item) => {
+          if (!acc[item.weaponName]) {
+            acc[item.weaponName] = [];
+          }
+
+          acc[item.weaponName].push(item);
+          return acc;
+        },
+        {}
+      ),
+    [filteredCollection]
+  );
+
+  const orderedCollectionWeapons = React.useMemo(
+    () =>
+      Object.keys(collectionByWeapon).sort((a, b) => {
+        const diff = getWeaponNameWeight(a) - getWeaponNameWeight(b);
+        if (diff !== 0) {
+          return diff;
+        }
+
+        return a.localeCompare(b);
+      }),
+    [collectionByWeapon]
+  );
 
   const handleRefresh = React.useCallback(async () => {
     if (!hasAuth) return;
@@ -805,84 +973,117 @@ function Profile() {
       })
     );
 
-  const renderCollectionTab = () => (
-    <FlatList
-      style={styles.collectionContainer}
-      data={filteredCollection}
-      keyExtractor={(item) => item.weaponId}
-      numColumns={2}
-      refreshing={refreshing}
-      onRefresh={handleRefresh}
-      contentContainerStyle={styles.collectionList}
-      columnWrapperStyle={styles.collectionRow}
-      showsVerticalScrollIndicator={false}
-      ListHeaderComponent={
-        <>
-          {renderPageHeader()}
-          <Searchbar
-            placeholder={t("equip_page.search_placeholder")}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={[
-              styles.searchBar,
-              { backgroundColor: palette.card, borderColor: palette.cardBorder },
-            ]}
-            inputStyle={{ color: palette.textPrimary }}
-            iconColor={palette.textSecondary}
-          />
-        </>
-      }
-      ListEmptyComponent={
-        <Text style={[styles.emptyText, { color: palette.textSecondary }]}>
-          {t("equip_page.empty")}
-        </Text>
-      }
-      renderItem={({ item }) => {
-        const tier = getContentTierVisual(
-          item.contentTierUuid,
-          item.contentTierName
-        );
+  const renderCollectionTab = () =>
+    renderPageScroll(
+      <>
+        <Searchbar
+          placeholder={t("equip_page.search_placeholder")}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={[
+            styles.searchBar,
+            { backgroundColor: palette.card, borderColor: palette.cardBorder },
+          ]}
+          inputStyle={{ color: palette.textPrimary }}
+          iconColor={palette.textSecondary}
+        />
 
-        return (
-          <View
-            style={[
-              styles.collectionCard,
-              {
-                backgroundColor: tier.cardBackground,
-                borderColor: tier.border,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.collectionVisual,
-                {
-                  backgroundColor: tier.visualBackground,
-                  borderColor: tier.border,
-                },
-              ]}
-            >
-              <Image
-                source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
-                style={styles.collectionImage}
-                contentFit="contain"
-              />
-            </View>
-            {renderWeaponBadges(item)}
-            <Text
-              style={[
-                styles.collectionSkinName,
-                { color: palette.textPrimary },
-              ]}
-              numberOfLines={2}
-            >
-              {item.skinName}
-            </Text>
-          </View>
-        );
-      }}
-    />
-  );
+        {orderedCollectionWeapons.length === 0 ? (
+          <Text style={[styles.emptyText, { color: palette.textSecondary }]}>
+            {t("equip_page.empty")}
+          </Text>
+        ) : (
+          orderedCollectionWeapons.map((weaponName) => {
+            const items = collectionByWeapon[weaponName];
+            if (!items?.length) {
+              return null;
+            }
+
+            return (
+              <View key={weaponName} style={styles.collectionSection}>
+                <View style={styles.collectionSectionHeader}>
+                  <Text
+                    style={[
+                      styles.collectionSectionTitle,
+                      { color: palette.textPrimary },
+                    ]}
+                  >
+                    {weaponName}
+                  </Text>
+                  <View
+                    style={[
+                      styles.collectionCountPill,
+                      {
+                        backgroundColor: palette.card,
+                        borderColor: palette.cardBorder,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.collectionCountText,
+                        { color: palette.textSecondary },
+                      ]}
+                    >
+                      {items.length} {t("equip_page.tabs.skins").toLowerCase()}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.collectionGrid}>
+                  {items.map((item) => {
+                    const tier = getContentTierVisual(
+                      item.contentTierUuid,
+                      item.contentTierName
+                    );
+
+                    return (
+                      <View
+                        key={item.collectionId}
+                        style={[
+                          styles.collectionCard,
+                          {
+                            backgroundColor: tier.cardBackground,
+                            borderColor: tier.border,
+                          },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.collectionVisual,
+                            {
+                              backgroundColor: tier.visualBackground,
+                              borderColor: tier.border,
+                            },
+                          ]}
+                        >
+                          <Image
+                            source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
+                            style={styles.collectionImage}
+                            contentFit="contain"
+                          />
+                        </View>
+                        {renderWeaponBadges(item)}
+                        <Text
+                          style={[
+                            styles.collectionSkinName,
+                            { color: palette.textPrimary },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {item.skinName}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })
+        )}
+      </>,
+      styles.collectionScrollContent
+    );
 
   const renderLoadoutTab = () =>
     renderPageScroll(
@@ -1311,25 +1512,46 @@ const styles = StyleSheet.create({
   skinGridSubtitle: {
     fontSize: 12,
   },
-  collectionContainer: {
-    flex: 1,
-  },
   searchBar: {
-    margin: 16,
-    marginBottom: 8,
+    marginBottom: 16,
     borderRadius: 20,
     elevation: 0,
     borderWidth: 1,
   },
-  collectionList: {
+  collectionScrollContent: {
     paddingBottom: 140,
   },
-  collectionRow: {
+  collectionSection: {
+    marginBottom: 20,
+  },
+  collectionSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  collectionSectionTitle: {
+    fontSize: 21,
+    fontWeight: "700",
+  },
+  collectionCountPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+  },
+  collectionCountText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  collectionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
   },
   collectionCard: {
-    flex: 1,
-    margin: 6,
+    width: "48.2%",
+    marginBottom: 12,
     borderRadius: RADIUS.card,
     padding: 14,
     borderWidth: 1,

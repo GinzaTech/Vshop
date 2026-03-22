@@ -13,6 +13,28 @@ export const CATEGORY_ORDER = [
   "Other",
 ] as const;
 
+export const WEAPON_NAME_ORDER = [
+  "Classic",
+  "Shorty",
+  "Frenzy",
+  "Ghost",
+  "Sheriff",
+  "Stinger",
+  "Spectre",
+  "Bucky",
+  "Judge",
+  "Bulldog",
+  "Guardian",
+  "Phantom",
+  "Vandal",
+  "Marshal",
+  "Outlaw",
+  "Operator",
+  "Ares",
+  "Odin",
+  "Melee",
+] as const;
+
 const SPRAY_SLOT_TRANSLATIONS: Record<string, string> = {
   "5863985E-43AC-B05D-CB2D-139E72970014": "spray1",
   "7CDC908E-4F69-9140-A604-899BD879EED1": "spray2",
@@ -74,6 +96,9 @@ export interface WeaponMetadata {
   shopData?: {
     categoryText?: string;
   };
+  skins?: {
+    uuid: string;
+  }[];
 }
 
 export type WeaponMetadataMap = Record<string, WeaponMetadata>;
@@ -92,6 +117,10 @@ export interface EquippedWeapon {
   contentTierName?: string;
   upgradeLevel?: number;
   maxUpgradeLevel?: number;
+}
+
+export interface OwnedWeaponCollectionItem extends EquippedWeapon {
+  collectionId: string;
 }
 
 export interface EquippedSpray {

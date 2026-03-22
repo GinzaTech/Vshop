@@ -43,6 +43,17 @@ export interface PlayerLoadoutResponse {
   Incognito: boolean;
 }
 
+export interface OwnedItemsResponse {
+  EntitlementsByTypes: {
+    ItemTypeID: string;
+    Entitlements: {
+      TypeID: string;
+      ItemID: string;
+      InstanceID?: string;
+    }[];
+  }[];
+}
+
 
 export let defaultUser = {
   id: "",
@@ -432,6 +443,31 @@ export async function playerLoadout(
   return res.data;
 }
 
+export async function ownedItems(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string,
+  itemTypeId: string
+) {
+  const res = await axios.request<OwnedItemsResponse>({
+    url: getUrl({
+      name: "owned-items",
+      region,
+      userId,
+      itemTypeId,
+    }),
+    method: "GET",
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return res.data;
+}
+
 export async function playerMatchHistory(
   accessToken: string,
   entitlementsToken: string,
@@ -476,12 +512,14 @@ function getUrl({
   userId,
   matchId,
   agentId,
+  itemTypeId,
 }: {
   name: string;
   region?: string | null;
   userId?: string | null;
   matchId?: string | null;
   agentId?: string | null;
+  itemTypeId?: string | null;
 }) {
   const URLS: Record<string, string> = {
     auth: "https://auth.riotgames.com/api/v1/authorization/",
@@ -496,6 +534,7 @@ function getUrl({
     lock: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/lock/${agentId}`,
     quit: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/quit`,
     player: `https://pd.${region}.a.pvp.net/personalization/v2/players/${userId}/playerloadout`,
+    "owned-items": `https://pd.${region}.a.pvp.net/store/v1/entitlements/${userId}/${itemTypeId}`,
     "match-history": `https://pd.${region}.a.pvp.net/match-history/v1/history/${userId}`,
     "match-details": `https://pd.${region}.a.pvp.net/match-details/v1/matches/${matchId}`
   };
