@@ -1,13 +1,30 @@
 import { isExpoGo } from "./runtime";
 
+type CookieManagerModule = {
+  clearAll?: (useWebKit?: boolean) => Promise<unknown> | unknown;
+};
+
+const loadCookieManager = (): CookieManagerModule | null => {
+  try {
+    const cookieModule = require("@react-native-cookies/cookies");
+    return cookieModule?.default ?? cookieModule ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export const clearAllCookies = async (useWebKit = true) => {
   if (isExpoGo) {
     return false;
   }
 
   try {
-    const CookieManager = require("@react-native-cookies/cookies").default;
-    await CookieManager.clearAll(useWebKit);
+    const cookieManager = loadCookieManager();
+    if (!cookieManager?.clearAll) {
+      return false;
+    }
+
+    await cookieManager.clearAll(useWebKit);
     return true;
   } catch (error) {
     console.warn("[cookies] Failed to clear cookies.", error);
