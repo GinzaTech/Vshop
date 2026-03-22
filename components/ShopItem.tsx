@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 
 import CurrencyIcon from "./CurrencyIcon";
@@ -9,7 +8,6 @@ import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIcon } from "~/utils/misc";
-import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 
@@ -17,26 +15,33 @@ interface ShopItemProps {
   item: SkinShopItem;
 }
 
+const WEAPON_NAMES = [
+  "Classic",
+  "Shorty",
+  "Frenzy",
+  "Ghost",
+  "Sheriff",
+  "Stinger",
+  "Spectre",
+  "Bucky",
+  "Judge",
+  "Bulldog",
+  "Guardian",
+  "Phantom",
+  "Vandal",
+  "Marshal",
+  "Operator",
+  "Ares",
+  "Odin",
+  "Melee",
+];
+
 const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) => {
   const { t } = useTranslation();
   const { showMediaPopup } = useMediaPopupStore();
   const skinIds = useWishlistStore((state) => state.skinIds);
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
   const { screenshotModeEnabled } = useFeatureStore();
-  const [rating, setRating] = useState(0);
-
-  useEffect(() => {
-    AsyncStorage.getItem(`RATING_${item.uuid}`).then((value) => {
-      if (value) {
-        setRating(Number.parseInt(value, 10));
-      }
-    });
-  }, [item.uuid]);
-
-  const handleRate = async (nextRating: number) => {
-    setRating(nextRating);
-    await AsyncStorage.setItem(`RATING_${item.uuid}`, nextRating.toString());
-  };
 
   const handleLevelsPress = useCallback(() => {
     showMediaPopup(
@@ -64,9 +69,17 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
     () => getContentTierVisual(item.contentTierUuid),
     [item.contentTierUuid]
   );
+  const weaponName = useMemo(() => {
+    const lowerName = item.displayName.toLowerCase();
+    return (
+      WEAPON_NAMES.find((weapon) =>
+        lowerName.includes(weapon.toLowerCase())
+      ) || t("store")
+    );
+  }, [item.displayName, t]);
 
   return (
-    <GlassCard
+    <View
       style={[
         styles.card,
         {
@@ -75,75 +88,62 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
         },
       ]}
     >
-      <View style={styles.topRow}>
-        <View style={styles.badgeRow}>
-          <View
-            style={[
-              styles.priceBadge,
-              {
-                backgroundColor: tier.badgeBackground,
-                borderColor: tier.border,
-              },
-            ]}
-          >
-            <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-            <Text style={styles.price}>{item.price}</Text>
-          </View>
-          <View
-            style={[
-              styles.rarityBadge,
-              {
-                backgroundColor: tier.badgeBackground,
-                borderColor: tier.border,
-              },
-            ]}
-          >
-            <View
-              style={[styles.rarityDot, { backgroundColor: tier.accent }]}
-            />
-            <Text style={[styles.rarityText, { color: tier.text }]}>
-              {tier.label}
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => toggleSkin(item.levels[0].uuid)}
-          style={[
-            styles.favoriteButton,
-            {
-              backgroundColor: isFavorited
-                ? tier.accent
-                : tier.badgeBackground,
-              borderColor: isFavorited ? tier.accent : tier.border,
-            },
-          ]}
-        >
-          <Icon
-            name={isFavorited ? "heart" : "heart-outline"}
-            size={18}
-            color={isFavorited ? COLORS.PURE_WHITE : tier.text}
-          />
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.mainRow}>
         <View style={styles.content}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => toggleSkin(item.levels[0].uuid)}
+            style={[
+              styles.favoriteButton,
+              {
+                backgroundColor: isFavorited
+                  ? tier.accent
+                  : tier.badgeBackground,
+                borderColor: isFavorited ? tier.accent : tier.border,
+              },
+            ]}
+          >
+            <Icon
+              name={isFavorited ? "heart" : "heart-outline"}
+              size={18}
+              color={isFavorited ? COLORS.PURE_WHITE : tier.text}
+            />
+          </TouchableOpacity>
+
           <Text style={styles.title} numberOfLines={2}>
             {item.displayName}
           </Text>
-          <Text style={styles.subtitle}>Daily store pick</Text>
+          <Text style={styles.subtitle}>{weaponName}</Text>
 
-          <View style={styles.ratingContainer}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity key={star} onPress={() => handleRate(star)}>
-                <Icon
-                  name={star <= rating ? "star" : "star-outline"}
-                  size={18}
-                  color={star <= rating ? tier.accent : COLORS.TEXT_SECONDARY}
-                />
-              </TouchableOpacity>
-            ))}
+          <View style={styles.badgeRow}>
+            <View
+              style={[
+                styles.priceBadge,
+                {
+                  backgroundColor: tier.badgeBackground,
+                  borderColor: tier.border,
+                },
+              ]}
+            >
+              <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+              <Text style={styles.price}>{item.price}</Text>
+            </View>
+            <View
+              style={[
+                styles.rarityBadge,
+                {
+                  backgroundColor: tier.badgeBackground,
+                  borderColor: tier.border,
+                },
+              ]}
+            >
+              <View
+                style={[styles.rarityDot, { backgroundColor: tier.accent }]}
+              />
+              <Text style={[styles.rarityText, { color: tier.text }]}>
+                {tier.label}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.actions}>
@@ -167,30 +167,34 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
                 {t("levels")}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleChromasPress}
-              style={[
-                styles.actionChip,
-                {
-                  backgroundColor: tier.badgeBackground,
-                  borderColor: tier.border,
-                },
-              ]}
-            >
-              <Icon
-                name="palette-outline"
-                size={16}
-                color={tier.text}
-              />
-              <Text style={[styles.actionChipText, { color: tier.text }]}>
-                {t("chromas")}
-              </Text>
-            </TouchableOpacity>
+            {item.chromas.length > 1 ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleChromasPress}
+                style={[
+                  styles.actionChip,
+                  {
+                    backgroundColor: tier.badgeBackground,
+                    borderColor: tier.border,
+                  },
+                ]}
+              >
+                <Icon
+                  name="palette-outline"
+                  size={16}
+                  color={tier.text}
+                />
+                <Text style={[styles.actionChipText, { color: tier.text }]}>
+                  {t("chromas")}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 
-        <View
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={handleLevelsPress}
           style={[
             styles.imageFrame,
             {
@@ -204,26 +208,22 @@ const ShopItem = React.memo(({ item }: React.PropsWithChildren<ShopItemProps>) =
             style={styles.image}
             source={getDisplayIcon(item, screenshotModeEnabled)}
           />
-        </View>
+        </TouchableOpacity>
       </View>
-    </GlassCard>
+    </View>
   );
 });
 
 const styles = StyleSheet.create({
   card: {
     marginBottom: 16,
-  },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 10,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    padding: 16,
   },
   mainRow: {
     flexDirection: "row",
-    alignItems: "center",
-    marginTop: 14,
+    alignItems: "flex-start",
   },
   content: {
     flex: 1,
@@ -275,11 +275,12 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
+    marginTop: 4,
   },
   subtitle: {
-    marginTop: 4,
+    marginTop: 6,
     color: COLORS.TEXT_SECONDARY,
     fontSize: 13,
   },
@@ -292,39 +293,35 @@ const styles = StyleSheet.create({
     borderColor: COLORS.BORDER,
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "flex-start",
   },
   imageFrame: {
     borderRadius: 20,
     backgroundColor: COLORS.SURFACE_MUTED,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
-    width: 126,
-    height: 112,
+    width: 134,
+    height: 118,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 10,
   },
   image: {
     width: "100%",
     height: "100%",
   },
-  ratingContainer: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    marginTop: 12,
-    marginBottom: 12,
-    gap: 4,
-  },
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+    marginTop: 14,
   },
   actionChip: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: RADIUS.chip,
     borderWidth: 1,
   },
