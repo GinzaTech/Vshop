@@ -2,13 +2,14 @@ import { Image } from "expo-image";
 
 import { defaultUser } from "./valorant-api";
 import { getAgent, getAssets } from "./valorant-assets";
+import { getDisplayIconUri } from "./misc";
 
 type PreloadOptions = {
   batchSize?: number;
   cachePolicy?: "disk" | "memory" | "memory-disk";
 };
 
-const DEFAULT_BATCH_SIZE = 12;
+const DEFAULT_BATCH_SIZE = 8;
 let catalogWarmupStarted = false;
 
 const chunk = <T>(items: T[], size: number) => {
@@ -24,11 +25,13 @@ const chunk = <T>(items: T[], size: number) => {
 const uniqueUrls = (urls: (string | null | undefined)[]) =>
   [...new Set(urls.filter((url): url is string => Boolean(url && url.startsWith("http"))))];
 
+const MAX_CATALOG_WARMUP_URLS = 180;
+
 const getSkinImageUrl = (item: SkinShopItem | NightMarketItem | GalleryItem) =>
-  item.levels?.[0]?.displayIcon ||
-  item.chromas?.[0]?.fullRender ||
+  getDisplayIconUri(item) ||
+  item.displayIcon ||
   item.chromas?.[0]?.displayIcon ||
-  item.displayIcon;
+  item.chromas?.[0]?.fullRender;
 
 export async function preloadImageUrls(
   urls: (string | null | undefined)[],
@@ -115,12 +118,12 @@ export function collectCatalogImageUrls() {
     );
   });
 
-  return uniqueUrls(urls);
+  return uniqueUrls(urls).slice(0, MAX_CATALOG_WARMUP_URLS);
 }
 
 export async function preloadSessionResources(user: typeof defaultUser) {
   await preloadImageUrls(collectSessionImageUrls(user), {
-    batchSize: 10,
+    batchSize: 6,
     cachePolicy: "memory-disk",
   });
 }
@@ -134,8 +137,8 @@ export function startBackgroundCatalogWarmup() {
 
   setTimeout(() => {
     void preloadImageUrls(collectCatalogImageUrls(), {
-      batchSize: 18,
+      batchSize: 8,
       cachePolicy: "disk",
     });
-  }, 1200);
+  }, 4500);
 }

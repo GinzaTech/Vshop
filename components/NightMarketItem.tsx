@@ -1,9 +1,11 @@
+import React from "react";
 import { useTranslation } from "react-i18next";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image } from "expo-image";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
-import { getDisplayIcon } from "~/utils/misc";
+import { getDisplayIconUri } from "~/utils/misc";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
@@ -17,6 +19,15 @@ export default function NightMarketItem(props: React.PropsWithChildren<props>) {
   const { showMediaPopup } = useMediaPopupStore();
   const { screenshotModeEnabled } = useFeatureStore();
   const tier = getContentTierVisual(props.item.contentTierUuid);
+  const imageSource = React.useMemo(() => {
+    const uri = getDisplayIconUri(props.item);
+
+    if (uri && !screenshotModeEnabled) {
+      return { uri, cacheKey: uri };
+    }
+
+    return require("~/assets/images/noimage.png");
+  }, [props.item, screenshotModeEnabled]);
 
   return (
     <View
@@ -131,9 +142,13 @@ export default function NightMarketItem(props: React.PropsWithChildren<props>) {
             ]}
           >
             <Image
-              resizeMode="contain"
               style={styles.image}
-              source={getDisplayIcon(props.item, screenshotModeEnabled)}
+              source={imageSource}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              priority="high"
+              transition={120}
+              recyclingKey={props.item.uuid}
             />
           </TouchableOpacity>
         </View>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -13,7 +14,7 @@ import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import { getDisplayIcon } from "~/utils/misc";
+import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 
@@ -75,6 +76,15 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     () => getContentTierVisual(item.contentTierUuid),
     [item.contentTierUuid]
   );
+  const imageSource = useMemo(() => {
+    const uri = getDisplayIconUri(item);
+
+    if (uri && !screenshotModeEnabled) {
+      return { uri, cacheKey: uri };
+    }
+
+    return require("~/assets/images/noimage.png");
+  }, [item, screenshotModeEnabled]);
   const weaponType = useMemo(() => {
     const lowerName = item.displayName.toLowerCase();
     return (
@@ -170,11 +180,15 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
             borderColor: tier.border,
           },
         ]}
-      >
+        >
         <Image
-          resizeMode="contain"
           style={styles.image}
-          source={getDisplayIcon(item, screenshotModeEnabled)}
+          source={imageSource}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          priority="high"
+          transition={120}
+          recyclingKey={item.uuid}
         />
       </View>
 

@@ -1,9 +1,10 @@
 import React from "react";
-import { StyleSheet, View, Text, Image } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
+import { Image } from "expo-image";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import { getDisplayIcon } from "~/utils/misc";
+import { getDisplayIconUri } from "~/utils/misc";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
@@ -15,6 +16,15 @@ export default function ShopAccessoryItem({
   item,
 }: React.PropsWithChildren<props>) {
   const { screenshotModeEnabled } = useFeatureStore();
+  const imageSource = React.useMemo(() => {
+    const uri = getDisplayIconUri(item);
+
+    if (uri && !screenshotModeEnabled) {
+      return { uri, cacheKey: uri };
+    }
+
+    return require("~/assets/images/noimage.png");
+  }, [item, screenshotModeEnabled]);
 
   return (
     <GlassCard style={styles.card}>
@@ -32,9 +42,12 @@ export default function ShopAccessoryItem({
 
       <View style={styles.imageFrame}>
         <Image
-          resizeMode="contain"
           style={styles.image}
-          source={getDisplayIcon(item, screenshotModeEnabled)}
+          source={imageSource}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          transition={120}
+          recyclingKey={item.uuid}
         />
       </View>
     </GlassCard>

@@ -29,10 +29,24 @@ export const getDisplayIcon = (
   item: SkinShopItem | NightMarketItem | GalleryItem | AccessoryShopItem,
   screenshotModeEnabled: boolean
 ) => {
-  const imgUri =
-    "levels" in item ? item.levels[0].displayIcon : item.displayIcon;
+  const imgUri = getDisplayIconUri(item);
   if (imgUri && !screenshotModeEnabled) return { uri: imgUri };
   return require("~/assets/images/noimage.png");
+};
+
+export const getDisplayIconUri = (
+  item: SkinShopItem | NightMarketItem | GalleryItem | AccessoryShopItem
+) => {
+  if ("levels" in item) {
+    return (
+      item.levels?.[0]?.displayIcon ||
+      item.displayIcon ||
+      item.chromas?.[0]?.displayIcon ||
+      null
+    );
+  }
+
+  return item.displayIcon || null;
 };
 
 export const isSameDayUTC = (d1: Date, d2: Date) => {

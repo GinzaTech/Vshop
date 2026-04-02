@@ -1,6 +1,7 @@
 import React from "react";
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { Image } from "expo-image";
 
 import CurrencyIcon from "./CurrencyIcon";
 import Countdown from "./Countdown";
@@ -22,6 +23,15 @@ export default function BundleImage({
 }: BundleImageProps) {
   const timestamp = new Date().getTime() + remainingSecs * 1000;
   const { screenshotModeEnabled } = useFeatureStore();
+  const heroSource = React.useMemo(() => {
+    const uri = bundle.displayIcon || bundle.displayIcon2 || bundle.verticalPromoImage;
+
+    if (uri && !screenshotModeEnabled) {
+      return { uri, cacheKey: uri };
+    }
+
+    return require("~/assets/images/noimage.png");
+  }, [bundle.displayIcon, bundle.displayIcon2, bundle.verticalPromoImage, screenshotModeEnabled]);
 
   return (
     <TouchableOpacity
@@ -29,12 +39,16 @@ export default function BundleImage({
       onPress={onPress}
       style={styles.touchable}
     >
-      <ImageBackground
-        style={styles.hero}
-        imageStyle={styles.heroImage}
-        source={{ uri: bundle.displayIcon }}
-        resizeMode="cover"
-      >
+      <View style={styles.hero}>
+        <Image
+          source={heroSource}
+          style={styles.heroImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          priority="high"
+          transition={140}
+          recyclingKey={bundle.uuid}
+        />
         <View
           style={[
             styles.overlay,
@@ -100,7 +114,7 @@ export default function BundleImage({
             />
           </View>
         </View>
-      </ImageBackground>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -110,12 +124,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   hero: {
+    position: "relative",
     minHeight: 280,
     borderRadius: 30,
     overflow: "hidden",
   },
   heroImage: {
-    borderRadius: 30,
+    ...StyleSheet.absoluteFillObject,
   },
   overlay: {
     flex: 1,

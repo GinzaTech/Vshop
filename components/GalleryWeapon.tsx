@@ -1,6 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
-  Image,
   StyleSheet,
   Text,
   View,
@@ -8,11 +7,12 @@ import {
 import { Divider, IconButton, Menu } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { Image } from "expo-image";
 
 import GlassCard from "~/components/ui/GlassCard";
 import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import { getDisplayIcon } from "~/utils/misc";
+import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 
@@ -27,6 +27,15 @@ export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
   const { showMediaPopup } = useMediaPopupStore();
   const { screenshotModeEnabled } = useFeatureStore();
   const tier = getContentTierVisual(props.item.contentTierUuid);
+  const imageSource = React.useMemo(() => {
+    const uri = getDisplayIconUri(props.item);
+
+    if (uri && !screenshotModeEnabled) {
+      return { uri, cacheKey: uri };
+    }
+
+    return require("~/assets/images/noimage.png");
+  }, [props.item, screenshotModeEnabled]);
 
   return (
     <View style={styles.wrapper}>
@@ -50,9 +59,12 @@ export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
             ]}
           >
             <Image
-              source={getDisplayIcon(props.item, screenshotModeEnabled)}
+              source={imageSource}
               style={styles.image}
-              resizeMode="contain"
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={120}
+              recyclingKey={props.item.uuid}
             />
           </View>
 

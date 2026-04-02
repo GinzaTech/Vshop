@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,6 +8,7 @@ import {
   View,
 } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { Image as ExpoImage } from "expo-image";
 
 import Countdown from "~/components/Countdown";
 import ShopItem from "~/components/ShopItem";
@@ -17,7 +17,7 @@ import { useUserStore } from "~/hooks/useUserStore";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { useMediaPopupStore } from "~/components/popups/MediaPopup";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import { getDisplayIcon } from "~/utils/misc";
+import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 
@@ -60,6 +60,19 @@ function Shop() {
     () => (featured ? getContentTierVisual(featured.contentTierUuid) : null),
     [featured]
   );
+  const featuredImageSource = React.useMemo(() => {
+    if (!featured) {
+      return require("~/assets/images/noimage.png");
+    }
+
+    const uri = getDisplayIconUri(featured);
+
+    if (uri && !screenshotModeEnabled) {
+      return { uri, cacheKey: uri };
+    }
+
+    return require("~/assets/images/noimage.png");
+  }, [featured, screenshotModeEnabled]);
 
   return (
     <ScrollView
@@ -140,12 +153,16 @@ function Shop() {
       </View>
 
       {featured ? (
-        <ImageBackground
-          source={getDisplayIcon(featured, screenshotModeEnabled)}
-          style={styles.featuredCard}
-          imageStyle={styles.featuredImage}
-          resizeMode="cover"
-        >
+        <View style={styles.featuredCard}>
+          <ExpoImage
+            source={featuredImageSource}
+            style={styles.featuredImage}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            priority="high"
+            transition={140}
+            recyclingKey={featured.uuid}
+          />
           <View
             style={[
               styles.featuredOverlay,
@@ -210,7 +227,7 @@ function Shop() {
               </TouchableOpacity>
             </View>
           </View>
-        </ImageBackground>
+        </View>
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>No skins found</Text>
@@ -389,13 +406,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   featuredCard: {
+    position: "relative",
     minHeight: 380,
     justifyContent: "space-between",
     borderRadius: 30,
     overflow: "hidden",
   },
   featuredImage: {
-    borderRadius: 30,
+    ...StyleSheet.absoluteFillObject,
   },
   featuredOverlay: {
     flex: 1,
