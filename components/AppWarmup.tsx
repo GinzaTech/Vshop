@@ -1,4 +1,5 @@
 import React from "react";
+import * as Network from "expo-network";
 
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useUserStore } from "~/hooks/useUserStore";
@@ -22,6 +23,7 @@ export default function AppWarmup() {
     [user.id, user.region, user.shops.bundles, user.shops.main, user.shops.nightMarket]
   );
   const lastWarmupKey = React.useRef<string>("");
+  const warmupStartedRef = React.useRef(false);
 
   React.useEffect(() => {
     if (
@@ -39,9 +41,28 @@ export default function AppWarmup() {
 
     lastWarmupKey.current = warmupKey;
 
-    void preloadSessionResources(user);
-    void fetchMatches(user);
-    startBackgroundCatalogWarmup();
+    if (warmupStartedRef.current) {
+      return;
+    }
+
+    warmupStartedRef.current = true;
+
+    void (async () => {
+      try {
+        const networkState = await Network.getNetworkStateAsync();
+        const isCellular =
+          networkState.type === Network.NetworkStateType.CELLULAR;
+
+        await preloadSessionResources(user, { cellular: isCellular });
+
+        if (!isCellular) {
+          void fetchMatches(user);
+          startBackgroundCatalogWarmup();
+        }
+      } finally {
+        warmupStartedRef.current = false;
+      }
+    })();
   }, [
     fetchMatches,
     user,

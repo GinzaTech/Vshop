@@ -7,6 +7,7 @@ import { getDisplayIconUri } from "./misc";
 type PreloadOptions = {
   batchSize?: number;
   cachePolicy?: "disk" | "memory" | "memory-disk";
+  limit?: number;
 };
 
 const DEFAULT_BATCH_SIZE = 8;
@@ -37,7 +38,10 @@ export async function preloadImageUrls(
   urls: (string | null | undefined)[],
   options?: PreloadOptions
 ) {
-  const normalizedUrls = uniqueUrls(urls);
+  const normalizedUrls = uniqueUrls(urls).slice(
+    0,
+    options?.limit ?? Number.MAX_SAFE_INTEGER
+  );
   if (normalizedUrls.length === 0) {
     return;
   }
@@ -121,10 +125,14 @@ export function collectCatalogImageUrls() {
   return uniqueUrls(urls).slice(0, MAX_CATALOG_WARMUP_URLS);
 }
 
-export async function preloadSessionResources(user: typeof defaultUser) {
+export async function preloadSessionResources(
+  user: typeof defaultUser,
+  options?: { cellular?: boolean }
+) {
   await preloadImageUrls(collectSessionImageUrls(user), {
-    batchSize: 6,
+    batchSize: options?.cellular ? 3 : 6,
     cachePolicy: "memory-disk",
+    limit: options?.cellular ? 8 : undefined,
   });
 }
 
