@@ -21,7 +21,6 @@ import { useRouter } from "expo-router";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import { defaultUser } from "~/utils/valorant-api";
 import { checkShop, initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import BatteryOptimizationWarning from "~/components/BatteryOptimizationWarning";
@@ -39,7 +38,7 @@ import {
 function Settings() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { user, setUser } = useUserStore();
+  const { user, resetUser } = useUserStore();
   const { screenshotModeEnabled, toggleScreenshotMode } = useFeatureStore();
   const notificationEnabled = useWishlistStore((state) => state.notificationEnabled);
   const setNotificationEnabled = useWishlistStore(
@@ -59,7 +58,7 @@ function Settings() {
   const handleLogout = async () => {
     await clearAllCookies(true);
     await AsyncStorage.removeItem("region");
-    setUser(defaultUser);
+    resetUser();
     stopBackgroundFetch();
     setNotificationEnabled(false);
     router.replace("/setup");

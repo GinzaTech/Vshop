@@ -5,25 +5,12 @@ import { useTranslation } from "react-i18next";
 import { StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from "react-native";
 import { useUserStore } from "~/hooks/useUserStore";
 import { getAccessTokenFromUri } from "~/utils/misc";
-import {
-  defaultUser,
-  getBalances,
-  getEntitlementsToken,
-  getProgress,
-  getShop,
-  getUserId,
-  getUsername,
-  ownedItems,
-  parseShop,
-
-} from "~/utils/valorant-api";
+import { defaultUser } from "~/utils/valorant-api";
 import Loading from "./Loading";
 import WebView from "react-native-webview";
-import { loadAssets } from "~/utils/valorant-assets";
-import { loadAgent } from "~/utils/valorant-assets";
 import { COLORS } from "~/constants/DesignSystem";
 import { clearAllCookies } from "~/utils/cookies";
-import { VItemTypes } from "~/utils/misc";
+import { buildAuthenticatedUser } from "~/utils/auth-session";
 
 const LOGIN_URL =
   "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid";
@@ -65,94 +52,13 @@ export default function LoginWebView({
         const region =
           (await AsyncStorage.getItem("region")) || defaultUser.region;
 
-        setLoading(t("fetching.assets"));
-        await loadAssets();
-
-        setLoading(t("fetching.agent"));
-        await loadAgent();
-
-        setLoading(t("fetching.entitlements_token"));
-        const entitlementsToken = await getEntitlementsToken(accessToken);
-
-        setLoading(t("fetching.user_id"));
-        const userId = getUserId(accessToken);
-
-        setLoading(t("fetching.username"));
-        const username = await getUsername(
+        setLoading(t("fetching.storefront"));
+        const authenticatedUser = await buildAuthenticatedUser(
           accessToken,
-          entitlementsToken,
-          userId,
           region
         );
 
-        setLoading(t("fetching.storefront"));
-        const shop = await getShop(
-          accessToken,
-          entitlementsToken,
-          region,
-          userId
-        );
-        const shops = await parseShop(shop);
-
-        setLoading("Fetching owned skins");
-        const [ownedSkinLevels, ownedSkinChromas] = await Promise.allSettled([
-          ownedItems(
-            accessToken,
-            entitlementsToken,
-            region,
-            userId,
-            VItemTypes.SkinLevel
-          ),
-          ownedItems(
-            accessToken,
-            entitlementsToken,
-            region,
-            userId,
-            VItemTypes.SkinChroma
-          ),
-        ]);
-
-        const ownedSkinIds = Array.from(
-          new Set(
-            [ownedSkinLevels, ownedSkinChromas].flatMap((result) =>
-              result.status === "fulfilled"
-                ? (result.value?.EntitlementsByTypes ?? []).flatMap((entry) =>
-                    (entry.Entitlements ?? []).map((entitlement) => entitlement.ItemID)
-                  )
-                : []
-            )
-          )
-        );
-
-        setLoading(t("fetching.progress"));
-        const progress = await getProgress(
-          accessToken,
-          entitlementsToken,
-          region,
-          userId
-        );
-
-        setLoading(t("fetching.balances"));
-        const balances = await getBalances(
-          accessToken,
-          entitlementsToken,
-          region,
-          userId
-        );
-
-        setUser({
-          id: userId,
-          name: username.GameName,
-          TagLine: username.TagLine,
-          region,
-          shops,
-          progress,
-          balances,
-          ownedSkinIds,
-          accessToken,
-          entitlementsToken,
-
-        });
+        setUser(authenticatedUser);
         router.replace("/shop");
       } catch (e) {
         console.log(e);
