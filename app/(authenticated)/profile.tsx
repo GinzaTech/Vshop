@@ -61,6 +61,14 @@ const formatUpgradeLevel = (weapon: EquippedWeapon) => {
   return `Lv ${weapon.upgradeLevel}`;
 };
 
+const normalizeWeaponKey = (value?: string) =>
+  (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
 type OwnedSkinOption = {
   id: string;
   skinId: string;
@@ -266,9 +274,19 @@ function Profile() {
         });
 
         const nextOwnedSkinList = Array.from(nextOwnedSkinIds);
+        const nextOwnedSprayList = Array.from(nextOwnedSprayIds);
 
         setOwnedSkinItemIds(nextOwnedSkinList);
-        setOwnedSprayItemIds(Array.from(nextOwnedSprayIds));
+        setOwnedSprayItemIds(nextOwnedSprayList);
+
+        if (__DEV__) {
+          console.log("[profile] ownership loaded", {
+            loadoutGuns: response.Guns?.length ?? 0,
+            loadoutSprays: response.Sprays?.length ?? 0,
+            ownedSkinItems: nextOwnedSkinList.length,
+            ownedSprayItems: nextOwnedSprayList.length,
+          });
+        }
 
         if (nextOwnedSkinIds.size > 0) {
           const currentUser = useUserStore.getState().user;
@@ -509,16 +527,33 @@ function Profile() {
     (weapon: EquippedWeapon): OwnedSkinOption[] => {
       const assets = getAssets();
       const metadata = weaponMetadata[weapon.weaponId];
-      const weaponSkinIds = new Set(
-        (metadata?.skins ?? []).map((skin) => skin.uuid)
-      );
+      const weaponSkinIds = new Set((metadata?.skins ?? []).map((skin) => skin.uuid));
+      const normalizedWeaponName = normalizeWeaponKey(weapon.weaponName);
+      const candidateSkins = assets.skins.filter((skin) => {
+        if (weaponSkinIds.size > 0) {
+          return weaponSkinIds.has(skin.uuid) || skin.uuid === weapon.skinId;
+        }
 
-      return assets.skins
-        .filter((skin) =>
-          weaponSkinIds.size > 0
-            ? weaponSkinIds.has(skin.uuid) || skin.uuid === weapon.skinId
-            : skin.uuid === weapon.skinId
-        )
+        if (skin.uuid === weapon.skinId) {
+          return true;
+        }
+
+        if (!normalizedWeaponName) {
+          return false;
+        }
+
+        const skinName = normalizeWeaponKey(skin.displayName);
+        const levelNames = (skin.levels ?? []).map((level) =>
+          normalizeWeaponKey(level.displayName)
+        );
+
+        return (
+          skinName.includes(normalizedWeaponName) ||
+          levelNames.some((levelName) => levelName.includes(normalizedWeaponName))
+        );
+      });
+
+      const options = candidateSkins
         .filter(
           (skin) =>
             skin.uuid === weapon.skinId ||
@@ -582,6 +617,19 @@ function Profile() {
 
           return a.name.localeCompare(b.name);
         });
+
+      if (__DEV__) {
+        console.log("[profile] weapon picker options", {
+          weapon: weapon.weaponName,
+          weaponId: weapon.weaponId,
+          metadataSkins: weaponSkinIds.size,
+          candidates: candidateSkins.length,
+          options: options.length,
+          ownedSkinItems: ownedSkinIdSet.size,
+        });
+      }
+
+      return options;
     },
     [ownedSkinIdSet, weaponMetadata]
   );
@@ -648,11 +696,20 @@ function Profile() {
 
   const handleOpenWeaponPicker = React.useCallback(
     (weapon: EquippedWeapon) => {
+      const options = buildOwnedSkinOptions(weapon);
+
+      if (__DEV__) {
+        console.log("[profile] open weapon picker", {
+          weapon: weapon.weaponName,
+          options: options.length,
+        });
+      }
+
       setPickerError(null);
       setPickerState({
         type: "weapon",
         weapon,
-        options: buildOwnedSkinOptions(weapon),
+        options,
       });
     },
     [buildOwnedSkinOptions]
@@ -660,11 +717,20 @@ function Profile() {
 
   const handleOpenSprayPicker = React.useCallback(
     (spray: EquippedSpray) => {
+      const options = buildOwnedSprayOptions(spray);
+
+      if (__DEV__) {
+        console.log("[profile] open spray picker", {
+          slot: spray.slot,
+          options: options.length,
+        });
+      }
+
       setPickerError(null);
       setPickerState({
         type: "spray",
         spray,
-        options: buildOwnedSprayOptions(spray),
+        options,
       });
     },
     [buildOwnedSprayOptions]
