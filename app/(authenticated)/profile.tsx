@@ -1,6 +1,7 @@
 import React from "react";
 import {
   FlatList,
+  InteractionManager,
   RefreshControl,
   ScrollView,
   StyleProp,
@@ -115,6 +116,7 @@ function Profile() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pickerError, setPickerError] = React.useState<string | null>(null);
+  const [pickerLoading, setPickerLoading] = React.useState(false);
   const [updatingLoadout, setUpdatingLoadout] = React.useState(false);
   const [rawGuns, setRawGuns] = React.useState<PlayerLoadoutGun[]>([]);
   const [rawSprays, setRawSprays] = React.useState<PlayerLoadoutSpray[]>([]);
@@ -128,6 +130,9 @@ function Profile() {
   const [weaponMetadata, setWeaponMetadata] = React.useState<WeaponMetadataMap>({});
   const [searchQuery, setSearchQuery] = React.useState("");
   const [pickerState, setPickerState] = React.useState<PickerState | null>(null);
+  const pickerTaskRef = React.useRef<ReturnType<
+    typeof InteractionManager.runAfterInteractions
+  > | null>(null);
 
   const palette = React.useMemo(
     () => {
@@ -279,15 +284,6 @@ function Profile() {
         setOwnedSkinItemIds(nextOwnedSkinList);
         setOwnedSprayItemIds(nextOwnedSprayList);
 
-        if (__DEV__) {
-          console.log("[profile] ownership loaded", {
-            loadoutGuns: response.Guns?.length ?? 0,
-            loadoutSprays: response.Sprays?.length ?? 0,
-            ownedSkinItems: nextOwnedSkinList.length,
-            ownedSprayItems: nextOwnedSprayList.length,
-          });
-        }
-
         if (nextOwnedSkinIds.size > 0) {
           const currentUser = useUserStore.getState().user;
           const currentOwnedSkinSet = new Set(currentUser.ownedSkinIds ?? []);
@@ -346,6 +342,13 @@ function Profile() {
     };
   }, []);
 
+  React.useEffect(
+    () => () => {
+      pickerTaskRef.current?.cancel();
+    },
+    []
+  );
+
   React.useEffect(() => {
     if (!hasAuth) {
       setLoadoutSnapshot(null);
@@ -355,6 +358,7 @@ function Profile() {
       setOwnedSkinItemIds([]);
       setOwnedSprayItemIds([]);
       setPickerState(null);
+      setPickerLoading(false);
       setPickerError(null);
       setError(t("equip_page.missing_auth"));
       setLoading(false);
@@ -595,9 +599,8 @@ function Profile() {
             chromaId: selectedChroma?.uuid || weapon.chromaId,
             name: skin.displayName,
             image:
-              selectedChroma?.fullRender ||
-              selectedChroma?.displayIcon ||
               selectedLevel?.displayIcon ||
+              selectedChroma?.displayIcon ||
               skin.displayIcon,
             contentTierUuid: skin.contentTierUuid,
             contentTierName: tier.label,
@@ -617,17 +620,6 @@ function Profile() {
 
           return a.name.localeCompare(b.name);
         });
-
-      if (__DEV__) {
-        console.log("[profile] weapon picker options", {
-          weapon: weapon.weaponName,
-          weaponId: weapon.weaponId,
-          metadataSkins: weaponSkinIds.size,
-          candidates: candidateSkins.length,
-          options: options.length,
-          ownedSkinItems: ownedSkinIdSet.size,
-        });
-      }
 
       return options;
     },
@@ -690,26 +682,37 @@ function Profile() {
       return;
     }
 
+    pickerTaskRef.current?.cancel();
+    pickerTaskRef.current = null;
+    setPickerLoading(false);
     setPickerState(null);
     setPickerError(null);
   }, [updatingLoadout]);
 
   const handleOpenWeaponPicker = React.useCallback(
     (weapon: EquippedWeapon) => {
-      const options = buildOwnedSkinOptions(weapon);
-
-      if (__DEV__) {
-        console.log("[profile] open weapon picker", {
-          weapon: weapon.weaponName,
-          options: options.length,
-        });
-      }
-
+      pickerTaskRef.current?.cancel();
       setPickerError(null);
-      setPickerState({
-        type: "weapon",
-        weapon,
-        options,
+      setPickerLoading(true);
+      React.startTransition(() => {
+        setPickerState({
+          type: "weapon",
+          weapon,
+          options: [],
+        });
+      });
+
+      pickerTaskRef.current = InteractionManager.runAfterInteractions(() => {
+        const options = buildOwnedSkinOptions(weapon);
+        React.startTransition(() => {
+          setPickerState({
+            type: "weapon",
+            weapon,
+            options,
+          });
+        });
+        setPickerLoading(false);
+        pickerTaskRef.current = null;
       });
     },
     [buildOwnedSkinOptions]
@@ -717,20 +720,28 @@ function Profile() {
 
   const handleOpenSprayPicker = React.useCallback(
     (spray: EquippedSpray) => {
-      const options = buildOwnedSprayOptions(spray);
-
-      if (__DEV__) {
-        console.log("[profile] open spray picker", {
-          slot: spray.slot,
-          options: options.length,
-        });
-      }
-
+      pickerTaskRef.current?.cancel();
       setPickerError(null);
-      setPickerState({
-        type: "spray",
-        spray,
-        options,
+      setPickerLoading(true);
+      React.startTransition(() => {
+        setPickerState({
+          type: "spray",
+          spray,
+          options: [],
+        });
+      });
+
+      pickerTaskRef.current = InteractionManager.runAfterInteractions(() => {
+        const options = buildOwnedSprayOptions(spray);
+        React.startTransition(() => {
+          setPickerState({
+            type: "spray",
+            spray,
+            options,
+          });
+        });
+        setPickerLoading(false);
+        pickerTaskRef.current = null;
       });
     },
     [buildOwnedSprayOptions]
@@ -1399,6 +1410,8 @@ function Profile() {
       return null;
     }
 
+    const pickerBusy = pickerLoading || updatingLoadout;
+
     const title =
       pickerState.type === "weapon" ? "Choose an owned skin" : "Choose an owned spray";
     const subtitle =
@@ -1431,7 +1444,7 @@ function Profile() {
                   {subtitle}
                 </Text>
               </View>
-              {updatingLoadout ? (
+              {pickerBusy ? (
                 <ActivityIndicator animating color={palette.accent} />
               ) : (
                 <TouchableOpacity
@@ -1454,143 +1467,53 @@ function Profile() {
               <Text style={styles.pickerErrorText}>{pickerError}</Text>
             ) : null}
 
-            <ScrollView
-              style={styles.pickerScroll}
-              contentContainerStyle={styles.pickerGrid}
-              showsVerticalScrollIndicator={false}
-            >
-              {pickerState.type === "weapon"
-                ? pickerState.options.map((option) => {
-                    const tier = getContentTierVisual(
-                      option.contentTierUuid,
-                      option.contentTierName
-                    );
-
-                    return (
-                      <TouchableOpacity
-                        key={option.id}
-                        activeOpacity={0.9}
-                        disabled={updatingLoadout}
-                        onPress={() =>
-                          handleEquipWeapon(pickerState.weapon, option)
-                        }
+            {pickerState.type === "weapon" ? (
+              <FlatList
+                data={pickerState.options}
+                keyExtractor={(option) => option.id}
+                numColumns={2}
+                style={styles.pickerList}
+                contentContainerStyle={styles.pickerListContent}
+                columnWrapperStyle={styles.pickerGridRow}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews
+                initialNumToRender={6}
+                maxToRenderPerBatch={6}
+                windowSize={5}
+                updateCellsBatchingPeriod={16}
+                ListEmptyComponent={
+                  <View style={styles.pickerEmptyState}>
+                    {pickerLoading ? (
+                      <ActivityIndicator animating color={palette.accent} />
+                    ) : (
+                      <Text
                         style={[
-                          styles.pickerOptionCard,
-                          {
-                            backgroundColor: tier.cardBackground,
-                            borderColor: option.selected
-                              ? palette.accent
-                              : tier.border,
-                            opacity: updatingLoadout ? 0.72 : 1,
-                          },
+                          styles.pickerEmptyText,
+                          { color: palette.textSecondary },
                         ]}
                       >
-                        <View
-                          style={[
-                            styles.pickerOptionVisual,
-                            {
-                              backgroundColor: tier.visualBackground,
-                              borderColor: tier.border,
-                            },
-                          ]}
-                        >
-                          <Image
-                            source={
-                              option.image ? { uri: option.image } : FALLBACK_IMAGE
-                            }
-                            style={styles.pickerOptionImage}
-                            contentFit="contain"
-                          />
-                        </View>
-                        <Text
-                          style={[
-                            styles.pickerOptionTitle,
-                            { color: palette.textPrimary },
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {option.name}
-                        </Text>
-                        <View style={styles.pickerOptionMeta}>
-                          <View
-                            style={[
-                              styles.pickerOptionBadge,
-                              {
-                                backgroundColor: tier.badgeBackground,
-                                borderColor: tier.border,
-                              },
-                            ]}
-                          >
-                            <View
-                              style={[
-                                styles.pickerOptionDot,
-                                { backgroundColor: tier.accent },
-                              ]}
-                            />
-                            <Text
-                              style={[
-                                styles.pickerOptionBadgeText,
-                                { color: tier.text },
-                              ]}
-                            >
-                              {option.contentTierName || tier.label}
-                            </Text>
-                          </View>
-                          {option.upgradeLevel ? (
-                            <View
-                              style={[
-                                styles.pickerOptionBadge,
-                                {
-                                  backgroundColor: tier.badgeBackground,
-                                  borderColor: tier.border,
-                                },
-                              ]}
-                            >
-                              <Icon
-                                name="arrow-up-bold-circle-outline"
-                                size={12}
-                                color={tier.text}
-                              />
-                              <Text
-                                style={[
-                                  styles.pickerOptionBadgeText,
-                                  { color: tier.text },
-                                ]}
-                              >
-                                {option.maxUpgradeLevel && option.maxUpgradeLevel > 1
-                                  ? `Lv ${option.upgradeLevel}/${option.maxUpgradeLevel}`
-                                  : `Lv ${option.upgradeLevel}`}
-                              </Text>
-                            </View>
-                          ) : null}
-                        </View>
-                        {option.selected ? (
-                          <Text
-                            style={[
-                              styles.pickerSelectedText,
-                              { color: palette.accent },
-                            ]}
-                          >
-                            Equipped now
-                          </Text>
-                        ) : null}
-                      </TouchableOpacity>
-                    );
-                  })
-                : pickerState.options.map((option) => (
+                        No owned skins found for this weapon.
+                      </Text>
+                    )}
+                  </View>
+                }
+                renderItem={({ item: option }) => {
+                  const tier = getContentTierVisual(
+                    option.contentTierUuid,
+                    option.contentTierName
+                  );
+
+                  return (
                     <TouchableOpacity
-                      key={option.id}
                       activeOpacity={0.9}
-                      disabled={updatingLoadout}
-                      onPress={() => handleEquipSpray(pickerState.spray, option)}
+                      disabled={pickerBusy}
+                      onPress={() => handleEquipWeapon(pickerState.weapon, option)}
                       style={[
                         styles.pickerOptionCard,
                         {
-                          backgroundColor: palette.background,
-                          borderColor: option.selected
-                            ? palette.accent
-                            : palette.cardBorder,
-                          opacity: updatingLoadout ? 0.72 : 1,
+                          backgroundColor: tier.cardBackground,
+                          borderColor: option.selected ? palette.accent : tier.border,
+                          opacity: pickerBusy ? 0.72 : 1,
                         },
                       ]}
                     >
@@ -1598,15 +1521,17 @@ function Profile() {
                         style={[
                           styles.pickerOptionVisual,
                           {
-                            backgroundColor: palette.chipBackground,
-                            borderColor: palette.cardBorder,
+                            backgroundColor: tier.visualBackground,
+                            borderColor: tier.border,
                           },
                         ]}
                       >
                         <Image
-                          source={option.icon ? { uri: option.icon } : FALLBACK_IMAGE}
+                          source={option.image ? { uri: option.image } : FALLBACK_IMAGE}
                           style={styles.pickerOptionImage}
                           contentFit="contain"
+                          cachePolicy="memory-disk"
+                          transition={90}
                         />
                       </View>
                       <Text
@@ -1618,6 +1543,59 @@ function Profile() {
                       >
                         {option.name}
                       </Text>
+                      <View style={styles.pickerOptionMeta}>
+                        <View
+                          style={[
+                            styles.pickerOptionBadge,
+                            {
+                              backgroundColor: tier.badgeBackground,
+                              borderColor: tier.border,
+                            },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.pickerOptionDot,
+                              { backgroundColor: tier.accent },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              styles.pickerOptionBadgeText,
+                              { color: tier.text },
+                            ]}
+                          >
+                            {option.contentTierName || tier.label}
+                          </Text>
+                        </View>
+                        {option.upgradeLevel ? (
+                          <View
+                            style={[
+                              styles.pickerOptionBadge,
+                              {
+                                backgroundColor: tier.badgeBackground,
+                                borderColor: tier.border,
+                              },
+                            ]}
+                          >
+                            <Icon
+                              name="arrow-up-bold-circle-outline"
+                              size={12}
+                              color={tier.text}
+                            />
+                            <Text
+                              style={[
+                                styles.pickerOptionBadgeText,
+                                { color: tier.text },
+                              ]}
+                            >
+                              {option.maxUpgradeLevel && option.maxUpgradeLevel > 1
+                                ? `Lv ${option.upgradeLevel}/${option.maxUpgradeLevel}`
+                                : `Lv ${option.upgradeLevel}`}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
                       {option.selected ? (
                         <Text
                           style={[
@@ -1629,8 +1607,95 @@ function Profile() {
                         </Text>
                       ) : null}
                     </TouchableOpacity>
-                  ))}
-            </ScrollView>
+                  );
+                }}
+              />
+            ) : (
+              <FlatList
+                data={pickerState.options}
+                keyExtractor={(option) => option.id}
+                numColumns={2}
+                style={styles.pickerList}
+                contentContainerStyle={styles.pickerListContent}
+                columnWrapperStyle={styles.pickerGridRow}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews
+                initialNumToRender={6}
+                maxToRenderPerBatch={6}
+                windowSize={5}
+                updateCellsBatchingPeriod={16}
+                ListEmptyComponent={
+                  <View style={styles.pickerEmptyState}>
+                    {pickerLoading ? (
+                      <ActivityIndicator animating color={palette.accent} />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.pickerEmptyText,
+                          { color: palette.textSecondary },
+                        ]}
+                      >
+                        No owned sprays found for this slot.
+                      </Text>
+                    )}
+                  </View>
+                }
+                renderItem={({ item: option }) => (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    disabled={pickerBusy}
+                    onPress={() => handleEquipSpray(pickerState.spray, option)}
+                    style={[
+                      styles.pickerOptionCard,
+                      {
+                        backgroundColor: palette.background,
+                        borderColor: option.selected
+                          ? palette.accent
+                          : palette.cardBorder,
+                        opacity: pickerBusy ? 0.72 : 1,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.pickerOptionVisual,
+                        {
+                          backgroundColor: palette.chipBackground,
+                          borderColor: palette.cardBorder,
+                        },
+                      ]}
+                    >
+                      <Image
+                        source={option.icon ? { uri: option.icon } : FALLBACK_IMAGE}
+                        style={styles.pickerOptionImage}
+                        contentFit="contain"
+                        cachePolicy="memory-disk"
+                        transition={90}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.pickerOptionTitle,
+                        { color: palette.textPrimary },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {option.name}
+                    </Text>
+                    {option.selected ? (
+                      <Text
+                        style={[
+                          styles.pickerSelectedText,
+                          { color: palette.accent },
+                        ]}
+                      >
+                        Equipped now
+                      </Text>
+                    ) : null}
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </View>
         </Modal>
       </Portal>
@@ -1881,14 +1946,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-  pickerScroll: {
-    flexGrow: 0,
+  pickerList: {
+    minHeight: 240,
   },
-  pickerGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+  pickerListContent: {
     paddingBottom: 8,
+  },
+  pickerGridRow: {
+    justifyContent: "space-between",
+  },
+  pickerEmptyState: {
+    minHeight: 220,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  pickerEmptyText: {
+    fontSize: 13,
+    textAlign: "center",
   },
   pickerOptionCard: {
     width: "48%",
