@@ -70,6 +70,11 @@ const normalizeWeaponKey = (value?: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
+const delay = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
 type OwnedSkinOption = {
   id: string;
   skinId: string;
@@ -820,18 +825,37 @@ function Profile() {
     [buildOwnedSprayOptions]
   );
 
-  const scheduleLoadoutRefresh = React.useCallback(
-    (delayMs = 1400) => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
+  const confirmLoadoutUpdate = React.useCallback(
+    async (expectedLoadout: PlayerLoadoutResponse) => {
+      const retryDelays = [350, 800, 1400, 2200];
+      let latestLoadout: PlayerLoadoutResponse | null = null;
+
+      for (const retryDelay of retryDelays) {
+        await delay(retryDelay);
+
+        latestLoadout = await playerLoadout(
+          user.accessToken,
+          user.entitlementsToken,
+          user.region,
+          user.id
+        );
+
+        if (loadoutsMatch(latestLoadout, expectedLoadout)) {
+          pendingLoadoutRef.current = null;
+          return {
+            confirmed: true,
+            loadout: latestLoadout,
+          };
+        }
       }
 
-      refreshTimeoutRef.current = setTimeout(() => {
-        refreshTimeoutRef.current = null;
-        void fetchLoadoutData(false);
-      }, delayMs);
+      pendingLoadoutRef.current = null;
+      return {
+        confirmed: false,
+        loadout: latestLoadout,
+      };
     },
-    [fetchLoadoutData]
+    [user.accessToken, user.entitlementsToken, user.id, user.region]
   );
 
   const handleEquipWeapon = React.useCallback(
@@ -863,7 +887,7 @@ function Profile() {
           updatedAt: Date.now(),
         };
 
-        const response = await updatePlayerLoadout(
+        await updatePlayerLoadout(
           user.accessToken,
           user.entitlementsToken,
           user.region,
@@ -871,11 +895,17 @@ function Profile() {
           nextLoadout
         );
 
-        syncLoadoutState(
-          response && Array.isArray(response.Guns) ? response : nextLoadout
-        );
-        setPickerState(null);
-        scheduleLoadoutRefresh();
+        const confirmation = await confirmLoadoutUpdate(nextLoadout);
+
+        if (confirmation.confirmed && confirmation.loadout) {
+          syncLoadoutState(confirmation.loadout);
+          setPickerState(null);
+        } else {
+          if (confirmation.loadout) {
+            syncLoadoutState(confirmation.loadout);
+          }
+          setPickerError("Riot has not confirmed this skin change yet. Try again.");
+        }
       } catch (err) {
         if (__DEV__) console.error(err);
         pendingLoadoutRef.current = null;
@@ -885,9 +915,9 @@ function Profile() {
       }
     },
     [
+      confirmLoadoutUpdate,
       hasAuth,
       loadoutSnapshot,
-      scheduleLoadoutRefresh,
       syncLoadoutState,
       updatingLoadout,
       user.accessToken,
@@ -925,7 +955,7 @@ function Profile() {
           updatedAt: Date.now(),
         };
 
-        const response = await updatePlayerLoadout(
+        await updatePlayerLoadout(
           user.accessToken,
           user.entitlementsToken,
           user.region,
@@ -933,11 +963,17 @@ function Profile() {
           nextLoadout
         );
 
-        syncLoadoutState(
-          response && Array.isArray(response.Sprays) ? response : nextLoadout
-        );
-        setPickerState(null);
-        scheduleLoadoutRefresh();
+        const confirmation = await confirmLoadoutUpdate(nextLoadout);
+
+        if (confirmation.confirmed && confirmation.loadout) {
+          syncLoadoutState(confirmation.loadout);
+          setPickerState(null);
+        } else {
+          if (confirmation.loadout) {
+            syncLoadoutState(confirmation.loadout);
+          }
+          setPickerError("Riot has not confirmed this spray change yet. Try again.");
+        }
       } catch (err) {
         if (__DEV__) console.error(err);
         pendingLoadoutRef.current = null;
@@ -947,9 +983,9 @@ function Profile() {
       }
     },
     [
+      confirmLoadoutUpdate,
       hasAuth,
       loadoutSnapshot,
-      scheduleLoadoutRefresh,
       syncLoadoutState,
       updatingLoadout,
       user.accessToken,
