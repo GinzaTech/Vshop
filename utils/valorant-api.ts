@@ -106,13 +106,11 @@ export async function getEntitlementsToken(accessToken: string) {
     },
     data: {},
   });
-  console.log("entitlements_token:", res.data.entitlements_token)
   return res.data.entitlements_token;
 }
 
 export function getUserId(accessToken: string) {
   const data = jwtDecode(accessToken) as any;
-  console.log("puuid:", data.sub)
   return data.sub;
 }
 
@@ -158,7 +156,6 @@ export async function getShop(
     },
     data: {},
   });
-  console.log("accessToken", accessToken)
   return res.data;
 }
 

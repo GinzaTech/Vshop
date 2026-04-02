@@ -57,6 +57,20 @@ const SPRAY_SLOT_KEY_ALIASES: Record<string, string> = {
   "0814b2fe451260a452881fbdcec6ca48": "spray3",
 };
 
+const KNOWN_SPRAY_SLOT_KEYS = new Set([
+  "spray1",
+  "spray2",
+  "spray3",
+  "firsthalf",
+  "secondhalf",
+  "any",
+  "anyround",
+  "pregame",
+  "postround",
+  "sudden_death",
+  "default",
+]);
+
 export type TabKey = "loadout" | "skins" | "collection";
 
 export interface PlayerLoadoutGun {
@@ -163,7 +177,7 @@ export const formatSpraySlot = (slot: string, t: TFunction) => {
   const upperSlot = slot.toUpperCase();
   const slotKey = SPRAY_SLOT_TRANSLATIONS[slot] || SPRAY_SLOT_TRANSLATIONS[upperSlot];
 
-  if (slotKey) {
+  if (slotKey && KNOWN_SPRAY_SLOT_KEYS.has(slotKey)) {
     const translationKey = `equip_page.spray_slots.${slotKey}`;
     const translated = t(translationKey);
     if (translated !== translationKey) {
@@ -181,20 +195,24 @@ export const formatSpraySlot = (slot: string, t: TFunction) => {
   if (sanitized) {
     const normalizedKey = sanitized.toLowerCase().replace(/[^a-z0-9]+/g, "_");
     const aliasKey = SPRAY_SLOT_KEY_ALIASES[normalizedKey] || normalizedKey;
-    const translationKey = `equip_page.spray_slots.${aliasKey}`;
-    const translated = t(translationKey);
+    if (KNOWN_SPRAY_SLOT_KEYS.has(aliasKey)) {
+      const translationKey = `equip_page.spray_slots.${aliasKey}`;
+      const translated = t(translationKey);
 
-    if (translated !== translationKey) {
-      return translated;
+      if (translated !== translationKey) {
+        return translated;
+      }
     }
 
     if (aliasKey.includes("_")) {
       const condensedAlias = aliasKey.replace(/_/g, "");
-      const condensedKey = `equip_page.spray_slots.${condensedAlias}`;
-      const condensed = t(condensedKey);
+      if (KNOWN_SPRAY_SLOT_KEYS.has(condensedAlias)) {
+        const condensedKey = `equip_page.spray_slots.${condensedAlias}`;
+        const condensed = t(condensedKey);
 
-      if (condensed !== condensedKey) {
-        return condensed;
+        if (condensed !== condensedKey) {
+          return condensed;
+        }
       }
     }
   }
