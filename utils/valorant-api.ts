@@ -441,6 +441,28 @@ export async function playerLoadout(
   return res.data;
 }
 
+export async function updatePlayerLoadout(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string,
+  loadout: PlayerLoadoutResponse
+) {
+  const res = await axios.request<PlayerLoadoutResponse>({
+    url: getUrl({ name: "player", region, userId }),
+    method: "PUT",
+    headers: {
+      ...extraHeaders(),
+      "Content-Type": "application/json",
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    data: loadout,
+  });
+
+  return res.data;
+}
+
 export async function ownedItems(
   accessToken: string,
   entitlementsToken: string,

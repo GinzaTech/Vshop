@@ -121,6 +121,12 @@ export interface EquippedWeapon {
   weaponId: string;
   weaponName: string;
   category: string;
+  skinId: string;
+  skinLevelId: string;
+  chromaId: string;
+  charmInstanceId?: string;
+  charmId?: string;
+  charmLevelId?: string;
   skinName: string;
   skinLevelName?: string;
   chromaName?: string;
@@ -140,6 +146,7 @@ export interface OwnedWeaponCollectionItem extends EquippedWeapon {
 export interface EquippedSpray {
   id: string;
   slot: string;
+  sprayLevelId?: string | null;
   name: string;
   icon?: string;
 }
