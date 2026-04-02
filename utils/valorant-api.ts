@@ -44,7 +44,14 @@ export interface PlayerLoadoutResponse {
 }
 
 export interface OwnedItemsResponse {
-  EntitlementsByTypes: {
+  Subject?: string;
+  ItemTypeID?: string;
+  Entitlements?: {
+    TypeID?: string;
+    ItemID: string;
+    InstanceID?: string;
+  }[];
+  EntitlementsByTypes?: {
     ItemTypeID: string;
     Entitlements: {
       TypeID: string;
@@ -53,6 +60,18 @@ export interface OwnedItemsResponse {
     }[];
   }[];
 }
+
+export const extractOwnedItemIds = (response?: OwnedItemsResponse | null) =>
+  Array.from(
+    new Set(
+      [
+        ...(response?.Entitlements ?? []).map((entitlement) => entitlement.ItemID),
+        ...(response?.EntitlementsByTypes ?? []).flatMap((entry) =>
+          (entry.Entitlements ?? []).map((entitlement) => entitlement.ItemID)
+        ),
+      ].filter((itemId): itemId is string => Boolean(itemId))
+    )
+  );
 
 
 export let defaultUser = {

@@ -20,6 +20,7 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
 import {
+  extractOwnedItemIds,
   ownedItems,
   playerLoadout,
   PlayerLoadoutResponse,
@@ -95,27 +96,11 @@ type PickerState =
       options: OwnedSprayOption[];
     };
 
-const extractEntitlementIds = (
-  response?: {
-    EntitlementsByTypes?: {
-      Entitlements?: { ItemID?: string | null }[];
-    }[];
-  } | null
-) =>
-  Array.from(
-    new Set(
-      (response?.EntitlementsByTypes ?? []).flatMap((entry) =>
-        (entry.Entitlements ?? [])
-          .map((entitlement) => entitlement.ItemID)
-          .filter((itemId): itemId is string => Boolean(itemId))
-      )
-    )
-  );
-
 function Profile() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
+  const setUser = useUserStore((state) => state.setUser);
 
   const [activeTab, setActiveTab] = React.useState<TabKey>("loadout");
   const [loading, setLoading] = React.useState(true);
@@ -270,7 +255,7 @@ function Profile() {
             return;
           }
 
-          extractEntitlementIds(result.value).forEach((itemId) => {
+          extractOwnedItemIds(result.value).forEach((itemId) => {
             if (index === 2) {
               nextOwnedSprayIds.add(itemId);
               return;
@@ -280,8 +265,25 @@ function Profile() {
           });
         });
 
-        setOwnedSkinItemIds(Array.from(nextOwnedSkinIds));
+        const nextOwnedSkinList = Array.from(nextOwnedSkinIds);
+
+        setOwnedSkinItemIds(nextOwnedSkinList);
         setOwnedSprayItemIds(Array.from(nextOwnedSprayIds));
+
+        if (nextOwnedSkinIds.size > 0) {
+          const currentUser = useUserStore.getState().user;
+          const currentOwnedSkinSet = new Set(currentUser.ownedSkinIds ?? []);
+          const ownedSkinListChanged =
+            nextOwnedSkinList.length !== currentOwnedSkinSet.size ||
+            nextOwnedSkinList.some((itemId) => !currentOwnedSkinSet.has(itemId));
+
+          if (ownedSkinListChanged) {
+            setUser({
+              ...currentUser,
+              ownedSkinIds: nextOwnedSkinList,
+            });
+          }
+        }
       } catch (err) {
         if (__DEV__) console.error(err);
         setError(t("equip_page.error_loading"));
@@ -300,6 +302,7 @@ function Profile() {
       user.id,
       user.ownedSkinIds,
       user.region,
+      setUser,
     ]
   );
 
@@ -331,7 +334,7 @@ function Profile() {
       setRawGuns([]);
       setRawSprays([]);
       setIdentity(null);
-      setOwnedSkinItemIds(user.ownedSkinIds ?? []);
+      setOwnedSkinItemIds([]);
       setOwnedSprayItemIds([]);
       setPickerState(null);
       setPickerError(null);
@@ -519,6 +522,7 @@ function Profile() {
         .filter(
           (skin) =>
             skin.uuid === weapon.skinId ||
+            ownedSkinIdSet.has(skin.uuid) ||
             skin.levels.some((level) => ownedSkinIdSet.has(level.uuid)) ||
             skin.chromas.some((chroma) => ownedSkinIdSet.has(chroma.uuid))
         )

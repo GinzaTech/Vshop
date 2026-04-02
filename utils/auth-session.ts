@@ -3,6 +3,7 @@ import { jwtDecode } from "jwt-decode";
 import { loadAgent, loadAssets } from "./valorant-assets";
 import {
   defaultUser,
+  extractOwnedItemIds,
   getBalances,
   getEntitlementsToken,
   OwnedItemsResponse,
@@ -94,11 +95,7 @@ export async function buildAuthenticatedUser(
   const ownedSkinIds = Array.from(
     new Set(
       settledOwnedSkinResults.flatMap((result) =>
-        result.status === "fulfilled"
-          ? (result.value?.EntitlementsByTypes ?? []).flatMap((entry) =>
-              (entry.Entitlements ?? []).map((entitlement) => entitlement.ItemID)
-            )
-          : []
+        result.status === "fulfilled" ? extractOwnedItemIds(result.value) : []
       )
     )
   );
