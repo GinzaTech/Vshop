@@ -105,6 +105,45 @@ type PickerState =
       options: OwnedSprayOption[];
     };
 
+const loadoutsMatch = (
+  left?: PlayerLoadoutResponse | null,
+  right?: PlayerLoadoutResponse | null
+) => {
+  if (!left || !right) {
+    return false;
+  }
+
+  const gunsEqual =
+    (left.Guns?.length ?? 0) === (right.Guns?.length ?? 0) &&
+    (left.Guns ?? []).every((gun) => {
+      const target = (right.Guns ?? []).find((item) => item.ID === gun.ID);
+      return (
+        target &&
+        target.SkinID === gun.SkinID &&
+        target.SkinLevelID === gun.SkinLevelID &&
+        target.ChromaID === gun.ChromaID &&
+        target.CharmID === gun.CharmID &&
+        target.CharmLevelID === gun.CharmLevelID
+      );
+    });
+
+  const spraysEqual =
+    (left.Sprays?.length ?? 0) === (right.Sprays?.length ?? 0) &&
+    (left.Sprays ?? []).every((spray) => {
+      const target = (right.Sprays ?? []).find(
+        (item) => item.EquipSlotID === spray.EquipSlotID
+      );
+
+      return (
+        target &&
+        target.SprayID === spray.SprayID &&
+        target.SprayLevelID === spray.SprayLevelID
+      );
+    });
+
+  return gunsEqual && spraysEqual;
+};
+
 function Profile() {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -133,6 +172,13 @@ function Profile() {
   const pickerTaskRef = React.useRef<ReturnType<
     typeof InteractionManager.runAfterInteractions
   > | null>(null);
+  const pendingLoadoutRef = React.useRef<{
+    loadout: PlayerLoadoutResponse;
+    updatedAt: number;
+  } | null>(null);
+  const refreshTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const palette = React.useMemo(
     () => {
@@ -258,6 +304,29 @@ function Profile() {
           ]),
         ]);
 
+        const pendingLoadout = pendingLoadoutRef.current;
+        if (pendingLoadout) {
+          const isFreshEnough =
+            Date.now() - pendingLoadout.updatedAt < 8000;
+          const matchesPending = loadoutsMatch(response, pendingLoadout.loadout);
+
+          if (!matchesPending && isFreshEnough) {
+            if (refreshTimeoutRef.current) {
+              clearTimeout(refreshTimeoutRef.current);
+            }
+
+            refreshTimeoutRef.current = setTimeout(() => {
+              refreshTimeoutRef.current = null;
+              void fetchLoadoutData(false);
+            }, 1200);
+            return;
+          }
+
+          if (matchesPending || !isFreshEnough) {
+            pendingLoadoutRef.current = null;
+          }
+        }
+
         syncLoadoutState(response);
 
         const nextOwnedSkinIds = new Set<string>(user.ownedSkinIds ?? []);
@@ -345,6 +414,10 @@ function Profile() {
   React.useEffect(
     () => () => {
       pickerTaskRef.current?.cancel();
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
     },
     []
   );
@@ -747,6 +820,20 @@ function Profile() {
     [buildOwnedSprayOptions]
   );
 
+  const scheduleLoadoutRefresh = React.useCallback(
+    (delayMs = 1400) => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+
+      refreshTimeoutRef.current = setTimeout(() => {
+        refreshTimeoutRef.current = null;
+        void fetchLoadoutData(false);
+      }, delayMs);
+    },
+    [fetchLoadoutData]
+  );
+
   const handleEquipWeapon = React.useCallback(
     async (weapon: EquippedWeapon, option: OwnedSkinOption) => {
       if (!hasAuth || !loadoutSnapshot || updatingLoadout) {
@@ -771,6 +858,11 @@ function Profile() {
       };
 
       try {
+        pendingLoadoutRef.current = {
+          loadout: nextLoadout,
+          updatedAt: Date.now(),
+        };
+
         const response = await updatePlayerLoadout(
           user.accessToken,
           user.entitlementsToken,
@@ -783,18 +875,19 @@ function Profile() {
           response && Array.isArray(response.Guns) ? response : nextLoadout
         );
         setPickerState(null);
-        void fetchLoadoutData(false);
+        scheduleLoadoutRefresh();
       } catch (err) {
         if (__DEV__) console.error(err);
+        pendingLoadoutRef.current = null;
         setPickerError("Could not equip this skin right now.");
       } finally {
         setUpdatingLoadout(false);
       }
     },
     [
-      fetchLoadoutData,
       hasAuth,
       loadoutSnapshot,
+      scheduleLoadoutRefresh,
       syncLoadoutState,
       updatingLoadout,
       user.accessToken,
@@ -827,6 +920,11 @@ function Profile() {
       };
 
       try {
+        pendingLoadoutRef.current = {
+          loadout: nextLoadout,
+          updatedAt: Date.now(),
+        };
+
         const response = await updatePlayerLoadout(
           user.accessToken,
           user.entitlementsToken,
@@ -839,18 +937,19 @@ function Profile() {
           response && Array.isArray(response.Sprays) ? response : nextLoadout
         );
         setPickerState(null);
-        void fetchLoadoutData(false);
+        scheduleLoadoutRefresh();
       } catch (err) {
         if (__DEV__) console.error(err);
+        pendingLoadoutRef.current = null;
         setPickerError("Could not equip this spray right now.");
       } finally {
         setUpdatingLoadout(false);
       }
     },
     [
-      fetchLoadoutData,
       hasAuth,
       loadoutSnapshot,
+      scheduleLoadoutRefresh,
       syncLoadoutState,
       updatingLoadout,
       user.accessToken,
