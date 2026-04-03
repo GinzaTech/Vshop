@@ -75,6 +75,9 @@ const delay = (ms: number) =>
     setTimeout(resolve, ms);
   });
 
+const sameOptionalId = (left?: string | null, right?: string | null) =>
+  (left ?? null) === (right ?? null);
+
 type OwnedSkinOption = {
   id: string;
   skinId: string;
@@ -124,11 +127,11 @@ const loadoutsMatch = (
       const target = (right.Guns ?? []).find((item) => item.ID === gun.ID);
       return (
         target &&
-        target.SkinID === gun.SkinID &&
-        target.SkinLevelID === gun.SkinLevelID &&
-        target.ChromaID === gun.ChromaID &&
-        target.CharmID === gun.CharmID &&
-        target.CharmLevelID === gun.CharmLevelID
+        sameOptionalId(target.SkinID, gun.SkinID) &&
+        sameOptionalId(target.SkinLevelID, gun.SkinLevelID) &&
+        sameOptionalId(target.ChromaID, gun.ChromaID) &&
+        sameOptionalId(target.CharmID, gun.CharmID) &&
+        sameOptionalId(target.CharmLevelID, gun.CharmLevelID)
       );
     });
 
@@ -141,8 +144,8 @@ const loadoutsMatch = (
 
       return (
         target &&
-        target.SprayID === spray.SprayID &&
-        target.SprayLevelID === spray.SprayLevelID
+        sameOptionalId(target.SprayID, spray.SprayID) &&
+        sameOptionalId(target.SprayLevelID, spray.SprayLevelID)
       );
     });
 
@@ -927,7 +930,12 @@ function Profile() {
           });
         }
 
-        const confirmation = await confirmLoadoutUpdate(nextLoadout);
+        pendingLoadoutRef.current = {
+          loadout: putResponse,
+          updatedAt: Date.now(),
+        };
+
+        const confirmation = await confirmLoadoutUpdate(putResponse);
 
         if (confirmation.confirmed && confirmation.loadout) {
           syncLoadoutState(confirmation.loadout);
@@ -1015,7 +1023,12 @@ function Profile() {
           });
         }
 
-        const confirmation = await confirmLoadoutUpdate(nextLoadout);
+        pendingLoadoutRef.current = {
+          loadout: putResponse,
+          updatedAt: Date.now(),
+        };
+
+        const confirmation = await confirmLoadoutUpdate(putResponse);
 
         if (confirmation.confirmed && confirmation.loadout) {
           syncLoadoutState(confirmation.loadout);
