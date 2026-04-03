@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList, Dimensions, ImageSourcePropType } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { getAgent } from "~/utils/valorant-assets";
 import { COLORS } from "~/constants/DesignSystem";
@@ -127,11 +126,11 @@ export const RoleSelector: React.FC<RoleSelectorProps> = React.memo(({ roles, se
 ));
 
 const AgentItem = React.memo(({ item, onPress }: { item: ValorantAgent; onPress: (agent: ValorantAgent) => void }) => (
-    <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(400)} style={styles.box}>
+    <View style={styles.box}>
         <TouchableOpacity style={styles.box} onPress={() => onPress(item)}>
             <Image source={{ uri: item.displayIcon }} style={styles.icon} />
         </TouchableOpacity>
-    </Animated.View>
+    </View>
 ));
 
 export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgentPress }) => {

@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
@@ -54,8 +55,8 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   const { screenshotModeEnabled } = useFeatureStore();
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cardWidth, setCardWidth] = useState(0);
-  const sweepTranslateX = useSharedValue(-160);
-  const sweepOpacity = useSharedValue(0);
+  const sweepTranslateX = useRef(new Animated.Value(-160)).current;
+  const sweepOpacity = useRef(new Animated.Value(0)).current;
 
   const handlePreviewPress = useCallback(() => {
     const media = [
@@ -97,16 +98,32 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       clearTimeout(previewTimeoutRef.current);
       previewTimeoutRef.current = null;
       toggleSkin(item.levels[0].uuid);
-      sweepTranslateX.value = -Math.max(cardWidth * 0.7, 120);
-      sweepOpacity.value = 0;
-      sweepOpacity.value = withSequence(
-        withTiming(0.95, { duration: 120 }),
-        withTiming(0, { duration: 360 })
-      );
-      sweepTranslateX.value = withTiming(cardWidth + 120, {
+      const startX = -Math.max(cardWidth * 0.7, 120);
+
+      sweepTranslateX.stopAnimation();
+      sweepOpacity.stopAnimation();
+      sweepTranslateX.setValue(startX);
+      sweepOpacity.setValue(0);
+
+      Animated.sequence([
+        Animated.timing(sweepOpacity, {
+          toValue: 0.95,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sweepOpacity, {
+          toValue: 0,
+          duration: 360,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      Animated.timing(sweepTranslateX, {
+        toValue: cardWidth + 120,
         duration: 520,
         easing: Easing.out(Easing.cubic),
-      });
+        useNativeDriver: true,
+      }).start();
       return;
     }
 
@@ -118,13 +135,6 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   const handleCardLayout = useCallback((event: LayoutChangeEvent) => {
     setCardWidth(event.nativeEvent.layout.width);
   }, []);
-  const sweepStyle = useAnimatedStyle(() => ({
-    opacity: sweepOpacity.value,
-    transform: [
-      { translateX: sweepTranslateX.value },
-      { rotate: "14deg" },
-    ],
-  }));
 
   useEffect(() => {
     return () => {
@@ -147,7 +157,16 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         },
       ]}
     >
-      <Animated.View pointerEvents="none" style={[styles.sweepOverlay, sweepStyle]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.sweepOverlay,
+          {
+            opacity: sweepOpacity,
+            transform: [{ translateX: sweepTranslateX }, { rotate: "14deg" }],
+          },
+        ]}
+      >
         <BlurView intensity={55} tint="light" style={styles.sweepBlur}>
           <View style={styles.sweepTint} />
         </BlurView>

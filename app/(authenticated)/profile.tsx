@@ -830,7 +830,8 @@ function Profile() {
       const retryDelays = [350, 800, 1400, 2200];
       let latestLoadout: PlayerLoadoutResponse | null = null;
 
-      for (const retryDelay of retryDelays) {
+      for (let attemptIndex = 0; attemptIndex < retryDelays.length; attemptIndex += 1) {
+        const retryDelay = retryDelays[attemptIndex];
         await delay(retryDelay);
 
         latestLoadout = await playerLoadout(
@@ -839,6 +840,14 @@ function Profile() {
           user.region,
           user.id
         );
+
+        if (__DEV__) {
+          console.log("[profile] confirm poll", {
+            attempt: attemptIndex + 1,
+            delayMs: retryDelay,
+            matches: loadoutsMatch(latestLoadout, expectedLoadout),
+          });
+        }
 
         if (loadoutsMatch(latestLoadout, expectedLoadout)) {
           pendingLoadoutRef.current = null;
@@ -887,13 +896,36 @@ function Profile() {
           updatedAt: Date.now(),
         };
 
-        await updatePlayerLoadout(
+        if (__DEV__) {
+          console.log("[profile] equip skin request", {
+            weaponId: weapon.weaponId,
+            weaponName: weapon.weaponName,
+            fromSkinId: weapon.skinId,
+            toSkinId: option.skinId,
+            toSkinLevelId: option.skinLevelId,
+            toChromaId: option.chromaId,
+          });
+        }
+
+        const putResponse = await updatePlayerLoadout(
           user.accessToken,
           user.entitlementsToken,
           user.region,
           user.id,
           nextLoadout
         );
+
+        if (__DEV__) {
+          const updatedGun = (putResponse.Guns || []).find(
+            (gun) => gun.ID === weapon.weaponId
+          );
+          console.log("[profile] equip skin put response", {
+            weaponId: weapon.weaponId,
+            responseSkinId: updatedGun?.SkinID,
+            responseSkinLevelId: updatedGun?.SkinLevelID,
+            responseChromaId: updatedGun?.ChromaID,
+          });
+        }
 
         const confirmation = await confirmLoadoutUpdate(nextLoadout);
 
@@ -955,13 +987,33 @@ function Profile() {
           updatedAt: Date.now(),
         };
 
-        await updatePlayerLoadout(
+        if (__DEV__) {
+          console.log("[profile] equip spray request", {
+            slot: spray.slot,
+            fromSprayId: spray.id,
+            toSprayId: option.sprayId,
+            toSprayLevelId: option.sprayLevelId,
+          });
+        }
+
+        const putResponse = await updatePlayerLoadout(
           user.accessToken,
           user.entitlementsToken,
           user.region,
           user.id,
           nextLoadout
         );
+
+        if (__DEV__) {
+          const updatedSpray = (putResponse.Sprays || []).find(
+            (item) => item.EquipSlotID === spray.slot
+          );
+          console.log("[profile] equip spray put response", {
+            slot: spray.slot,
+            responseSprayId: updatedSpray?.SprayID,
+            responseSprayLevelId: updatedSpray?.SprayLevelID,
+          });
+        }
 
         const confirmation = await confirmLoadoutUpdate(nextLoadout);
 

@@ -1,6 +1,5 @@
 import React from "react";
 import { Text, StyleSheet, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
 import { getEquipmentImage } from "./popups/equipHelpers";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS } from "~/constants/DesignSystem";
@@ -18,7 +17,7 @@ const GalleryEquipComponent = ({ data, screenshotModeEnabled }: { data: any, scr
   }, [data, screenshotModeEnabled]);
 
   return (
-    <Animated.View entering={FadeIn} style={styles.container}>
+    <View style={styles.container}>
       <GlassCard
         style={styles.card}
         accessible
@@ -42,7 +41,7 @@ const GalleryEquipComponent = ({ data, screenshotModeEnabled }: { data: any, scr
           ) : null}
         </View>
       </GlassCard>
-    </Animated.View>
+    </View>
   );
 };
 
