@@ -80,14 +80,14 @@ export default function NightMarketItem(props: React.PropsWithChildren<props>) {
             style={[
               styles.priceBadge,
               {
-                backgroundColor: tier.badgeBackground,
-                borderColor: tier.border,
+                backgroundColor: COLORS.SURFACE_MUTED,
+                borderColor: COLORS.BORDER,
               },
             ]}
           >
             <Text style={styles.originalPrice}>{props.item.price}</Text>
             <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-            <Text style={[styles.salePrice, { color: tier.text }]}>
+            <Text style={[styles.salePrice, { color: COLORS.TEXT_PRIMARY }]}>
               {props.item.discountedPrice}
             </Text>
           </View>

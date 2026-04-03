@@ -237,13 +237,13 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
             styles.metaBadge,
             styles.priceBadge,
             {
-              backgroundColor: tier.badgeBackground,
-              borderColor: tier.border,
+              backgroundColor: COLORS.SURFACE_MUTED,
+              borderColor: COLORS.BORDER,
             },
           ]}
         >
           <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-          <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+          <Text style={[styles.metaBadgeText, { color: COLORS.TEXT_PRIMARY }]}>
             {item.price}
           </Text>
         </View>

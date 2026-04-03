@@ -96,9 +96,14 @@ export default function BundleImage({
                 />
                 <Text style={styles.metaText}>{bundle.items.length} items</Text>
               </View>
-              <View style={styles.metaPill}>
-                <CurrencyIcon icon="vp" style={styles.currency} />
-                <Text style={styles.metaText}>{bundle.price}</Text>
+              <View
+                style={[
+                  styles.metaPill,
+                  styles.priceMetaPill,
+                ]}
+              >
+                <CurrencyIcon icon="vp" style={[styles.currency, styles.priceCurrency]} />
+                <Text style={styles.priceMetaText}>{bundle.price}</Text>
               </View>
             </View>
           </View>
@@ -193,6 +198,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.16)",
   },
+  priceMetaPill: {
+    backgroundColor: "rgba(220,225,232,0.92)",
+    borderColor: "rgba(23,26,31,0.12)",
+  },
   actionPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -212,6 +221,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginLeft: 7,
   },
+  priceMetaText: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 7,
+  },
   actionText: {
     color: COLORS.PURE_WHITE,
     fontSize: 14,
@@ -220,5 +235,8 @@ const styles = StyleSheet.create({
   currency: {
     width: 14,
     height: 14,
+  },
+  priceCurrency: {
+    tintColor: COLORS.TEXT_PRIMARY,
   },
 });
