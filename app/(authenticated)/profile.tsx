@@ -1322,7 +1322,7 @@ function Profile() {
   );
 
   const renderLoadoutWeaponCard = React.useCallback(
-    (weapon: EquippedWeapon) => {
+    (weapon: EquippedWeapon, category: string) => {
       const tier = getContentTierVisual(
         weapon.contentTierUuid,
         weapon.contentTierName
@@ -1330,13 +1330,13 @@ function Profile() {
 
       return (
         <TouchableOpacity
-          key={weapon.weaponId}
+          key={`${category}-${weapon.weaponId}`}
           activeOpacity={0.92}
           disabled={updatingLoadout}
           onPress={() => handleOpenWeaponPicker(weapon)}
           style={[
-            styles.weaponCard,
-            styles.syncedWeaponCard,
+            styles.skinGridCard,
+            styles.syncedGridCard,
             {
               backgroundColor: tier.cardBackground,
               borderColor: tier.border,
@@ -1344,19 +1344,10 @@ function Profile() {
             },
           ]}
         >
-          <View style={styles.weaponDetails}>
-            <Text
-              style={[styles.cardTitle, { color: palette.textPrimary }]}
-              numberOfLines={1}
-            >
-              {weapon.skinName}
-            </Text>
-            {renderWeaponBadges(weapon)}
-          </View>
           <View
             style={[
-              styles.weaponImageWrapper,
-              styles.syncedWeaponImageWrapper,
+              styles.skinGridVisual,
+              styles.syncedGridVisual,
               {
                 backgroundColor: tier.visualBackground,
                 borderColor: tier.border,
@@ -1365,9 +1356,19 @@ function Profile() {
           >
             <Image
               source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
-              style={styles.weaponImage}
+              style={styles.skinGridImage}
               contentFit="contain"
             />
+          </View>
+
+          <View style={styles.skinGridDetails}>
+            <Text
+              style={[styles.skinGridTitle, { color: palette.textPrimary }]}
+              numberOfLines={2}
+            >
+              {weapon.skinName}
+            </Text>
+            {renderWeaponBadges(weapon)}
           </View>
         </TouchableOpacity>
       );
@@ -1448,7 +1449,9 @@ function Profile() {
             <Text style={[styles.categoryTitle, { color: palette.textPrimary }]}>
               {formatCategoryLabel(category)}
             </Text>
-            {weapons.map((weapon) => renderCard(weapon, category))}
+            <View style={styles.skinGrid}>
+              {weapons.map((weapon) => renderCard(weapon, category))}
+            </View>
           </View>
         );
       }),
