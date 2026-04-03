@@ -38,6 +38,7 @@ import {
   WeaponMetadata,
   WeaponMetadataMap,
   EquippedWeapon,
+  OwnedWeaponCollectionItem,
   EquippedSpray,
   IdentityDetails,
   resolveCategory,
@@ -608,6 +609,18 @@ function Profile() {
     [ownedSprayItemIds]
   );
 
+  const skinWeaponMetadata = React.useMemo(() => {
+    const map = new Map<string, WeaponMetadata>();
+
+    Object.values(weaponMetadata).forEach((weapon) => {
+      weapon.skins?.forEach((skin) => {
+        map.set(skin.uuid, weapon);
+      });
+    });
+
+    return map;
+  }, [weaponMetadata]);
+
   const buildOwnedSkinOptions = React.useCallback(
     (weapon: EquippedWeapon): OwnedSkinOption[] => {
       const assets = getAssets();
@@ -741,14 +754,117 @@ function Profile() {
     [ownedSprayIdSet]
   );
 
+  const ownedCollection = React.useMemo<OwnedWeaponCollectionItem[]>(() => {
+    const assets = getAssets();
+    const equippedBySkinId = new Map(
+      loadoutDetails.map((weapon) => [weapon.skinId, weapon] as const)
+    );
+
+    const categoryWeight = (category: string) => {
+      const index = CATEGORY_ORDER.indexOf(
+        category as (typeof CATEGORY_ORDER)[number]
+      );
+      return index === -1 ? CATEGORY_ORDER.length : index;
+    };
+
+    const ownedSkins = assets.skins
+      .filter((skin) => {
+        if (!skin.contentTierUuid) {
+          return false;
+        }
+
+        return (
+          ownedSkinIdSet.has(skin.uuid) ||
+          skin.levels.some((level) => ownedSkinIdSet.has(level.uuid)) ||
+          skin.chromas.some((chroma) => ownedSkinIdSet.has(chroma.uuid))
+        );
+      })
+      .map((skin) => {
+        const weapon = skinWeaponMetadata.get(skin.uuid);
+        const equippedWeapon = equippedBySkinId.get(skin.uuid);
+        const category = resolveCategory(weapon);
+        const weaponName = weapon?.displayName || equippedWeapon?.weaponName || "Unknown";
+        const ownedLevels = skin.levels.filter((level) =>
+          ownedSkinIdSet.has(level.uuid)
+        );
+        const ownedChromas = skin.chromas.filter((chroma) =>
+          ownedSkinIdSet.has(chroma.uuid)
+        );
+        const selectedLevel =
+          ownedLevels[ownedLevels.length - 1] ||
+          skin.levels[skin.levels.length - 1] ||
+          skin.levels[0];
+        const selectedChroma =
+          ownedChromas[0] ||
+          skin.chromas[0];
+        const upgradeLevelIndex = skin.levels.findIndex(
+          (level) => level.uuid === selectedLevel?.uuid
+        );
+        const tierVisual = getContentTierVisual(skin.contentTierUuid);
+
+        return {
+          collectionId: skin.uuid,
+          weaponId: weapon?.uuid || equippedWeapon?.weaponId || skin.uuid,
+          weaponName,
+          category,
+          skinId: skin.uuid,
+          skinLevelId: selectedLevel?.uuid || equippedWeapon?.skinLevelId || "",
+          chromaId: selectedChroma?.uuid || equippedWeapon?.chromaId || "",
+          charmInstanceId: equippedWeapon?.charmInstanceId,
+          charmId: equippedWeapon?.charmId,
+          charmLevelId: equippedWeapon?.charmLevelId,
+          skinName: skin.displayName,
+          skinLevelName: selectedLevel?.displayName,
+          chromaName: selectedChroma?.displayName,
+          image:
+            selectedChroma?.fullRender ||
+            selectedChroma?.displayIcon ||
+            selectedLevel?.displayIcon ||
+            skin.displayIcon,
+          buddyName: equippedWeapon?.buddyName,
+          buddyIcon: equippedWeapon?.buddyIcon,
+          contentTierUuid: skin.contentTierUuid,
+          contentTierName: tierVisual.label,
+          upgradeLevel:
+            upgradeLevelIndex >= 0 ? upgradeLevelIndex + 1 : undefined,
+          maxUpgradeLevel: skin.levels.length || undefined,
+        };
+      })
+      .sort((a, b) => {
+        const categoryDiff = categoryWeight(a.category) - categoryWeight(b.category);
+        if (categoryDiff !== 0) {
+          return categoryDiff;
+        }
+
+        const weaponDiff = a.weaponName.localeCompare(b.weaponName);
+        if (weaponDiff !== 0) {
+          return weaponDiff;
+        }
+
+        return a.skinName.localeCompare(b.skinName);
+      });
+
+    if (ownedSkins.length > 0) {
+      return ownedSkins;
+    }
+
+    return loadoutDetails.map((weapon) => ({
+      ...weapon,
+      collectionId: weapon.skinId || weapon.weaponId,
+    }));
+  }, [loadoutDetails, ownedSkinIdSet, skinWeaponMetadata]);
+
   const filteredCollection = React.useMemo(() => {
-    if (!searchQuery.trim()) return loadoutSorted;
+    if (!searchQuery.trim()) return ownedCollection;
 
     const query = searchQuery.trim().toLowerCase();
-    return loadoutSorted.filter((item) =>
-      item.skinName.toLowerCase().includes(query)
+    return ownedCollection.filter(
+      (item) =>
+        item.skinName.toLowerCase().includes(query) ||
+        item.weaponName.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query)
     );
-  }, [loadoutSorted, searchQuery]);
+  }, [ownedCollection, searchQuery]);
 
   const handleRefresh = React.useCallback(async () => {
     if (!hasAuth) return;
@@ -1524,7 +1640,7 @@ function Profile() {
     <FlatList
       style={styles.collectionContainer}
       data={filteredCollection}
-      keyExtractor={(item) => item.weaponId}
+      keyExtractor={(item) => item.collectionId}
       numColumns={2}
       refreshing={refreshing}
       onRefresh={handleRefresh}
