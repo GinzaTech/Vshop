@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -48,7 +49,71 @@ export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
           },
         ]}
       >
-        <View style={styles.row}>
+        <View style={styles.headerRow}>
+          <Text style={styles.eyebrow} numberOfLines={1}>
+            {tier.label}
+          </Text>
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <IconButton
+                icon="dots-horizontal"
+                size={18}
+                style={styles.menuButton}
+                onPress={() => setMenuVisible(true)}
+              />
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                props.toggleFromWishlist(props.item.levels[0].uuid);
+              }}
+              title={props.item.onWishlist ? t("wishlist.remove") : t("wishlist.add")}
+              icon={props.item.onWishlist ? "minus" : "plus"}
+            />
+            <Divider />
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                showMediaPopup(
+                  props.item.levels.map(
+                    (level) => level.streamedVideo || level.displayIcon || ""
+                  ),
+                  t("levels")
+                );
+              }}
+              title={t("levels")}
+              icon="arrow-up-bold"
+            />
+            <Menu.Item
+              onPress={() => {
+                setMenuVisible(false);
+                showMediaPopup(
+                  props.item.chromas.map(
+                    (chroma) => chroma.streamedVideo || chroma.fullRender
+                  ),
+                  t("chromas")
+                );
+              }}
+              title={t("chromas")}
+              icon="format-color-fill"
+            />
+          </Menu>
+        </View>
+
+        <Pressable
+          onPress={() => {
+            showMediaPopup(
+              props.item.levels.map(
+                (level) => level.streamedVideo || level.displayIcon || ""
+              ),
+              props.item.displayName
+            );
+          }}
+          style={styles.mainContent}
+        >
           <View
             style={[
               styles.imageWrap,
@@ -101,55 +166,7 @@ export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
               </View>
             </View>
           </View>
-
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="dots-horizontal"
-                size={20}
-                onPress={() => setMenuVisible(true)}
-              />
-            }
-          >
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(false);
-                props.toggleFromWishlist(props.item.levels[0].uuid);
-              }}
-              title={props.item.onWishlist ? t("wishlist.remove") : t("wishlist.add")}
-              icon={props.item.onWishlist ? "minus" : "plus"}
-            />
-            <Divider />
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(false);
-                showMediaPopup(
-                  props.item.levels.map(
-                    (level) => level.streamedVideo || level.displayIcon || ""
-                  ),
-                  t("levels")
-                );
-              }}
-              title={t("levels")}
-              icon="arrow-up-bold"
-            />
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(false);
-                showMediaPopup(
-                  props.item.chromas.map(
-                    (chroma) => chroma.streamedVideo || chroma.fullRender
-                  ),
-                  t("chromas")
-                );
-              }}
-              title={t("chromas")}
-              icon="format-color-fill"
-            />
-          </Menu>
-        </View>
+        </Pressable>
       </GlassCard>
     </View>
   );
@@ -157,37 +174,53 @@ export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    flex: 1,
   },
   card: {
     marginBottom: 0,
+    minHeight: 244,
   },
-  row: {
+  headerRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  mainContent: {
+    flex: 1,
+  },
+  eyebrow: {
+    flex: 1,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
+    fontWeight: "600",
+    marginRight: 10,
+  },
+  menuButton: {
+    margin: -4,
   },
   imageWrap: {
-    width: 112,
-    height: 78,
+    width: "100%",
+    height: 114,
     borderRadius: 18,
     backgroundColor: COLORS.SURFACE_MUTED,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
   image: {
-    width: 92,
-    height: 48,
+    width: "100%",
+    height: "100%",
   },
   content: {
-    flex: 1,
+    marginTop: 12,
+    minHeight: 74,
   },
   title: {
     color: COLORS.TEXT_PRIMARY,
     fontSize: 15,
     fontWeight: "700",
+    lineHeight: 20,
   },
   metaRow: {
     flexDirection: "row",

@@ -1,17 +1,12 @@
 import React from "react";
 import {
-  Dimensions,
+  FlatList,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  DataProvider,
-  LayoutProvider,
-  RecyclerListView,
-} from "recyclerlistview";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useWishlistStore } from "~/hooks/useWishlistStore";
@@ -67,19 +62,12 @@ function Gallery() {
     );
   }, [debouncedQuery, filter, skinIds]);
 
-  const galleryDataProvider = React.useMemo(
-    () =>
-      new DataProvider((r1, r2) => r1.uuid !== r2.uuid).cloneWithRows(
-        gallerySkins
-      ),
-    [gallerySkins]
+  const renderItem = React.useCallback(
+    ({ item }: { item: GalleryItem }) => (
+      <GalleryWeapon item={item} toggleFromWishlist={toggleSkin} />
+    ),
+    [toggleSkin]
   );
-
-  const rowRenderer = (
-    _type: string | number,
-    // @ts-ignore
-    data: GalleryWeapon
-  ) => <GalleryWeapon item={data} toggleFromWishlist={toggleSkin} />;
 
   return (
     <View style={styles.screen}>
@@ -122,19 +110,15 @@ function Gallery() {
         })}
       </View>
 
-      {galleryDataProvider.getSize() > 0 ? (
-        <RecyclerListView
-          rowRenderer={rowRenderer}
-          dataProvider={galleryDataProvider}
-          layoutProvider={
-            new LayoutProvider(
-              () => 0,
-              (_type, dim) => {
-                dim.width = Dimensions.get("window").width;
-                dim.height = 144;
-              }
-            )
-          }
+      {gallerySkins.length > 0 ? (
+        <FlatList
+          data={gallerySkins}
+          keyExtractor={(item) => item.uuid}
+          renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.gridContent}
+          showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyState}>
@@ -227,6 +211,15 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     marginTop: 8,
     color: COLORS.TEXT_SECONDARY,
+  },
+  gridContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 32,
+    paddingTop: 4,
+  },
+  gridRow: {
+    gap: 12,
+    marginBottom: 12,
   },
 });
 
