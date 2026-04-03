@@ -1,11 +1,46 @@
 import React from "react";
-import { Text, StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { getEquipmentImage } from "./popups/equipHelpers";
-import GlassCard from "~/components/ui/GlassCard";
-import { COLORS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { Image } from "expo-image";
 
-const GalleryEquipComponent = ({ data, screenshotModeEnabled }: { data: any, screenshotModeEnabled: boolean }) => {
+const SECTION_VISUALS = {
+  buddies: {
+    label: "Gun Buddy",
+    cardBackground: "#e8eef6",
+    borderColor: "rgba(90, 112, 138, 0.18)",
+    visualBackground: "#d4dfea",
+  },
+  sprays: {
+    label: "Spray",
+    cardBackground: "#edf0f5",
+    borderColor: "rgba(95, 106, 120, 0.18)",
+    visualBackground: "#d9e0e8",
+  },
+  cards: {
+    label: "Player Card",
+    cardBackground: "#eef1e8",
+    borderColor: "rgba(110, 120, 98, 0.18)",
+    visualBackground: "#dbe3d2",
+  },
+  titles: {
+    label: "Title",
+    cardBackground: "#ece8f0",
+    borderColor: "rgba(108, 102, 122, 0.18)",
+    visualBackground: "#ddd6e5",
+  },
+} as const;
+
+const GalleryEquipComponent = ({
+  data,
+  screenshotModeEnabled,
+}: {
+  data: any;
+  screenshotModeEnabled: boolean;
+}) => {
+  const visual =
+    SECTION_VISUALS[data.section as keyof typeof SECTION_VISUALS] ||
+    SECTION_VISUALS.buddies;
   const imageSource = React.useMemo(() => {
     const icon = getEquipmentImage(data);
 
@@ -18,29 +53,51 @@ const GalleryEquipComponent = ({ data, screenshotModeEnabled }: { data: any, scr
 
   return (
     <View style={styles.container}>
-      <GlassCard
-        style={styles.card}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: visual.cardBackground,
+            borderColor: visual.borderColor,
+          },
+        ]}
         accessible
         accessibilityLabel={data.displayName}
       >
-        <Image source={imageSource} style={styles.cover} contentFit="contain" />
+        <Text style={styles.eyebrow} numberOfLines={1}>
+          {visual.label}
+        </Text>
+
+        <View
+          style={[
+            styles.visualFrame,
+            { backgroundColor: visual.visualBackground, borderColor: visual.borderColor },
+          ]}
+        >
+          <Image
+            source={imageSource}
+            style={styles.cover}
+            contentFit={data.section === "cards" ? "cover" : "contain"}
+            cachePolicy="memory-disk"
+            transition={120}
+          />
+        </View>
+
         <View style={styles.content}>
-          <Text
-            style={styles.title}
-            numberOfLines={1}
-          >
+          <Text style={styles.title} numberOfLines={2}>
             {data.displayName}
           </Text>
           {data.subtitle ? (
-            <Text
-              style={styles.subtitle}
-              numberOfLines={2}
-            >
+            <Text style={styles.subtitle} numberOfLines={2}>
               {data.subtitle}
             </Text>
-          ) : null}
+          ) : (
+            <Text style={styles.placeholderText} numberOfLines={1}>
+              Collection item
+            </Text>
+          )}
         </View>
-      </GlassCard>
+      </View>
     </View>
   );
 };
@@ -51,27 +108,52 @@ const styles = StyleSheet.create({
     margin: 6,
   },
   card: {
-    padding: 0, // GlassCard has internal padding, maybe adjust
-    // Resetting GlassCard internal View padding if needed via child
+    minHeight: 238,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    padding: 14,
+    overflow: "hidden",
   },
   cover: {
-    height: 100,
     width: "100%",
-    marginBottom: 8,
+    height: "100%",
   },
   content: {
-    // padding: 12, // GlassCard adds padding to content container
+    marginTop: 12,
+    minHeight: 58,
+  },
+  eyebrow: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  visualFrame: {
+    width: "100%",
+    height: 118,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
   },
   title: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
-    marginBottom: 4,
+    lineHeight: 20,
   },
   subtitle: {
     fontSize: 12,
     lineHeight: 16,
     color: COLORS.TEXT_SECONDARY,
+    marginTop: 6,
+  },
+  placeholderText: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: COLORS.TEXT_SECONDARY,
+    marginTop: 6,
   },
 });
 
