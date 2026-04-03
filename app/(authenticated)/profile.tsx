@@ -43,6 +43,7 @@ import {
   IdentityDetails,
   resolveCategory,
   formatSpraySlot,
+  WEAPON_NAME_ORDER,
 } from "~/components/GalleryProfile";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
@@ -177,6 +178,7 @@ function Profile() {
   const [ownedSprayItemIds, setOwnedSprayItemIds] = React.useState<string[]>([]);
   const [weaponMetadata, setWeaponMetadata] = React.useState<WeaponMetadataMap>({});
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [collectionWeaponFilter, setCollectionWeaponFilter] = React.useState("all");
   const [pickerState, setPickerState] = React.useState<PickerState | null>(null);
   const pickerTaskRef = React.useRef<ReturnType<
     typeof InteractionManager.runAfterInteractions
@@ -854,17 +856,63 @@ function Profile() {
     }));
   }, [loadoutDetails, ownedSkinIdSet, skinWeaponMetadata]);
 
+  const collectionWeaponTabs = React.useMemo(() => {
+    const uniqueWeaponNames = Array.from(
+      new Set(
+        ownedCollection
+          .map((item) => item.weaponName)
+          .filter((weaponName) => weaponName?.trim().length)
+      )
+    );
+
+    const weaponOrderIndex = (weaponName: string) => {
+      const index = WEAPON_NAME_ORDER.findIndex(
+        (name) => normalizeWeaponKey(name) === normalizeWeaponKey(weaponName)
+      );
+      return index === -1 ? WEAPON_NAME_ORDER.length : index;
+    };
+
+    uniqueWeaponNames.sort((left, right) => {
+      const orderDiff = weaponOrderIndex(left) - weaponOrderIndex(right);
+      if (orderDiff !== 0) {
+        return orderDiff;
+      }
+
+      return left.localeCompare(right);
+    });
+
+    return ["all", ...uniqueWeaponNames];
+  }, [ownedCollection]);
+
+  React.useEffect(() => {
+    if (
+      collectionWeaponFilter !== "all" &&
+      !collectionWeaponTabs.includes(collectionWeaponFilter)
+    ) {
+      setCollectionWeaponFilter("all");
+    }
+  }, [collectionWeaponFilter, collectionWeaponTabs]);
+
   const filteredCollection = React.useMemo(() => {
-    if (!searchQuery.trim()) return ownedCollection;
+    const normalizedFilter = normalizeWeaponKey(collectionWeaponFilter);
+    const scopedCollection =
+      collectionWeaponFilter === "all"
+        ? ownedCollection
+        : ownedCollection.filter(
+            (item) =>
+              normalizeWeaponKey(item.weaponName) === normalizedFilter
+          );
+
+    if (!searchQuery.trim()) return scopedCollection;
 
     const query = searchQuery.trim().toLowerCase();
-    return ownedCollection.filter(
+    return scopedCollection.filter(
       (item) =>
         item.skinName.toLowerCase().includes(query) ||
         item.weaponName.toLowerCase().includes(query) ||
         item.category.toLowerCase().includes(query)
     );
-  }, [ownedCollection, searchQuery]);
+  }, [collectionWeaponFilter, ownedCollection, searchQuery]);
 
   const handleRefresh = React.useCallback(async () => {
     if (!hasAuth) return;
@@ -1661,6 +1709,37 @@ function Profile() {
             inputStyle={{ color: palette.textPrimary }}
             iconColor={palette.textSecondary}
           />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.collectionFilterRow}
+          >
+            {collectionWeaponTabs.map((weaponName) => {
+              const active = collectionWeaponFilter === weaponName;
+              const label = weaponName === "all" ? "All" : weaponName;
+
+              return (
+                <TouchableOpacity
+                  key={weaponName}
+                  activeOpacity={0.85}
+                  onPress={() => setCollectionWeaponFilter(weaponName)}
+                  style={[
+                    styles.collectionFilterChip,
+                    active && styles.collectionFilterChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.collectionFilterChipText,
+                      active && styles.collectionFilterChipTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </>
       }
       ListEmptyComponent={
@@ -2578,6 +2657,32 @@ const styles = StyleSheet.create({
   },
   collectionList: {
     paddingBottom: 140,
+  },
+  collectionFilterRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    paddingTop: 2,
+  },
+  collectionFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: RADIUS.chip,
+    backgroundColor: COLORS.SURFACE,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    marginRight: 8,
+  },
+  collectionFilterChipActive: {
+    backgroundColor: COLORS.PURE_BLACK,
+    borderColor: COLORS.PURE_BLACK,
+  },
+  collectionFilterChipText: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  collectionFilterChipTextActive: {
+    color: COLORS.PURE_WHITE,
   },
   collectionRow: {
     justifyContent: "space-between",
