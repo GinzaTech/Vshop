@@ -22,11 +22,9 @@ import PageIntro from "~/components/ui/PageIntro";
 const WIN_COLOR = "#5f7a6b";
 const WIN_SURFACE = "rgba(95, 122, 107, 0.16)";
 const WIN_BORDER = "rgba(95, 122, 107, 0.34)";
-const WIN_SCRIM = "rgba(225, 235, 229, 0.74)";
 const LOSS_COLOR = "#8a6770";
 const LOSS_SURFACE = "rgba(138, 103, 112, 0.16)";
 const LOSS_BORDER = "rgba(138, 103, 112, 0.30)";
-const LOSS_SCRIM = "rgba(236, 229, 232, 0.76)";
 
 const formatLabel = (value?: string | null, fallback = "Unknown") => {
   if (!value) return fallback;
@@ -38,13 +36,23 @@ const formatLabel = (value?: string | null, fallback = "Unknown") => {
     .trim();
 };
 
+const formatGameModeLabel = (value?: string | null, fallback = "Unknown") => {
+  if (!value) return fallback;
+
+  const lastPathSegment = value.split("/").filter(Boolean).pop() || value;
+  const lastDotSegment = lastPathSegment.split(".").pop() || lastPathSegment;
+  const cleaned = lastDotSegment.replace(/GameMode$/i, "");
+
+  return formatLabel(cleaned || lastDotSegment, fallback);
+};
+
 const formatMatchDate = (value: number) =>
   new Date(value).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
   });
 
-const formatMatchTime = (value: number) =>
+  const formatMatchTime = (value: number) =>
   new Date(value).toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
@@ -118,20 +126,47 @@ export default function MatchHistory() {
             subtitle={t("history_page.subtitle")}
           />
 
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>{t("history_page.summary.wins")}</Text>
-              <Text style={[styles.summaryValue, styles.winSummary]}>
-                {summary.wins}
+          <View style={styles.summaryHero}>
+            <View style={styles.summaryHeroTop}>
+              <View style={styles.summaryHeroBadge}>
+                <Icon name="history" size={14} color={COLORS.PURE_WHITE} />
+                <Text style={styles.summaryHeroBadgeText}>
+                  {t("history_page.title")}
+                </Text>
+              </View>
+              <Text style={styles.summaryHeroMeta}>
+                {t("history_page.summary.matches", { count: completedMatches.length })}
               </Text>
             </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>{t("history_page.summary.losses")}</Text>
-              <Text style={styles.summaryValue}>{summary.losses}</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>{t("history_page.summary.avg_acs")}</Text>
-              <Text style={styles.summaryValue}>{summary.avgAcs || "--"}</Text>
+
+            <Text style={styles.summaryHeroTitle}>
+              {t("history_page.summary.snapshot_title")}
+            </Text>
+            <Text style={styles.summaryHeroSubtitle}>
+              {t("history_page.summary.snapshot_subtitle")}
+            </Text>
+
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>
+                  {t("history_page.summary.wins")}
+                </Text>
+                <Text style={[styles.summaryValue, styles.winSummary]}>
+                  {summary.wins}
+                </Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>
+                  {t("history_page.summary.losses")}
+                </Text>
+                <Text style={styles.summaryValue}>{summary.losses}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>
+                  {t("history_page.summary.avg_acs")}
+                </Text>
+                <Text style={styles.summaryValue}>{summary.avgAcs || "--"}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -167,7 +202,6 @@ export default function MatchHistory() {
         const resultColor = item.stats.won ? WIN_COLOR : LOSS_COLOR;
         const resultSurface = item.stats.won ? WIN_SURFACE : LOSS_SURFACE;
         const resultBorder = item.stats.won ? WIN_BORDER : LOSS_BORDER;
-        const mapScrimColor = item.stats.won ? WIN_SCRIM : LOSS_SCRIM;
 
         return (
           <TouchableOpacity
@@ -187,23 +221,6 @@ export default function MatchHistory() {
                 style={[
                   styles.resultBar,
                   { backgroundColor: resultColor },
-                ]}
-              />
-
-              {item.stats.mapImage ? (
-                <Image
-                  source={{ uri: item.stats.mapImage }}
-                  style={styles.mapImage}
-                  contentFit="cover"
-                />
-              ) : null}
-              <View style={[styles.mapScrim, { backgroundColor: mapScrimColor }]} />
-              <View
-                style={[
-                  styles.resultWash,
-                  {
-                    backgroundColor: resultSurface,
-                  },
                 ]}
               />
 
@@ -236,7 +253,7 @@ export default function MatchHistory() {
                       ]}
                     >
                       <Text style={styles.modePillText}>
-                        {formatLabel(
+                        {formatGameModeLabel(
                           item.stats.gameMode || item.QueueID,
                           t("history_page.unknown")
                         )}
@@ -249,52 +266,128 @@ export default function MatchHistory() {
                       {formatMatchDate(item.GameStartTime)}
                     </Text>
                     <Text style={styles.timeText}>
-                      {formatMatchTime(item.GameStartTime)}
+                  {formatMatchTime(item.GameStartTime)}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.matchMainRow}>
-                  <View style={styles.agentShell}>
-                    <Image
-                      source={{ uri: item.stats.agentIcon }}
-                      style={styles.agentIcon}
-                      contentFit="cover"
-                    />
-                  </View>
+                  <View style={styles.matchIdentity}>
+                    <View
+                      style={[
+                        styles.agentShell,
+                        { backgroundColor: resultSurface, borderColor: resultBorder },
+                      ]}
+                    >
+                      <Image
+                        source={{ uri: item.stats.agentIcon }}
+                        style={styles.agentIcon}
+                        contentFit="cover"
+                      />
+                    </View>
 
-                  <View style={styles.mapBlock}>
-                    <Text style={[styles.mapTitle, { color: resultColor }]}>
+                    <View style={styles.mapBlock}>
+                      <Text style={styles.mapTitle}>
                       {item.stats.mapName}
-                    </Text>
-                    <Text style={styles.mapMeta}>{formatMatchDate(item.GameStartTime)}</Text>
+                      </Text>
+                      <Text style={styles.mapMeta}>
+                        {formatGameModeLabel(
+                          item.stats.gameMode || item.QueueID,
+                          t("history_page.unknown")
+                        )}
+                      </Text>
+                    </View>
                   </View>
 
                   <View style={styles.scoreBlock}>
                     <Text style={[styles.scoreValue, { color: resultColor }]}>
                       {item.stats.roundsWon} - {item.stats.roundsLost}
                     </Text>
+                    <Text style={styles.scoreCaption}>{item.stats.kda}</Text>
                   </View>
                 </View>
 
                 <View style={styles.metricsGrid}>
-                  <View style={styles.metricCard}>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      {
+                        backgroundColor: resultSurface,
+                        borderColor: resultBorder,
+                      },
+                    ]}
+                  >
                     <Text style={styles.metricLabel}>{t("history_page.metrics.kda")}</Text>
                     <Text style={styles.metricValue}>{item.stats.kda}</Text>
                   </View>
-                  <View style={styles.metricCard}>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      {
+                        backgroundColor: resultSurface,
+                        borderColor: resultBorder,
+                      },
+                    ]}
+                  >
                     <Text style={styles.metricLabel}>{t("history_page.metrics.kd")}</Text>
                     <Text style={styles.metricValue}>{item.stats.kdRatio}</Text>
                   </View>
-                  <View style={styles.metricCard}>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      {
+                        backgroundColor: resultSurface,
+                        borderColor: resultBorder,
+                      },
+                    ]}
+                  >
                     <Text style={styles.metricLabel}>{t("history_page.metrics.acs")}</Text>
                     <Text style={styles.metricValue}>{item.stats.acs}</Text>
                   </View>
-                  <View style={styles.metricCard}>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      {
+                        backgroundColor: resultSurface,
+                        borderColor: resultBorder,
+                      },
+                    ]}
+                  >
                     <Text style={styles.metricLabel}>{t("history_page.metrics.hs")}</Text>
                     <Text style={styles.metricValue}>
                       {item.stats.headshotPct || "--"}
                     </Text>
+                  </View>
+                </View>
+
+                <View style={styles.mapPreviewRow}>
+                  <View style={styles.mapPreviewTextBlock}>
+                    <Text style={styles.mapPreviewEyebrow}>
+                      {t("history_page.map_preview")}
+                    </Text>
+                    <Text style={styles.mapPreviewTitle}>{item.stats.mapName}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.mapPreviewFrame,
+                      { backgroundColor: resultSurface, borderColor: resultBorder },
+                    ]}
+                  >
+                    {item.stats.mapImage ? (
+                      <Image
+                        source={{ uri: item.stats.mapImage }}
+                        style={styles.mapPreviewImage}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={styles.mapPreviewFallback}>
+                        <Icon
+                          name="map-outline"
+                          size={20}
+                          color={COLORS.TEXT_SECONDARY}
+                        />
+                      </View>
+                    )}
                   </View>
                 </View>
               </View>
@@ -313,10 +406,56 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 140,
   },
   header: {
     marginBottom: 18,
+  },
+  summaryHero: {
+    marginTop: 18,
+    padding: 18,
+    borderRadius: RADIUS.card,
+    backgroundColor: COLORS.ACCENT_DEEP,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    ...GLOBAL_STYLES.shadow,
+  },
+  summaryHeroTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  summaryHeroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  summaryHeroBadgeText: {
+    marginLeft: 8,
+    color: COLORS.PURE_WHITE,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  summaryHeroMeta: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  summaryHeroTitle: {
+    marginTop: 16,
+    color: COLORS.PURE_WHITE,
+    fontSize: 28,
+    fontWeight: "700",
+  },
+  summaryHeroSubtitle: {
+    marginTop: 6,
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 14,
+    lineHeight: 20,
   },
   summaryRow: {
     flexDirection: "row",
@@ -328,13 +467,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     borderRadius: 20,
-    backgroundColor: COLORS.SURFACE,
+    backgroundColor: "rgba(255,255,255,0.12)",
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    ...GLOBAL_STYLES.shadow,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   summaryLabel: {
-    color: COLORS.TEXT_SECONDARY,
+    color: "rgba(255,255,255,0.72)",
     fontSize: 12,
     fontWeight: "600",
     textTransform: "uppercase",
@@ -342,12 +480,12 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     marginTop: 8,
-    color: COLORS.TEXT_PRIMARY,
+    color: COLORS.PURE_WHITE,
     fontSize: 22,
     fontWeight: "700",
   },
   winSummary: {
-    color: COLORS.SUCCESS,
+    color: "#b9dbca",
   },
   centered: {
     flex: 1,
@@ -368,6 +506,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderRadius: RADIUS.card,
     borderWidth: 1,
+    backgroundColor: COLORS.SURFACE,
     ...GLOBAL_STYLES.shadow,
   },
   resultBar: {
@@ -377,17 +516,6 @@ const styles = StyleSheet.create({
     left: 0,
     width: 5,
     zIndex: 3,
-  },
-  mapImage: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.24,
-  },
-  mapScrim: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  resultWash: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.45,
   },
   matchCardContent: {
     padding: 16,
@@ -442,16 +570,20 @@ const styles = StyleSheet.create({
   matchMainRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
     marginTop: 14,
+  },
+  matchIdentity: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 12,
   },
   agentShell: {
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: COLORS.SURFACE_MUTED,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
     overflow: "hidden",
   },
   agentIcon: {
@@ -460,8 +592,10 @@ const styles = StyleSheet.create({
   },
   mapBlock: {
     flex: 1,
+    marginLeft: 12,
   },
   mapTitle: {
+    color: COLORS.TEXT_PRIMARY,
     fontSize: 18,
     fontWeight: "700",
   },
@@ -474,9 +608,14 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   scoreValue: {
-    color: COLORS.TEXT_PRIMARY,
     fontSize: 24,
     fontWeight: "700",
+  },
+  scoreCaption: {
+    marginTop: 4,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+    fontWeight: "600",
   },
   metricsGrid: {
     flexDirection: "row",
@@ -489,9 +628,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.54)",
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
   },
   metricLabel: {
     color: COLORS.TEXT_SECONDARY,
@@ -505,6 +642,43 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_PRIMARY,
     fontSize: 16,
     fontWeight: "700",
+  },
+  mapPreviewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
+  },
+  mapPreviewTextBlock: {
+    flex: 1,
+    marginRight: 12,
+  },
+  mapPreviewEyebrow: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  mapPreviewTitle: {
+    marginTop: 4,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  mapPreviewFrame: {
+    width: 108,
+    height: 72,
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  mapPreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  mapPreviewFallback: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   pendingCard: {
     flexDirection: "row",

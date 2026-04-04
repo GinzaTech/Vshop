@@ -201,14 +201,18 @@
     "summary": {
       "wins": "Thắng",
       "losses": "Thua",
-      "avg_acs": "ACS TB"
+      "avg_acs": "ACS TB",
+      "matches": "{{count}} trận",
+      "snapshot_title": "Tổng quan gần đây",
+      "snapshot_subtitle": "Kết quả, nhịp trận và các chỉ số chính của những trận gần đây."
     },
     "metrics": {
       "kda": "KDA",
       "kd": "K/D",
       "acs": "ACS",
       "hs": "HS%"
-    }
+    },
+    "map_preview": "Bản đồ"
   },
   "equip_gallery": {
     "placeholder": "Vật phẩm bộ sưu tập",

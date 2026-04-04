@@ -209,14 +209,18 @@
     "summary": {
       "wins": "Wins",
       "losses": "Losses",
-      "avg_acs": "Avg ACS"
+      "avg_acs": "Avg ACS",
+      "matches": "{{count}} matches",
+      "snapshot_title": "Recent snapshot",
+      "snapshot_subtitle": "Results, match pace, and key stats from your latest games."
     },
     "metrics": {
       "kda": "KDA",
       "kd": "K/D",
       "acs": "ACS",
       "hs": "HS%"
-    }
+    },
+    "map_preview": "Map preview"
   },
   "equip_gallery": {
     "placeholder": "Collection item",
