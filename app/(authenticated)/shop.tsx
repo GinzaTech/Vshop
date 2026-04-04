@@ -354,15 +354,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   balanceMetricPill: {
-    backgroundColor: COLORS.SURFACE_MUTED,
-    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.VALORANT_DARK_BLUE,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   metricIcon: {
     width: 14,
     height: 14,
+    tintColor: COLORS.PURE_WHITE,
   },
   metricValue: {
-    color: COLORS.TEXT_PRIMARY,
+    color: COLORS.PURE_WHITE,
     fontWeight: "700",
     fontSize: 15,
   },

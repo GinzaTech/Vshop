@@ -112,16 +112,17 @@ const styles = StyleSheet.create({
   balancePill: {
     alignSelf: "flex-start",
     marginBottom: 22,
-    backgroundColor: COLORS.SURFACE_MUTED,
-    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.VALORANT_DARK_BLUE,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   balanceIcon: {
     width: 14,
     height: 14,
     marginRight: 8,
+    tintColor: COLORS.PURE_WHITE,
   },
   balanceText: {
-    color: COLORS.TEXT_PRIMARY,
+    color: COLORS.PURE_WHITE,
     fontWeight: "700",
   },
   bundleBlock: {
