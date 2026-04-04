@@ -16,10 +16,18 @@ const PRIMARY_ROUTES: Record<
 > = {
   bundles: { icon: "package-variant-closed", label: "Bundles" },
   shop: { icon: "shopping-outline", label: "Store" },
-  night_market: { icon: "weather-night", label: "Market" },
   profile: { icon: "account-circle-outline", label: "Profile" },
+  night_market: { icon: "weather-night", label: "Market" },
   settings: { icon: "dots-grid", label: "More" },
 };
+
+const PRIMARY_ROUTE_ORDER = [
+  "bundles",
+  "shop",
+  "profile",
+  "night_market",
+  "settings",
+] as const;
 
 function FloatingTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -68,9 +76,13 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
     return null;
   }
 
-  const visibleRoutes = state.routes.filter(
-    (route: any) => route.name in PRIMARY_ROUTES
-  );
+  const visibleRoutes = state.routes
+    .filter((route: any) => route.name in PRIMARY_ROUTES)
+    .sort(
+      (left: any, right: any) =>
+        PRIMARY_ROUTE_ORDER.indexOf(left.name as (typeof PRIMARY_ROUTE_ORDER)[number]) -
+        PRIMARY_ROUTE_ORDER.indexOf(right.name as (typeof PRIMARY_ROUTE_ORDER)[number])
+    );
 
   return (
     <View
