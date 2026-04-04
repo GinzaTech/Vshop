@@ -14,6 +14,7 @@ import Countdown from "~/components/Countdown";
 import ShopItem from "~/components/ShopItem";
 import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
+import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
