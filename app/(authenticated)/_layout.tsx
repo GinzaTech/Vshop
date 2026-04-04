@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import React, { type ComponentProps } from "react";
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -6,8 +6,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import AppWarmup from "~/components/AppWarmup";
+import { formatCountdown } from "~/components/Countdown";
 import MediaPopup from "~/components/popups/MediaPopup";
 import { COLORS, GLOBAL_STYLES } from "~/constants/DesignSystem";
+import { useUserStore } from "~/hooks/useUserStore";
 
 const PRIMARY_ROUTES: Record<
   string,
@@ -22,7 +24,46 @@ const PRIMARY_ROUTES: Record<
 
 function FloatingTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const userId = useUserStore((store) => store.user.id);
+  const nightMarketLength = useUserStore(
+    (store) => store.user.shops.nightMarket.length
+  );
+  const nightMarketRemainingSecs = useUserStore(
+    (store) => store.user.shops.remainingSecs.nightMarket
+  );
   const activeRoute = state.routes[state.index];
+  const [nightMarketEndsAt, setNightMarketEndsAt] = React.useState<number | null>(
+    null
+  );
+  const [now, setNow] = React.useState(Date.now());
+
+  React.useEffect(() => {
+    if (nightMarketLength > 0 && nightMarketRemainingSecs > 0) {
+      const nextNow = Date.now();
+      setNow(nextNow);
+      setNightMarketEndsAt(nextNow + nightMarketRemainingSecs * 1000);
+      return;
+    }
+
+    setNightMarketEndsAt(null);
+  }, [nightMarketLength, nightMarketRemainingSecs, userId]);
+
+  React.useEffect(() => {
+    if (!nightMarketEndsAt) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const nextNow = Date.now();
+      setNow(nextNow);
+
+      if (nextNow >= nightMarketEndsAt) {
+        setNightMarketEndsAt(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [nightMarketEndsAt]);
 
   if (!(activeRoute?.name in PRIMARY_ROUTES)) {
     return null;
@@ -46,6 +87,11 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
             (item: any) => item.key === route.key
           );
           const focused = state.index === routeIndex;
+          const showNightMarketBadge =
+            route.name === "night_market" &&
+            Boolean(nightMarketEndsAt) &&
+            nightMarketLength > 0 &&
+            (nightMarketEndsAt ?? 0) > now;
           const { icon, label } = PRIMARY_ROUTES[route.name];
           const options = descriptors[route.key]?.options ?? {};
 
@@ -67,11 +113,24 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
               }}
               style={({ pressed }) => [
                 styles.tabButton,
+                showNightMarketBadge && styles.tabButtonWithBadge,
                 pressed && styles.tabButtonPressed,
               ]}
             >
               {({ pressed }) => (
                 <>
+                  {showNightMarketBadge ? (
+                    <View style={styles.nightMarketBadge}>
+                      <Icon
+                        name="weather-night"
+                        size={11}
+                        color={COLORS.PURE_WHITE}
+                      />
+                      <Text style={styles.nightMarketBadgeText}>
+                        {formatCountdown(nightMarketEndsAt ?? 0, now, true)}
+                      </Text>
+                    </View>
+                  ) : null}
                   <View
                     style={[
                       styles.tabIconWrap,
@@ -275,14 +334,37 @@ const styles = StyleSheet.create({
   } as any,
   tabButton: {
     flex: 1,
+    position: "relative",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     borderRadius: 24,
     paddingVertical: 1,
   },
+  tabButtonWithBadge: {
+    paddingTop: 8,
+  },
   tabButtonPressed: {
     opacity: 0.98,
+  },
+  nightMarketBadge: {
+    position: "absolute",
+    top: -18,
+    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: COLORS.ACCENT_DEEP,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  nightMarketBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
   },
   tabIconWrap: {
     width: 50,
