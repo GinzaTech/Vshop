@@ -65,18 +65,43 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                   navigation.navigate(route.name);
                 }
               }}
-              style={styles.tabButton}
+              style={({ pressed }) => [
+                styles.tabButton,
+                pressed && styles.tabButtonPressed,
+              ]}
             >
-              <View style={[styles.tabIconWrap, focused && styles.tabIconWrapActive]}>
-                <Icon
-                  name={icon}
-                  size={22}
-                  color={focused ? COLORS.PURE_BLACK : COLORS.PURE_WHITE}
-                />
-              </View>
-              <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
-                {label}
-              </Text>
+              {({ pressed }) => (
+                <>
+                  <View
+                    style={[
+                      styles.tabIconWrap,
+                      focused && styles.tabIconWrapActive,
+                      pressed && !focused && styles.tabIconWrapPressed,
+                    ]}
+                  >
+                    <Icon
+                      name={icon}
+                      size={22}
+                      color={
+                        focused
+                          ? COLORS.PURE_BLACK
+                          : pressed
+                            ? COLORS.TEXT_PRIMARY
+                            : COLORS.PURE_WHITE
+                      }
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.tabLabel,
+                      focused && styles.tabLabelActive,
+                      pressed && !focused && styles.tabLabelPressed,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </>
+              )}
             </Pressable>
           );
         })}
@@ -253,6 +278,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+    borderRadius: 24,
+    paddingVertical: 2,
+  },
+  tabButtonPressed: {
+    opacity: 0.98,
   },
   tabIconWrap: {
     width: 42,
@@ -261,6 +291,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  tabIconWrapPressed: {
+    backgroundColor: "rgba(255,255,255,0.86)",
+  },
   tabIconWrapActive: {
     backgroundColor: COLORS.PURE_WHITE,
   },
@@ -268,6 +301,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     color: "rgba(255,255,255,0.64)",
+  },
+  tabLabelPressed: {
+    color: "rgba(255,255,255,0.92)",
   },
   tabLabelActive: {
     color: COLORS.PURE_WHITE,
