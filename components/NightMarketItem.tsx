@@ -105,7 +105,7 @@ export default function NightMarketItem(props: React.PropsWithChildren<props>) {
               }
               style={styles.previewChip}
             >
-              <Text style={styles.previewChipText}>Chromas</Text>
+              <Text style={styles.previewChipText}>{t("chromas")}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
