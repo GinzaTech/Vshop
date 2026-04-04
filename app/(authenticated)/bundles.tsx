@@ -7,7 +7,12 @@ import BundleImage from "~/components/BundleImage";
 import BundleItem from "~/components/BundleItem";
 import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS } from "~/constants/DesignSystem";
+import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import InfoPill from "~/components/ui/InfoPill";
+import PageIntro from "~/components/ui/PageIntro";
+import SectionHeader from "~/components/ui/SectionHeader";
+import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 
 function Bundles() {
   const { t } = useTranslation();
@@ -25,15 +30,18 @@ function Bundles() {
 
   if (user.shops.bundles.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <View style={styles.emptyIcon}>
-          <Icon name="package-variant-closed" size={38} color={COLORS.TEXT_PRIMARY} />
-        </View>
-        <Text style={styles.emptyTitle}>{t("no_bundle")}</Text>
-        <Text style={styles.emptySubtitle}>
-          The featured collection is empty right now. Check back later.
-        </Text>
-      </View>
+      <EmptyStateCard
+        centered
+        icon={
+          <Icon
+            name="package-variant-closed"
+            size={38}
+            color={COLORS.TEXT_PRIMARY}
+          />
+        }
+        title={t("bundles_page.empty_title")}
+        subtitle={t("bundles_page.empty_subtitle")}
+      />
     );
   }
 
@@ -43,15 +51,16 @@ function Bundles() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Featured bundles</Text>
-      <Text style={styles.subtitle}>
-        Explore the current collection and preview every included skin.
-      </Text>
+      <PageIntro
+        title={t("bundles_page.title")}
+        subtitle={t("bundles_page.subtitle")}
+        style={styles.header}
+      />
 
-      <View style={styles.balancePill}>
+      <InfoPill style={styles.balancePill}>
         <CurrencyIcon icon="vp" style={styles.balanceIcon} />
         <Text style={styles.balanceText}>{user.balances.vp}</Text>
-      </View>
+      </InfoPill>
 
       {user.shops.bundles.map((bundle, index) => {
         const isExpanded = Boolean(expandedBundles[bundle.uuid]);
@@ -66,25 +75,18 @@ function Bundles() {
             />
             {isExpanded ? (
               <>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Included items</Text>
-                  <Text style={styles.sectionMeta}>{bundle.items.length} skins</Text>
-                </View>
-                {bundle.items.reduce<SkinShopItem[][]>((rows, item, index) => {
-                  if (index % 2 === 0) {
-                    rows.push([item]);
-                  } else {
-                    rows[rows.length - 1].push(item);
-                  }
-                  return rows;
-                }, []).map((row, rowIndex) => (
-                  <View key={`${bundle.uuid}-row-${rowIndex}`} style={styles.gridRow}>
-                    {row.map((item) => (
-                      <BundleItem item={item} key={item.uuid} />
-                    ))}
-                    {row.length === 1 ? <View style={styles.gridSpacer} /> : null}
-                  </View>
-                ))}
+                <SectionHeader
+                  title={t("bundles_page.included_title")}
+                  meta={t("bundles_page.included_count", {
+                    count: bundle.items.length,
+                  })}
+                  style={styles.sectionHeader}
+                />
+                <TwoColumnGrid
+                  items={bundle.items}
+                  keyExtractor={(item) => `${bundle.uuid}-${item.uuid}`}
+                  renderItem={(item) => <BundleItem item={item} />}
+                />
               </>
             ) : null}
           </View>
@@ -103,29 +105,12 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 140,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-    marginTop: 6,
-  },
-  subtitle: {
+  header: {
     marginTop: 6,
     marginBottom: 18,
-    fontSize: 15,
-    lineHeight: 22,
-    color: COLORS.TEXT_SECONDARY,
   },
   balancePill: {
-    flexDirection: "row",
-    alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    borderRadius: RADIUS.chip,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
     marginBottom: 22,
   },
   balanceIcon: {
@@ -141,54 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  sectionMeta: {
-    color: COLORS.TEXT_SECONDARY,
-  },
-  gridRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 12,
-  },
-  gridSpacer: {
-    flex: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 28,
-    backgroundColor: COLORS.BACKGROUND,
-  },
-  emptyIcon: {
-    width: 76,
-    height: 76,
-    borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.SURFACE,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    marginBottom: 18,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  emptySubtitle: {
-    marginTop: 8,
-    textAlign: "center",
-    color: COLORS.TEXT_SECONDARY,
   },
 });
 

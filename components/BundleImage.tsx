@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 
 import CurrencyIcon from "./CurrencyIcon";
 import Countdown from "./Countdown";
@@ -21,6 +22,7 @@ export default function BundleImage({
   expanded,
   onPress,
 }: BundleImageProps) {
+  const { t } = useTranslation();
   const timestamp = new Date().getTime() + remainingSecs * 1000;
   const { screenshotModeEnabled } = useFeatureStore();
   const heroSource = React.useMemo(() => {
@@ -75,7 +77,9 @@ export default function BundleImage({
                 size={14}
                 color={COLORS.PURE_WHITE}
               />
-              <Text style={styles.topBadgeText}>Featured bundle</Text>
+              <Text style={styles.topBadgeText}>
+                {t("bundles_page.hero_badge")}
+              </Text>
             </View>
 
             <View style={styles.timerPill}>
@@ -84,7 +88,7 @@ export default function BundleImage({
           </View>
 
           <View>
-            <Text style={styles.eyebrow}>Collection drop</Text>
+            <Text style={styles.eyebrow}>{t("bundles_page.hero_eyebrow")}</Text>
             <Text style={styles.title}>{bundle.displayName}</Text>
 
             <View style={styles.metaRow}>
@@ -94,7 +98,9 @@ export default function BundleImage({
                   size={15}
                   color={COLORS.PURE_WHITE}
                 />
-                <Text style={styles.metaText}>{bundle.items.length} items</Text>
+                <Text style={styles.metaText}>
+                  {t("bundles_page.items_count", { count: bundle.items.length })}
+                </Text>
               </View>
               <View style={styles.metaPill}>
                 <CurrencyIcon icon="vp" style={styles.currency} />
@@ -105,7 +111,9 @@ export default function BundleImage({
 
           <View style={styles.actionPill}>
             <Text style={styles.actionText}>
-              {expanded ? "Hide included skins" : "Show included skins"}
+              {expanded
+                ? t("bundles_page.toggle_hide")
+                : t("bundles_page.toggle_show")}
             </Text>
             <Icon
               name={expanded ? "chevron-up" : "chevron-down"}

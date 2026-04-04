@@ -120,7 +120,9 @@ export default function NightMarketItem(props: React.PropsWithChildren<props>) {
               },
             ]}
           >
-            <Text style={styles.discountCornerText}>Deal</Text>
+            <Text style={styles.discountCornerText}>
+              {t("night_market_page.deal")}
+            </Text>
           </View>
 
           <TouchableOpacity

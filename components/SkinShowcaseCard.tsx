@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
@@ -18,37 +19,18 @@ import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
+import { WEAPON_NAME_ORDER } from "~/components/GalleryProfile";
 
 interface SkinShowcaseCardProps {
   item: SkinShopItem;
   variant?: "store" | "bundle";
 }
 
-const WEAPON_NAMES = [
-  "Classic",
-  "Shorty",
-  "Frenzy",
-  "Ghost",
-  "Sheriff",
-  "Stinger",
-  "Spectre",
-  "Bucky",
-  "Judge",
-  "Bulldog",
-  "Guardian",
-  "Phantom",
-  "Vandal",
-  "Marshal",
-  "Operator",
-  "Ares",
-  "Odin",
-  "Melee",
-];
-
 const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   item,
   variant = "store",
 }: SkinShowcaseCardProps) {
+  const { t } = useTranslation();
   const { showMediaPopup } = useMediaPopupStore();
   const skinIds = useWishlistStore((state) => state.skinIds);
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
@@ -89,10 +71,16 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   const weaponType = useMemo(() => {
     const lowerName = item.displayName.toLowerCase();
     return (
-      WEAPON_NAMES.find((weapon) => lowerName.includes(weapon.toLowerCase())) ||
-      (variant === "bundle" ? "Bundle skin" : "Store skin")
+      WEAPON_NAME_ORDER.find((weapon) =>
+        lowerName.includes(weapon.toLowerCase())
+      ) ||
+      t(
+        variant === "bundle"
+          ? "shop_cards.bundle_skin"
+          : "shop_cards.store_skin"
+      )
     );
-  }, [item.displayName, variant]);
+  }, [item.displayName, t, variant]);
   const handleCardPress = useCallback(() => {
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
@@ -186,7 +174,9 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
               },
             ]}
           >
-            <Text style={[styles.savedBadgeText, { color: tier.text }]}>Saved</Text>
+            <Text style={[styles.savedBadgeText, { color: tier.text }]}>
+              {t("shop_cards.saved")}
+            </Text>
           </View>
         ) : null}
       </View>

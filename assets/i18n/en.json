@@ -124,6 +124,61 @@
   "xp": "XP",
   "accessories": "Accessory Shop",
   "kc": "Kingdom Credits",
+  "shop_cards": {
+    "saved": "Saved",
+    "store_skin": "Store skin",
+    "bundle_skin": "Bundle skin"
+  },
+  "shop_page": {
+    "agent_fallback": "Agent",
+    "greeting": "Hello, {{name}}",
+    "subtitle": "Welcome back to your daily store.",
+    "search_placeholder": "Search skins",
+    "section_title": "Select your next drop",
+    "rotation_title": "Daily rotation",
+    "items_count": "{{count}} items",
+    "featured_eyebrow": "Featured daily store",
+    "featured_meta": "Wishlist ready",
+    "preview_title": "Preview",
+    "preview_action": "See more",
+    "empty_title": "No skins found",
+    "empty_subtitle": "Try another search or switch back to all skins.",
+    "filters": {
+      "all": "All skins",
+      "wishlist": "Wishlist"
+    }
+  },
+  "bundles_page": {
+    "title": "Featured bundles",
+    "subtitle": "Explore the current collection and preview every included skin.",
+    "empty_title": "No bundles available",
+    "empty_subtitle": "The featured collection is empty right now. Check back later.",
+    "items_count": "{{count}} items",
+    "included_title": "Included items",
+    "included_count": "{{count}} skins",
+    "hero_badge": "Featured bundle",
+    "hero_eyebrow": "Collection drop",
+    "toggle_show": "Show included skins",
+    "toggle_hide": "Hide included skins"
+  },
+  "night_market_page": {
+    "title": "Night market",
+    "subtitle": "Limited-time deals with reduced prices on selected skins.",
+    "empty_title": "No night market today",
+    "empty_subtitle": "No discounted offers are available in this rotation yet.",
+    "deal": "Deal"
+  },
+  "gallery_page": {
+    "title": "Skin gallery",
+    "subtitle": "Browse your collection and save favorites for wishlist tracking.",
+    "search_placeholder": "Search skins",
+    "empty_title": "No skins found",
+    "empty_subtitle": "Try a different keyword or clear the wishlist filter.",
+    "filters": {
+      "all": "All",
+      "wishlist": "Wishlist"
+    }
+  },
   "equip_page": {
     "tabs": {
       "loadout": "Loadout",

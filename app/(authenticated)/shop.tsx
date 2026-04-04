@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { Image as ExpoImage } from "expo-image";
+import { useTranslation } from "react-i18next";
 
 import Countdown from "~/components/Countdown";
 import ShopItem from "~/components/ShopItem";
@@ -20,8 +21,14 @@ import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
+import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import InfoPill from "~/components/ui/InfoPill";
+import PageIntro from "~/components/ui/PageIntro";
+import SectionHeader from "~/components/ui/SectionHeader";
+import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 
 function Shop() {
+  const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
   const skinIds = useWishlistStore((state) => state.skinIds);
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
@@ -46,15 +53,6 @@ function Shop() {
 
   const featured = filteredItems[0];
   const listItems = filteredItems.slice(featured ? 1 : 0);
-  const listRows = React.useMemo(() => {
-    const rows: SkinShopItem[][] = [];
-
-    for (let index = 0; index < listItems.length; index += 2) {
-      rows.push(listItems.slice(index, index + 2));
-    }
-
-    return rows;
-  }, [listItems]);
   const initials = (user.name || "V").slice(0, 1).toUpperCase();
   const featuredTier = React.useMemo(
     () => (featured ? getContentTierVisual(featured.contentTierUuid) : null),
@@ -80,17 +78,18 @@ function Shop() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.topRow}>
-        <View>
-          <Text style={styles.greeting}>Hello, {user.name || "Agent"}</Text>
-          <Text style={styles.subtitle}>
-            Welcome back to your daily store.
-          </Text>
-        </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
-      </View>
+      <PageIntro
+        title={t("shop_page.greeting", {
+          name: user.name || t("shop_page.agent_fallback"),
+        })}
+        subtitle={t("shop_page.subtitle")}
+        style={styles.topIntro}
+        accessory={
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+        }
+      />
 
       <View style={styles.searchRow}>
         <View style={styles.searchBar}>
@@ -98,7 +97,7 @@ function Shop() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search skins"
+            placeholder={t("shop_page.search_placeholder")}
             placeholderTextColor={COLORS.TEXT_SECONDARY}
             style={styles.searchInput}
           />
@@ -116,14 +115,12 @@ function Shop() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>Select your next drop</Text>
-      </View>
+      <SectionHeader title={t("shop_page.section_title")} style={styles.sectionIntro} />
 
       <View style={styles.chips}>
         {[
-          { key: "all", label: "All skins" },
-          { key: "wishlist", label: "Wishlist" },
+          { key: "all", label: t("shop_page.filters.all") },
+          { key: "wishlist", label: t("shop_page.filters.wishlist") },
         ].map((chip) => {
           const active = chip.key === mode;
           return (
@@ -142,14 +139,14 @@ function Shop() {
       </View>
 
       <View style={styles.metricRow}>
-        <View style={styles.metricPill}>
+        <InfoPill style={styles.metricPill}>
           <CurrencyIcon icon="vp" style={styles.metricIcon} />
           <Text style={styles.metricValue}>{user.balances.vp}</Text>
-        </View>
-        <View style={styles.metricPill}>
+        </InfoPill>
+        <InfoPill style={styles.metricPill}>
           <Icon name="timer-outline" size={16} color={COLORS.TEXT_PRIMARY} />
           <Countdown timestamp={timestamp} />
-        </View>
+        </InfoPill>
       </View>
 
       {featured ? (
@@ -187,7 +184,9 @@ function Shop() {
             </TouchableOpacity>
 
             <View>
-              <Text style={styles.featuredEyebrow}>Featured daily store</Text>
+              <Text style={styles.featuredEyebrow}>
+                {t("shop_page.featured_eyebrow")}
+              </Text>
               <Text style={styles.featuredTitle}>{featured.displayName}</Text>
               {featuredTier ? (
                 <View style={styles.featuredBadgeRow}>
@@ -206,7 +205,9 @@ function Shop() {
               ) : null}
               <View style={styles.featuredMetaRow}>
                 <Icon name="star-outline" size={16} color={COLORS.PURE_WHITE} />
-                <Text style={styles.featuredMetaText}>Wishlist ready</Text>
+                <Text style={styles.featuredMetaText}>
+                  {t("shop_page.featured_meta")}
+                </Text>
               </View>
               <TouchableOpacity
                 activeOpacity={0.88}
@@ -216,11 +217,13 @@ function Shop() {
                     featured.levels.map(
                       (level) => level.streamedVideo || level.displayIcon || ""
                     ),
-                    "Preview"
+                    t("shop_page.preview_title")
                   )
                 }
               >
-                <Text style={styles.featuredActionText}>See more</Text>
+                <Text style={styles.featuredActionText}>
+                  {t("shop_page.preview_action")}
+                </Text>
                 <View style={styles.featuredActionIcon}>
                   <Icon name="arrow-right" size={18} color={COLORS.PURE_BLACK} />
                 </View>
@@ -229,28 +232,25 @@ function Shop() {
           </View>
         </View>
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No skins found</Text>
-          <Text style={styles.emptySubtitle}>
-            Try another search or switch back to all skins.
-          </Text>
-        </View>
+        <EmptyStateCard
+          title={t("shop_page.empty_title")}
+          subtitle={t("shop_page.empty_subtitle")}
+          style={styles.emptyState}
+        />
       )}
 
       {listItems.length > 0 ? (
         <>
-          <View style={[styles.sectionRow, styles.sectionTopSpacing]}>
-            <Text style={styles.sectionTitle}>Daily rotation</Text>
-            <Text style={styles.sectionAction}>{listItems.length} items</Text>
-          </View>
-          {listRows.map((row, rowIndex) => (
-            <View key={`row-${rowIndex}`} style={styles.gridRow}>
-              {row.map((item) => (
-                <ShopItem item={item} key={item.uuid} />
-              ))}
-              {row.length === 1 ? <View style={styles.gridSpacer} /> : null}
-            </View>
-          ))}
+          <SectionHeader
+            title={t("shop_page.rotation_title")}
+            meta={t("shop_page.items_count", { count: listItems.length })}
+            style={styles.sectionTopSpacing}
+          />
+          <TwoColumnGrid
+            items={listItems}
+            keyExtractor={(item) => item.uuid}
+            renderItem={(item) => <ShopItem item={item} />}
+          />
         </>
       ) : null}
     </ScrollView>
@@ -266,21 +266,8 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 140,
   },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  topIntro: {
     marginTop: 6,
-  },
-  greeting: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 16,
-    color: COLORS.TEXT_SECONDARY,
   },
   avatar: {
     width: 52,
@@ -327,32 +314,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: COLORS.PURE_BLACK,
   },
-  sectionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  sectionIntro: {
     marginTop: 28,
-    marginBottom: 12,
   },
   sectionTopSpacing: {
     marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  sectionAction: {
-    fontSize: 14,
-    color: COLORS.TEXT_SECONDARY,
-  },
-  gridRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 12,
-  },
-  gridSpacer: {
-    flex: 1,
   },
   chips: {
     flexDirection: "row",
@@ -386,15 +352,6 @@ const styles = StyleSheet.create({
   },
   metricPill: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 50,
-    borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    gap: 8,
   },
   metricIcon: {
     width: 14,
@@ -506,20 +463,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emptyState: {
-    padding: 24,
-    borderRadius: 28,
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  emptySubtitle: {
-    marginTop: 8,
-    color: COLORS.TEXT_SECONDARY,
+    marginTop: 4,
   },
 });
 

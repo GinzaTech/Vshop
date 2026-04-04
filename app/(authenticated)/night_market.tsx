@@ -7,7 +7,10 @@ import Countdown from "~/components/Countdown";
 import NightMarketItem from "~/components/NightMarketItem";
 import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS } from "~/constants/DesignSystem";
+import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import InfoPill from "~/components/ui/InfoPill";
+import PageIntro from "~/components/ui/PageIntro";
 
 function NightMarket() {
   const { t } = useTranslation();
@@ -17,15 +20,12 @@ function NightMarket() {
 
   if (user.shops.nightMarket.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <View style={styles.emptyBadge}>
-          <Icon name="weather-night" size={36} color={COLORS.TEXT_PRIMARY} />
-        </View>
-        <Text style={styles.emptyTitle}>{t("no_nightmarket")}</Text>
-        <Text style={styles.emptySubtitle}>
-          No discounted offers are available in this rotation yet.
-        </Text>
-      </View>
+      <EmptyStateCard
+        centered
+        icon={<Icon name="weather-night" size={36} color={COLORS.TEXT_PRIMARY} />}
+        title={t("night_market_page.empty_title")}
+        subtitle={t("night_market_page.empty_subtitle")}
+      />
     );
   }
 
@@ -35,20 +35,21 @@ function NightMarket() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Night market</Text>
-      <Text style={styles.subtitle}>
-        Limited-time deals with reduced prices on selected skins.
-      </Text>
+      <PageIntro
+        title={t("night_market_page.title")}
+        subtitle={t("night_market_page.subtitle")}
+        style={styles.header}
+      />
 
       <View style={styles.metricRow}>
-        <View style={styles.metricPill}>
+        <InfoPill style={styles.metricPill}>
           <CurrencyIcon icon="vp" style={styles.metricIcon} />
           <Text style={styles.metricText}>{user.balances.vp}</Text>
-        </View>
-        <View style={styles.metricPill}>
+        </InfoPill>
+        <InfoPill style={styles.metricPill}>
           <Icon name="clock-outline" size={16} color={COLORS.TEXT_PRIMARY} />
           <Countdown timestamp={timestamp} />
-        </View>
+        </InfoPill>
       </View>
 
       {user.shops.nightMarket.map((item) => (
@@ -67,17 +68,8 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 140,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  subtitle: {
-    marginTop: 6,
+  header: {
     marginBottom: 18,
-    fontSize: 15,
-    lineHeight: 22,
-    color: COLORS.TEXT_SECONDARY,
   },
   metricRow: {
     flexDirection: "row",
@@ -86,15 +78,6 @@ const styles = StyleSheet.create({
   },
   metricPill: {
     flex: 1,
-    minHeight: 50,
-    borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
   },
   metricIcon: {
     width: 14,
@@ -103,34 +86,6 @@ const styles = StyleSheet.create({
   metricText: {
     color: COLORS.TEXT_PRIMARY,
     fontWeight: "700",
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 28,
-    backgroundColor: COLORS.BACKGROUND,
-  },
-  emptyBadge: {
-    width: 76,
-    height: 76,
-    borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.SURFACE,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    marginBottom: 18,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  emptySubtitle: {
-    marginTop: 8,
-    textAlign: "center",
-    color: COLORS.TEXT_SECONDARY,
   },
 });
 

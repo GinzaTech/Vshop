@@ -8,11 +8,14 @@ import {
   View,
 } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTranslation } from "react-i18next";
 
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import GalleryWeapon from "~/components/GalleryWeapon";
 import { getAssets } from "~/utils/valorant-assets";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import PageIntro from "~/components/ui/PageIntro";
 
 function useDebounceValue(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = React.useState(value);
@@ -29,6 +32,7 @@ function useDebounceValue(value: string, delay: number) {
 }
 
 function Gallery() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filter, setFilter] = React.useState<"all" | "wishlist">("all");
   const debouncedQuery = useDebounceValue(searchQuery, 100);
@@ -71,19 +75,18 @@ function Gallery() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Skin gallery</Text>
-        <Text style={styles.subtitle}>
-          Browse your collection and save favorites for wishlist tracking.
-        </Text>
-      </View>
+      <PageIntro
+        title={t("gallery_page.title")}
+        subtitle={t("gallery_page.subtitle")}
+        style={styles.header}
+      />
 
       <View style={styles.searchBar}>
         <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search skins"
+          placeholder={t("gallery_page.search_placeholder")}
           placeholderTextColor={COLORS.TEXT_SECONDARY}
           style={styles.searchInput}
         />
@@ -91,8 +94,8 @@ function Gallery() {
 
       <View style={styles.chips}>
         {[
-          { key: "all", label: "All" },
-          { key: "wishlist", label: "Wishlist" },
+          { key: "all", label: t("gallery_page.filters.all") },
+          { key: "wishlist", label: t("gallery_page.filters.wishlist") },
         ].map((item) => {
           const active = item.key === filter;
           return (
@@ -121,12 +124,11 @@ function Gallery() {
           showsVerticalScrollIndicator={false}
         />
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No skins found</Text>
-          <Text style={styles.emptySubtitle}>
-            Try a different keyword or clear the wishlist filter.
-          </Text>
-        </View>
+        <EmptyStateCard
+          title={t("gallery_page.empty_title")}
+          subtitle={t("gallery_page.empty_subtitle")}
+          style={styles.emptyState}
+        />
       )}
     </View>
   );
@@ -139,18 +141,9 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   header: {
+    marginTop: 6,
     paddingHorizontal: 20,
     marginBottom: 18,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  subtitle: {
-    marginTop: 6,
-    color: COLORS.TEXT_SECONDARY,
-    lineHeight: 22,
   },
   searchBar: {
     marginHorizontal: 20,
@@ -197,20 +190,6 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     margin: 20,
-    padding: 24,
-    borderRadius: RADIUS.card,
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  emptySubtitle: {
-    marginTop: 8,
-    color: COLORS.TEXT_SECONDARY,
   },
   gridContent: {
     paddingHorizontal: 14,
