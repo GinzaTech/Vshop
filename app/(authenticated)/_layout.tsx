@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import AppWarmup from "~/components/AppWarmup";
-import { formatCountdown } from "~/components/Countdown";
 import MediaPopup from "~/components/popups/MediaPopup";
 import { COLORS, GLOBAL_STYLES } from "~/constants/DesignSystem";
 import { useUserStore } from "~/hooks/useUserStore";
@@ -121,14 +120,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                 <>
                   {showNightMarketBadge ? (
                     <View style={styles.nightMarketBadge}>
-                      <Icon
-                        name="weather-night"
-                        size={11}
-                        color={COLORS.PURE_WHITE}
-                      />
-                      <Text style={styles.nightMarketBadgeText}>
-                        {formatCountdown(nightMarketEndsAt ?? 0, now, true)}
-                      </Text>
+                      <View style={styles.nightMarketBadgeDot} />
                     </View>
                   ) : null}
                   <View
@@ -349,22 +341,22 @@ const styles = StyleSheet.create({
   },
   nightMarketBadge: {
     position: "absolute",
-    top: -18,
+    top: -10,
     zIndex: 2,
-    flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    justifyContent: "center",
+    width: 18,
+    height: 18,
     borderRadius: 999,
     backgroundColor: COLORS.ACCENT_DEEP,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
   },
-  nightMarketBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: COLORS.PURE_WHITE,
+  nightMarketBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: COLORS.PURE_WHITE,
   },
   tabIconWrap: {
     width: 50,
