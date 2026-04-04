@@ -139,7 +139,7 @@ function Shop() {
       </View>
 
       <View style={styles.metricRow}>
-        <InfoPill style={styles.metricPill}>
+        <InfoPill style={[styles.metricPill, styles.balanceMetricPill]}>
           <CurrencyIcon icon="vp" style={styles.metricIcon} />
           <Text style={styles.metricValue}>{user.balances.vp}</Text>
         </InfoPill>
@@ -352,6 +352,10 @@ const styles = StyleSheet.create({
   },
   metricPill: {
     flex: 1,
+  },
+  balanceMetricPill: {
+    backgroundColor: COLORS.SURFACE_MUTED,
+    borderColor: "rgba(23, 26, 31, 0.10)",
   },
   metricIcon: {
     width: 14,
