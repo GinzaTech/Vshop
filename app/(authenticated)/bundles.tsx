@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
   balancePill: {
     alignSelf: "flex-start",
     marginBottom: 22,
-    backgroundColor: COLORS.SURFACE_MUTED,
-    borderColor: "rgba(23, 26, 31, 0.10)",
+    backgroundColor: "#b0bac6",
+    borderColor: "rgba(23, 26, 31, 0.16)",
   },
   balanceIcon: {
     width: 14,

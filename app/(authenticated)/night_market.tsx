@@ -80,8 +80,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   balanceMetricPill: {
-    backgroundColor: COLORS.SURFACE_MUTED,
-    borderColor: "rgba(23, 26, 31, 0.10)",
+    backgroundColor: "#b0bac6",
+    borderColor: "rgba(23, 26, 31, 0.16)",
   },
   metricIcon: {
     width: 14,
