@@ -92,22 +92,6 @@ export default function NightMarketItem(props: React.PropsWithChildren<props>) {
             </Text>
           </View>
 
-          {props.item.chromas.length > 1 ? (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() =>
-                showMediaPopup(
-                  props.item.chromas.map(
-                    (chroma) => chroma.streamedVideo || chroma.fullRender
-                  ),
-                  t("chromas")
-                )
-              }
-              style={styles.previewChip}
-            >
-              <Text style={styles.previewChipText}>{t("chromas")}</Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
 
         <View style={styles.mediaColumn}>
@@ -240,21 +224,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: RADIUS.chip,
     borderWidth: 1,
-  },
-  previewChip: {
-    alignSelf: "flex-start",
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: RADIUS.chip,
-    borderWidth: 1,
-    backgroundColor: COLORS.SURFACE_MUTED,
-    borderColor: COLORS.BORDER,
-  },
-  previewChipText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    fontWeight: "700",
   },
   discountCorner: {
     paddingHorizontal: 10,
