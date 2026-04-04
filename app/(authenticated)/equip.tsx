@@ -1,6 +1,7 @@
 import React from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Searchbar } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 
 import GalleryEquip from "~/components/GalleryEquip";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
@@ -12,8 +13,11 @@ import {
   buildEquipDisplayList,
 } from "~/components/popups/equipHelpers";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import PageIntro from "~/components/ui/PageIntro";
 
 const Equip = () => {
+  const { t } = useTranslation();
   const { screenshotModeEnabled } = useFeatureStore();
   const [activeSection, setActiveSection] = React.useState(
     EQUIPMENT_SECTIONS[0].key
@@ -36,15 +40,14 @@ const Equip = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Equipment collection</Text>
-        <Text style={styles.subtitle}>
-          Buddies, sprays, cards and titles in one place.
-        </Text>
-      </View>
+      <PageIntro
+        title={t("equipment_page.title")}
+        subtitle={t("equipment_page.subtitle")}
+        style={styles.header}
+      />
 
       <Searchbar
-        placeholder="Search equipment"
+        placeholder={t("equipment_page.search_placeholder")}
         value={searchQuery}
         onChangeText={setSearchQuery}
         style={styles.searchBar}
@@ -72,7 +75,7 @@ const Equip = () => {
                   isActive && styles.tabLabelActive,
                 ]}
               >
-                {section.label}
+                {t(section.labelKey)}
               </Text>
             </TouchableOpacity>
           );
@@ -88,12 +91,11 @@ const Equip = () => {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No equipment found</Text>
-            <Text style={styles.emptySubtitle}>
-              Try a different search term or category.
-            </Text>
-          </View>
+          <EmptyStateCard
+            title={t("equipment_page.empty_title")}
+            subtitle={t("equipment_page.empty_subtitle")}
+            style={styles.emptyState}
+          />
         }
       />
     </View>
@@ -108,16 +110,6 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  subtitle: {
-    marginTop: 6,
-    color: COLORS.TEXT_SECONDARY,
-    lineHeight: 22,
   },
   searchBar: {
     marginHorizontal: 20,
@@ -172,25 +164,6 @@ const styles = StyleSheet.create({
   emptyState: {
     marginTop: 64,
     marginHorizontal: 20,
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-    alignItems: "center",
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: RADIUS.card,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: 4,
-    color: COLORS.TEXT_SECONDARY,
   },
 });
 

@@ -3,28 +3,29 @@ import { StyleSheet, Text, View } from "react-native";
 import { getEquipmentImage } from "./popups/equipHelpers";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 
 const SECTION_VISUALS = {
   buddies: {
-    label: "Gun Buddy",
+    labelKey: "equip_gallery.labels.buddies",
     cardBackground: "#e8eef6",
     borderColor: "rgba(90, 112, 138, 0.18)",
     visualBackground: "#d4dfea",
   },
   sprays: {
-    label: "Spray",
+    labelKey: "equip_gallery.labels.sprays",
     cardBackground: "#edf0f5",
     borderColor: "rgba(95, 106, 120, 0.18)",
     visualBackground: "#d9e0e8",
   },
   cards: {
-    label: "Player Card",
+    labelKey: "equip_gallery.labels.cards",
     cardBackground: "#eef1e8",
     borderColor: "rgba(110, 120, 98, 0.18)",
     visualBackground: "#dbe3d2",
   },
   titles: {
-    label: "Title",
+    labelKey: "equip_gallery.labels.titles",
     cardBackground: "#ece8f0",
     borderColor: "rgba(108, 102, 122, 0.18)",
     visualBackground: "#ddd6e5",
@@ -38,6 +39,7 @@ const GalleryEquipComponent = ({
   data: any;
   screenshotModeEnabled: boolean;
 }) => {
+  const { t } = useTranslation();
   const visual =
     SECTION_VISUALS[data.section as keyof typeof SECTION_VISUALS] ||
     SECTION_VISUALS.buddies;
@@ -65,7 +67,7 @@ const GalleryEquipComponent = ({
         accessibilityLabel={data.displayName}
       >
         <Text style={styles.eyebrow} numberOfLines={1}>
-          {visual.label}
+          {t(visual.labelKey)}
         </Text>
 
         <View
@@ -93,7 +95,7 @@ const GalleryEquipComponent = ({
             </Text>
           ) : (
             <Text style={styles.placeholderText} numberOfLines={1}>
-              Collection item
+              {t("equip_gallery.placeholder")}
             </Text>
           )}
         </View>

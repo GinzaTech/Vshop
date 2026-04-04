@@ -174,10 +174,68 @@
     "search_placeholder": "Search skins",
     "empty_title": "No skins found",
     "empty_subtitle": "Try a different keyword or clear the wishlist filter.",
+    "collection_label": "Collection",
     "filters": {
       "all": "All",
       "wishlist": "Wishlist"
     }
+  },
+  "accessories_page": {
+    "title": "Accessory rotation",
+    "subtitle": "Cards, sprays, buddies and titles available for kingdom credits.",
+    "search_placeholder": "Search accessories",
+    "empty_title": "No accessories found",
+    "empty_subtitle": "Try another keyword to find items in this rotation.",
+    "card_subtitle": "Accessory rotation"
+  },
+  "equipment_page": {
+    "title": "Equipment collection",
+    "subtitle": "Buddies, sprays, cards and titles in one place.",
+    "search_placeholder": "Search equipment",
+    "empty_title": "No equipment found",
+    "empty_subtitle": "Try a different search term or category."
+  },
+  "history_page": {
+    "title": "Match History",
+    "subtitle": "Tracker-style recent matches with result, KDA, ACS, and pace at a glance.",
+    "loading": "Loading recent matches...",
+    "empty_title": "No matches found",
+    "empty_subtitle": "Pull to refresh once your match history is available.",
+    "pending_title": "Processing match",
+    "pending_at": "{{date}} at {{time}}",
+    "result_victory": "Victory",
+    "result_defeat": "Defeat",
+    "unknown": "Unknown",
+    "summary": {
+      "wins": "Wins",
+      "losses": "Losses",
+      "avg_acs": "Avg ACS"
+    },
+    "metrics": {
+      "kda": "KDA",
+      "kd": "K/D",
+      "acs": "ACS",
+      "hs": "HS%"
+    }
+  },
+  "equip_gallery": {
+    "placeholder": "Collection item",
+    "labels": {
+      "buddies": "Gun Buddy",
+      "sprays": "Spray",
+      "cards": "Player Card",
+      "titles": "Title"
+    }
+  },
+  "match_details_page": {
+    "error_loading": "Failed to load match details.",
+    "player_fallback": "Player",
+    "unknown_map": "Unknown Map",
+    "standard": "Standard",
+    "blue_team": "Blue",
+    "red_team": "Red",
+    "blue_team_full": "Blue Team",
+    "red_team_full": "Red Team"
   },
   "equip_page": {
     "tabs": {
@@ -188,7 +246,10 @@
     "sections": {
       "identity": "Identity",
       "sprays": "Sprays",
-      "weapons": "Weapons"
+      "weapons": "Weapons",
+      "buddies": "Gun Buddies",
+      "cards": "Player Cards",
+      "titles": "Player Titles"
     },
     "categories": {
       "Sidearm": "Sidearms",

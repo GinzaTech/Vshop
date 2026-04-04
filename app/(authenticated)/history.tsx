@@ -11,10 +11,13 @@ import { ActivityIndicator } from "react-native-paper";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTranslation } from "react-i18next";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
+import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import PageIntro from "~/components/ui/PageIntro";
 
 const WIN_COLOR = "#5f7a6b";
 const WIN_SURFACE = "rgba(95, 122, 107, 0.16)";
@@ -25,8 +28,8 @@ const LOSS_SURFACE = "rgba(138, 103, 112, 0.16)";
 const LOSS_BORDER = "rgba(138, 103, 112, 0.30)";
 const LOSS_SCRIM = "rgba(236, 229, 232, 0.76)";
 
-const formatLabel = (value?: string | null) => {
-  if (!value) return "Unknown";
+const formatLabel = (value?: string | null, fallback = "Unknown") => {
+  if (!value) return fallback;
 
   return value
     .replace(/_/g, " ")
@@ -48,6 +51,7 @@ const formatMatchTime = (value: number) =>
   });
 
 export default function MatchHistory() {
+  const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
   const router = useRouter();
   const { matches, loading, fetchMatches } = useMatchStore();
@@ -89,7 +93,7 @@ export default function MatchHistory() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator animating color={COLORS.ACCENT} />
-        <Text style={styles.loadingText}>Loading recent matches...</Text>
+        <Text style={styles.loadingText}>{t("history_page.loading")}</Text>
       </View>
     );
   }
@@ -109,37 +113,36 @@ export default function MatchHistory() {
       }
       ListHeaderComponent={
         <View style={styles.header}>
-          <Text style={styles.title}>Match History</Text>
-          <Text style={styles.subtitle}>
-            Tracker-style recent matches with result, KDA, ACS, and pace at a glance.
-          </Text>
+          <PageIntro
+            title={t("history_page.title")}
+            subtitle={t("history_page.subtitle")}
+          />
 
           <View style={styles.summaryRow}>
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>Wins</Text>
+              <Text style={styles.summaryLabel}>{t("history_page.summary.wins")}</Text>
               <Text style={[styles.summaryValue, styles.winSummary]}>
                 {summary.wins}
               </Text>
             </View>
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>Losses</Text>
+              <Text style={styles.summaryLabel}>{t("history_page.summary.losses")}</Text>
               <Text style={styles.summaryValue}>{summary.losses}</Text>
             </View>
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>Avg ACS</Text>
+              <Text style={styles.summaryLabel}>{t("history_page.summary.avg_acs")}</Text>
               <Text style={styles.summaryValue}>{summary.avgAcs || "--"}</Text>
             </View>
           </View>
         </View>
       }
       ListEmptyComponent={
-        <View style={styles.emptyState}>
-          <Icon name="history" size={34} color={COLORS.TEXT_SECONDARY} />
-          <Text style={styles.emptyTitle}>No matches found</Text>
-          <Text style={styles.emptySubtitle}>
-            Pull to refresh once your match history is available.
-          </Text>
-        </View>
+        <EmptyStateCard
+          icon={<Icon name="history" size={34} color={COLORS.TEXT_SECONDARY} />}
+          title={t("history_page.empty_title")}
+          subtitle={t("history_page.empty_subtitle")}
+          style={styles.emptyState}
+        />
       }
       renderItem={({ item }) => {
         if (!item.stats) {
@@ -149,10 +152,12 @@ export default function MatchHistory() {
                 <Text style={styles.pendingIconText}>?</Text>
               </View>
               <View style={styles.pendingContent}>
-                <Text style={styles.pendingTitle}>Processing match</Text>
+                <Text style={styles.pendingTitle}>{t("history_page.pending_title")}</Text>
                 <Text style={styles.pendingMeta}>
-                  {formatMatchDate(item.GameStartTime)} at{" "}
-                  {formatMatchTime(item.GameStartTime)}
+                  {t("history_page.pending_at", {
+                    date: formatMatchDate(item.GameStartTime),
+                    time: formatMatchTime(item.GameStartTime),
+                  })}
                 </Text>
               </View>
             </View>
@@ -215,7 +220,9 @@ export default function MatchHistory() {
                       ]}
                     >
                       <Text style={styles.resultPillText}>
-                        {item.stats.won ? "Victory" : "Defeat"}
+                        {item.stats.won
+                          ? t("history_page.result_victory")
+                          : t("history_page.result_defeat")}
                       </Text>
                     </View>
 
@@ -229,7 +236,10 @@ export default function MatchHistory() {
                       ]}
                     >
                       <Text style={styles.modePillText}>
-                        {formatLabel(item.stats.gameMode || item.QueueID)}
+                        {formatLabel(
+                          item.stats.gameMode || item.QueueID,
+                          t("history_page.unknown")
+                        )}
                       </Text>
                     </View>
                   </View>
@@ -269,19 +279,19 @@ export default function MatchHistory() {
 
                 <View style={styles.metricsGrid}>
                   <View style={styles.metricCard}>
-                    <Text style={styles.metricLabel}>KDA</Text>
+                    <Text style={styles.metricLabel}>{t("history_page.metrics.kda")}</Text>
                     <Text style={styles.metricValue}>{item.stats.kda}</Text>
                   </View>
                   <View style={styles.metricCard}>
-                    <Text style={styles.metricLabel}>K/D</Text>
+                    <Text style={styles.metricLabel}>{t("history_page.metrics.kd")}</Text>
                     <Text style={styles.metricValue}>{item.stats.kdRatio}</Text>
                   </View>
                   <View style={styles.metricCard}>
-                    <Text style={styles.metricLabel}>ACS</Text>
+                    <Text style={styles.metricLabel}>{t("history_page.metrics.acs")}</Text>
                     <Text style={styles.metricValue}>{item.stats.acs}</Text>
                   </View>
                   <View style={styles.metricCard}>
-                    <Text style={styles.metricLabel}>HS%</Text>
+                    <Text style={styles.metricLabel}>{t("history_page.metrics.hs")}</Text>
                     <Text style={styles.metricValue}>
                       {item.stats.headshotPct || "--"}
                     </Text>
@@ -307,16 +317,6 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 18,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  subtitle: {
-    marginTop: 6,
-    color: COLORS.TEXT_SECONDARY,
-    lineHeight: 22,
   },
   summaryRow: {
     flexDirection: "row",
@@ -360,19 +360,7 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_SECONDARY,
   },
   emptyState: {
-    alignItems: "center",
     paddingVertical: 40,
-  },
-  emptyTitle: {
-    marginTop: 10,
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  emptySubtitle: {
-    marginTop: 6,
-    textAlign: "center",
-    color: COLORS.TEXT_SECONDARY,
   },
   matchCard: {
     position: "relative",

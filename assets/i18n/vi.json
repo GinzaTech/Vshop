@@ -124,58 +124,99 @@
   },
   "xp": "Kinh nghiệm",
   "shop_cards": {
-    "saved": "\u0110\u00e3 l\u01b0u",
-    "store_skin": "Skin c\u1eeda h\u00e0ng",
-    "bundle_skin": "Skin trong b\u1ed9"
+    "saved": "Đã lưu",
+    "store_skin": "Skin cửa hàng",
+    "bundle_skin": "Skin trong bộ"
   },
   "shop_page": {
-    "agent_fallback": "\u0110\u1eb7c v\u1ee5",
-    "greeting": "Xin ch\u00e0o, {{name}}",
-    "subtitle": "Ch\u00e0o m\u1eebng quay l\u1ea1i c\u1eeda h\u00e0ng h\u00f4m nay.",
-    "search_placeholder": "T\u00ecm skin",
-    "section_title": "Ch\u1ecdn m\u00f3n ti\u1ebfp theo",
-    "rotation_title": "C\u1eeda h\u00e0ng h\u00f4m nay",
-    "items_count": "{{count}} m\u00f3n",
-    "featured_eyebrow": "Skin n\u1ed5i b\u1eadt h\u00f4m nay",
-    "featured_meta": "S\u1eb5n s\u00e0ng cho wishlist",
-    "preview_title": "Xem tr\u01b0\u1edbc",
-    "preview_action": "Xem th\u00eam",
-    "empty_title": "Kh\u00f4ng t\u00ecm th\u1ea5y skin",
-    "empty_subtitle": "H\u00e3y th\u1eed t\u1eeb kh\u00f3a kh\u00e1c ho\u1eb7c chuy\u1ec3n v\u1ec1 t\u1ea5t c\u1ea3 skin.",
+    "agent_fallback": "Đặc vụ",
+    "greeting": "Xin chào, {{name}}",
+    "subtitle": "Chào mừng quay lại cửa hàng hôm nay.",
+    "search_placeholder": "Tìm skin",
+    "section_title": "Chọn món tiếp theo",
+    "rotation_title": "Cửa hàng hôm nay",
+    "items_count": "{{count}} món",
+    "featured_eyebrow": "Skin nổi bật hôm nay",
+    "featured_meta": "Sẵn sàng cho wishlist",
+    "preview_title": "Xem trước",
+    "preview_action": "Xem thêm",
+    "empty_title": "Không tìm thấy skin",
+    "empty_subtitle": "Hãy thử từ khóa khác hoặc chuyển về tất cả skin.",
     "filters": {
-      "all": "T\u1ea5t c\u1ea3 skin",
+      "all": "Tất cả skin",
       "wishlist": "Wishlist"
     }
   },
   "bundles_page": {
-    "title": "B\u1ed9 skin n\u1ed5i b\u1eadt",
-    "subtitle": "Kh\u00e1m ph\u00e1 b\u1ed9 hi\u1ec7n t\u1ea1i v\u00e0 xem tr\u01b0\u1edbc to\u00e0n b\u1ed9 skin bao g\u1ed3m.",
-    "empty_title": "Hi\u1ec7n ch\u01b0a c\u00f3 b\u1ed9 skin",
-    "empty_subtitle": "B\u1ed9 skin n\u1ed5i b\u1eadt \u0111ang tr\u1ed1ng. H\u00e3y quay l\u1ea1i sau.",
-    "items_count": "{{count}} m\u00f3n",
-    "included_title": "V\u1eadt ph\u1ea9m bao g\u1ed3m",
+    "title": "Bộ skin nổi bật",
+    "subtitle": "Khám phá bộ hiện tại và xem trước toàn bộ skin bao gồm.",
+    "empty_title": "Hiện chưa có bộ skin",
+    "empty_subtitle": "Bộ skin nổi bật đang trống. Hãy quay lại sau.",
+    "items_count": "{{count}} món",
+    "included_title": "Vật phẩm bao gồm",
     "included_count": "{{count}} skin",
-    "hero_badge": "B\u1ed9 skin n\u1ed5i b\u1eadt",
-    "hero_eyebrow": "B\u1ed9 s\u01b0u t\u1eadp",
-    "toggle_show": "Hi\u1ec7n skin trong b\u1ed9",
-    "toggle_hide": "\u1ea8n skin trong b\u1ed9"
+    "hero_badge": "Bộ skin nổi bật",
+    "hero_eyebrow": "Bộ sưu tập",
+    "toggle_show": "Hiện skin trong bộ",
+    "toggle_hide": "Ẩn skin trong bộ"
   },
   "night_market_page": {
-    "title": "Ch\u1ee3 \u0110\u00eam",
-    "subtitle": "\u01afu \u0111\u00e3i gi\u1ea3m gi\u00e1 trong th\u1eddi gian gi\u1edbi h\u1ea1n cho m\u1ed9t s\u1ed1 skin.",
-    "empty_title": "H\u00f4m nay ch\u01b0a c\u00f3 Ch\u1ee3 \u0110\u00eam",
-    "empty_subtitle": "Hi\u1ec7n ch\u01b0a c\u00f3 \u01b0u \u0111\u00e3i gi\u1ea3m gi\u00e1 n\u00e0o trong l\u01b0\u1ee3t n\u00e0y.",
+    "title": "Chợ Đêm",
+    "subtitle": "Ưu đãi giảm giá trong thời gian giới hạn cho một số skin.",
+    "empty_title": "Hôm nay chưa có Chợ Đêm",
+    "empty_subtitle": "Hiện chưa có ưu đãi giảm giá nào trong lượt này.",
     "deal": "Deal"
   },
   "gallery_page": {
-    "title": "Th\u01b0 vi\u1ec7n skin",
-    "subtitle": "Duy\u1ec7t b\u1ed9 s\u01b0u t\u1eadp v\u00e0 l\u01b0u skin y\u00eau th\u00edch v\u00e0o wishlist.",
-    "search_placeholder": "T\u00ecm skin",
-    "empty_title": "Kh\u00f4ng t\u00ecm th\u1ea5y skin",
-    "empty_subtitle": "H\u00e3y th\u1eed t\u1eeb kh\u00f3a kh\u00e1c ho\u1eb7c t\u1eaft l\u1ecdc wishlist.",
+    "title": "Thư viện skin",
+    "subtitle": "Duyệt bộ sưu tập và lưu skin yêu thích vào wishlist.",
+    "search_placeholder": "Tìm skin",
+    "empty_title": "Không tìm thấy skin",
+    "empty_subtitle": "Hãy thử từ khóa khác hoặc tắt lọc wishlist.",
+    "collection_label": "Bộ sưu tập",
     "filters": {
-      "all": "T\u1ea5t c\u1ea3",
+      "all": "Tất cả",
       "wishlist": "Wishlist"
+    }
+  },
+  "accessories_page": {
+    "title": "Cửa hàng phụ kiện",
+    "subtitle": "Thẻ, spray, buddy và danh hiệu có thể mua bằng Kingdom Credits.",
+    "search_placeholder": "Tìm phụ kiện",
+    "empty_title": "Không tìm thấy phụ kiện",
+    "empty_subtitle": "Hãy thử từ khóa khác để tìm vật phẩm trong lượt này.",
+    "card_subtitle": "Phụ kiện trong lượt"
+  },
+  "history_page": {
+    "title": "Lịch sử đấu",
+    "subtitle": "Danh sách trận gần đây theo kiểu tracker với kết quả, KDA, ACS và nhịp trận.",
+    "loading": "Đang tải trận gần đây...",
+    "empty_title": "Chưa có trận nào",
+    "empty_subtitle": "Hãy kéo để làm mới khi lịch sử trận sẵn sàng.",
+    "pending_title": "Đang xử lý trận đấu",
+    "pending_at": "{{date}} lúc {{time}}",
+    "result_victory": "Thắng",
+    "result_defeat": "Thua",
+    "unknown": "Không rõ",
+    "summary": {
+      "wins": "Thắng",
+      "losses": "Thua",
+      "avg_acs": "ACS TB"
+    },
+    "metrics": {
+      "kda": "KDA",
+      "kd": "K/D",
+      "acs": "ACS",
+      "hs": "HS%"
+    }
+  },
+  "equip_gallery": {
+    "placeholder": "Vật phẩm bộ sưu tập",
+    "labels": {
+      "buddies": "Gun Buddy",
+      "sprays": "Spray",
+      "cards": "Thẻ người chơi",
+      "titles": "Danh hiệu"
     }
   },
   "equip_page": {
@@ -187,7 +228,10 @@
     "sections": {
       "identity": "Hồ sơ",
       "sprays": "Graffiti",
-      "weapons": "Vũ khí"
+      "weapons": "Vũ khí",
+      "buddies": "Gun Buddy",
+      "cards": "Th? ng??i ch?i",
+      "titles": "Danh hi?u"
     },
     "categories": {
       "Sidearm": "Súng ngắn",
@@ -233,5 +277,22 @@
       "sudden_death": "Hiệp phụ",
       "default": "Mặc định"
     }
+  },
+  "equipment_page": {
+    "title": "B? s?u t?p trang b?",
+    "subtitle": "Buddy, spray, th? v? danh hi?u trong c?ng m?t n?i.",
+    "search_placeholder": "T?m trang b?",
+    "empty_title": "Kh?ng t?m th?y trang b?",
+    "empty_subtitle": "H?y th? t? kh?a ho?c nh?m kh?c."
+  },
+  "match_details_page": {
+    "error_loading": "Kh?ng th? t?i chi ti?t tr?n ??u.",
+    "player_fallback": "Ng??i ch?i",
+    "unknown_map": "B?n ?? kh?ng r?",
+    "standard": "Th??ng",
+    "blue_team": "Xanh",
+    "red_team": "??",
+    "blue_team_full": "??i Xanh",
+    "red_team_full": "??i ??"
   }
 }

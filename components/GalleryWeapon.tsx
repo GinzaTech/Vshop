@@ -161,7 +161,9 @@ export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
                   color={props.item.onWishlist ? COLORS.ACCENT : COLORS.TEXT_SECONDARY}
                 />
                 <Text style={styles.metaText}>
-                  {props.item.onWishlist ? t("wishlist.name") : "Collection"}
+                  {props.item.onWishlist
+                    ? t("wishlist.name")
+                    : t("gallery_page.collection_label")}
                 </Text>
               </View>
             </View>

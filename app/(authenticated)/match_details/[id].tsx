@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator } from "react-native-paper";
 import { Image } from "expo-image";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTranslation } from "react-i18next";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
@@ -18,6 +19,7 @@ import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
 export default function MatchDetailsScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const user = useUserStore((state) => state.user);
@@ -66,7 +68,7 @@ export default function MatchDetailsScreen() {
   if (!details) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Failed to load match details.</Text>
+        <Text style={styles.errorText}>{t("match_details_page.error_loading")}</Text>
       </View>
     );
   }
@@ -95,7 +97,9 @@ export default function MatchDetailsScreen() {
             <Text style={[styles.playerName, isMe && styles.myPlayerName]}>
               {player.gameName}
             </Text>
-            <Text style={styles.playerMeta}>{player.playerTitle || "Player"}</Text>
+            <Text style={styles.playerMeta}>
+              {player.playerTitle || t("match_details_page.player_fallback")}
+            </Text>
           </View>
         </View>
         <View style={styles.playerRight}>
@@ -114,7 +118,9 @@ export default function MatchDetailsScreen() {
         <View>
           <Text style={styles.teamTitle}>{title}</Text>
           <Text style={styles.teamSubtitle}>
-            {team?.won ? "Victory" : "Defeat"}
+            {team?.won
+              ? t("history_page.result_victory")
+              : t("history_page.result_defeat")}
           </Text>
         </View>
         <View style={[styles.teamScorePill, { backgroundColor: tone }]}>
@@ -152,25 +158,27 @@ export default function MatchDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.sheetHandle} />
-        <Text style={styles.mapTitle}>{mapInfo?.displayName || "Unknown Map"}</Text>
+        <Text style={styles.mapTitle}>
+          {mapInfo?.displayName || t("match_details_page.unknown_map")}
+        </Text>
         <Text style={styles.mapSubtitle}>
-          {details.matchInfo?.queueID || "Standard"}
+          {details.matchInfo?.queueID || t("match_details_page.standard")}
         </Text>
 
         <View style={styles.scoreboard}>
           <View style={styles.scoreItem}>
-            <Text style={styles.scoreLabel}>Blue</Text>
+            <Text style={styles.scoreLabel}>{t("match_details_page.blue_team")}</Text>
             <Text style={styles.scoreValue}>{blueTeam?.roundsWon ?? 0}</Text>
           </View>
           <Text style={styles.scoreDivider}>VS</Text>
           <View style={styles.scoreItem}>
-            <Text style={styles.scoreLabel}>Red</Text>
+            <Text style={styles.scoreLabel}>{t("match_details_page.red_team")}</Text>
             <Text style={styles.scoreValue}>{redTeam?.roundsWon ?? 0}</Text>
           </View>
         </View>
 
-        {renderTeamCard("Blue Team", blueTeam, bluePlayers, "#73c9d1")}
-        {renderTeamCard("Red Team", redTeam, redPlayers, "#ff8d7a")}
+        {renderTeamCard(t("match_details_page.blue_team_full"), blueTeam, bluePlayers, "#73c9d1")}
+        {renderTeamCard(t("match_details_page.red_team_full"), redTeam, redPlayers, "#ff8d7a")}
       </ScrollView>
     </View>
   );

@@ -1,14 +1,19 @@
 import React from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTranslation } from "react-i18next";
 
 import Countdown from "~/components/Countdown";
 import ShopAccessoryItem from "~/components/ShopAccessoryItem";
 import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS } from "~/constants/DesignSystem";
+import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import InfoPill from "~/components/ui/InfoPill";
+import PageIntro from "~/components/ui/PageIntro";
 
 function AccessoryShop() {
+  const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
   const [query, setQuery] = React.useState("");
   const timestamp =
@@ -26,36 +31,42 @@ function AccessoryShop() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Accessory rotation</Text>
-      <Text style={styles.subtitle}>
-        Cards, sprays, buddies and titles available for kingdom credits.
-      </Text>
+      <PageIntro
+        title={t("accessories_page.title")}
+        subtitle={t("accessories_page.subtitle")}
+        style={styles.header}
+      />
 
       <View style={styles.searchBar}>
         <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search accessories"
+          placeholder={t("accessories_page.search_placeholder")}
           placeholderTextColor={COLORS.TEXT_SECONDARY}
           style={styles.searchInput}
         />
       </View>
 
       <View style={styles.metricRow}>
-        <View style={styles.metricPill}>
+        <InfoPill style={styles.metricPill}>
           <CurrencyIcon icon="kc" style={styles.metricIcon} />
           <Text style={styles.metricText}>{user.balances.kc}</Text>
-        </View>
-        <View style={styles.metricPill}>
+        </InfoPill>
+        <InfoPill style={styles.metricPill}>
           <Icon name="clock-outline" size={16} color={COLORS.TEXT_PRIMARY} />
           <Countdown timestamp={timestamp} />
-        </View>
+        </InfoPill>
       </View>
 
-      {items.map((item) => (
-        <ShopAccessoryItem item={item} key={item.uuid} />
-      ))}
+      {items.length > 0 ? (
+        items.map((item) => <ShopAccessoryItem item={item} key={item.uuid} />)
+      ) : (
+        <EmptyStateCard
+          title={t("accessories_page.empty_title")}
+          subtitle={t("accessories_page.empty_subtitle")}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -69,17 +80,8 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 36,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  subtitle: {
-    marginTop: 6,
+  header: {
     marginBottom: 18,
-    fontSize: 15,
-    lineHeight: 22,
-    color: COLORS.TEXT_SECONDARY,
   },
   searchBar: {
     flexDirection: "row",
@@ -105,15 +107,6 @@ const styles = StyleSheet.create({
   },
   metricPill: {
     flex: 1,
-    minHeight: 50,
-    borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
   },
   metricIcon: {
     width: 14,

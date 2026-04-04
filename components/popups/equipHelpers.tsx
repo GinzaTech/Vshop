@@ -1,10 +1,10 @@
 import { getAssets } from "~/utils/valorant-assets";
 
 export const EQUIPMENT_SECTIONS = [
-  { key: "buddies", label: "Gun Buddies" },
-  { key: "sprays", label: "Sprays" },
-  { key: "cards", label: "Player Cards" },
-  { key: "titles", label: "Player Titles" },
+  { key: "buddies", labelKey: "equip_page.sections.buddies" },
+  { key: "sprays", labelKey: "equip_page.sections.sprays" },
+  { key: "cards", labelKey: "equip_page.sections.cards" },
+  { key: "titles", labelKey: "equip_page.sections.titles" },
 ];
 
 export const sanitizeQuery = (value) => {
@@ -82,7 +82,7 @@ export const mapToDisplayItem = (item, section) => {
 
   return {
     id,
-    displayName: item.displayName ?? item.titleText ?? "Unknown",
+    displayName: item.displayName ?? item.titleText ?? item.uuid ?? "",
     subtitle,
     item,
     section,

@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Text } from "react-native";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
@@ -15,6 +16,7 @@ interface props {
 export default function ShopAccessoryItem({
   item,
 }: React.PropsWithChildren<props>) {
+  const { t } = useTranslation();
   const { screenshotModeEnabled } = useFeatureStore();
   const imageSource = React.useMemo(() => {
     const uri = getDisplayIconUri(item);
@@ -38,7 +40,7 @@ export default function ShopAccessoryItem({
       <Text style={styles.title} numberOfLines={2}>
         {item.displayName}
       </Text>
-      <Text style={styles.subtitle}>Accessory rotation</Text>
+      <Text style={styles.subtitle}>{t("accessories_page.card_subtitle")}</Text>
 
       <View style={styles.imageFrame}>
         <Image
