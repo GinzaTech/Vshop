@@ -7,7 +7,7 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup from "~/components/popups/MediaPopup";
-import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
+import { COLORS, GLOBAL_STYLES } from "~/constants/DesignSystem";
 
 const PRIMARY_ROUTES: Record<
   string,
@@ -279,17 +279,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     borderRadius: 24,
-    paddingVertical: 2,
+    paddingVertical: 1,
   },
   tabButtonPressed: {
     opacity: 0.98,
   },
   tabIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: RADIUS.chip,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   tabIconWrapPressed: {
     backgroundColor: "rgba(255,255,255,0.86)",
