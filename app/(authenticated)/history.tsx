@@ -17,13 +17,10 @@ import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
-import PageIntro from "~/components/ui/PageIntro";
 
 const WIN_COLOR = "#5f7a6b";
-const WIN_SURFACE = "rgba(95, 122, 107, 0.16)";
 const WIN_BORDER = "rgba(95, 122, 107, 0.34)";
 const LOSS_COLOR = "#8a6770";
-const LOSS_SURFACE = "rgba(138, 103, 112, 0.16)";
 const LOSS_BORDER = "rgba(138, 103, 112, 0.30)";
 
 const formatMatchDate = (value: number) =>
@@ -101,52 +98,27 @@ export default function MatchHistory() {
       }
       ListHeaderComponent={
         <View style={styles.header}>
-          <PageIntro
-            title={t("history_page.title")}
-            subtitle={t("history_page.subtitle")}
-          />
-
-          <View style={styles.summaryHero}>
-            <View style={styles.summaryHeroTop}>
-              <View style={styles.summaryHeroBadge}>
-                <Icon name="history" size={14} color={COLORS.PURE_WHITE} />
-                <Text style={styles.summaryHeroBadgeText}>
-                  {t("history_page.title")}
-                </Text>
-              </View>
-              <Text style={styles.summaryHeroMeta}>
-                {t("history_page.summary.matches", { count: completedMatches.length })}
+          <Text style={styles.headerSubtitle}>{t("history_page.subtitle")}</Text>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>
+                {t("history_page.summary.wins")}
+              </Text>
+              <Text style={[styles.summaryValue, styles.winSummary]}>
+                {summary.wins}
               </Text>
             </View>
-
-            <Text style={styles.summaryHeroTitle}>
-              {t("history_page.summary.snapshot_title")}
-            </Text>
-            <Text style={styles.summaryHeroSubtitle}>
-              {t("history_page.summary.snapshot_subtitle")}
-            </Text>
-
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>
-                  {t("history_page.summary.wins")}
-                </Text>
-                <Text style={[styles.summaryValue, styles.winSummary]}>
-                  {summary.wins}
-                </Text>
-              </View>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>
-                  {t("history_page.summary.losses")}
-                </Text>
-                <Text style={styles.summaryValue}>{summary.losses}</Text>
-              </View>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>
-                  {t("history_page.summary.avg_acs")}
-                </Text>
-                <Text style={styles.summaryValue}>{summary.avgAcs || "--"}</Text>
-              </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>
+                {t("history_page.summary.losses")}
+              </Text>
+              <Text style={styles.summaryValue}>{summary.losses}</Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>
+                {t("history_page.summary.avg_acs")}
+              </Text>
+              <Text style={styles.summaryValue}>{summary.avgAcs || "--"}</Text>
             </View>
           </View>
         </View>
@@ -180,8 +152,10 @@ export default function MatchHistory() {
         }
 
         const resultColor = item.stats.won ? WIN_COLOR : LOSS_COLOR;
-        const resultSurface = item.stats.won ? WIN_SURFACE : LOSS_SURFACE;
         const resultBorder = item.stats.won ? WIN_BORDER : LOSS_BORDER;
+        const scrimColor = item.stats.won
+          ? "rgba(239, 247, 242, 0.88)"
+          : "rgba(246, 240, 243, 0.88)";
 
         return (
           <TouchableOpacity
@@ -192,17 +166,17 @@ export default function MatchHistory() {
               style={[
                 styles.matchCard,
                 {
-                  backgroundColor: resultSurface,
+                  backgroundColor: COLORS.SURFACE,
                   borderColor: resultBorder,
                 },
               ]}
-              >
-                <View
-                  style={[
-                    styles.resultBar,
-                    { backgroundColor: resultColor },
-                  ]}
-                />
+            >
+              <View
+                style={[
+                  styles.resultBar,
+                  { backgroundColor: resultColor },
+                ]}
+              />
               {item.stats.mapImage ? (
                 <Image
                   source={{ uri: item.stats.mapImage }}
@@ -213,7 +187,7 @@ export default function MatchHistory() {
               <View
                 style={[
                   styles.mapScrim,
-                  { backgroundColor: item.stats.won ? WIN_SURFACE : LOSS_SURFACE },
+                  { backgroundColor: scrimColor },
                 ]}
               />
 
@@ -250,7 +224,10 @@ export default function MatchHistory() {
                     <View
                       style={[
                         styles.agentShell,
-                        { backgroundColor: resultSurface, borderColor: resultBorder },
+                        {
+                          backgroundColor: "rgba(255,255,255,0.68)",
+                          borderColor: resultBorder,
+                        },
                       ]}
                     >
                       <Image
@@ -275,52 +252,20 @@ export default function MatchHistory() {
                   </View>
                 </View>
 
-                <View style={styles.metricsGrid}>
-                  <View
-                    style={[
-                      styles.metricCard,
-                      {
-                        backgroundColor: resultSurface,
-                        borderColor: resultBorder,
-                      },
-                    ]}
-                  >
+                <View style={styles.metricsInlineRow}>
+                  <View style={styles.metricInlineItem}>
                     <Text style={styles.metricLabel}>{t("history_page.metrics.kda")}</Text>
                     <Text style={styles.metricValue}>{item.stats.kda}</Text>
                   </View>
-                  <View
-                    style={[
-                      styles.metricCard,
-                      {
-                        backgroundColor: resultSurface,
-                        borderColor: resultBorder,
-                      },
-                    ]}
-                  >
+                  <View style={styles.metricInlineItem}>
                     <Text style={styles.metricLabel}>{t("history_page.metrics.kd")}</Text>
                     <Text style={styles.metricValue}>{item.stats.kdRatio}</Text>
                   </View>
-                  <View
-                    style={[
-                      styles.metricCard,
-                      {
-                        backgroundColor: resultSurface,
-                        borderColor: resultBorder,
-                      },
-                    ]}
-                  >
+                  <View style={styles.metricInlineItem}>
                     <Text style={styles.metricLabel}>{t("history_page.metrics.acs")}</Text>
                     <Text style={styles.metricValue}>{item.stats.acs}</Text>
                   </View>
-                  <View
-                    style={[
-                      styles.metricCard,
-                      {
-                        backgroundColor: resultSurface,
-                        borderColor: resultBorder,
-                      },
-                    ]}
-                  >
+                  <View style={styles.metricInlineItem}>
                     <Text style={styles.metricLabel}>{t("history_page.metrics.hs")}</Text>
                     <Text style={styles.metricValue}>
                       {item.stats.headshotPct || "--"}
@@ -346,53 +291,12 @@ const styles = StyleSheet.create({
     paddingBottom: 140,
   },
   header: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
-  summaryHero: {
-    marginTop: 18,
-    padding: 18,
-    borderRadius: RADIUS.card,
-    backgroundColor: COLORS.ACCENT_DEEP,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    ...GLOBAL_STYLES.shadow,
-  },
-  summaryHeroTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  summaryHeroBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: RADIUS.chip,
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  summaryHeroBadgeText: {
-    marginLeft: 8,
-    color: COLORS.PURE_WHITE,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  summaryHeroMeta: {
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  summaryHeroTitle: {
-    marginTop: 16,
-    color: COLORS.PURE_WHITE,
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  summaryHeroSubtitle: {
-    marginTop: 6,
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 14,
-    lineHeight: 20,
+  headerSubtitle: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 15,
+    lineHeight: 22,
   },
   summaryRow: {
     flexDirection: "row",
@@ -401,28 +305,29 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: COLORS.SURFACE,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: COLORS.BORDER,
+    ...GLOBAL_STYLES.shadow,
   },
   summaryLabel: {
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 12,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 11,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
   summaryValue: {
-    marginTop: 8,
-    color: COLORS.PURE_WHITE,
-    fontSize: 22,
+    marginTop: 6,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 20,
     fontWeight: "700",
   },
   winSummary: {
-    color: "#b9dbca",
+    color: COLORS.SUCCESS,
   },
   centered: {
     flex: 1,
@@ -458,11 +363,11 @@ const styles = StyleSheet.create({
   },
   mapBackground: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.3,
+    opacity: 0.24,
   },
   mapScrim: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.82,
+    opacity: 1,
   },
   matchCardContent: {
     paddingHorizontal: 12,
@@ -534,7 +439,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   scoreValue: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "700",
   },
   scoreCaption: {
@@ -543,30 +448,34 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
-  metricsGrid: {
+  metricsInlineRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 10,
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(23,26,31,0.08)",
   },
-  metricCard: {
-    width: "48%",
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-    borderRadius: 14,
-    borderWidth: 1,
+  metricInlineItem: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
+  },
+  metricInlineLast: {
+    marginRight: 0,
   },
   metricLabel: {
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   metricValue: {
-    marginTop: 4,
+    marginTop: 2,
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
   },
   pendingCard: {
