@@ -21,7 +21,7 @@ import { useRouter } from "expo-router";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import { checkShop, initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
+import { initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import BatteryOptimizationWarning from "~/components/BatteryOptimizationWarning";
 import GlassCard from "~/components/ui/GlassCard";
@@ -32,7 +32,6 @@ import {
   AppUpdateCheckResult,
   applyOtaUpdate,
   checkForAppUpdate,
-  getCurrentAppVersionLabel,
 } from "~/utils/app-update";
 
 function Settings() {
@@ -44,16 +43,11 @@ function Settings() {
   const setNotificationEnabled = useWishlistStore(
     (state) => state.setNotificationEnabled
   );
-  const wishlistedSkins = useWishlistStore((state) => state.skinIds);
   const [updatePopupVisible, setUpdatePopupVisible] = React.useState(false);
   const [checkingUpdate, setCheckingUpdate] = React.useState(false);
   const [applyingUpdate, setApplyingUpdate] = React.useState(false);
   const [updateResult, setUpdateResult] =
     React.useState<AppUpdateCheckResult | null>(null);
-  const currentVersionLabel = React.useMemo(
-    () => getCurrentAppVersionLabel(),
-    []
-  );
 
   const handleLogout = async () => {
     await clearAllCookies(true);
@@ -124,14 +118,26 @@ function Settings() {
     setUpdatePopupVisible(false);
   };
 
-  const shortcutItems: { label: string | undefined; icon: React.ComponentProps<typeof Icon>["name"]; route: string }[] = [
-    { label: t("accessories"), icon: "cards-outline", route: "/accessories" },
-    { label: t("gallery"), icon: "image-multiple-outline", route: "/gallery" },
-    { label: t("agent") || "Agent", icon: "account-group-outline", route: "/agent" },
-    { label: t("combat") || "Combat", icon: "target", route: "/combat" },
-    { label: t("history") || "History", icon: "history", route: "/history" },
-    { label: t("crosshair") || "Crosshair", icon: "crosshairs-gps", route: "/crosshair" },
-    { label: t("equip"), icon: "shield-sword-outline", route: "/equip" },
+  const shortcutItems: {
+    key: string;
+    label: string | undefined;
+    icon: React.ComponentProps<typeof Icon>["name"];
+    route?: string;
+    onPress?: () => void;
+  }[] = [
+    { key: "equip", label: t("equip"), icon: "shield-sword-outline", route: "/equip" },
+    { key: "accessories", label: t("accessories"), icon: "cards-outline", route: "/accessories" },
+    { key: "gallery", label: t("gallery"), icon: "image-multiple-outline", route: "/gallery" },
+    { key: "agent", label: t("agent") || "Agent", icon: "account-group-outline", route: "/agent" },
+    { key: "combat", label: t("combat") || "Combat", icon: "target", route: "/combat" },
+    { key: "history", label: t("history") || "History", icon: "history", route: "/history" },
+    { key: "crosshair", label: t("crosshair") || "Crosshair", icon: "crosshairs-gps", route: "/crosshair" },
+    {
+      key: "update",
+      label: t("settings_page.check_update"),
+      icon: "update",
+      onPress: handleCheckForUpdates,
+    },
   ];
 
   const renderRow = ({
@@ -141,6 +147,7 @@ function Settings() {
     onPress,
     right,
     danger,
+    compact,
   }: {
     icon: React.ComponentProps<typeof Icon>["name"];
     title: string;
@@ -148,24 +155,37 @@ function Settings() {
     onPress?: () => void;
     right?: React.ReactNode;
     danger?: boolean;
+    compact?: boolean;
   }) => (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
-      style={styles.row}
+      style={[styles.row, compact && styles.rowCompact]}
       disabled={!onPress}
     >
-      <View style={styles.rowLeft}>
-        <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
+      <View style={[styles.rowLeft, compact && styles.rowLeftCompact]}>
+        <View
+          style={[
+            styles.rowIcon,
+            compact && styles.rowIconCompact,
+            danger && styles.rowIconDanger,
+          ]}
+        >
           <Icon
             name={icon}
-            size={18}
+            size={compact ? 16 : 18}
             color={danger ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
           />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.rowTitle}>{title}</Text>
-          {description ? <Text style={styles.rowDescription}>{description}</Text> : null}
+          <Text style={[styles.rowTitle, compact && styles.rowTitleCompact]}>
+            {title}
+          </Text>
+          {description ? (
+            <Text style={[styles.rowDescription, compact && styles.rowDescriptionCompact]}>
+              {description}
+            </Text>
+          ) : null}
         </View>
       </View>
       {right ?? <Icon name="chevron-right" size={20} color={COLORS.TEXT_SECONDARY} />}
@@ -180,10 +200,7 @@ function Settings() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <Text style={styles.title}>Explore more</Text>
-          <Text style={styles.subtitle}>
-            Customize the app, manage your account, and jump into the extra tools.
-          </Text>
+          <Text style={styles.title}>{t("settings_page.title")}</Text>
         </View>
 
         <BatteryOptimizationWarning />
@@ -191,10 +208,19 @@ function Settings() {
         <View style={styles.shortcutGrid}>
           {shortcutItems.map((item) => (
             <TouchableOpacity
-              key={item.route}
+              key={item.key}
               activeOpacity={0.85}
               style={styles.shortcutCard}
-              onPress={() => router.push(item.route as never)}
+              onPress={() => {
+                if (item.onPress) {
+                  item.onPress();
+                  return;
+                }
+
+                if (item.route) {
+                  router.push(item.route as never);
+                }
+              }}
             >
               <View style={styles.shortcutIcon}>
                 <Icon name={item.icon} size={20} color={COLORS.TEXT_PRIMARY} />
@@ -204,17 +230,7 @@ function Settings() {
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>App</Text>
-        <GlassCard style={styles.card}>
-          {renderRow({
-            icon: "update",
-            title: "Check for updates",
-            description: `Current build ${currentVersionLabel}`,
-            onPress: handleCheckForUpdates,
-          })}
-        </GlassCard>
-
-        <Text style={styles.sectionTitle}>Preferences</Text>
+        <Text style={styles.sectionTitle}>{t("settings_page.preferences")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
             icon: "translate",
@@ -250,16 +266,9 @@ function Settings() {
                 ),
               })
             : null}
-          {__DEV__
-            ? renderRow({
-                icon: "bell-badge-outline",
-                title: "Wishlist notification test",
-                onPress: () => checkShop(wishlistedSkins),
-              })
-            : null}
         </GlassCard>
 
-        <Text style={styles.sectionTitle}>Links</Text>
+        <Text style={styles.sectionTitle}>{t("settings_page.links")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
             icon: "discord",
@@ -286,7 +295,7 @@ function Settings() {
           })}
         </GlassCard>
 
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={styles.sectionTitle}>{t("settings_page.account")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
             icon: "content-copy",
@@ -302,11 +311,7 @@ function Settings() {
           })}
         </GlassCard>
 
-        <Text style={styles.disclaimer}>
-          VShop is not endorsed by Riot Games in any way. Riot Games, Valorant,
-          and all associated properties are trademarks or registered trademarks of
-          Riot Games, Inc.
-        </Text>
+        <Text style={styles.disclaimer}>{t("settings_page.disclaimer")}</Text>
       </ScrollView>
 
       <UpdatePopup
@@ -393,11 +398,17 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
   },
+  rowCompact: {
+    paddingVertical: 4,
+  },
   rowLeft: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  rowLeftCompact: {
+    gap: 10,
   },
   rowIcon: {
     width: 42,
@@ -407,6 +418,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: COLORS.SURFACE_MUTED,
   },
+  rowIconCompact: {
+    width: 36,
+    height: 36,
+  },
   rowIconDanger: {
     backgroundColor: COLORS.ACCENT,
   },
@@ -415,10 +430,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
+  rowTitleCompact: {
+    fontSize: 14,
+  },
   rowDescription: {
     marginTop: 2,
     color: COLORS.TEXT_SECONDARY,
     fontSize: 13,
+  },
+  rowDescriptionCompact: {
+    fontSize: 12,
   },
   disclaimer: {
     textAlign: "center",
@@ -430,3 +451,4 @@ const styles = StyleSheet.create({
 });
 
 export default Settings;
+

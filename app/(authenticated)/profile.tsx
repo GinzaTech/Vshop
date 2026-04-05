@@ -1423,7 +1423,7 @@ function Profile() {
       <View style={styles.heroTopRow}>
         <View style={styles.heroBadge}>
           <Icon name="shield-account-outline" size={16} color={COLORS.PURE_WHITE} />
-          <Text style={styles.heroBadgeText}>Loadout profile</Text>
+          <Text style={styles.heroBadgeText}>{t("profile_page.hero_badge")}</Text>
         </View>
         <View style={styles.heroRegionPill}>
           <Text style={styles.heroRegionText}>{regionLabel}</Text>
@@ -1431,20 +1431,24 @@ function Profile() {
       </View>
 
       <View style={styles.heroNameRow}>
-        <Text style={styles.heroTitle}>{user.name || "Agent"}</Text>
+        <Text style={styles.heroTitle}>
+          {user.name || t("profile_page.agent_fallback")}
+        </Text>
         {user.TagLine ? (
           <View style={styles.heroTagPill}>
             <Text style={styles.heroTagText}>#{user.TagLine}</Text>
           </View>
         ) : null}
       </View>
-      <Text style={styles.heroSubtitle}>Connected Riot account</Text>
+      <Text style={styles.heroSubtitle}>{t("profile_page.hero_subtitle")}</Text>
 
       <View style={styles.heroMetaRow}>
         <View style={styles.heroMetaPill}>
           <Icon name="star-circle-outline" size={14} color={COLORS.PURE_WHITE} />
           <Text style={styles.heroMetaText}>
-            Level {identityDetails?.level ?? user.progress.level}
+            {t("profile_page.level", {
+              level: identityDetails?.level ?? user.progress.level,
+            })}
           </Text>
         </View>
         <View style={styles.heroMetaPill}>
@@ -1454,7 +1458,9 @@ function Profile() {
             color={COLORS.PURE_WHITE}
           />
           <Text style={styles.heroMetaText}>
-            {hasAuth ? "Account synced" : "Sign in required"}
+            {hasAuth
+              ? t("profile_page.account_synced")
+              : t("profile_page.sign_in_required")}
           </Text>
         </View>
       </View>
@@ -1473,7 +1479,7 @@ function Profile() {
 
       <View style={styles.heroRankRow}>
         <View style={styles.heroRankCard}>
-          <Text style={styles.heroRankLabel}>Current Rank</Text>
+          <Text style={styles.heroRankLabel}>{t("profile_page.current_rank")}</Text>
           <View style={styles.heroRankValueRow}>
             {competitiveRank?.currentIcon ? (
               <Image
@@ -1489,13 +1495,13 @@ function Profile() {
               />
             )}
             <Text style={styles.heroRankValue}>
-              {competitiveRank?.currentName || "Unrated"}
+              {competitiveRank?.currentName || t("profile_page.unrated")}
             </Text>
           </View>
         </View>
 
         <View style={styles.heroRankCard}>
-          <Text style={styles.heroRankLabel}>Peak Rank</Text>
+          <Text style={styles.heroRankLabel}>{t("profile_page.peak_rank")}</Text>
           <View style={styles.heroRankValueRow}>
             {competitiveRank?.peakIcon ? (
               <Image
@@ -1511,7 +1517,7 @@ function Profile() {
               />
             )}
             <Text style={styles.heroRankValue}>
-              {competitiveRank?.peakName || "Unrated"}
+              {competitiveRank?.peakName || t("profile_page.unrated")}
             </Text>
           </View>
         </View>

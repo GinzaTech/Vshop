@@ -31,7 +31,10 @@
     "progress": "Fetching progress…",
     "storefront": "Fetching storefront…",
     "user_id": "Fetching user id…",
-    "username": "Fetching username…"
+    "username": "Fetching username…",
+    "skins": "Fetching skins?",
+    "version": "Fetching version?",
+    "agent": "Fetching agent?"
   },
   "gallery": "Gallery",
   "general": "General",
@@ -239,7 +242,8 @@
     "blue_team": "Blue",
     "red_team": "Red",
     "blue_team_full": "Blue Team",
-    "red_team_full": "Red Team"
+    "red_team_full": "Red Team",
+    "vs": "VS"
   },
   "equip_page": {
     "tabs": {
@@ -299,5 +303,60 @@
       "sudden_death": "Sudden death",
       "default": "Default"
     }
-  }
+  },
+  "crosshair_page": {
+    "copied": "Copied"
+  },
+  "profile_page": {
+    "hero_badge": "Loadout Profile",
+    "agent_fallback": "Agent",
+    "hero_subtitle": "Riot account connected",
+    "level": "Level {{level}}",
+    "account_synced": "Account synced",
+    "sign_in_required": "Sign in required",
+    "current_rank": "Current Rank",
+    "peak_rank": "Peak Rank",
+    "unrated": "Unrated"
+  },
+  "settings_page": {
+    "title": "Utilities",
+    "preferences": "Preferences",
+    "links": "Links",
+    "account": "Account",
+    "check_update": "Check for updates",
+    "disclaimer": "VShop is not endorsed by Riot Games in any way. Riot Games, Valorant, and all associated properties are trademarks or registered trademarks of Riot Games, Inc."
+  },
+  "update_popup": {
+    "checking_title": "Checking for updates",
+    "checking_description": "Looking for both OTA patches and newer app releases.",
+    "idle_title": "App updates",
+    "idle_description": "Check whether this build can download a newer update.",
+    "ota_title": "Update ready",
+    "ota_description": "A new JS/UI update is available for this build. Download it now and the app will reload without reinstalling.",
+    "native_title": "Newer build available",
+    "native_dev_description": "This session is running in Expo Go or a development build, so it cannot apply production OTA updates. Build one preview/production app once, then future JS/UI fixes can update in-app.",
+    "native_description": "A newer native build is available. This specific release still needs a new install because the native layer changed.",
+    "error_title": "Unable to update",
+    "current_title": "This build is current",
+    "current_description": "No newer release was found. To update inside the app later, ship one preview/production build with expo-updates enabled.",
+    "up_to_date_title": "You're up to date",
+    "up_to_date_description": "No newer update is available for this build right now.",
+    "meta": {
+      "current_build": "Current build",
+      "latest_release": "Latest release",
+      "channel": "Channel"
+    },
+    "actions": {
+      "close": "Close",
+      "update_now": "Update now",
+      "open_release": "Open release"
+    }
+  },
+  "agent": "Agent",
+  "combat": "Combat",
+  "Controller": "Controller",
+  "Duelist": "Duelist",
+  "equip": "Equipment",
+  "Initiator": "Initiator",
+  "Sentinel": "Sentinel"
 }

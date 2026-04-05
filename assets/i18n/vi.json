@@ -308,6 +308,55 @@
     "blue_team": "Xanh",
     "red_team": "Đỏ",
     "blue_team_full": "Đội Xanh",
-    "red_team_full": "Đội Đỏ"
+    "red_team_full": "Đội Đỏ",
+    "vs": "VS"
+  },
+  "crosshair_page": {
+    "copied": "Đã sao chép"
+  },
+  "profile_page": {
+    "hero_badge": "Hồ sơ trang bị",
+    "agent_fallback": "Đặc vụ",
+    "hero_subtitle": "Tài khoản Riot đã kết nối",
+    "level": "Cấp {{level}}",
+    "account_synced": "Tài khoản đã đồng bộ",
+    "sign_in_required": "Cần đăng nhập",
+    "current_rank": "Hạng hiện tại",
+    "peak_rank": "Hạng cao nhất",
+    "unrated": "Chưa xếp hạng"
+  },
+  "settings_page": {
+    "title": "Tiện ích",
+    "preferences": "Tùy chọn",
+    "links": "Liên kết",
+    "account": "Tài khoản",
+    "check_update": "Kiểm tra cập nhật",
+    "disclaimer": "VShop không được Riot Games chứng thực dưới bất kỳ hình thức nào. Riot Games, Valorant và mọi tài sản liên quan là nhãn hiệu hoặc nhãn hiệu đã đăng ký của Riot Games, Inc."
+  },
+  "update_popup": {
+    "checking_title": "Đang kiểm tra cập nhật",
+    "checking_description": "Đang tìm cả bản vá OTA và các bản phát hành ứng dụng mới hơn.",
+    "idle_title": "Cập nhật ứng dụng",
+    "idle_description": "Kiểm tra xem bản build này có thể tải bản cập nhật mới hơn hay không.",
+    "ota_title": "Đã có bản cập nhật",
+    "ota_description": "Đã có bản cập nhật JS/UI mới cho build này. Tải ngay và ứng dụng sẽ tự tải lại mà không cần cài đặt lại.",
+    "native_title": "Đã có bản build mới hơn",
+    "native_dev_description": "Phiên hiện tại đang chạy bằng Expo Go hoặc bản development nên không thể áp dụng OTA production. Chỉ cần cài một bản preview hoặc production một lần, sau đó các bản sửa JS/UI sau này có thể cập nhật ngay trong app.",
+    "native_description": "Đã có bản build native mới hơn. Bản phát hành này vẫn cần cài lại vì lớp native đã thay đổi.",
+    "error_title": "Không thể cập nhật",
+    "current_title": "Bản build này đang là mới nhất",
+    "current_description": "Không tìm thấy bản phát hành mới hơn.",
+    "up_to_date_title": "Bạn đang dùng bản mới nhất",
+    "up_to_date_description": "Hiện không có bản cập nhật mới.",
+    "meta": {
+      "current_build": "Bản build hiện tại",
+      "latest_release": "Bản phát hành mới nhất",
+      "channel": "Kênh"
+    },
+    "actions": {
+      "close": "Đóng",
+      "update_now": "Cập nhật ngay",
+      "open_release": "Mở bản phát hành"
+    }
   }
 }

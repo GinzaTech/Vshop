@@ -326,7 +326,7 @@ export default function CrosshairDatabase() {
 
                   {isCopied ? (
                     <View style={styles.copiedBadge}>
-                      <Text style={styles.copiedText}>COPIED</Text>
+                      <Text style={styles.copiedText}>{t("crosshair_page.copied")}</Text>
                     </View>
                   ) : (
                     <View style={styles.cardFooter}>

@@ -10,6 +10,7 @@ import {
   Text,
   Title,
 } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 
 import { COLORS } from "~/constants/DesignSystem";
 import {
@@ -28,7 +29,8 @@ interface UpdatePopupProps {
 
 const formatContent = (
   checking: boolean,
-  result: AppUpdateCheckResult | null
+  result: AppUpdateCheckResult | null,
+  t: (key: string, options?: Record<string, unknown>) => string
 ): {
   title: string;
   description: string;
@@ -37,16 +39,16 @@ const formatContent = (
 } => {
   if (checking) {
     return {
-      title: "Checking for updates",
-      description: "Looking for both OTA patches and newer app releases.",
+      title: t("update_popup.checking_title"),
+      description: t("update_popup.checking_description"),
       showPrimary: false,
     };
   }
 
   if (!result) {
     return {
-      title: "App updates",
-      description: "Check whether this build can download a newer update.",
+      title: t("update_popup.idle_title"),
+      description: t("update_popup.idle_description"),
       showPrimary: false,
     };
   }
@@ -54,51 +56,49 @@ const formatContent = (
   switch (result.kind) {
     case "ota-available":
       return {
-        title: "Update ready",
-        description:
-          "A new JS/UI update is available for this build. Download it now and the app will reload without reinstalling.",
-        primaryLabel: "Update now",
+        title: t("update_popup.ota_title"),
+        description: t("update_popup.ota_description"),
+        primaryLabel: t("update_popup.actions.update_now"),
         showPrimary: true,
       };
     case "native-update":
       if (result.environment === "expo-go" || result.environment === "development") {
         return {
-          title: "Newer build available",
-          description:
-            "This session is running in Expo Go or a development build, so it cannot apply production OTA updates. Build one preview/production app once, then future JS/UI fixes can update in-app.",
-          primaryLabel: "Open release",
+          title: t("update_popup.native_title"),
+          description: t("update_popup.native_dev_description"),
+          primaryLabel: t("update_popup.actions.open_release"),
           showPrimary: true,
         };
       }
 
       return {
-        title: "Newer build available",
-        description:
-          "A newer native build is available. This specific release still needs a new install because the native layer changed.",
-        primaryLabel: "Open release",
+        title: t("update_popup.native_title"),
+        description: t("update_popup.native_description"),
+        primaryLabel: t("update_popup.actions.open_release"),
         showPrimary: true,
       };
     case "error":
       return {
-        title: "Unable to update",
+        title: t("update_popup.error_title"),
         description: result.message,
-        primaryLabel: result.latestVersion ? "Open release" : undefined,
+        primaryLabel: result.latestVersion
+          ? t("update_popup.actions.open_release")
+          : undefined,
         showPrimary: Boolean(result.latestVersion),
       };
     case "up-to-date":
     default:
       if (!result.canUseOta && result.environment !== "web") {
         return {
-          title: "This build is current",
-          description:
-            "No newer release was found. To update inside the app later, ship one preview/production build with expo-updates enabled.",
+          title: t("update_popup.current_title"),
+          description: t("update_popup.current_description"),
           showPrimary: false,
         };
       }
 
       return {
-        title: "You're up to date",
-        description: "No newer update is available for this build right now.",
+        title: t("update_popup.up_to_date_title"),
+        description: t("update_popup.up_to_date_description"),
         showPrimary: false,
       };
   }
@@ -112,10 +112,11 @@ export default function UpdatePopup({
   onDismiss,
   onPrimaryAction,
 }: UpdatePopupProps) {
+  const { t } = useTranslation();
   const currentVersion = getCurrentAppVersionLabel();
   const { title, description, primaryLabel, showPrimary } = useMemo(
-    () => formatContent(checking, result),
-    [checking, result]
+    () => formatContent(checking, result, t),
+    [checking, result, t]
   );
 
   return (
@@ -141,27 +142,27 @@ export default function UpdatePopup({
           <Paragraph style={styles.description}>{description}</Paragraph>
 
           <View style={styles.metaBlock}>
-            <Text style={styles.metaLabel}>Current build</Text>
+            <Text style={styles.metaLabel}>{t("update_popup.meta.current_build")}</Text>
             <Text style={styles.metaValue}>{currentVersion}</Text>
           </View>
 
           {result?.latestVersion ? (
             <View style={styles.metaBlock}>
-              <Text style={styles.metaLabel}>Latest release</Text>
+              <Text style={styles.metaLabel}>{t("update_popup.meta.latest_release")}</Text>
               <Text style={styles.metaValue}>v{result.latestVersion}</Text>
             </View>
           ) : null}
 
           {result?.channel ? (
             <View style={styles.metaBlock}>
-              <Text style={styles.metaLabel}>Channel</Text>
+              <Text style={styles.metaLabel}>{t("update_popup.meta.channel")}</Text>
               <Text style={styles.metaValue}>{result.channel}</Text>
             </View>
           ) : null}
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismiss} disabled={applying}>
-            Close
+            {t("update_popup.actions.close")}
           </Button>
           {showPrimary && primaryLabel && onPrimaryAction ? (
             <Button onPress={onPrimaryAction} loading={applying} disabled={applying}>

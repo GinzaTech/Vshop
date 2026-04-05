@@ -245,7 +245,7 @@ export default function MatchDetailsScreen() {
                 <Text style={styles.scoreLabel}>{t("match_details_page.blue_team")}</Text>
                 <Text style={styles.scoreValue}>{blueTeam?.roundsWon ?? 0}</Text>
               </View>
-              <Text style={styles.scoreDivider}>VS</Text>
+              <Text style={styles.scoreDivider}>{t("match_details_page.vs")}</Text>
               <View style={styles.scoreItem}>
                 <Text style={styles.scoreLabel}>{t("match_details_page.red_team")}</Text>
                 <Text style={styles.scoreValue}>{redTeam?.roundsWon ?? 0}</Text>
