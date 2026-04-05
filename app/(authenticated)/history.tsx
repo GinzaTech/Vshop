@@ -26,26 +26,6 @@ const LOSS_COLOR = "#8a6770";
 const LOSS_SURFACE = "rgba(138, 103, 112, 0.16)";
 const LOSS_BORDER = "rgba(138, 103, 112, 0.30)";
 
-const formatLabel = (value?: string | null, fallback = "Unknown") => {
-  if (!value) return fallback;
-
-  return value
-    .replace(/_/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-    .trim();
-};
-
-const formatGameModeLabel = (value?: string | null, fallback = "Unknown") => {
-  if (!value) return fallback;
-
-  const lastPathSegment = value.split("/").filter(Boolean).pop() || value;
-  const lastDotSegment = lastPathSegment.split(".").pop() || lastPathSegment;
-  const cleaned = lastDotSegment.replace(/GameMode$/i, "");
-
-  return formatLabel(cleaned || lastDotSegment, fallback);
-};
-
 const formatMatchDate = (value: number) =>
   new Date(value).toLocaleDateString(undefined, {
     month: "short",
@@ -216,49 +196,43 @@ export default function MatchHistory() {
                   borderColor: resultBorder,
                 },
               ]}
-            >
+              >
+                <View
+                  style={[
+                    styles.resultBar,
+                    { backgroundColor: resultColor },
+                  ]}
+                />
+              {item.stats.mapImage ? (
+                <Image
+                  source={{ uri: item.stats.mapImage }}
+                  style={styles.mapBackground}
+                  contentFit="cover"
+                />
+              ) : null}
               <View
                 style={[
-                  styles.resultBar,
-                  { backgroundColor: resultColor },
+                  styles.mapScrim,
+                  { backgroundColor: item.stats.won ? WIN_SURFACE : LOSS_SURFACE },
                 ]}
               />
 
               <View style={styles.matchCardContent}>
                 <View style={styles.cardTopRow}>
-                  <View style={styles.cardTopLeft}>
-                    <View
-                      style={[
-                        styles.resultPill,
-                        {
-                          backgroundColor: resultColor,
-                          borderColor: resultColor,
-                        },
-                      ]}
-                    >
-                      <Text style={styles.resultPillText}>
-                        {item.stats.won
-                          ? t("history_page.result_victory")
-                          : t("history_page.result_defeat")}
-                      </Text>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.modePill,
-                        {
-                          backgroundColor: resultSurface,
-                          borderColor: COLORS.BORDER,
-                        },
-                      ]}
-                    >
-                      <Text style={styles.modePillText}>
-                        {formatGameModeLabel(
-                          item.stats.gameMode || item.QueueID,
-                          t("history_page.unknown")
-                        )}
-                      </Text>
-                    </View>
+                  <View
+                    style={[
+                      styles.resultPill,
+                      {
+                        backgroundColor: resultColor,
+                        borderColor: resultColor,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.resultPillText}>
+                      {item.stats.won
+                        ? t("history_page.result_victory")
+                        : t("history_page.result_defeat")}
+                    </Text>
                   </View>
 
                   <View style={styles.dateBlock}>
@@ -288,13 +262,7 @@ export default function MatchHistory() {
 
                     <View style={styles.mapBlock}>
                       <Text style={styles.mapTitle}>
-                      {item.stats.mapName}
-                      </Text>
-                      <Text style={styles.mapMeta}>
-                        {formatGameModeLabel(
-                          item.stats.gameMode || item.QueueID,
-                          t("history_page.unknown")
-                        )}
+                        {item.stats.mapName}
                       </Text>
                     </View>
                   </View>
@@ -357,37 +325,6 @@ export default function MatchHistory() {
                     <Text style={styles.metricValue}>
                       {item.stats.headshotPct || "--"}
                     </Text>
-                  </View>
-                </View>
-
-                <View style={styles.mapPreviewRow}>
-                  <View style={styles.mapPreviewTextBlock}>
-                    <Text style={styles.mapPreviewEyebrow}>
-                      {t("history_page.map_preview")}
-                    </Text>
-                    <Text style={styles.mapPreviewTitle}>{item.stats.mapName}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.mapPreviewFrame,
-                      { backgroundColor: resultSurface, borderColor: resultBorder },
-                    ]}
-                  >
-                    {item.stats.mapImage ? (
-                      <Image
-                        source={{ uri: item.stats.mapImage }}
-                        style={styles.mapPreviewImage}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <View style={styles.mapPreviewFallback}>
-                        <Icon
-                          name="map-outline"
-                          size={20}
-                          color={COLORS.TEXT_SECONDARY}
-                        />
-                      </View>
-                    )}
                   </View>
                 </View>
               </View>
@@ -503,7 +440,7 @@ const styles = StyleSheet.create({
   matchCard: {
     position: "relative",
     overflow: "hidden",
-    marginBottom: 14,
+    marginBottom: 10,
     borderRadius: RADIUS.card,
     borderWidth: 1,
     backgroundColor: COLORS.SURFACE,
@@ -514,44 +451,36 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     left: 0,
-    width: 5,
+    width: 4,
     zIndex: 3,
   },
+  mapBackground: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.3,
+  },
+  mapScrim: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.72,
+  },
   matchCardContent: {
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   cardTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 12,
   },
-  cardTopLeft: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    flex: 1,
-  },
   resultPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: RADIUS.chip,
     borderWidth: 1,
   },
   resultPillText: {
     color: COLORS.PURE_WHITE,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  modePill: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: RADIUS.chip,
-    borderWidth: 1,
-  },
-  modePillText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   dateBlock: {
@@ -563,15 +492,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   timeText: {
-    marginTop: 4,
+    marginTop: 2,
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
+    fontSize: 11,
   },
   matchMainRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 14,
+    marginTop: 10,
   },
   matchIdentity: {
     flexDirection: "row",
@@ -580,9 +509,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   agentShell: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     borderWidth: 1,
     overflow: "hidden",
   },
@@ -596,38 +525,33 @@ const styles = StyleSheet.create({
   },
   mapTitle: {
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
-  },
-  mapMeta: {
-    marginTop: 5,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
   },
   scoreBlock: {
     alignItems: "flex-end",
   },
   scoreValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
   },
   scoreCaption: {
-    marginTop: 4,
+    marginTop: 2,
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   metricsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
-    marginTop: 14,
+    gap: 8,
+    marginTop: 10,
   },
   metricCard: {
-    width: "47.5%",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 18,
+    width: "48%",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 14,
     borderWidth: 1,
   },
   metricLabel: {
@@ -638,47 +562,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   metricValue: {
-    marginTop: 6,
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  mapPreviewRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 14,
-  },
-  mapPreviewTextBlock: {
-    flex: 1,
-    marginRight: 12,
-  },
-  mapPreviewEyebrow: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  mapPreviewTitle: {
     marginTop: 4,
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-  },
-  mapPreviewFrame: {
-    width: 108,
-    height: 72,
-    borderRadius: 18,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  mapPreviewImage: {
-    width: "100%",
-    height: "100%",
-  },
-  mapPreviewFallback: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
   pendingCard: {
     flexDirection: "row",
