@@ -301,15 +301,13 @@ function Profile() {
           user.entitlementsToken,
           user.region,
           user.id
-        ).catch((err) => {
-          if (__DEV__) {
-            console.warn("[profile] playerLoadout failed, using last snapshot", err);
-          }
-          return loadoutSnapshot;
-        });
+        );
 
         if (!response) {
-          setError(t("equip_page.missing_auth"));
+          if (loadoutSnapshot) {
+            syncLoadoutState(loadoutSnapshot);
+          }
+          setCompetitiveRank(null);
           return;
         }
 
@@ -385,7 +383,14 @@ function Profile() {
             return;
           }
 
-          extractOwnedItemIds(result.value).forEach((itemId) => {
+          let extractedIds: string[] = [];
+          try {
+            extractedIds = extractOwnedItemIds(result.value);
+          } catch {
+            extractedIds = [];
+          }
+
+          extractedIds.forEach((itemId) => {
             if (index === 2) {
               nextOwnedSprayIds.add(itemId);
               return;
@@ -420,8 +425,12 @@ function Profile() {
           number,
           { name: string; icon: string | null }
         >();
-        (getAssets().competitiveTiers || []).forEach((season: any) => {
-          (season?.tiers || []).forEach((tier: any) => {
+        const competitiveTierSeasons = Array.isArray(getAssets().competitiveTiers)
+          ? getAssets().competitiveTiers
+          : [];
+        competitiveTierSeasons.forEach((season: any) => {
+          const tiers = Array.isArray(season?.tiers) ? season.tiers : [];
+          tiers.forEach((tier: any) => {
             const numberTier = Number(tier?.tier);
             if (!Number.isFinite(numberTier) || numberTier <= 0) {
               return;
@@ -446,9 +455,12 @@ function Profile() {
             ? currentTierRaw
             : null;
 
-        const seasonalMax = Object.values(
-          competitiveData?.SeasonalInfoBySeasonID || {}
-        ).reduce((max, season: any) => {
+        const seasonalInfo =
+          competitiveData?.SeasonalInfoBySeasonID &&
+          typeof competitiveData.SeasonalInfoBySeasonID === "object"
+            ? competitiveData.SeasonalInfoBySeasonID
+            : {};
+        const seasonalMax = Object.values(seasonalInfo).reduce((max, season: any) => {
           const seasonTier = Number(season?.CompetitiveTier ?? 0);
           return Number.isFinite(seasonTier) && seasonTier > max ? seasonTier : max;
         }, 0);
@@ -480,8 +492,9 @@ function Profile() {
           peakIcon: peakTierInfo?.icon || null,
         });
       } catch (err) {
-        if (__DEV__) console.error(err);
-        setError(t("equip_page.error_loading"));
+        if (__DEV__) {
+          console.warn("[profile] fetchLoadoutData failed", err);
+        }
       } finally {
         if (showSpinner) {
           setLoading(false);
@@ -491,7 +504,6 @@ function Profile() {
     [
       hasAuth,
       syncLoadoutState,
-      t,
       user.accessToken,
       user.entitlementsToken,
       user.id,
@@ -1110,6 +1122,10 @@ function Profile() {
           user.region,
           user.id
         );
+
+        if (!latestLoadout) {
+          continue;
+        }
 
         if (__DEV__) {
           console.log("[profile] confirm poll", {

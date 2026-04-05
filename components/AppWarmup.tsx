@@ -59,6 +59,10 @@ export default function AppWarmup() {
           void fetchMatches(user);
           startBackgroundCatalogWarmup();
         }
+      } catch (error) {
+        if (__DEV__) {
+          console.warn("[warmup] preload failed", error);
+        }
       } finally {
         warmupStartedRef.current = false;
       }

@@ -467,13 +467,14 @@ export async function playerLoadout(
   const res = await axios.request<PlayerLoadoutResponse>({
     url: getUrl({ name: "player", region: region, userId: userId }),
     method: "GET",
+    validateStatus: () => true,
     headers: {
       ...extraHeaders(),
       'X-Riot-Entitlements-JWT': entitlementsToken,
       Authorization: `Bearer ${accesstoken}`,
     }
   })
-  return res.data;
+  return res.status === 200 ? res.data : null;
 }
 
 export async function updatePlayerLoadout(
@@ -513,6 +514,7 @@ export async function ownedItems(
       itemTypeId,
     }),
     method: "GET",
+    validateStatus: () => true,
     headers: {
       ...extraHeaders(),
       "X-Riot-Entitlements-JWT": entitlementsToken,
@@ -520,7 +522,7 @@ export async function ownedItems(
     },
   });
 
-  return res.data;
+  return res.status === 200 ? res.data : {};
 }
 
 export async function playerMatchHistory(
@@ -552,6 +554,7 @@ export async function getCompetitiveMMR(
   const res = await axios.request<CompetitiveMMRResponse>({
     url: getUrl({ name: "mmr", region: region, userId: userId }),
     method: "GET",
+    validateStatus: () => true,
     headers: {
       ...extraHeaders(),
       "X-Riot-Entitlements-JWT": entitlementsToken,
@@ -559,7 +562,7 @@ export async function getCompetitiveMMR(
     },
   });
 
-  return res.data;
+  return res.status === 200 ? res.data : {};
 }
 
 export async function matchDetails(
