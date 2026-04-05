@@ -261,7 +261,7 @@ export default function MatchHistory() {
                     </View>
 
                     <View style={styles.mapBlock}>
-                      <Text style={styles.mapTitle}>
+                      <Text style={styles.mapTitle} numberOfLines={1}>
                         {item.stats.mapName}
                       </Text>
                     </View>
@@ -439,6 +439,8 @@ const styles = StyleSheet.create({
   },
   matchCard: {
     position: "relative",
+    alignSelf: "center",
+    width: "93%",
     overflow: "hidden",
     marginBottom: 10,
     borderRadius: RADIUS.card,
@@ -460,11 +462,11 @@ const styles = StyleSheet.create({
   },
   mapScrim: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.72,
+    opacity: 0.82,
   },
   matchCardContent: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   cardTopRow: {
     flexDirection: "row",
@@ -506,7 +508,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    marginRight: 12,
+    marginRight: 8,
   },
   agentShell: {
     width: 44,
@@ -532,7 +534,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   scoreValue: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
   },
   scoreCaption: {
@@ -549,8 +551,8 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: "48%",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
     borderRadius: 14,
     borderWidth: 1,
   },
@@ -570,6 +572,8 @@ const styles = StyleSheet.create({
   pendingCard: {
     flexDirection: "row",
     alignItems: "center",
+    width: "93%",
+    alignSelf: "center",
     marginBottom: 14,
     padding: 16,
     borderRadius: RADIUS.card,
