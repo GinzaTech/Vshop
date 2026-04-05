@@ -296,13 +296,24 @@ function Profile() {
       setError(null);
 
       try {
-        const [response, ownershipResults, mmrResult] = await Promise.all([
-          playerLoadout(
-            user.accessToken,
-            user.entitlementsToken,
-            user.region,
-            user.id
-          ) as Promise<PlayerLoadoutResponse>,
+        const response = await playerLoadout(
+          user.accessToken,
+          user.entitlementsToken,
+          user.region,
+          user.id
+        ).catch((err) => {
+          if (__DEV__) {
+            console.warn("[profile] playerLoadout failed, using last snapshot", err);
+          }
+          return loadoutSnapshot;
+        });
+
+        if (!response) {
+          setError(t("equip_page.missing_auth"));
+          return;
+        }
+
+        const [ownershipResults, mmrResult] = await Promise.all([
           Promise.allSettled([
             ownedItems(
               user.accessToken,
@@ -333,7 +344,12 @@ function Profile() {
             user.id
           )
             .then((result) => result as CompetitiveMMRResponse)
-            .catch(() => null),
+            .catch((err) => {
+              if (__DEV__) {
+                console.warn("[profile] competitive MMR unavailable", err);
+              }
+              return null;
+            }),
         ]);
 
         const pendingLoadout = pendingLoadoutRef.current;
@@ -482,6 +498,7 @@ function Profile() {
       user.ownedSkinIds,
       user.region,
       setUser,
+      loadoutSnapshot,
     ]
   );
 
