@@ -118,13 +118,44 @@ export const useMatchStore = create<MatchState>((set, get) => ({
 
         set({ loading: true });
         try {
-            const historyData = await playerMatchHistory(
-                user.accessToken,
-                user.entitlementsToken,
-                user.region,
-                user.id,
-                { startIndex: 0, endIndex: 40, queue: "competitive" }
-            );
+            const fetchHistorySafe = async (params?: {
+                startIndex?: number;
+                endIndex?: number;
+                queue?: string;
+            }) => {
+                try {
+                    return await playerMatchHistory(
+                        user.accessToken,
+                        user.entitlementsToken,
+                        user.region,
+                        user.id,
+                        params
+                    );
+                } catch (error) {
+                    if (__DEV__) {
+                        console.warn("playerMatchHistory failed", params, error);
+                    }
+                    return null;
+                }
+            };
+
+            let historyData = await fetchHistorySafe({
+                startIndex: 0,
+                endIndex: 20,
+                queue: "competitive",
+            });
+
+            if (!historyData?.History?.length) {
+                historyData = await fetchHistorySafe({
+                    startIndex: 0,
+                    endIndex: 20,
+                });
+            }
+
+            if (!historyData?.History?.length) {
+                set({ loading: false, matches: [] });
+                return;
+            }
 
             const historyRaw = historyData.History || [];
             const competitiveOnly = historyRaw.filter((match: any) =>
