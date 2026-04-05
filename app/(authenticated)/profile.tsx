@@ -91,6 +91,28 @@ type CompetitiveRankSummary = {
   peakIcon: string | null;
 };
 
+const formatCompetitiveTierName = (
+  value?: string | null,
+  options?: { stripDivision?: boolean }
+) => {
+  if (!value) {
+    return "Unrated";
+  }
+
+  const normalized = value
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  if (options?.stripDivision) {
+    return normalized.replace(/\s+[123]$/, "");
+  }
+
+  return normalized;
+};
+
 type OwnedSkinOption = {
   id: string;
   skinId: string;
@@ -520,10 +542,14 @@ function Profile() {
 
         setCompetitiveRank({
           currentTier,
-          currentName: currentTierInfo?.name || "Unrated",
+          currentName: formatCompetitiveTierName(
+            currentTierInfo?.name || "Unrated"
+          ),
           currentIcon: currentTierInfo?.icon || null,
           peakTier,
-          peakName: peakTierInfo?.name || "Unrated",
+          peakName: formatCompetitiveTierName(peakTierInfo?.name || "Unrated", {
+            stripDivision: true,
+          }),
           peakIcon: peakTierInfo?.icon || null,
         });
       } catch (err) {
@@ -2444,15 +2470,16 @@ const styles = StyleSheet.create({
   },
   heroStatsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
+    justifyContent: "flex-start",
+    gap: 8,
     marginTop: 12,
   },
   heroStatCard: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    borderRadius: 20,
+    flex: 0,
+    minWidth: 92,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 18,
     backgroundColor: "rgba(255,255,255,0.12)",
   },
   heroStatLabelRow: {
@@ -2470,8 +2497,8 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.72)",
   },
   heroStatValue: {
-    marginTop: 10,
-    fontSize: 18,
+    marginTop: 8,
+    fontSize: 16,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },

@@ -18,6 +18,9 @@ import { getAssets, getAgent } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function MatchDetailsScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams();
@@ -30,6 +33,15 @@ export default function MatchDetailsScreen() {
 
   const [details, setDetails] = React.useState<any>(cachedDetails ?? null);
   const [loading, setLoading] = React.useState(!cachedDetails);
+  const assets = getAssets();
+  const agents = getAgent().agents;
+  const titleLookup = React.useMemo(() => {
+    const map = new Map<string, string>();
+    (assets.titles || []).forEach((item: any) => {
+      map.set(item.uuid, item.titleText || item.displayName || "");
+    });
+    return map;
+  }, [assets.titles]);
 
   React.useEffect(() => {
     const fetchDetails = async () => {
@@ -73,8 +85,6 @@ export default function MatchDetailsScreen() {
     );
   }
 
-  const assets = getAssets();
-  const agents = getAgent().agents;
   const mapInfo = assets.maps?.find(
     (item: any) => item.mapUrl === details.matchInfo?.mapId
   );
@@ -84,10 +94,16 @@ export default function MatchDetailsScreen() {
   const players = details.players || [];
   const bluePlayers = players.filter((player: any) => player.teamId === "Blue");
   const redPlayers = players.filter((player: any) => player.teamId === "Red");
-
   const renderPlayerRow = (player: any) => {
     const agent = agents.find((item: any) => item.uuid === player.characterId);
     const isMe = player.subject === user.id;
+    const rawTitle = typeof player.playerTitle === "string" ? player.playerTitle : "";
+    const resolvedTitle = titleLookup.get(rawTitle);
+    const safeMeta =
+      resolvedTitle ||
+      (rawTitle && !UUID_PATTERN.test(rawTitle) ? rawTitle : "") ||
+      agent?.displayName ||
+      t("match_details_page.player_fallback");
 
     return (
       <View key={player.subject} style={[styles.playerRow, isMe && styles.myRow]}>
@@ -98,7 +114,7 @@ export default function MatchDetailsScreen() {
               {player.gameName}
             </Text>
             <Text style={styles.playerMeta}>
-              {player.playerTitle || t("match_details_page.player_fallback")}
+              {safeMeta}
             </Text>
           </View>
         </View>
