@@ -353,8 +353,10 @@ export const useMatchStore = create<MatchState>()(
             storage: createJSONStorage(() => appStorage),
             partialize: (state) => ({
                 matches: state.matches,
-                detailsById: state.detailsById,
                 lastUpdated: state.lastUpdated,
+                // Do not persist `detailsById`!
+                // Each match detail is ~200-300KB which exceeds AsyncStorage SQLite limit (causing SQLITE_FULL).
+                // They are kept in-memory only.
             }),
         }
     )

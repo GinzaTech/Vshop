@@ -1,3 +1,4 @@
+import "~/utils/polyfills";
 import { Stack, useRouter } from "expo-router";
 import "~/utils/localization";
 import { GestureHandlerRootView } from "react-native-gesture-handler";

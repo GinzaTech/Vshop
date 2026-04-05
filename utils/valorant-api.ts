@@ -3,8 +3,6 @@ import { jwtDecode } from "jwt-decode";
 import { VCurrencies, VItemTypes } from "./misc";
 import https from "https-browserify";
 import { fetchBundle, fetchAgent, getAssets, getAgent } from "./valorant-assets";
-import { access } from "node:fs";
-
 axios.interceptors.request.use(
   function (config) {
     if (__DEV__) console.log(`${config.method?.toUpperCase()} ${config.url}`);
@@ -14,6 +12,7 @@ axios.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
 
 export interface PlayerLoadoutResponse {
   Subject: string;

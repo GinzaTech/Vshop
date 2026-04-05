@@ -124,7 +124,7 @@ function Settings() {
     setUpdatePopupVisible(false);
   };
 
-  const shortcutItems = [
+  const shortcutItems: { label: string | undefined; icon: React.ComponentProps<typeof Icon>["name"]; route: string }[] = [
     { label: t("accessories"), icon: "cards-outline", route: "/accessories" },
     { label: t("gallery"), icon: "image-multiple-outline", route: "/gallery" },
     { label: t("agent") || "Agent", icon: "account-group-outline", route: "/agent" },

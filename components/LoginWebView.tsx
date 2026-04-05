@@ -11,7 +11,9 @@ import WebView from "react-native-webview";
 import { COLORS } from "~/constants/DesignSystem";
 import { clearAllCookies } from "~/utils/cookies";
 import { buildAuthenticatedUser } from "~/utils/auth-session";
-
+import { useMatchStore } from "~/hooks/useMatchStore";
+import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
+import { fetchProfileWarmCache } from "~/utils/profile-cache";
 const LOGIN_URL =
   "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid";
 
@@ -59,6 +61,23 @@ export default function LoginWebView({
         );
 
         setUser(authenticatedUser);
+
+        setLoading(t("fetching.storefront") + " (Warming up...)");
+        try {
+          await Promise.allSettled([
+            useMatchStore.getState().fetchMatches(authenticatedUser),
+            fetchProfileWarmCache(authenticatedUser).then((cache) => {
+              if (cache) {
+                useProfileCacheStore.getState().setProfileCache(cache);
+              }
+            }),
+          ]);
+        } catch (preloadErr) {
+          if (__DEV__) {
+            console.log("Preload failed, falling back", preloadErr);
+          }
+        }
+
         router.replace("/shop");
       } catch (e) {
         console.log(e);

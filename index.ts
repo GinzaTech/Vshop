@@ -1,3 +1,5 @@
+
+
 import "expo-router/entry";
 import { Platform } from "react-native";
 import BackgroundFetch from "./utils/background-fetch";

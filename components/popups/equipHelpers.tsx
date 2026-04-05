@@ -7,7 +7,7 @@ export const EQUIPMENT_SECTIONS = [
   { key: "titles", labelKey: "equip_page.sections.titles" },
 ];
 
-export const sanitizeQuery = (value) => {
+export const sanitizeQuery = (value: string | undefined | null) => {
   if (!value) return "";
 
   return value
@@ -16,7 +16,7 @@ export const sanitizeQuery = (value) => {
     .toLowerCase();
 };
 
-export const getCollectionBySection = (section) => {
+export const getCollectionBySection = (section: string) => {
   const assets = getAssets();
 
   switch (section) {
@@ -32,7 +32,7 @@ export const getCollectionBySection = (section) => {
   }
 };
 
-export const filterEquipItems = (items, query) => {
+export const filterEquipItems = (items: any[], query: string) => {
   const normalized = sanitizeQuery(query);
   if (!normalized) return items;
 
@@ -51,7 +51,7 @@ export const filterEquipItems = (items, query) => {
   });
 };
 
-export const sortEquipItems = (items) => {
+export const sortEquipItems = (items: any[]) => {
   return [...items].sort((a, b) => {
     const valueA = (a.displayName ?? a.titleText ?? "").toLowerCase();
     const valueB = (b.displayName ?? b.titleText ?? "").toLowerCase();
@@ -60,7 +60,7 @@ export const sortEquipItems = (items) => {
   });
 };
 
-export const mapToDisplayItem = (item, section) => {
+export const mapToDisplayItem = (item: any, section: string) => {
   const id = item.uuid ?? item.levels?.[0]?.uuid ?? `${section}-${item.displayName}`;
   let subtitle = "";
 
@@ -89,10 +89,10 @@ export const mapToDisplayItem = (item, section) => {
   };
 };
 
-export const buildEquipDisplayList = (items, section) =>
+export const buildEquipDisplayList = (items: any[], section: string) =>
   items.map((item) => mapToDisplayItem(item, section));
 
-export const getEquipmentImage = (displayItem) => {
+export const getEquipmentImage = (displayItem: any) => {
   const { item, section } = displayItem;
 
   if (!item) return null;

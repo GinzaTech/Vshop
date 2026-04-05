@@ -6,6 +6,7 @@ export default function PlausibleProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const trackPageView = async () => {
+      // @ts-ignore
       const plausible = await import("~/utils/plausible");
       await plausible.capture("pageview", pathname);
     };
