@@ -248,7 +248,18 @@ export default function MatchHistory() {
                     <Text style={[styles.scoreValue, { color: resultColor }]}>
                       {item.stats.roundsWon} - {item.stats.roundsLost}
                     </Text>
-                    <Text style={styles.scoreCaption}>{item.stats.kda}</Text>
+                    {item.stats.rankName || item.stats.rankTier ? (
+                      <View style={styles.rankPill}>
+                        <Icon
+                          name="shield-star-outline"
+                          size={12}
+                          color={COLORS.TEXT_SECONDARY}
+                        />
+                        <Text style={styles.rankText} numberOfLines={1}>
+                          {item.stats.rankName || `Rank ${item.stats.rankTier}`}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
 
@@ -442,8 +453,20 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: "700",
   },
-  scoreCaption: {
-    marginTop: 2,
+  rankPill: {
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.68)",
+    borderWidth: 1,
+    borderColor: "rgba(23,26,31,0.12)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: 140,
+  },
+  rankText: {
     color: COLORS.TEXT_SECONDARY,
     fontSize: 11,
     fontWeight: "600",

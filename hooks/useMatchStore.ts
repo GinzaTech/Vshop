@@ -21,6 +21,8 @@ interface MatchStats {
     mapName: string;
     mapImage: string;
     gameMode: string;
+    rankTier: number | null;
+    rankName: string | null;
 }
 
 interface Match {
@@ -166,6 +168,20 @@ export const useMatchStore = create<MatchState>((set, get) => ({
 
                     const mapInfo = assets.maps ? assets.maps.find((m: any) => m.mapUrl === details.matchInfo?.mapId) : null;
                     const agentInfo = agents ? agents.find((a: any) => a.uuid === myself.characterId) : null;
+                    const rawRankTier = Number(
+                        myself?.competitiveTier ??
+                        myself?.competitiveTierId ??
+                        0
+                    );
+                    const rankTier =
+                        Number.isFinite(rawRankTier) && rawRankTier > 0
+                            ? rawRankTier
+                            : null;
+                    const rankName =
+                        typeof myself?.competitiveTierName === "string" &&
+                        myself.competitiveTierName.trim().length > 0
+                            ? myself.competitiveTierName
+                            : null;
 
                     return {
                         ...match,
@@ -187,6 +203,8 @@ export const useMatchStore = create<MatchState>((set, get) => ({
                             mapName: mapInfo?.displayName || details.matchInfo.mapId,
                             mapImage: mapInfo?.listViewIcon || mapInfo?.splash,
                             gameMode: details.matchInfo.gameMode,
+                            rankTier,
+                            rankName,
                         }
                     };
                 } catch (e) {
