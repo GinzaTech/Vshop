@@ -344,8 +344,7 @@ const styles = StyleSheet.create({
   },
   matchCard: {
     position: "relative",
-    width: "60%",
-    alignSelf: "center",
+    width: "100%",
     overflow: "hidden",
     marginBottom: 10,
     borderRadius: RADIUS.card,
@@ -371,7 +370,7 @@ const styles = StyleSheet.create({
   },
   matchCardContent: {
     paddingHorizontal: 12,
-    paddingVertical: 14,
+    paddingVertical: 10,
   },
   cardTopRow: {
     flexDirection: "row",
@@ -408,7 +407,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 14,
+    marginTop: 10,
   },
   matchIdentity: {
     flexDirection: "row",
@@ -453,8 +452,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 14,
-    paddingTop: 10,
+    marginTop: 10,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: "rgba(23,26,31,0.08)",
   },
@@ -482,10 +481,9 @@ const styles = StyleSheet.create({
   pendingCard: {
     flexDirection: "row",
     alignItems: "center",
-    width: "60%",
-    alignSelf: "center",
+    width: "100%",
     marginBottom: 14,
-    padding: 16,
+    padding: 12,
     borderRadius: RADIUS.card,
     backgroundColor: COLORS.SURFACE,
     borderWidth: 1,
@@ -493,9 +491,9 @@ const styles = StyleSheet.create({
     ...GLOBAL_STYLES.shadow,
   },
   pendingIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.SURFACE_MUTED,
@@ -507,7 +505,7 @@ const styles = StyleSheet.create({
   },
   pendingContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
   },
   pendingTitle: {
     color: COLORS.TEXT_PRIMARY,
