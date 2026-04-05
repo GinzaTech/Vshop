@@ -196,6 +196,7 @@ function Profile() {
   const pickerTaskRef = React.useRef<ReturnType<
     typeof InteractionManager.runAfterInteractions
   > | null>(null);
+  const loadoutSnapshotRef = React.useRef<PlayerLoadoutResponse | null>(null);
   const pendingLoadoutRef = React.useRef<{
     loadout: PlayerLoadoutResponse;
     updatedAt: number;
@@ -226,6 +227,13 @@ function Profile() {
     user.entitlementsToken &&
     user.region &&
     user.id
+  );
+  const authKey = React.useMemo(
+    () =>
+      hasAuth
+        ? [user.accessToken, user.entitlementsToken, user.region, user.id].join("|")
+        : "guest",
+    [hasAuth, user.accessToken, user.entitlementsToken, user.region, user.id]
   );
   const regionLabel = user.region ? user.region.toUpperCase() : "VAL";
 
@@ -286,6 +294,10 @@ function Profile() {
     setIdentity(response.Identity || null);
   }, []);
 
+  React.useEffect(() => {
+    loadoutSnapshotRef.current = loadoutSnapshot;
+  }, [loadoutSnapshot]);
+
   const fetchLoadoutData = React.useCallback(
     async (showSpinner = true) => {
       if (!hasAuth) return;
@@ -304,8 +316,8 @@ function Profile() {
         );
 
         if (!response) {
-          if (loadoutSnapshot) {
-            syncLoadoutState(loadoutSnapshot);
+          if (loadoutSnapshotRef.current) {
+            syncLoadoutState(loadoutSnapshotRef.current);
           }
           setCompetitiveRank(null);
           return;
@@ -375,7 +387,8 @@ function Profile() {
 
         syncLoadoutState(response);
 
-        const nextOwnedSkinIds = new Set<string>(user.ownedSkinIds ?? []);
+        const currentUser = useUserStore.getState().user;
+        const nextOwnedSkinIds = new Set<string>(currentUser.ownedSkinIds ?? []);
         const nextOwnedSprayIds = new Set<string>();
 
         ownershipResults.forEach((result, index) => {
@@ -407,7 +420,6 @@ function Profile() {
         setOwnedSprayItemIds(nextOwnedSprayList);
 
         if (nextOwnedSkinIds.size > 0) {
-          const currentUser = useUserStore.getState().user;
           const currentOwnedSkinSet = new Set(currentUser.ownedSkinIds ?? []);
           const ownedSkinListChanged =
             nextOwnedSkinList.length !== currentOwnedSkinSet.size ||
@@ -507,10 +519,8 @@ function Profile() {
       user.accessToken,
       user.entitlementsToken,
       user.id,
-      user.ownedSkinIds,
       user.region,
       setUser,
-      loadoutSnapshot,
     ]
   );
 
@@ -564,8 +574,8 @@ function Profile() {
       return;
     }
 
-    fetchLoadoutData();
-  }, [fetchLoadoutData, hasAuth, t]);
+    void fetchLoadoutData();
+  }, [authKey, fetchLoadoutData, hasAuth, t]);
 
   const loadoutDetails = React.useMemo<EquippedWeapon[]>(() => {
     const assets = getAssets();
