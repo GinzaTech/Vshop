@@ -61,6 +61,22 @@ export interface OwnedItemsResponse {
   }[];
 }
 
+export interface CompetitiveMMRResponse {
+  Subject?: string;
+  QueueSkills?: {
+    competitive?: {
+      CompetitiveTier?: number;
+      HighestCompetitiveTier?: number;
+      SeasonalInfoBySeasonID?: Record<
+        string,
+        {
+          CompetitiveTier?: number;
+        }
+      >;
+    };
+  };
+}
+
 export const extractOwnedItemIds = (response?: OwnedItemsResponse | null) =>
   Array.from(
     new Set(
@@ -527,6 +543,25 @@ export async function playerMatchHistory(
   return res.data;
 }
 
+export async function getCompetitiveMMR(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
+) {
+  const res = await axios.request<CompetitiveMMRResponse>({
+    url: getUrl({ name: "mmr", region: region, userId: userId }),
+    method: "GET",
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return res.data;
+}
+
 export async function matchDetails(
   accessToken: string,
   entitlementsToken: string,
@@ -573,6 +608,7 @@ function getUrl({
     lock: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/lock/${agentId}`,
     quit: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/quit`,
     player: `https://pd.${region}.a.pvp.net/personalization/v2/players/${userId}/playerloadout`,
+    mmr: `https://pd.${region}.a.pvp.net/mmr/v1/players/${userId}`,
     "owned-items": `https://pd.${region}.a.pvp.net/store/v1/entitlements/${userId}/${itemTypeId}`,
     "match-history": `https://pd.${region}.a.pvp.net/match-history/v1/history/${userId}`,
     "match-details": `https://pd.${region}.a.pvp.net/match-details/v1/matches/${matchId}`

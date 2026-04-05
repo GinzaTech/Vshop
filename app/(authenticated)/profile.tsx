@@ -21,7 +21,9 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
 import {
+  CompetitiveMMRResponse,
   extractOwnedItemIds,
+  getCompetitiveMMR,
   ownedItems,
   playerLoadout,
   PlayerLoadoutResponse,
@@ -79,6 +81,15 @@ const delay = (ms: number) =>
 
 const sameOptionalId = (left?: string | null, right?: string | null) =>
   (left ?? null) === (right ?? null);
+
+type CompetitiveRankSummary = {
+  currentTier: number | null;
+  currentName: string;
+  currentIcon: string | null;
+  peakTier: number | null;
+  peakName: string;
+  peakIcon: string | null;
+};
 
 type OwnedSkinOption = {
   id: string;
@@ -176,6 +187,8 @@ function Profile() {
     user.ownedSkinIds ?? []
   );
   const [ownedSprayItemIds, setOwnedSprayItemIds] = React.useState<string[]>([]);
+  const [competitiveRank, setCompetitiveRank] =
+    React.useState<CompetitiveRankSummary | null>(null);
   const [weaponMetadata, setWeaponMetadata] = React.useState<WeaponMetadataMap>({});
   const [searchQuery, setSearchQuery] = React.useState("");
   const [collectionWeaponFilter, setCollectionWeaponFilter] = React.useState("all");
@@ -283,7 +296,7 @@ function Profile() {
       setError(null);
 
       try {
-        const [response, ownershipResults] = await Promise.all([
+        const [response, ownershipResults, mmrResult] = await Promise.all([
           playerLoadout(
             user.accessToken,
             user.entitlementsToken,
@@ -313,6 +326,14 @@ function Profile() {
               VItemTypes.Spray
             ),
           ]),
+          getCompetitiveMMR(
+            user.accessToken,
+            user.entitlementsToken,
+            user.region,
+            user.id
+          )
+            .then((result) => result as CompetitiveMMRResponse)
+            .catch(() => null),
         ]);
 
         const pendingLoadout = pendingLoadoutRef.current;
@@ -378,6 +399,70 @@ function Profile() {
             });
           }
         }
+
+        const tierLookup = new Map<
+          number,
+          { name: string; icon: string | null }
+        >();
+        (getAssets().competitiveTiers || []).forEach((season: any) => {
+          (season?.tiers || []).forEach((tier: any) => {
+            const numberTier = Number(tier?.tier);
+            if (!Number.isFinite(numberTier) || numberTier <= 0) {
+              return;
+            }
+            if (!tierLookup.has(numberTier)) {
+              tierLookup.set(numberTier, {
+                name: tier?.tierName || `Tier ${numberTier}`,
+                icon:
+                  tier?.smallIcon ||
+                  tier?.largeIcon ||
+                  tier?.rankTriangleDownIcon ||
+                  null,
+              });
+            }
+          });
+        });
+
+        const competitiveData = mmrResult?.QueueSkills?.competitive;
+        const currentTierRaw = Number(competitiveData?.CompetitiveTier ?? 0);
+        const currentTier =
+          Number.isFinite(currentTierRaw) && currentTierRaw > 0
+            ? currentTierRaw
+            : null;
+
+        const seasonalMax = Object.values(
+          competitiveData?.SeasonalInfoBySeasonID || {}
+        ).reduce((max, season: any) => {
+          const seasonTier = Number(season?.CompetitiveTier ?? 0);
+          return Number.isFinite(seasonTier) && seasonTier > max ? seasonTier : max;
+        }, 0);
+
+        const explicitPeakRaw = Number(
+          competitiveData?.HighestCompetitiveTier ?? 0
+        );
+        const explicitPeak =
+          Number.isFinite(explicitPeakRaw) && explicitPeakRaw > 0
+            ? explicitPeakRaw
+            : 0;
+
+        const peakTierCandidate = Math.max(
+          currentTier ?? 0,
+          seasonalMax,
+          explicitPeak
+        );
+        const peakTier = peakTierCandidate > 0 ? peakTierCandidate : null;
+
+        const currentTierInfo = currentTier ? tierLookup.get(currentTier) : null;
+        const peakTierInfo = peakTier ? tierLookup.get(peakTier) : null;
+
+        setCompetitiveRank({
+          currentTier,
+          currentName: currentTierInfo?.name || "Unrated",
+          currentIcon: currentTierInfo?.icon || null,
+          peakTier,
+          peakName: peakTierInfo?.name || "Unrated",
+          peakIcon: peakTierInfo?.icon || null,
+        });
       } catch (err) {
         if (__DEV__) console.error(err);
         setError(t("equip_page.error_loading"));
@@ -441,6 +526,7 @@ function Profile() {
       setIdentity(null);
       setOwnedSkinItemIds([]);
       setOwnedSprayItemIds([]);
+      setCompetitiveRank(null);
       setPickerState(null);
       setPickerLoading(false);
       setPickerError(null);
@@ -1315,6 +1401,52 @@ function Profile() {
             <Text style={styles.heroStatValue}>{stat.value}</Text>
           </View>
         ))}
+      </View>
+
+      <View style={styles.heroRankRow}>
+        <View style={styles.heroRankCard}>
+          <Text style={styles.heroRankLabel}>Current rank</Text>
+          <View style={styles.heroRankValueRow}>
+            {competitiveRank?.currentIcon ? (
+              <Image
+                source={{ uri: competitiveRank.currentIcon }}
+                style={styles.heroRankIcon}
+                contentFit="contain"
+              />
+            ) : (
+              <Icon
+                name="shield-outline"
+                size={18}
+                color="rgba(255,255,255,0.82)"
+              />
+            )}
+            <Text style={styles.heroRankValue}>
+              {competitiveRank?.currentName || "Unrated"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.heroRankCard}>
+          <Text style={styles.heroRankLabel}>Peak rank</Text>
+          <View style={styles.heroRankValueRow}>
+            {competitiveRank?.peakIcon ? (
+              <Image
+                source={{ uri: competitiveRank.peakIcon }}
+                style={styles.heroRankIcon}
+                contentFit="contain"
+              />
+            ) : (
+              <Icon
+                name="shield-half-full"
+                size={18}
+                color="rgba(255,255,255,0.82)"
+              />
+            )}
+            <Text style={styles.heroRankValue}>
+              {competitiveRank?.peakName || "Unrated"}
+            </Text>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -2276,6 +2408,42 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
+  },
+  heroRankRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 10,
+  },
+  heroRankCard: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  heroRankLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.72)",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  heroRankValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  heroRankIcon: {
+    width: 22,
+    height: 22,
+    marginRight: 6,
+  },
+  heroRankValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
+    flexShrink: 1,
   },
   pageScroll: {
     flex: 1,
