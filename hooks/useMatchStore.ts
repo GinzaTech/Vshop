@@ -23,6 +23,7 @@ interface MatchStats {
     gameMode: string;
     rankTier: number | null;
     rankName: string | null;
+    rankIcon: string | null;
 }
 
 interface Match {
@@ -118,6 +119,15 @@ export const useMatchStore = create<MatchState>((set, get) => ({
             const historyList = historyData.History || [];
             const assets = getAssets();
             const agents = getAgent().agents;
+            const tierMap = new Map<number, any>();
+            (assets.competitiveTiers || []).forEach((season: any) => {
+                (season?.tiers || []).forEach((tier: any) => {
+                    const tierNumber = Number(tier?.tier);
+                    if (Number.isFinite(tierNumber) && tierNumber > 0 && !tierMap.has(tierNumber)) {
+                        tierMap.set(tierNumber, tier);
+                    }
+                });
+            });
             const detailsById: Record<string, any> = {};
 
             const detailPromises = historyList.map(async (match: any) => {
@@ -182,6 +192,12 @@ export const useMatchStore = create<MatchState>((set, get) => ({
                         myself.competitiveTierName.trim().length > 0
                             ? myself.competitiveTierName
                             : null;
+                    const tierInfo = rankTier ? tierMap.get(rankTier) : null;
+                    const rankIcon =
+                        tierInfo?.smallIcon ||
+                        tierInfo?.largeIcon ||
+                        tierInfo?.rankTriangleDownIcon ||
+                        null;
 
                     return {
                         ...match,
@@ -204,7 +220,8 @@ export const useMatchStore = create<MatchState>((set, get) => ({
                             mapImage: mapInfo?.listViewIcon || mapInfo?.splash,
                             gameMode: details.matchInfo.gameMode,
                             rankTier,
-                            rankName,
+                            rankName: rankName || tierInfo?.tierName || null,
+                            rankIcon,
                         }
                     };
                 } catch (e) {
@@ -216,7 +233,9 @@ export const useMatchStore = create<MatchState>((set, get) => ({
             const results = await Promise.all(detailPromises);
             void preloadImageUrls(
                 results.flatMap((match) =>
-                    match.stats ? [match.stats.agentIcon, match.stats.mapImage] : []
+                    match.stats
+                        ? [match.stats.agentIcon, match.stats.mapImage, match.stats.rankIcon]
+                        : []
                 ),
                 { batchSize: 8 }
             );

@@ -11,6 +11,7 @@ type StoredAssets = {
   cards: ValorantCardAccessory[];
   titles: ValorantTitleAccessory[];
   maps: any[]; // Use any or define ValorantMap type if possible, but any is faster for now
+  competitiveTiers: any[];
 };
 
 type ValorantAgents = {
@@ -26,6 +27,7 @@ let assets: StoredAssets = {
   cards: [],
   titles: [],
   maps: [],
+  competitiveTiers: [],
 };
 
 let agentsInfo: ValorantAgents = {
@@ -56,7 +58,9 @@ export async function loadAssets() {
       storedAssetsJson.riotClientVersion === await version &&
       storedAssetsJson.language === language &&
       storedAssetsJson.maps &&
-      storedAssetsJson.maps.length > 0
+      storedAssetsJson.maps.length > 0 &&
+      storedAssetsJson.competitiveTiers &&
+      storedAssetsJson.competitiveTiers.length > 0
     ) {
       assets = storedAssetsJson;
       return;
@@ -71,6 +75,7 @@ export async function loadAssets() {
   assets.cards = await fetchPlayerCards(language);
   assets.titles = await fetchPlayerTitles(language);
   assets.maps = await fetchMaps(language);
+  assets.competitiveTiers = await fetchCompetitiveTiers(language);
 
   await FileSystem.writeAsStringAsync(FILE_LOCATION, JSON.stringify(assets));
 }
@@ -158,6 +163,16 @@ export async function fetchPlayerTitles(language?: string) {
 export async function fetchMaps(language?: string) {
   const res = await axios.request<{ data: any[] }>({
     url: `https://valorant-api.com/v1/maps?language=${language ?? getVAPILang()
+      }`,
+    method: "GET",
+  });
+
+  return res.data.data;
+}
+
+export async function fetchCompetitiveTiers(language?: string) {
+  const res = await axios.request<{ data: any[] }>({
+    url: `https://valorant-api.com/v1/competitivetiers?language=${language ?? getVAPILang()
       }`,
     method: "GET",
   });

@@ -248,8 +248,21 @@ export default function MatchHistory() {
                     <Text style={[styles.scoreValue, { color: resultColor }]}>
                       {item.stats.roundsWon} - {item.stats.roundsLost}
                     </Text>
-                    {item.stats.rankName || item.stats.rankTier ? (
-                      <View style={styles.rankPill}>
+                    {item.stats.rankIcon ? (
+                      <View style={styles.rankRow}>
+                        <Image
+                          source={{ uri: item.stats.rankIcon }}
+                          style={styles.rankIconImage}
+                          contentFit="contain"
+                        />
+                        {item.stats.rankName ? (
+                          <Text style={styles.rankText} numberOfLines={1}>
+                            {item.stats.rankName}
+                          </Text>
+                        ) : null}
+                      </View>
+                    ) : item.stats.rankName || item.stats.rankTier ? (
+                      <View style={styles.rankFallbackPill}>
                         <Icon
                           name="shield-star-outline"
                           size={12}
@@ -453,7 +466,18 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: "700",
   },
-  rankPill: {
+  rankRow: {
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
+  },
+  rankIconImage: {
+    width: 24,
+    height: 24,
+  },
+  rankFallbackPill: {
     marginTop: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
