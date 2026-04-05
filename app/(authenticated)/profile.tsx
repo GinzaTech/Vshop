@@ -461,34 +461,57 @@ function Profile() {
         });
 
         const competitiveData = mmrResult?.QueueSkills?.competitive;
-        const currentTierRaw = Number(competitiveData?.CompetitiveTier ?? 0);
-        const currentTier =
-          Number.isFinite(currentTierRaw) && currentTierRaw > 0
-            ? currentTierRaw
-            : null;
+        const latestCompetitiveUpdate = mmrResult?.LatestCompetitiveUpdate;
 
         const seasonalInfo =
           competitiveData?.SeasonalInfoBySeasonID &&
           typeof competitiveData.SeasonalInfoBySeasonID === "object"
             ? competitiveData.SeasonalInfoBySeasonID
             : {};
-        const seasonalMax = Object.values(seasonalInfo).reduce((max, season: any) => {
-          const seasonTier = Number(season?.CompetitiveTier ?? 0);
-          return Number.isFinite(seasonTier) && seasonTier > max ? seasonTier : max;
-        }, 0);
+        const currentSeasonId =
+          typeof latestCompetitiveUpdate?.SeasonID === "string"
+            ? latestCompetitiveUpdate.SeasonID
+            : null;
+        const currentSeasonInfo = currentSeasonId
+          ? (seasonalInfo as Record<string, any>)[currentSeasonId]
+          : null;
 
-        const explicitPeakRaw = Number(
-          competitiveData?.HighestCompetitiveTier ?? 0
+        const latestTierRaw = Number(latestCompetitiveUpdate?.TierAfterUpdate ?? 0);
+        const seasonCurrentTierRaw = Number(
+          currentSeasonInfo?.CompetitiveTier ??
+            competitiveData?.CompetitiveTier ??
+            0
         );
-        const explicitPeak =
-          Number.isFinite(explicitPeakRaw) && explicitPeakRaw > 0
-            ? explicitPeakRaw
-            : 0;
+        const currentTierCandidate =
+          Number.isFinite(latestTierRaw) && latestTierRaw > 0
+            ? latestTierRaw
+            : seasonCurrentTierRaw;
+        const currentTier =
+          Number.isFinite(currentTierCandidate) && currentTierCandidate > 0
+            ? currentTierCandidate
+            : null;
 
+        const peakFromSeasons = Object.values(seasonalInfo).reduce(
+          (max, season: any) => {
+            const seasonPeak = Number(
+              season?.Rank ??
+                season?.SeasonHighestCompetitiveTier ??
+                season?.CompetitiveTier ??
+                0
+            );
+            return Number.isFinite(seasonPeak) && seasonPeak > max
+              ? seasonPeak
+              : max;
+          },
+          0
+        );
+
+        const explicitPeakRaw = Number(competitiveData?.HighestCompetitiveTier ?? 0);
+        const latestPeakRaw = Number(latestCompetitiveUpdate?.TierAfterUpdate ?? 0);
         const peakTierCandidate = Math.max(
-          currentTier ?? 0,
-          seasonalMax,
-          explicitPeak
+          peakFromSeasons,
+          Number.isFinite(explicitPeakRaw) ? explicitPeakRaw : 0,
+          Number.isFinite(latestPeakRaw) ? latestPeakRaw : 0
         );
         const peakTier = peakTierCandidate > 0 ? peakTierCandidate : null;
 
