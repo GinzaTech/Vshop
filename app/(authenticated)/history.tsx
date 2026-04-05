@@ -344,8 +344,7 @@ const styles = StyleSheet.create({
   },
   matchCard: {
     position: "relative",
-    alignSelf: "center",
-    width: "89%",
+    width: "100%",
     overflow: "hidden",
     marginBottom: 10,
     borderRadius: RADIUS.card,
@@ -482,8 +481,7 @@ const styles = StyleSheet.create({
   pendingCard: {
     flexDirection: "row",
     alignItems: "center",
-    width: "93%",
-    alignSelf: "center",
+    width: "100%",
     marginBottom: 14,
     padding: 16,
     borderRadius: RADIUS.card,
