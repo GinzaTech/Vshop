@@ -99,8 +99,18 @@ export const useMatchStore = create<MatchState>((set, get) => ({
         }
     },
     fetchMatches: async (user) => {
+        const cachedMatches = get().matches;
+        const hasOnlyCompetitiveCached =
+            cachedMatches.length > 0 &&
+            cachedMatches.every((match) =>
+                String(match.QueueID || "").toLowerCase().includes("competitive")
+            );
         // Prevent frequent refetching (e.g., 5 minutes cache)
-        if (Date.now() - get().lastUpdated < 5 * 60 * 1000 && get().matches.length > 0) {
+        if (
+            Date.now() - get().lastUpdated < 5 * 60 * 1000 &&
+            cachedMatches.length > 0 &&
+            hasOnlyCompetitiveCached
+        ) {
             return;
         }
 
@@ -113,10 +123,14 @@ export const useMatchStore = create<MatchState>((set, get) => ({
                 user.entitlementsToken,
                 user.region,
                 user.id,
-                { startIndex: 0, endIndex: 10 }
+                { startIndex: 0, endIndex: 40, queue: "competitive" }
             );
 
-            const historyList = historyData.History || [];
+            const historyRaw = historyData.History || [];
+            const competitiveOnly = historyRaw.filter((match: any) =>
+                String(match?.QueueID || "").toLowerCase().includes("competitive")
+            );
+            const historyList = (competitiveOnly.length > 0 ? competitiveOnly : historyRaw).slice(0, 20);
             const assets = getAssets();
             const agents = getAgent().agents;
             const tierMap = new Map<number, any>();
