@@ -1,8 +1,22 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { playerMatchHistory, matchDetails } from "~/utils/valorant-api";
 import { getAssets, getAgent } from "~/utils/valorant-assets";
 import { defaultUser } from "~/utils/valorant-api"; // Assuming we can get user info or pass it
 import { preloadImageUrls } from "~/utils/preload";
+import { appStorage } from "~/utils/storage";
+
+const getMatchRequestKey = (user: typeof defaultUser) =>
+    [user.accessToken, user.entitlementsToken, user.region, user.id].join("|");
+
+let matchesInFlight:
+    | {
+          key: string;
+          promise: Promise<void>;
+      }
+    | null = null;
+
+const detailsInFlight = new Map<string, Promise<any | null>>();
 
 interface MatchStats {
     kda: string;
@@ -46,7 +60,9 @@ interface MatchState {
     ) => Promise<any | null>;
 }
 
-export const useMatchStore = create<MatchState>((set, get) => ({
+export const useMatchStore = create<MatchState>()(
+    persist(
+        (set, get) => ({
     matches: [],
     detailsById: {},
     loading: false,
@@ -61,6 +77,13 @@ export const useMatchStore = create<MatchState>((set, get) => ({
             return cached;
         }
 
+        const detailKey = `${getMatchRequestKey(user)}|${matchId}|${force ? "force" : "cache"}`;
+        const existingPromise = detailsInFlight.get(detailKey);
+        if (existingPromise) {
+            return existingPromise;
+        }
+
+        const request = (async () => {
         try {
             const details = await matchDetails(
                 user.accessToken,
@@ -96,7 +119,13 @@ export const useMatchStore = create<MatchState>((set, get) => ({
         } catch (error) {
             console.warn(`Failed to fetch cached details for ${matchId}`, error);
             return null;
+        } finally {
+            detailsInFlight.delete(detailKey);
         }
+        })();
+
+        detailsInFlight.set(detailKey, request);
+        return request;
     },
     fetchMatches: async (user) => {
         const cachedMatches = get().matches;
@@ -116,6 +145,12 @@ export const useMatchStore = create<MatchState>((set, get) => ({
 
         if (!user.accessToken || !user.entitlementsToken || !user.id || !user.region) return;
 
+        const requestKey = getMatchRequestKey(user);
+        if (matchesInFlight?.key === requestKey) {
+            return matchesInFlight.promise;
+        }
+
+        const request = (async () => {
         set({ loading: true });
         try {
             const fetchHistorySafe = async (params?: {
@@ -298,6 +333,29 @@ export const useMatchStore = create<MatchState>((set, get) => ({
         } catch (error) {
             console.error("Failed to fetch matches globally", error);
             set({ loading: false });
+        } finally {
+            if (matchesInFlight?.key === requestKey) {
+                matchesInFlight = null;
+            }
         }
+    })();
+
+        matchesInFlight = {
+            key: requestKey,
+            promise: request,
+        };
+
+        return request;
     }
-}));
+}),
+        {
+            name: "match-history-cache",
+            storage: createJSONStorage(() => appStorage),
+            partialize: (state) => ({
+                matches: state.matches,
+                detailsById: state.detailsById,
+                lastUpdated: state.lastUpdated,
+            }),
+        }
+    )
+);

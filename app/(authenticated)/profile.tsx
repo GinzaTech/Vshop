@@ -19,6 +19,7 @@ import axios from "axios";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import CurrencyIcon from "~/components/CurrencyIcon";
+import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import {
   CompetitiveMMRResponse,
@@ -29,6 +30,12 @@ import {
   PlayerLoadoutResponse,
   updatePlayerLoadout,
 } from "~/utils/valorant-api";
+import {
+  buildCompetitiveRankSummary,
+  CompetitiveRankSummary,
+  getSessionAuthKey,
+  isProfileCacheFresh,
+} from "~/utils/profile-cache";
 import { getAssets } from "~/utils/valorant-assets";
 import {
   CATEGORY_ORDER,
@@ -82,35 +89,24 @@ const delay = (ms: number) =>
 const sameOptionalId = (left?: string | null, right?: string | null) =>
   (left ?? null) === (right ?? null);
 
-type CompetitiveRankSummary = {
-  currentTier: number | null;
-  currentName: string;
-  currentIcon: string | null;
-  peakTier: number | null;
-  peakName: string;
-  peakIcon: string | null;
-};
-
-const formatCompetitiveTierName = (
-  value?: string | null,
-  options?: { stripDivision?: boolean }
-) => {
-  if (!value) {
-    return "Unrated";
+const normalizeVariantLabel = (skinName: string, chromaName?: string) => {
+  if (!chromaName) {
+    return null;
   }
 
-  const normalized = value
-    .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const baseName = skinName.trim();
+  const variantName = chromaName.trim();
 
-  if (options?.stripDivision) {
-    return normalized.replace(/\s+[123]$/, "");
+  if (!variantName || variantName.toLowerCase() === baseName.toLowerCase()) {
+    return null;
   }
 
-  return normalized;
+  if (variantName.toLowerCase().startsWith(baseName.toLowerCase())) {
+    const suffix = variantName.slice(baseName.length).replace(/^[-:\s]+/, "");
+    return suffix || null;
+  }
+
+  return variantName;
 };
 
 type OwnedSkinOption = {
@@ -119,11 +115,19 @@ type OwnedSkinOption = {
   skinLevelId: string;
   chromaId: string;
   name: string;
+  chromaName?: string;
   image?: string;
   contentTierUuid?: string;
   contentTierName?: string;
   upgradeLevel?: number;
   maxUpgradeLevel?: number;
+  chromas: {
+    id: string;
+    name: string;
+    swatch?: string;
+    image?: string;
+    selected: boolean;
+  }[];
   selected: boolean;
 };
 
@@ -192,29 +196,54 @@ function Profile() {
   const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
+  const setProfileCache = useProfileCacheStore((state) => state.setProfileCache);
 
+  const hasAuth = Boolean(
+    user.accessToken &&
+    user.entitlementsToken &&
+    user.region &&
+    user.id
+  );
+  const authKey = React.useMemo(() => getSessionAuthKey(user), [user]);
+  const cachedProfile = useProfileCacheStore(
+    (state) => state.cacheByAuth[authKey] ?? null
+  );
   const [activeTab, setActiveTab] = React.useState<TabKey>("loadout");
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(!cachedProfile?.loadoutSnapshot);
   const [refreshing, setRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pickerError, setPickerError] = React.useState<string | null>(null);
   const [pickerLoading, setPickerLoading] = React.useState(false);
   const [updatingLoadout, setUpdatingLoadout] = React.useState(false);
-  const [rawGuns, setRawGuns] = React.useState<PlayerLoadoutGun[]>([]);
-  const [rawSprays, setRawSprays] = React.useState<PlayerLoadoutSpray[]>([]);
-  const [identity, setIdentity] = React.useState<PlayerLoadoutIdentity | null>(null);
-  const [loadoutSnapshot, setLoadoutSnapshot] =
-    React.useState<PlayerLoadoutResponse | null>(null);
-  const [ownedSkinItemIds, setOwnedSkinItemIds] = React.useState<string[]>(
-    user.ownedSkinIds ?? []
+  const [rawGuns, setRawGuns] = React.useState<PlayerLoadoutGun[]>(
+    cachedProfile?.loadoutSnapshot?.Guns ?? []
   );
-  const [ownedSprayItemIds, setOwnedSprayItemIds] = React.useState<string[]>([]);
+  const [rawSprays, setRawSprays] = React.useState<PlayerLoadoutSpray[]>(
+    cachedProfile?.loadoutSnapshot?.Sprays ?? []
+  );
+  const [identity, setIdentity] = React.useState<PlayerLoadoutIdentity | null>(
+    cachedProfile?.loadoutSnapshot?.Identity ?? null
+  );
+  const [loadoutSnapshot, setLoadoutSnapshot] =
+    React.useState<PlayerLoadoutResponse | null>(cachedProfile?.loadoutSnapshot ?? null);
+  const [ownedSkinItemIds, setOwnedSkinItemIds] = React.useState<string[]>(
+    cachedProfile?.ownedSkinItemIds?.length
+      ? cachedProfile.ownedSkinItemIds
+      : user.ownedSkinIds ?? []
+  );
+  const [ownedSprayItemIds, setOwnedSprayItemIds] = React.useState<string[]>(
+    cachedProfile?.ownedSprayItemIds ?? []
+  );
   const [competitiveRank, setCompetitiveRank] =
-    React.useState<CompetitiveRankSummary | null>(null);
+    React.useState<CompetitiveRankSummary | null>(cachedProfile?.competitiveRank ?? null);
   const [weaponMetadata, setWeaponMetadata] = React.useState<WeaponMetadataMap>({});
   const [searchQuery, setSearchQuery] = React.useState("");
   const [collectionWeaponFilter, setCollectionWeaponFilter] = React.useState("all");
   const [pickerState, setPickerState] = React.useState<PickerState | null>(null);
+  const [activeWeaponChroma, setActiveWeaponChroma] = React.useState<{
+    weapon: EquippedWeapon;
+    option: OwnedSkinOption;
+  } | null>(null);
   const pickerTaskRef = React.useRef<ReturnType<
     typeof InteractionManager.runAfterInteractions
   > | null>(null);
@@ -242,20 +271,6 @@ function Profile() {
       };
     },
     [colors]
-  );
-
-  const hasAuth = Boolean(
-    user.accessToken &&
-    user.entitlementsToken &&
-    user.region &&
-    user.id
-  );
-  const authKey = React.useMemo(
-    () =>
-      hasAuth
-        ? [user.accessToken, user.entitlementsToken, user.region, user.id].join("|")
-        : "guest",
-    [hasAuth, user.accessToken, user.entitlementsToken, user.region, user.id]
   );
   const regionLabel = user.region ? user.region.toUpperCase() : "VAL";
 
@@ -319,6 +334,23 @@ function Profile() {
   React.useEffect(() => {
     loadoutSnapshotRef.current = loadoutSnapshot;
   }, [loadoutSnapshot]);
+
+  React.useEffect(() => {
+    if (!hasAuth || !cachedProfile?.loadoutSnapshot) {
+      return;
+    }
+
+    syncLoadoutState(cachedProfile.loadoutSnapshot);
+    setOwnedSkinItemIds(
+      cachedProfile.ownedSkinItemIds?.length
+        ? cachedProfile.ownedSkinItemIds
+        : user.ownedSkinIds ?? []
+    );
+    setOwnedSprayItemIds(cachedProfile.ownedSprayItemIds ?? []);
+    setCompetitiveRank(cachedProfile.competitiveRank ?? null);
+    setError(null);
+    setLoading(false);
+  }, [cachedProfile, hasAuth, syncLoadoutState, user.ownedSkinIds]);
 
   const fetchLoadoutData = React.useCallback(
     async (showSpinner = true) => {
@@ -455,102 +487,17 @@ function Profile() {
           }
         }
 
-        const tierLookup = new Map<
-          number,
-          { name: string; icon: string | null }
-        >();
-        const competitiveTierSeasons = Array.isArray(getAssets().competitiveTiers)
-          ? getAssets().competitiveTiers
-          : [];
-        competitiveTierSeasons.forEach((season: any) => {
-          const tiers = Array.isArray(season?.tiers) ? season.tiers : [];
-          tiers.forEach((tier: any) => {
-            const numberTier = Number(tier?.tier);
-            if (!Number.isFinite(numberTier) || numberTier <= 0) {
-              return;
-            }
-            if (!tierLookup.has(numberTier)) {
-              tierLookup.set(numberTier, {
-                name: tier?.tierName || `Tier ${numberTier}`,
-                icon:
-                  tier?.smallIcon ||
-                  tier?.largeIcon ||
-                  tier?.rankTriangleDownIcon ||
-                  null,
-              });
-            }
-          });
-        });
-
-        const competitiveData = mmrResult?.QueueSkills?.competitive;
-        const latestCompetitiveUpdate = mmrResult?.LatestCompetitiveUpdate;
-
-        const seasonalInfo =
-          competitiveData?.SeasonalInfoBySeasonID &&
-          typeof competitiveData.SeasonalInfoBySeasonID === "object"
-            ? competitiveData.SeasonalInfoBySeasonID
-            : {};
-        const currentSeasonId =
-          typeof latestCompetitiveUpdate?.SeasonID === "string"
-            ? latestCompetitiveUpdate.SeasonID
-            : null;
-        const currentSeasonInfo = currentSeasonId
-          ? (seasonalInfo as Record<string, any>)[currentSeasonId]
-          : null;
-
-        const latestTierRaw = Number(latestCompetitiveUpdate?.TierAfterUpdate ?? 0);
-        const seasonCurrentTierRaw = Number(
-          currentSeasonInfo?.CompetitiveTier ??
-            competitiveData?.CompetitiveTier ??
-            0
+        const nextCompetitiveRank = buildCompetitiveRankSummary(
+          (mmrResult as CompetitiveMMRResponse | null) ?? null
         );
-        const currentTierCandidate =
-          Number.isFinite(latestTierRaw) && latestTierRaw > 0
-            ? latestTierRaw
-            : seasonCurrentTierRaw;
-        const currentTier =
-          Number.isFinite(currentTierCandidate) && currentTierCandidate > 0
-            ? currentTierCandidate
-            : null;
-
-        const peakFromSeasons = Object.values(seasonalInfo).reduce(
-          (max, season: any) => {
-            const seasonPeak = Number(
-              season?.Rank ??
-                season?.SeasonHighestCompetitiveTier ??
-                season?.CompetitiveTier ??
-                0
-            );
-            return Number.isFinite(seasonPeak) && seasonPeak > max
-              ? seasonPeak
-              : max;
-          },
-          0
-        );
-
-        const explicitPeakRaw = Number(competitiveData?.HighestCompetitiveTier ?? 0);
-        const latestPeakRaw = Number(latestCompetitiveUpdate?.TierAfterUpdate ?? 0);
-        const peakTierCandidate = Math.max(
-          peakFromSeasons,
-          Number.isFinite(explicitPeakRaw) ? explicitPeakRaw : 0,
-          Number.isFinite(latestPeakRaw) ? latestPeakRaw : 0
-        );
-        const peakTier = peakTierCandidate > 0 ? peakTierCandidate : null;
-
-        const currentTierInfo = currentTier ? tierLookup.get(currentTier) : null;
-        const peakTierInfo = peakTier ? tierLookup.get(peakTier) : null;
-
-        setCompetitiveRank({
-          currentTier,
-          currentName: formatCompetitiveTierName(
-            currentTierInfo?.name || "Unrated"
-          ),
-          currentIcon: currentTierInfo?.icon || null,
-          peakTier,
-          peakName: formatCompetitiveTierName(peakTierInfo?.name || "Unrated", {
-            stripDivision: true,
-          }),
-          peakIcon: peakTierInfo?.icon || null,
+        setCompetitiveRank(nextCompetitiveRank);
+        setProfileCache({
+          authKey,
+          loadoutSnapshot: response,
+          ownedSkinItemIds: nextOwnedSkinList,
+          ownedSprayItemIds: nextOwnedSprayList,
+          competitiveRank: nextCompetitiveRank,
+          updatedAt: Date.now(),
         });
       } catch (err) {
         if (__DEV__) {
@@ -563,12 +510,14 @@ function Profile() {
       }
     },
     [
+      authKey,
       hasAuth,
       syncLoadoutState,
       user.accessToken,
       user.entitlementsToken,
       user.id,
       user.region,
+      setProfileCache,
       setUser,
     ]
   );
@@ -619,12 +568,16 @@ function Profile() {
       setPickerLoading(false);
       setPickerError(null);
       setError(t("equip_page.missing_auth"));
-      setLoading(false);
+      setLoading(!cachedProfile?.loadoutSnapshot);
       return;
     }
 
-    void fetchLoadoutData();
-  }, [authKey, fetchLoadoutData, hasAuth, t]);
+    if (isProfileCacheFresh(cachedProfile)) {
+      return;
+    }
+
+    void fetchLoadoutData(!cachedProfile?.loadoutSnapshot);
+  }, [authKey, cachedProfile, fetchLoadoutData, hasAuth, t]);
 
   const loadoutDetails = React.useMemo<EquippedWeapon[]>(() => {
     const assets = getAssets();
@@ -835,6 +788,10 @@ function Profile() {
             skin.levels.some((level) => ownedSkinIdSet.has(level.uuid)) ||
             skin.chromas.some((chroma) => ownedSkinIdSet.has(chroma.uuid))
         )
+        .filter(
+          (skin, index, list) =>
+            list.findIndex((item) => item.uuid === skin.uuid) === index
+        )
         .map((skin) => {
           const currentLevel = skin.levels.find(
             (level) => level.uuid === weapon.skinLevelId
@@ -847,39 +804,51 @@ function Profile() {
             ownedLevels[ownedLevels.length - 1] ||
             skin.levels[0];
 
-          const currentChroma = skin.chromas.find(
-            (chroma) => chroma.uuid === weapon.chromaId
-          );
-          const ownedChromas = skin.chromas.filter((chroma) =>
-            ownedSkinIdSet.has(chroma.uuid)
-          );
-          const selectedChroma =
-            currentChroma ||
-            ownedChromas[0] ||
-            skin.chromas[0];
           const levelIndex = skin.levels.findIndex(
             (level) => level.uuid === selectedLevel?.uuid
           );
           const tier = getContentTierVisual(skin.contentTierUuid);
+          const chromaOptions = skin.chromas
+            .filter(Boolean)
+            .filter(
+              (chroma, index, list) =>
+                list.findIndex((item) => item.uuid === chroma.uuid) === index
+            );
+          const previewChroma =
+            chromaOptions.find((chroma) => chroma.uuid === weapon.chromaId) ||
+            chromaOptions[0];
 
           return {
             id: skin.uuid,
             skinId: skin.uuid,
             skinLevelId: selectedLevel?.uuid || weapon.skinLevelId,
-            chromaId: selectedChroma?.uuid || weapon.chromaId,
+            chromaId: previewChroma?.uuid || weapon.chromaId,
             name: skin.displayName,
+            chromaName:
+              normalizeVariantLabel(skin.displayName, previewChroma?.displayName) ||
+              undefined,
             image:
+              previewChroma?.fullRender ||
+              previewChroma?.displayIcon ||
               selectedLevel?.displayIcon ||
-              selectedChroma?.displayIcon ||
               skin.displayIcon,
             contentTierUuid: skin.contentTierUuid,
             contentTierName: tier.label,
             upgradeLevel: levelIndex >= 0 ? levelIndex + 1 : undefined,
             maxUpgradeLevel: skin.levels.length || undefined,
+            chromas: chromaOptions.map((chroma) => ({
+              id: chroma.uuid,
+              name:
+                normalizeVariantLabel(skin.displayName, chroma.displayName) ||
+                "Default",
+              swatch: chroma.swatch,
+              image: chroma.displayIcon || chroma.fullRender,
+              selected: chroma.uuid === weapon.chromaId,
+            })),
             selected:
               skin.uuid === weapon.skinId &&
               (selectedLevel?.uuid || weapon.skinLevelId) === weapon.skinLevelId &&
-              (selectedChroma?.uuid || weapon.chromaId) === weapon.chromaId,
+              (previewChroma?.uuid || weapon.chromaId) === weapon.chromaId,
           };
         })
         .sort((a, b) => {
@@ -888,7 +857,12 @@ function Profile() {
             return selectedDiff;
           }
 
-          return a.name.localeCompare(b.name);
+          const nameDiff = a.name.localeCompare(b.name);
+          if (nameDiff !== 0) {
+            return nameDiff;
+          }
+
+          return (a.chromaName || "").localeCompare(b.chromaName || "");
         });
 
       return options;
@@ -1104,6 +1078,7 @@ function Profile() {
     pickerTaskRef.current?.cancel();
     pickerTaskRef.current = null;
     setPickerLoading(false);
+    setActiveWeaponChroma(null);
     setPickerState(null);
     setPickerError(null);
   }, [updatingLoadout]);
@@ -1113,6 +1088,7 @@ function Profile() {
       pickerTaskRef.current?.cancel();
       setPickerError(null);
       setPickerLoading(true);
+      setActiveWeaponChroma(null);
       React.startTransition(() => {
         setPickerState({
           type: "weapon",
@@ -1497,7 +1473,7 @@ function Profile() {
 
       <View style={styles.heroRankRow}>
         <View style={styles.heroRankCard}>
-          <Text style={styles.heroRankLabel}>Current rank</Text>
+          <Text style={styles.heroRankLabel}>Current Rank</Text>
           <View style={styles.heroRankValueRow}>
             {competitiveRank?.currentIcon ? (
               <Image
@@ -1519,7 +1495,7 @@ function Profile() {
         </View>
 
         <View style={styles.heroRankCard}>
-          <Text style={styles.heroRankLabel}>Peak rank</Text>
+          <Text style={styles.heroRankLabel}>Peak Rank</Text>
           <View style={styles.heroRankValueRow}>
             {competitiveRank?.peakIcon ? (
               <Image
@@ -1709,66 +1685,6 @@ function Profile() {
     []
   );
 
-  const renderLoadoutWeaponCard = React.useCallback(
-    (weapon: EquippedWeapon, category: string) => {
-      const tier = getContentTierVisual(
-        weapon.contentTierUuid,
-        weapon.contentTierName
-      );
-
-      return (
-        <TouchableOpacity
-          key={`${category}-${weapon.weaponId}`}
-          activeOpacity={0.92}
-          disabled={updatingLoadout}
-          onPress={() => handleOpenWeaponPicker(weapon)}
-          style={[
-            styles.skinGridCard,
-            styles.syncedGridCard,
-            {
-              backgroundColor: tier.cardBackground,
-              borderColor: tier.border,
-              opacity: updatingLoadout ? 0.72 : 1,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.skinGridVisual,
-              styles.syncedGridVisual,
-              {
-                backgroundColor: tier.visualBackground,
-                borderColor: tier.border,
-              },
-            ]}
-          >
-            <Image
-              source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
-              style={styles.skinGridImage}
-              contentFit="contain"
-            />
-          </View>
-
-          <View style={styles.skinGridDetails}>
-            <Text
-              style={[styles.skinGridTitle, { color: palette.textPrimary }]}
-              numberOfLines={2}
-            >
-              {weapon.skinName}
-            </Text>
-            {renderWeaponBadges(weapon)}
-          </View>
-        </TouchableOpacity>
-      );
-    },
-    [
-      handleOpenWeaponPicker,
-      palette.textPrimary,
-      renderWeaponBadges,
-      updatingLoadout,
-    ]
-  );
-
   const renderSkinGridCard = React.useCallback(
     (weapon: EquippedWeapon, category: string) => {
       const tier = getContentTierVisual(
@@ -1823,29 +1739,6 @@ function Profile() {
     [handleOpenWeaponPicker, palette.textPrimary, renderWeaponBadges, updatingLoadout]
   );
 
-  const renderWeaponCategories = React.useCallback(
-    (
-      renderCard: (weapon: EquippedWeapon, category: string) => React.ReactNode,
-      sectionStyle: StyleProp<ViewStyle> = styles.categorySection
-    ) =>
-      orderedCategories.map((category) => {
-        const weapons = loadoutByCategory[category];
-        if (!weapons?.length) return null;
-
-        return (
-          <View key={category} style={sectionStyle}>
-            <Text style={[styles.categoryTitle, { color: palette.textPrimary }]}>
-              {formatCategoryLabel(category)}
-            </Text>
-            <View style={styles.skinGrid}>
-              {weapons.map((weapon) => renderCard(weapon, category))}
-            </View>
-          </View>
-        );
-      }),
-    [formatCategoryLabel, loadoutByCategory, orderedCategories, palette]
-  );
-
   const renderPageHeader = () => (
     <>
       {renderProfileHero()}
@@ -1875,19 +1768,6 @@ function Profile() {
       <View style={bodyStyle}>{children}</View>
     </ScrollView>
   );
-
-  const renderWeaponsSection = () => {
-    if (loadoutSorted.length === 0) return null;
-
-    return (
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
-          {t("equip_page.sections.weapons")}
-        </Text>
-        {renderWeaponCategories(renderLoadoutWeaponCard)}
-      </View>
-    );
-  };
 
   const renderSkinsTab = () =>
     renderPageScroll(
@@ -2023,7 +1903,6 @@ function Profile() {
       <>
         {renderIdentitySection()}
         {renderSpraySection()}
-        {renderWeaponsSection()}
       </>
     );
 
@@ -2130,6 +2009,14 @@ function Profile() {
                       activeOpacity={0.9}
                       disabled={pickerBusy}
                       onPress={() => handleEquipWeapon(pickerState.weapon, option)}
+                      onLongPress={() =>
+                        !pickerBusy &&
+                        option.chromas.length > 0 &&
+                        setActiveWeaponChroma({
+                          weapon: pickerState.weapon,
+                          option,
+                        })
+                      }
                       style={[
                         styles.pickerOptionCard,
                         {
@@ -2165,6 +2052,37 @@ function Profile() {
                       >
                         {option.name}
                       </Text>
+                      {option.chromas.length > 0 ? (
+                        <View style={styles.pickerChipHintRow}>
+                          {option.chromas.slice(0, 3).map((chroma) => (
+                            <View key={chroma.id} style={styles.pickerChipHint}>
+                              <Image
+                                source={
+                                  chroma.swatch
+                                    ? { uri: chroma.swatch }
+                                    : chroma.image
+                                      ? { uri: chroma.image }
+                                      : FALLBACK_IMAGE
+                                }
+                                style={styles.pickerChipHintImage}
+                                contentFit="cover"
+                              />
+                            </View>
+                          ))}
+                          {option.chromas.length > 3 ? (
+                            <View style={styles.pickerChipHintMore}>
+                              <Text
+                                style={[
+                                  styles.pickerChipHintMoreText,
+                                  { color: palette.textPrimary },
+                                ]}
+                              >
+                                +{option.chromas.length - 3}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
                       <View style={styles.pickerOptionMeta}>
                         <View
                           style={[
@@ -2318,6 +2236,103 @@ function Profile() {
                 )}
               />
             )}
+
+            {pickerState.type === "weapon" && activeWeaponChroma ? (
+              <View
+                style={[
+                  styles.chromaPanel,
+                  {
+                    backgroundColor: palette.background,
+                    borderColor: palette.cardBorder,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Đóng bảng chọn màu"
+                  onPress={() => setActiveWeaponChroma(null)}
+                  style={[
+                    styles.chromaPanelClose,
+                    {
+                      backgroundColor: palette.chipBackground,
+                      borderColor: palette.cardBorder,
+                    },
+                  ]}
+                >
+                  <Icon name="close" size={16} color={palette.textPrimary} />
+                </TouchableOpacity>
+                <Text
+                  style={[styles.chromaPanelTitle, { color: palette.textPrimary }]}
+                >
+                  Chọn màu
+                </Text>
+                <Text
+                  style={[
+                    styles.chromaPanelSubtitle,
+                    { color: palette.textSecondary },
+                  ]}
+                >
+                  {activeWeaponChroma.option.name}
+                </Text>
+                <View style={styles.chromaChipRow}>
+                  {activeWeaponChroma.option.chromas.map((chroma) => (
+                    <TouchableOpacity
+                      key={chroma.id}
+                      activeOpacity={0.85}
+                      disabled={pickerBusy}
+                      onPress={() =>
+                        handleEquipWeapon(activeWeaponChroma.weapon, {
+                          ...activeWeaponChroma.option,
+                          chromaId: chroma.id,
+                          chromaName: chroma.name,
+                          image: chroma.image || activeWeaponChroma.option.image,
+                          selected: chroma.selected,
+                        })
+                      }
+                      style={[
+                        styles.chromaChip,
+                        {
+                          backgroundColor: chroma.selected
+                            ? palette.accent
+                            : palette.chipBackground,
+                          borderColor: chroma.selected
+                            ? palette.accent
+                            : palette.cardBorder,
+                          opacity: pickerBusy ? 0.72 : 1,
+                        },
+                      ]}
+                    >
+                      <View style={styles.chromaChipPreview}>
+                        <Image
+                          source={
+                            chroma.swatch
+                              ? { uri: chroma.swatch }
+                              : chroma.image
+                                ? { uri: chroma.image }
+                                : FALLBACK_IMAGE
+                          }
+                          style={styles.chromaChipPreviewImage}
+                          contentFit="cover"
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          styles.chromaChipText,
+                          {
+                            color: chroma.selected
+                              ? COLORS.PURE_WHITE
+                              : palette.textPrimary,
+                          },
+                        ]}
+                      >
+                        {chroma.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </View>
         </Modal>
       </Portal>
@@ -2349,7 +2364,10 @@ function Profile() {
       styles.errorText,
       { color: palette.textSecondary },
     ]);
-  } else if (loadoutSorted.length === 0) {
+  } else if (
+    activeTab !== "loadout" &&
+    loadoutSorted.length === 0
+  ) {
     content = renderStatusScroll(t("equip_page.empty"), [
       styles.emptyText,
       { color: palette.textSecondary },
@@ -2470,13 +2488,13 @@ const styles = StyleSheet.create({
   },
   heroStatsRow: {
     flexDirection: "row",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
     gap: 8,
     marginTop: 12,
   },
   heroStatCard: {
-    flex: 0,
-    minWidth: 92,
+    flex: 1,
+    minWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 18,
@@ -2648,6 +2666,51 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  pickerOptionSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  pickerChipHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  pickerChipHint: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    overflow: "hidden",
+    marginRight: 4,
+    borderWidth: 1,
+    borderColor: "rgba(23,26,31,0.08)",
+  },
+  pickerChipHintImage: {
+    width: "100%",
+    height: "100%",
+  },
+  pickerChipHintMore: {
+    minWidth: 22,
+    height: 16,
+    paddingHorizontal: 5,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.72)",
+    marginRight: 4,
+    borderWidth: 1,
+    borderColor: "rgba(23,26,31,0.08)",
+  },
+  pickerChipHintMoreText: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  pickerChipHintText: {
+    marginLeft: 4,
+    fontSize: 10,
+    fontWeight: "600",
+  },
   pickerOptionMeta: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -2675,6 +2738,66 @@ const styles = StyleSheet.create({
   },
   pickerSelectedText: {
     marginTop: 8,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  chromaPanel: {
+    marginTop: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 12,
+    position: "relative",
+  },
+  chromaPanelClose: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    zIndex: 1,
+  },
+  chromaPanelTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    paddingRight: 34,
+  },
+  chromaPanelSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    paddingRight: 34,
+  },
+  chromaChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 10,
+  },
+  chromaChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chromaChipPreview: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    overflow: "hidden",
+    marginRight: 8,
+    backgroundColor: "rgba(255,255,255,0.9)",
+  },
+  chromaChipPreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  chromaChipText: {
     fontSize: 11,
     fontWeight: "700",
   },
@@ -2735,20 +2858,20 @@ const styles = StyleSheet.create({
   sprayList: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: -6,
+    justifyContent: "space-between",
   },
   sprayCard: {
-    width: "46%",
-    margin: 6,
+    width: "48%",
+    marginBottom: 12,
     borderRadius: RADIUS.card,
-    padding: 16,
+    padding: 12,
     alignItems: "center",
     borderWidth: 1,
   },
   sprayImage: {
-    width: 96,
-    height: 96,
-    marginBottom: 12,
+    width: 77,
+    height: 77,
+    marginBottom: 10,
   },
   sprayName: {
     fontSize: 14,
@@ -2993,3 +3116,4 @@ const styles = StyleSheet.create({
 });
 
 export default Profile;
+

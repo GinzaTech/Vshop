@@ -6,8 +6,8 @@ interface ValorantSkin {
   displayIcon?: string;
   wallpaper?: string;
   assetPath: string;
-  chromas: ISkinChroma[];
-  levels: ISkinLevel[];
+  chromas: ValorantSkinChroma[];
+  levels: ValorantSkinLevel[];
 }
 
 interface ValorantAgent {
@@ -26,8 +26,8 @@ interface ValorantAgent {
     displayName?: string;
     description: string;
     displayIcon: string;
-  }
-  abilities?: Ability[]
+  };
+  abilities?: Ability[];
 }
 
 interface Ability {
@@ -109,6 +109,7 @@ interface ValorantBundle {
   useAdditionalContext: boolean;
   displayIcon: string;
   displayIcon2: string;
+  logoIcon?: any;
   verticalPromoImage?: string;
   assetPath: string;
 }
@@ -129,20 +130,5 @@ interface ValorantSkinLevel {
   levelItem?: string;
   displayIcon?: string;
   streamedVideo?: string;
-  assetPath: string;
-}
-
-interface ValorantBundle {
-  uuid: string;
-  displayName: string;
-  displayNameSubText: any;
-  description: string;
-  extraDescription: any;
-  promoDescription: any;
-  useAdditionalContext: boolean;
-  displayIcon: string;
-  displayIcon2: string;
-  logoIcon: any;
-  verticalPromoImage: string;
   assetPath: string;
 }

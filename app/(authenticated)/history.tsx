@@ -156,6 +156,7 @@ export default function MatchHistory() {
         const scrimColor = item.stats.won
           ? "rgba(239, 247, 242, 0.88)"
           : "rgba(246, 240, 243, 0.88)";
+        const mapScrimColor = scrimColor;
 
         return (
           <TouchableOpacity
@@ -187,7 +188,7 @@ export default function MatchHistory() {
               <View
                 style={[
                   styles.mapScrim,
-                  { backgroundColor: scrimColor },
+                  { backgroundColor: mapScrimColor },
                 ]}
               />
 

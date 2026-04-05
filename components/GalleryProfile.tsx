@@ -71,6 +71,9 @@ const KNOWN_SPRAY_SLOT_KEYS = new Set([
   "default",
 ]);
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export type TabKey = "loadout" | "skins" | "collection";
 
 export interface PlayerLoadoutGun {
@@ -183,6 +186,8 @@ export const resolveCategory = (meta?: WeaponMetadata): string => {
 export const formatSpraySlot = (slot: string, t: TFunction) => {
   const upperSlot = slot.toUpperCase();
   const slotKey = SPRAY_SLOT_TRANSLATIONS[slot] || SPRAY_SLOT_TRANSLATIONS[upperSlot];
+  const defaultTranslationKey = "equip_page.spray_slots.default";
+  const defaultTranslation = t(defaultTranslationKey);
 
   if (slotKey && KNOWN_SPRAY_SLOT_KEYS.has(slotKey)) {
     const translationKey = `equip_page.spray_slots.${slotKey}`;
@@ -222,6 +227,16 @@ export const formatSpraySlot = (slot: string, t: TFunction) => {
         }
       }
     }
+  }
+
+  if (
+    UUID_PATTERN.test(slot) ||
+    UUID_PATTERN.test(sanitized) ||
+    /^[0-9a-f ]{20,}$/i.test(sanitized)
+  ) {
+    return defaultTranslation !== defaultTranslationKey
+      ? defaultTranslation
+      : "Default";
   }
 
   return t("equip_page.spray_slot_label", {

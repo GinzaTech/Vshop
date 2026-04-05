@@ -1,4 +1,5 @@
 import 'react-native-paper';
+export {};
 
 declare global {
     namespace ReactNativePaper {

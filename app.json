@@ -2,7 +2,7 @@
   "expo": {
     "name": "VShop",
     "slug": "vshop",
-    "version": "3.1.2",
+    "version": "4.0.0",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -32,7 +32,7 @@
       "permissions": [
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
-      "package": "dev.vasc.vshop2",
+      "package": "com.android.vshop",
       "versionCode": 74
     },
     "web": {

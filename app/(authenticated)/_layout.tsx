@@ -129,6 +129,7 @@ function Layout() {
     <>
       <AppWarmup />
       <Tabs
+        initialRouteName="profile"
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
           headerShown: false,
@@ -240,13 +241,6 @@ function Layout() {
             headerStyle: styles.secondaryHeader,
             headerTintColor: COLORS.TEXT_PRIMARY,
             headerShadowVisible: false,
-          }}
-        />
-        <Tabs.Screen
-          name="match_details/[id]"
-          options={{
-            href: null,
-            headerShown: false,
           }}
         />
       </Tabs>

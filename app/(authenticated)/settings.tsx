@@ -264,7 +264,7 @@ function Settings() {
           {renderRow({
             icon: "discord",
             title: t("discord_server"),
-            onPress: () => Linking.openURL("https://vshop.one/discord"),
+            onPress: () => Linking.openURL("https://discord.gg/gB2nM6vKrD"),
           })}
           {renderRow({
             icon: "information-outline",

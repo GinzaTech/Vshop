@@ -11,6 +11,7 @@ import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
 import PageIntro from "~/components/ui/PageIntro";
+import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 
 function AccessoryShop() {
   const { t } = useTranslation();
@@ -49,7 +50,7 @@ function AccessoryShop() {
       </View>
 
       <View style={styles.metricRow}>
-        <InfoPill style={styles.metricPill}>
+        <InfoPill style={[styles.metricPill, styles.kcMetricPill]}>
           <CurrencyIcon icon="kc" style={styles.metricIcon} />
           <Text style={styles.metricText}>{user.balances.kc}</Text>
         </InfoPill>
@@ -59,13 +60,17 @@ function AccessoryShop() {
         </InfoPill>
       </View>
 
-      {items.length > 0 ? (
-        items.map((item) => <ShopAccessoryItem item={item} key={item.uuid} />)
-      ) : (
+      {items.length === 0 ? (
         <EmptyStateCard
           title={t("accessories_page.empty_title")}
           subtitle={t("accessories_page.empty_subtitle")}
         />
+      ) : (
+        <TwoColumnGrid
+            items={items}
+            keyExtractor={(item) => item.uuid}
+            renderItem={(item) => <ShopAccessoryItem item={item} />}
+          />
       )}
     </ScrollView>
   );
@@ -108,14 +113,20 @@ const styles = StyleSheet.create({
   metricPill: {
     flex: 1,
   },
+  kcMetricPill: {
+    backgroundColor: COLORS.VALORANT_DARK_BLUE,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
   metricIcon: {
     width: 14,
     height: 14,
+    tintColor: COLORS.PURE_WHITE,
   },
   metricText: {
-    color: COLORS.TEXT_PRIMARY,
+    color: COLORS.PURE_WHITE,
     fontWeight: "700",
   },
 });
 
 export default AccessoryShop;
+
