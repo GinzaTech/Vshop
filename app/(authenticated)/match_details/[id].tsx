@@ -97,6 +97,7 @@ export default function MatchDetailsScreen() {
   const renderPlayerRow = (player: any) => {
     const agent = agents.find((item: any) => item.uuid === player.characterId);
     const isMe = player.subject === user.id;
+    const agentIconUri = agent?.displayIcon || agent?.displayIconSmall;
     const rawTitle = typeof player.playerTitle === "string" ? player.playerTitle : "";
     const resolvedTitle = titleLookup.get(rawTitle);
     const safeMeta =
@@ -108,7 +109,14 @@ export default function MatchDetailsScreen() {
     return (
       <View key={player.subject} style={[styles.playerRow, isMe && styles.myRow]}>
         <View style={styles.playerLeft}>
-          <Image source={{ uri: agent?.displayIcon }} style={styles.agentIcon} />
+          <View style={styles.agentIconShell}>
+            <Image
+              source={agentIconUri ? { uri: agentIconUri } : undefined}
+              style={styles.agentIcon}
+              contentFit="contain"
+              contentPosition="center"
+            />
+          </View>
           <View>
             <Text style={[styles.playerName, isMe && styles.myPlayerName]}>
               {player.gameName}
@@ -339,10 +347,20 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
   },
+  agentIconShell: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(23,26,31,0.08)",
+  },
   agentIcon: {
     width: 38,
     height: 38,
-    borderRadius: RADIUS.chip,
   },
   playerName: {
     color: COLORS.TEXT_PRIMARY,
