@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   matchCard: {
     position: "relative",
     alignSelf: "center",
-    width: "93%",
+    width: "89%",
     overflow: "hidden",
     marginBottom: 10,
     borderRadius: RADIUS.card,
@@ -371,13 +371,14 @@ const styles = StyleSheet.create({
   },
   matchCardContent: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 14,
   },
   cardTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     gap: 12,
+    marginBottom: 4,
   },
   resultPill: {
     paddingHorizontal: 10,
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: 14,
   },
   matchIdentity: {
     flexDirection: "row",
@@ -452,8 +453,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: 14,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: "rgba(23,26,31,0.08)",
   },
