@@ -21,7 +21,7 @@ function ReAuth() {
     >
       <View style={{ marginTop: 28, marginBottom: 18 }}>
         <Paragraph style={{ color: COLORS.TEXT_SECONDARY }}>
-          Riot Games account
+          {t("reauth.riot_account")}
         </Paragraph>
         <Title style={{ fontSize: 32, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}>
           {t("welcome_back")}

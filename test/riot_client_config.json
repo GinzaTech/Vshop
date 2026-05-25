@@ -1,0 +1,7776 @@
+{
+  "activity_gateway.activities.cache_expiry_ms": 0,
+  "activity_gateway.activities.enabled": true,
+  "activity_gateway.activities.join_code_rms_update.enabled": false,
+  "activity_gateway.activities.members_rms_update.enabled": true,
+  "activity_gateway.discord.enabled": true,
+  "activity_gateway.filter_for_same_product.enabled": false,
+  "activity_gateway.initial_retry_delay_ms": 1000,
+  "activity_gateway.max_retry_delay_ms": 60000,
+  "activity_gateway.min_retry_delay_ms": 1000,
+  "activity_gateway.num_attempts": 3,
+  "activity_gateway.pp_cluster_to_url": {
+    "am": "https://usw-prod.pp.sgp.pvp.net",
+    "an": "https://apne-prod.pp.sgp.pvp.net",
+    "as": "https://apse-prod.pp.sgp.pvp.net",
+    "eu": "https://euc-prod.pp.sgp.pvp.net"
+  },
+  "activity_gateway.request_timeout_ms": 5000,
+  "aes.discord.enabled": true,
+  "chat.affinities": {
+    "asia": "jp1.chat.si.riotgames.com",
+    "br1": "br.chat.si.riotgames.com",
+    "eu": "euw1.chat.si.riotgames.com",
+    "eun1": "eun1.chat.si.riotgames.com",
+    "euw1": "euw1.chat.si.riotgames.com",
+    "jp1": "jp1.chat.si.riotgames.com",
+    "kr1": "kr1.chat.si.riotgames.com",
+    "la1": "la1.chat.si.riotgames.com",
+    "la2": "la2.chat.si.riotgames.com",
+    "na1": "na2.chat.si.riotgames.com",
+    "oc1": "kr1.chat.si.riotgames.com",
+    "pbe1": "pbe1.chat.si.riotgames.com",
+    "ru1": "euw1.chat.si.riotgames.com",
+    "sea1": "sa1.chat.si.riotgames.com",
+    "sea2": "sa2.chat.si.riotgames.com",
+    "sea3": "sa3.chat.si.riotgames.com",
+    "tr1": "euw1.chat.si.riotgames.com",
+    "us": "la1.chat.si.riotgames.com",
+    "us-br1": "br.chat.si.riotgames.com",
+    "us-la2": "la2.chat.si.riotgames.com"
+  },
+  "chat.affinity.enabled": true,
+  "chat.affinity_domains": {
+    "asia": "jp1",
+    "br1": "br1",
+    "eu": "eu1",
+    "eun1": "eu2",
+    "euw1": "eu1",
+    "jp1": "jp1",
+    "kr1": "kr1",
+    "la1": "la1",
+    "la2": "la2",
+    "na1": "na1",
+    "oc1": "kr1",
+    "pbe1": "pb1",
+    "ru1": "eu1",
+    "sea1": "sa1",
+    "sea2": "sa2",
+    "sea3": "sa3",
+    "tr1": "eu1",
+    "us": "la1",
+    "us-br1": "br1",
+    "us-la2": "la2"
+  },
+  "chat.affinity_hints": {
+    "br1": [
+      "BR1"
+    ],
+    "eun1": [
+      "EUN1"
+    ],
+    "euw1": [
+      "EUW1"
+    ],
+    "jp1": [
+      "JP1"
+    ],
+    "kr1": [
+      "KR"
+    ],
+    "la1": [
+      "LA1"
+    ],
+    "la2": [
+      "LA2"
+    ],
+    "na1": [
+      "NA1"
+    ],
+    "oc1": [
+      "OC1"
+    ],
+    "pbe1": [
+      "PBE1"
+    ],
+    "ru1": [
+      "RU"
+    ],
+    "tr1": [
+      "TR1"
+    ]
+  },
+  "chat.aggressive_scan.enabled": false,
+  "chat.allow_bad_cert.enabled": false,
+  "chat.auto_query_msg_history.enabled": true,
+  "chat.console_text_chat_permissions_check_on_participant_added.enabled": true,
+  "chat.default_mobile_product_id": "league_of_legends",
+  "chat.disable_chat_restriction_muted_system_message": false,
+  "chat.force_filter.enabled": false,
+  "chat.game_name_tag_line.enabled": true,
+  "chat.host": "unconfigured.chat.si.riotgames.com",
+  "chat.immediate_connect_products": [
+    "bacon"
+  ],
+  "chat.localize_restrictions_messages.enabled": false,
+  "chat.port": 5223,
+  "chat.protocol_preference": "ipv4",
+  "chat.replace_rich_messages": false,
+  "chat.require_jwt_presence.league_of_legends.enabled": false,
+  "chat.require_keystone_presence.enabled": false,
+  "chat.require_multi_game_presence_rxep.enabled": false,
+  "chat.require_pbtoken_for_muc.enabled": true,
+  "chat.sanitize_urls_on_receive": false,
+  "chat.sanitize_urls_on_send": false,
+  "chat.send_restrictions_messages_mid_chat.enabled": true,
+  "chat.send_restrictions_messages_on_muc_entry.enabled": true,
+  "chat.settings.playerPreferencesKey": "LcuSocialPreferences",
+  "chat.url_parts_to_remove": [
+    "http://",
+    "https://",
+    "www."
+  ],
+  "chat.url_tlds_to_remove": [
+    "gov.au",
+    "asn.au",
+    "act.au",
+    "nsw.au",
+    "nt.au",
+    "qld.au",
+    "sa.au",
+    "tas.au",
+    "vic.au",
+    "wa.au",
+    "com.au",
+    "net.au",
+    "org.au",
+    "edu.au",
+    "id.au",
+    "au",
+    "com",
+    "gov",
+    "net",
+    "org",
+    "tk",
+    "tv",
+    "nz",
+    "to",
+    "ws",
+    "fm",
+    "vu",
+    "fj",
+    "pg",
+    "sb",
+    "de",
+    "cn",
+    "info",
+    "uk",
+    "xyz",
+    "fr",
+    "eu",
+    "co",
+    "ca",
+    "in",
+    "online",
+    "us",
+    "ch",
+    "site",
+    "cloud",
+    "biz",
+    "io",
+    "me",
+    "tech",
+    "dev",
+    "app",
+    "ai"
+  ],
+  "chat.use_tls.enabled": true,
+  "chat.xmpp_stanza_response_telemetry_allowed_codes": [
+    400,
+    401,
+    403,
+    404,
+    405,
+    408,
+    409,
+    412,
+    417,
+    422,
+    429,
+    500,
+    502,
+    503,
+    504
+  ],
+  "chat.xmpp_stanza_response_telemetry_allowed_iqids": [
+    "join_muc_",
+    "roster_add_",
+    "friend_update_",
+    "group_reorder_",
+    "group_rename_",
+    "group_remove_",
+    "get_archive_",
+    "get_muc_archive_",
+    "update_session_active_",
+    "update_mobile_state_",
+    "get_mobile_state_"
+  ],
+  "chatbox.message_expiration_time_in_minute": 0,
+  "friends_forever.initial_retry_delay_ms": 1000,
+  "friends_forever.max_retry_delay_ms": 300000,
+  "friends_forever.min_retry_delay_ms": 1000,
+  "friends_forever.num_attempts": 3,
+  "friends_forever.platform_links.enabled": true,
+  "friends_forever.platform_links.job_queue_buffer_ms": 1000,
+  "friends_forever.request_timeout_ms": 5000,
+  "friends_forever.service_url": "https://riot-geo.ffs.si.riotgames.com",
+  "keystone.client.feature_flags.chrome_devtools.enabled": false,
+  "keystone.client.feature_flags.fist_animation.enabled": false,
+  "keystone.client.feature_flags.gaWarning.enabled": true,
+  "keystone.client.feature_flags.home_page_route.enabled": false,
+  "keystone.client.feature_flags.joinable_friends.enabled": false,
+  "keystone.client.feature_flags.nav_panel.enabled": false,
+  "keystone.client.feature_flags.playerBehaviorToken.enabled": true,
+  "keystone.client.feature_flags.playerReporting.enabled": true,
+  "keystone.client.feature_flags.restriction.enabled": true,
+  "keystone.client.feature_flags.self_presence.enabled": false,
+  "keystone.client.feature_flags.side_panel.enabled": false,
+  "keystone.client.feature_flags.social_notifications.enabled": false,
+  "keystone.client.feature_flags.tab_bar.enabled": false,
+  "keystone.client.side_nav.display": {
+    "basic": [
+      "games-library"
+    ],
+    "campaign": [],
+    "gameBar": [
+      "league_of_legends",
+      "valorant",
+      "teamfighttactics",
+      "lion",
+      "bacon",
+      "mock_game"
+    ]
+  },
+  "keystone.cohorts.RC_15.new_lifecycle": "globalEnable",
+  "keystone.first-party-fulfillment": {
+    "enabled": false,
+    "riot-pay-base-url": ""
+  },
+  "keystone.first-party-fulfillment.sonyregions": {},
+  "keystone.loyalty.config": {
+    "league_of_legends.live.br": {
+      "backendUrl": "https://lers-latam.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "br",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.eune": {
+      "backendUrl": "https://lers-eu.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "eune",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.euw": {
+      "backendUrl": "https://lers-eu.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "euw",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.kr": {
+      "backendUrl": "https://lers-kr.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "kr",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.la1": {
+      "backendUrl": "https://lers-latam.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "la1",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.la2": {
+      "backendUrl": "https://lers-latam.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "la2",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.me1": {
+      "backendUrl": "https://lers-eu.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "me",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.na": {
+      "backendUrl": "https://lers-na.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "na",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.oc1": {
+      "backendUrl": "https://lers-na.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "oc1",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.ph2": {
+      "backendUrl": "https://lers-apse.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "ph2",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.ru": {
+      "backendUrl": "https://lers-eu.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "ru",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.sg2": {
+      "backendUrl": "https://lers-apse.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "sg2",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.th2": {
+      "backendUrl": "https://lers-apse.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "th2",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.tr": {
+      "backendUrl": "https://lers-eu.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "tr",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.tw2": {
+      "backendUrl": "https://lers-apse.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "tw2",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.live.vn2": {
+      "backendUrl": "https://lers-apse.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "vn2",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends.pbe.pbe": {
+      "backendUrl": "https://lers-na.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "pbe",
+      "heartbeatInterval": 90,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "league_of_legends_game.live.kr": {
+      "backendUrl": "https://lers-kr.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "kr",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "lion.live-internal-qa.default": {
+      "backendUrl": "https://lers-kr.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "default",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 10
+    },
+    "lion.live.americas": {
+      "backendUrl": "https://lers-na.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "americas",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 10
+    },
+    "lion.live.default": {
+      "backendUrl": "https://lers-kr.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "default",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 10
+    },
+    "lion.live.emea": {
+      "backendUrl": "https://lers-eu.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "emea",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 10
+    },
+    "valorant.live.ap": {
+      "backendUrl": "https://lers-apse.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "ap",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "valorant.live.br": {
+      "backendUrl": "https://lers-latam.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "br",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "valorant.live.eu": {
+      "backendUrl": "https://lers-eu.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "eu",
+      "heartbeatInterval": 30,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 10
+    },
+    "valorant.live.kr": {
+      "backendUrl": "https://lers-kr.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "kr",
+      "heartbeatInterval": 90,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 5
+    },
+    "valorant.live.latam": {
+      "backendUrl": "https://lers-latam.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "latam",
+      "heartbeatInterval": 30,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 10
+    },
+    "valorant.live.na": {
+      "backendUrl": "https://lers-na.pp.sgp.pvp.net",
+      "enabled": true,
+      "gameShard": "na",
+      "heartbeatInterval": 30,
+      "telemetryEnabled": false,
+      "webRequestInitialRetryDelayInMilliSec": 100,
+      "webRequestMaxRetryDelayInMilliSec": 1000,
+      "webRequestRetryCount": 3,
+      "webRequestTimeoutInSec": 10
+    }
+  },
+  "keystone.player-behavior-token.default_fetch_url": "https://usw2-red.pp.sgp.pvp.net",
+  "keystone.player-behavior-token.fetch_url_by_affinities": {
+    "asia": "https://apne1-red.pp.sgp.pvp.net",
+    "eu": "https://euc1-red.pp.sgp.pvp.net",
+    "sea": "https://apse1-red.pp.sgp.pvp.net",
+    "us": "https://usw2-red.pp.sgp.pvp.net"
+  },
+  "keystone.player-behavior-token.token_refresh_buffer_seconds": 84600,
+  "keystone.player-reporting.report_collector_url": "https://usw2-red.pp.sgp.pvp.net",
+  "keystone.player-reporting.report_collector_url_by_affinities": {
+    "asia": "https://apne1-red.pp.sgp.pvp.net",
+    "eu": "https://euc1-red.pp.sgp.pvp.net",
+    "sea": "https://apse1-red.pp.sgp.pvp.net",
+    "us": "https://usw2-red.pp.sgp.pvp.net"
+  },
+  "keystone.restriction.product_ids_by_scope.ares": [
+    "valorant"
+  ],
+  "keystone.restriction.product_ids_by_scope.bacon": [
+    "bacon"
+  ],
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ChatCommandTelemetry": "riotgamesapi__ChatCommandTelemetry__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ChatDisconnectEvent": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ChatLoginState": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ChatStanzaResponse": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.CommercePluginSLI": "riotgamesapi__CommercePluginSLI__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ConsoleAccountSLI": "riotgamesapi__ConsoleAccountSLI__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.EndpointResult": "riotgamesapi__EndpointResult__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ErrorLog": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ExternalWebRequest": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.FirstPartyFulfillmentSLI": "riotgamesapi__FirstPartyFulfillmentSLI__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.GameSessionOperation": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.PayMobile": "riotgamesapi__PayMobile__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.PlayerAccountAliasSanitizedEvent": "riotclient__PlayerAccountAliasSanitizedEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ProductIntegrationAppRepairEvent": "riotgamesapi__ProductIntegrationAppRepairEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.ProductIntegrationEvent": "riotgamesapi__ProductIntegrationEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RSOAuthLoginSteps": "riotgamesapi__RSOAuthLoginSteps__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RSOMobileAccountDeletionUI": "riotgamesapi__RSOMobileAccountDeletionUI__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RSOSignOnAttempt": "riotgamesapi__RSOSignOnAttempt__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RpgPciPenaltyNotificationPlayerActionEvent": "rpg__pci__penaltyNotificationPlayerActionEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RpgPciReporterFeedbackAcknowledgedEvent": "rpg__pci__reporterFeedbackAcknowledgedEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RpgPciReporterFeedbackReceivedEvent": "rpg__pci__reporterFeedbackReceivedEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RpgPciWarningAcknowledgementEvent": "rpg__pci__warningAcknowledgementEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RpgPciWarningFoundUnacknowledgedEvent": "rpg__pci__warningFoundUnacknowledgedEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RpgServiceAvailability": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.RpgServiceLatency": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.SdkAppModuleShutdownData": false,
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.SocialAuth": "riotgamesapi__SocialAuth__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.StartDesktopPurchase": "riotgamesapi__StartDesktopPurchase__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.TermsOfServiceEvent": "riotgamesapi__TermsOfServiceEvent__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.VNGSLI": "riotgamesapi__VNGSLI__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.VivoxCallStats": "riotgamesapi__VivoxCallStats__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.VoiceChatCSRCapture": "riotgamesapi__VoiceChatCSRCapture__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.VoiceChatCSRFailureMonitoring": "riotgamesapi__VoiceChatCSRFailureMonitoring__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.VoiceChatCSRInitialization": "riotgamesapi__VoiceChatCSRInitialization__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.VoiceChatCSRUpload": "riotgamesapi__VoiceChatCSRUpload__v*",
+  "keystone.riotgamesapi.telemetry.analytics_platform_allowed_events.VoiceChatSLI": "riotgamesapi__VoiceChatSLI__v*",
+  "keystone.riotgamesapi.telemetry.endpoint.send_deprecated": false,
+  "keystone.riotgamesapi.telemetry.endpoint.send_failure": false,
+  "keystone.riotgamesapi.telemetry.endpoint.send_success": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ChatCommandTelemetry": "riotgamesapi__ChatCommandTelemetry__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ChatDisconnectEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ChatLoginState": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ChatStanzaResponse": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.CommercePluginSLI": "riotgamesapi__CommercePluginSLI__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ConsoleAccountSLI": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.EndpointResult": "riotgamesapi__EndpointResult__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ErrorLog": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ExternalWebRequest": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.FirstPartyFulfillmentSLI": "riotgamesapi__FirstPartyFulfillmentSLI__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.GameSessionOperation": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.PayMobile": "riotgamesapi__PayMobile__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.PlayerAccountAliasSanitizedEvent": "riotclient__PlayerAccountAliasSanitizedEvent__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ProductIntegrationAppRepairEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.ProductIntegrationEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RSOAuthLoginSteps": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RSOMobileAccountDeletionUI": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RSOSignOnAttempt": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RpgPciPenaltyNotificationPlayerActionEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RpgPciReporterFeedbackAcknowledgedEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RpgPciReporterFeedbackReceivedEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RpgPciWarningAcknowledgementEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RpgPciWarningFoundUnacknowledgedEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RpgServiceAvailability": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.RpgServiceLatency": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.SdkAppModuleShutdownData": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.SocialAuth": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.StartDesktopPurchase": "riotgamesapi__StartDesktopPurchase__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.TermsOfServiceEvent": false,
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.VNGSLI": "riotgamesapi__VNGSLI__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.VivoxCallStats": "riotgamesapi__VivoxCallStats__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.VoiceChatCSRCapture": "riotgamesapi__VoiceChatCSRCapture__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.VoiceChatCSRFailureMonitoring": "riotgamesapi__VoiceChatCSRFailureMonitoring__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.VoiceChatCSRInitialization": "riotgamesapi__VoiceChatCSRInitialization__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.VoiceChatCSRUpload": "riotgamesapi__VoiceChatCSRUpload__v*",
+  "keystone.riotgamesapi.telemetry.opentelemetry_allowed_events.VoiceChatSLI": "riotgamesapi__VoiceChatSLI__v*",
+  "keystone.telemetry.ap.disabled_events.riotclient__TimeSample__v4": true,
+  "keystone.telemetry.ap.disabled_events.rpg__ServiceAvailability__v2": true,
+  "keystone.telemetry.ap.disabled_events.rpg__ServiceLatency__v2": true,
+  "keystone.telemetry.ap.disabled_events.schemaless__ExternalWebRequest__v1": true,
+  "keystone.telemetry.endpoint.send_deprecated": false,
+  "keystone.telemetry.endpoint.send_failure": false,
+  "keystone.telemetry.endpoint.send_success": false,
+  "keystone.telemetry.metrics_enabled": true,
+  "keystone.telemetry.metrics_public_api_key": "RGAPI-fd715aa0-b4b3-437d-a48b-35ef7e6247de",
+  "keystone.telemetry.newrelic_api_key": "NRII-TG5v4aFw_vlFzEvSB-AhGInjYXkstBQ4",
+  "keystone.telemetry.newrelic_events_v2_enabled": true,
+  "keystone.telemetry.newrelic_metrics_v1_enabled": true,
+  "keystone.telemetry.newrelic_schemaless_events_v2_enabled": true,
+  "keystone.telemetry.opentelemetry.disabled_events.riotclient__TimeSample__v4": true,
+  "lion.163E5C7D4DF7B628C8B73E89E9DD3A23": true,
+  "lion.E6D29B562F374C0091598707C0F66193": false,
+  "lion.achievements.enabled": true,
+  "lion.activity_gateway_service.url": "https://usw-prod.pp.sgp.pvp.net",
+  "lion.analytics.collector_endpoint": "data.riotgames.com",
+  "lion.analytics.enable": true,
+  "lion.battlepass.enabled": true,
+  "lion.battlepass.purchaseoptions.enabled": true,
+  "lion.championrecruitment.enabled": true,
+  "lion.champmastery.enabled": true,
+  "lion.champroster.bios.enabled": true,
+  "lion.champroster.enabled": true,
+  "lion.champroster.finishers.enabled": true,
+  "lion.champroster.skins.enabled": true,
+  "lion.champroster.skins.rarity.enabled": false,
+  "lion.champroster.taunts.enabled": true,
+  "lion.chat.quickchat.disabled": false,
+  "lion.client.version_set": {
+    "default": "lionriot.prod"
+  },
+  "lion.client.version_set_v2": {
+    "default": "lionriot.prod"
+  },
+  "lion.collections.enabled": true,
+  "lion.collections.stages.enabled": true,
+  "lion.duofinder.enabled": true,
+  "lion.friends.messagingenabled": true,
+  "lion.gaps_match_history.url": {
+    "am": "https://usw2-red.pp.sgp.pvp.net",
+    "apac": "https://apse1-red.pp.sgp.pvp.net",
+    "eu": "https://euc1-red.pp.sgp.pvp.net"
+  },
+  "lion.gpp.pingfilter.enabled": true,
+  "lion.gpp.pingfilter.max_ping": 500,
+  "lion.korea_rve_consent.version": 1,
+  "lion.korea_rve_oversea_transfer_consent.url": "https://legal.kr.riotgames.com/rve/oversea",
+  "lion.korea_rve_privacy_consent.url": "https://legal.kr.riotgames.com/rve/privacy",
+  "lion.leaderboard.grouping": "default",
+  "lion.leaderboard.name": "lion-apex",
+  "lion.leaderboard.region": {
+    "am": "na",
+    "apac": "apse",
+    "eu": "eu"
+  },
+  "lion.leaderboards.enabled": true,
+  "lion.leaderboardsquerysgpendpoint": {
+    "am": "https://usw2-red.pp.sgp.pvp.net",
+    "apac": "https://apse1-red.pp.sgp.pvp.net",
+    "eu": "https://euc1-red.pp.sgp.pvp.net"
+  },
+  "lion.lobby.level.overrides": "{\"private_large\": \"1e64fbb6-448f-7846-7611-17a17888625f\"}",
+  "lion.lobby.size.enabled": false,
+  "lion.lobby.spectate.enabled": true,
+  "lion.lobby.trainingmenu.enabled": false,
+  "lion.matchhistory.enabled": true,
+  "lion.moderation.blockplayer.enabled": true,
+  "lion.moderation.penaltynotification.useplugintexts": false,
+  "lion.moderation.penaltynotifications.disabledpenaltytypes": [],
+  "lion.moderation.queuelockoutenforcement.disabledqueuetypes": [
+    "Casual",
+    "Ranked"
+  ],
+  "lion.moderation.reporterfeedback.disabled": false,
+  "lion.moderation.reporting.chatfilter.forcedoncountries": [
+    "vnm"
+  ],
+  "lion.moderation.reporting.enabled": true,
+  "lion.newshub.enabled": true,
+  "lion.newshub.page": "2xko-news-gallery",
+  "lion.patchsieve.url": "https://sieve.services.riotcdn.net",
+  "lion.player_affinity_environment": "live",
+  "lion.player_feedback_tool.url": "https://pft-lion.rdatasrv.net",
+  "lion.playercardsandtitles.enabled": true,
+  "lion.playerexpressions.enabled": true,
+  "lion.pooling.enabled": true,
+  "lion.postset.stickers.enabled": false,
+  "lion.preselected.pregame.choices.required": [
+    "ranked"
+  ],
+  "lion.progression.payoutdisplaytypeforskillmode": {
+    "bot_normal": "NoChampionMastery",
+    "bot_placement": "NoChampionMastery",
+    "competitive_lobby": "Visible",
+    "play_lobby": "Visible",
+    "private_lobby": "NoChampionMasteryNoCreditsPayout"
+  },
+  "lion.progression.periodicmissions.enabled": true,
+  "lion.progression.ranked.enabled.byaffinity": {
+    "am": true,
+    "apac": true,
+    "eu": true
+  },
+  "lion.progressionseasonui.enabled": true,
+  "lion.publishing_content.url": "https://content.publishing.riotgames.com",
+  "lion.rankrewards.enabled": true,
+  "lion.replays.replaytakeover.disabled": false,
+  "lion.riotstatus.enabled": true,
+  "lion.service.endpoint_v2": {
+    "am": "https://prod-am.l.pvp.net:443",
+    "apac": "https://prod-sea.l.pvp.net:443",
+    "eu": "https://prod-eu.l.pvp.net:443"
+  },
+  "lion.social.panel.enabled": true,
+  "lion.social.voicechat.duos.enabled": true,
+  "lion.social.voicechat.enabled": true,
+  "lion.social.voicechat.privatelobby.enabled": false,
+  "lion.spectate.fullscreencamera.disabled": false,
+  "lion.store.battlepass.enabled": true,
+  "lion.store.enabled": true,
+  "lion.store.grantall.enabled": true,
+  "lion.store.payments.enabled": true,
+  "lion.store.ps5_client_id": "764870e3-3284-4ee7-915f-4a78976de774",
+  "lion.themedevents.enabled": true,
+  "lion.themedevents.startdelay": 30,
+  "lion.vanguard.netrequired": true,
+  "lion.vanguard.required": true,
+  "lol.client_settings.champion_select.discard_game_dtos_with_equal_counter_after_afk_check": true,
+  "lol.client_settings.chat.allow_group_by_game": true,
+  "lol.client_settings.chat.champ_select_domain_name": "champ-select.pvp.net",
+  "lol.client_settings.chat.club_domain_name": "pgc.pvp.net",
+  "lol.client_settings.chat.custom_game_domain_name": "sec.pvp.net",
+  "lol.client_settings.chat.custom_team_domain_name": "sec.pvp.net",
+  "lol.client_settings.chat.p2p_domain_name": "pvp.net",
+  "lol.client_settings.chat.platform_to_federated_region": {
+    "BR1": "br1",
+    "EUN1": "eu2",
+    "EUW1": "eu1",
+    "JP1": "jp1",
+    "KR": "kr1",
+    "LA1": "la1",
+    "LA2": "la2",
+    "NA1": "na1",
+    "OC1": "oc1",
+    "PBE1": "pb1",
+    "PH2": "sa3",
+    "RU": "ru1",
+    "TR1": "tr1",
+    "TW2": "sa2",
+    "VN2": "sa1"
+  },
+  "lol.client_settings.chat.post_game_domain_name": "post-game.pvp.net",
+  "lol.client_settings.chat.query_sumid_batched_ledge": true,
+  "lol.client_settings.chat.query_sumid_blocked": false,
+  "lol.client_settings.chat.query_sumid_friend_requests": false,
+  "lol.client_settings.chat.query_sumid_muc_participants": true,
+  "lol.client_settings.chat.query_sumid_offline_friends": false,
+  "lol.client_settings.chat.query_sumid_online_friends": true,
+  "lol.client_settings.chat.queue_job_grace_seconds": 5,
+  "lol.client_settings.chat.scoped_conversations.domains": [
+    "chat",
+    "pgc",
+    "sec",
+    "champ-select",
+    "post-game",
+    "lol-pre-game",
+    "lol-champ-select",
+    "lol-post-game",
+    "lol-clash"
+  ],
+  "lol.client_settings.chat.scoped_conversations.enabled": true,
+  "lol.client_settings.chat.silence_chat_while_in_game": false,
+  "lol.client_settings.chat.update_session_platform_id": false,
+  "lol.client_settings.client_system_state.ignore_platform_client_config": true,
+  "lol.client_settings.client_system_state.use_operational_config": true,
+  "lol.client_settings.deepLinks": {
+    "launchLorEnabled": true,
+    "launchLorUrl": "/product/launch/v1/bacon"
+  },
+  "lol.client_settings.deprecation.32_bit": {
+    "date": "2023-04-04",
+    "version": 1
+  },
+  "lol.client_settings.discordIntegration.countryCodeAllowlist": "usa,can,bra",
+  "lol.client_settings.discordIntegration.countryCodeBlocklist": "are,chn,prk,rus,syr,tur",
+  "lol.client_settings.discordIntegration.enabled": false,
+  "lol.client_settings.discordIntegrationBeta.enabled": false,
+  "lol.client_settings.ember_collection_noscrollfix": false,
+  "lol.client_settings.event_hub.activation": {
+    "activationSpreadSeconds": 600,
+    "hubEnabled": true
+  },
+  "lol.client_settings.event_hub.event_overrides": {},
+  "lol.client_settings.event_hub.event_shop": {},
+  "lol.client_settings.event_hub.hall_of_legends": {},
+  "lol.client_settings.f2p_from_operational_config": true,
+  "lol.client_settings.inventory.use_lis_for_champions_and_skins_inventory": true,
+  "lol.client_settings.inventory_service.use_ledge": true,
+  "lol.client_settings.league_edge.enabled_services": {
+    "AccountVerification": true,
+    "CareerStats": true,
+    "ChampionMastery": true,
+    "Clash": true,
+    "EndOfGameStats": true,
+    "GSMv3": true,
+    "GameAgnosticMatchHistory": true,
+    "Honor": true,
+    "Leagues": true,
+    "Missions": true,
+    "Parties": true,
+    "PlayerBehavior": false,
+    "PublishingContent": true,
+    "Summoner": true,
+    "Tastes": true,
+    "Teambuilder": true
+  },
+  "lol.client_settings.loadouts.use_ledge": false,
+  "lol.client_settings.lobby.customs_in_parties.enabled": true,
+  "lol.client_settings.lobby.customs_position_preferences.enabled": true,
+  "lol.client_settings.login.use_gaps_login_flow": true,
+  "lol.client_settings.matchmaking.heartbeat_check_enabled": false,
+  "lol.client_settings.metrics.enabled": false,
+  "lol.client_settings.nacho.active_banners": {
+    "enabled": false
+  },
+  "lol.client_settings.parental_controls.enabled": false,
+  "lol.client_settings.parties.bot_enabled_champions": [
+    1,
+    3,
+    4,
+    5,
+    6,
+    9,
+    10,
+    11,
+    12,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    21,
+    22,
+    23,
+    25,
+    29,
+    30,
+    31,
+    32,
+    34,
+    36,
+    37,
+    38,
+    39,
+    40,
+    42,
+    43,
+    44,
+    45,
+    50,
+    51,
+    53,
+    54,
+    56,
+    57,
+    62,
+    63,
+    64,
+    67,
+    68,
+    69,
+    74,
+    75,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    89,
+    90,
+    96,
+    98,
+    99,
+    101,
+    102,
+    103,
+    105,
+    106,
+    110,
+    111,
+    113,
+    115,
+    117,
+    120,
+    121,
+    122,
+    127,
+    131,
+    143,
+    145,
+    147,
+    201,
+    202,
+    222,
+    236,
+    245,
+    254,
+    267,
+    497,
+    498,
+    711,
+    800,
+    804,
+    875,
+    876,
+    888,
+    901,
+    902,
+    904
+  ],
+  "lol.client_settings.parties.is_forcing_player_slot_position_prefs": true,
+  "lol.client_settings.patch.retrieve_all_supported_game_versions": false,
+  "lol.client_settings.paw.embeddedVideoSettings": {
+    "contentPreviewConfig": {
+      "baseURL": "https://www.youtube.com/embed/",
+      "queryParams": {
+        "autoplay": 1,
+        "controls": 1,
+        "fs": 0,
+        "listType": "playlist",
+        "loop": 1,
+        "playlist": "{videoID}",
+        "rel": 0
+      }
+    }
+  },
+  "lol.client_settings.perks.perksEdgeUrl": "/perks-edge-v2",
+  "lol.client_settings.platform_deprecation.end_of_game_rms_detail_enabled": false,
+  "lol.client_settings.platform_deprecation.end_of_game_rms_summary_enabled": false,
+  "lol.client_settings.platform_deprecation.muc_jwt_rms_enabled": false,
+  "lol.client_settings.player_behavior.display_reform_card": false,
+  "lol.client_settings.player_behavior.display_v1_ban_notifications": false,
+  "lol.client_settings.player_behavior.use_reform_card_v2": true,
+  "lol.client_settings.player_platform_edge.session_refresh_enabled": true,
+  "lol.client_settings.poro_experiments": {
+    "coop-ai-routing": {
+      "enabled": true,
+      "routingData": [
+        {
+          "maxLevel": 2,
+          "minLevel": 1,
+          "queueId": 870
+        },
+        {
+          "maxLevel": 5,
+          "minLevel": 3,
+          "queueId": 880
+        },
+        {
+          "maxLevel": 8,
+          "minLevel": 6,
+          "queueId": 890
+        }
+      ]
+    }
+  },
+  "lol.client_settings.poro_npe_config": {
+    "HardMaxSummonerLevel": 20,
+    "MaxSummonerLevel": 15,
+    "RewardsChallengesEnabled": true,
+    "RewardsEnabled": true,
+    "RewardsLoginEnabled": true
+  },
+  "lol.client_settings.progression.player_platform_edge.enabled": false,
+  "lol.client_settings.purchase_widget.discount_disabled": [
+    99901547,
+    99901548,
+    99901549
+  ],
+  "lol.client_settings.purchase_widget.player_platform_edge.enabled": false,
+  "lol.client_settings.purchase_widget.use_foundation": true,
+  "lol.client_settings.purchase_widget.use_ledge": false,
+  "lol.client_settings.queue_config_parties": true,
+  "lol.client_settings.queues.game_select_pip_queue_ids": [
+    1840
+  ],
+  "lol.client_settings.queues.use_operational_config": false,
+  "lol.client_settings.riotclient.hold_upgrade_on_bad_path": false,
+  "lol.client_settings.riotclient.live_installer_key": "ZuV40vGHTGYoUCpx",
+  "lol.client_settings.rms.use_proxy_to_riot_client.player": true,
+  "lol.client_settings.sanctum.active_banners": {
+    "enabled": true
+  },
+  "lol.client_settings.sgp_champ_select": true,
+  "lol.client_settings.socialFriendsUpgrade.enabled": false,
+  "lol.client_settings.socialPresenceUpgrade.enabled": false,
+  "lol.client_settings.spectator_settings": {
+    "isEnabled": true,
+    "isSpectatorDelayConfigurable": true,
+    "isUsingOperationalConfig": true
+  },
+  "lol.client_settings.statstones.header_token_auth_enabled": true,
+  "lol.client_settings.statstones.use_ledge": false,
+  "lol.client_settings.summoner.restrictions_integration.enabled": true,
+  "lol.client_settings.summoner_id_removal.all_change_config.enabled": true,
+  "lol.client_settings.summoner_id_removal.champ_select_plugin.enabled": true,
+  "lol.client_settings.summoner_id_removal.get_lobby_change.enabled": true,
+  "lol.client_settings.summoner_id_removal.hovercard_plugin.enabled": true,
+  "lol.client_settings.summoner_profiles.honor_view": true,
+  "lol.client_settings.team_voice.enabled": false,
+  "lol.client_settings.tft.tft_npe": {
+    "enabled": true,
+    "queueBypass": false,
+    "shouldShowNPEQueue": false
+  },
+  "lol.client_settings.yourshop": {
+    "Active": false,
+    "PromotionEndDate": "2030-01-01T09:00:00Z",
+    "PromotionName": "YS Deactivated",
+    "PromotionStartDate": "2020-01-01T09:00:00Z",
+    "ThemedBackground": false
+  },
+  "lol.experiments.ac_page_variant": "ac-fc-s",
+  "lol.experiments.eh_pass_eat": "A",
+  "lol.experiments.eh_show_chapter": "enable",
+  "lol.experiments.paw_skin_bundles_upsell": "default",
+  "lol.experiments.paw_skin_preview": "default",
+  "lol.experiments.rms_champ_select": "enable",
+  "lol.experiments.store_chroma_paw": "enable",
+  "lol.experiments.store_fpp": "default",
+  "lol.experiments.store_newbadges": "enable",
+  "lol.experiments.store_page_cache": "enable",
+  "lol.experiments.store_rs": "default",
+  "lol.experiments.store_rs_test": "default",
+  "lol.experiments.tft_borgs_v2": "enable",
+  "lol.experiments.tft_du_borgs": "disable",
+  "lol.experiments.tft_npe": "enable",
+  "lol.game_client_settings.cap_orders_metrics_enabled": false,
+  "lol.game_client_settings.catalog.version": 742,
+  "lol.game_client_settings.gsm_loadouts_enabled": true,
+  "lol.game_client_settings.logging.enable_http_public_logs": true,
+  "lol.game_client_settings.logging.enable_rms_public_logs": true,
+  "lol.game_client_settings.metal_renderer_percent_enabled": 0,
+  "lol.game_client_settings.queues_displayed": [
+    1090,
+    1100,
+    1220,
+    1160,
+    1110
+  ],
+  "lol.game_client_settings.tft_npe": {
+    "enabled": true,
+    "queueBypass": false,
+    "shouldShowNPEQueue": false
+  },
+  "lol.game_client_settings.tft_randomize_loadouts": {
+    "enabled": true
+  },
+  "payments.pay_mobile.game-codes": {
+    "com.riotgames.league.teamfighttactics": "tft",
+    "com.riotgames.league.teamfighttacticstw": "tft",
+    "com.riotgames.league.teamfighttacticsvn": "tft",
+    "com.riotgames.league.wildrift": "wildrift",
+    "com.riotgames.league.wildrifttw": "wildrift",
+    "com.riotgames.league.wildriftvn": "wildrift",
+    "com.riotgames.legendsofruneterra": "lor",
+    "com.riotgames.legendsofruneterratw": "lor",
+    "com.riotgames.legendsofruneterravn": "lor",
+    "com.riotgames.pub.valorant.dev": "valorant",
+    "com.riotgames.rnd.tftmobile": "tft",
+    "com.riotgames.smg.league.wildrift": "wildrift",
+    "com.riotgames.smg.league.wildrifttw": "wildrift",
+    "com.riotgames.smg.league.wildriftvn": "wildrift"
+  },
+  "payments.pay_mobile.platform-type.lor": "homebase",
+  "payments.pay_mobile.platform-type.tft": "lol",
+  "payments.pay_mobile.platform-type.valorant": "homebase",
+  "payments.pay_mobile.platform-type.wildrift": "homebase",
+  "payments.pay_mobile.platforms.lor": {
+    "ABW": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "AFG": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AGO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AIA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ALA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ALB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AND": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ARE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ARG": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "ARM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ASM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "ATG": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AUS": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "AUT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AZE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BEL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BEN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BES": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BFA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BGD": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "BGR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BHR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BHS": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BIH": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BLM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BLR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BLZ": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BMU": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BOL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BRA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BRB": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BRN": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "BTN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BWA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CAN": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CHE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CHL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CIV": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CMR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "COD": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "COG": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "COK": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "COL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CPV": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CRI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CUW": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CXR": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CYM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CYP": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CZE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "DEU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "DJI": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "DMA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "DNK": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "DOM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "DZA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ECU": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "EGY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ESP": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "EST": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ETH": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "FIN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "FJI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "FRA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "FRO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GAB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GBR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GEO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GGY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GHA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GIB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GIN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GLP": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GNQ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GRC": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GRD": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GRL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GTM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GUF": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GUM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GUY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "HKG": {
+      "platformCode": "twm",
+      "pmc": "rgg"
+    },
+    "HND": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "HRV": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "HTI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "HUN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "IDN": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "IMN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "IND": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "IOT": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "IRL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "IRQ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ISL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ISR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ITA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "JAM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "JEY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "JOR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "JPN": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "KAZ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "KEN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "KGZ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "KHM": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "KIR": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "KNA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "KOR": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "KWT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LAO": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "LBN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LBR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LBY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LCA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LIE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LKA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LSO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LTU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LUX": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LVA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MAC": {
+      "platformCode": "twm",
+      "pmc": "rgg"
+    },
+    "MAF": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MAR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MCO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MDA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MDG": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MDV": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MEX": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MHL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MKD": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MLI": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MLT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MMR": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "MNE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MNG": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "MNP": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MOZ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MRT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MTQ": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MUS": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MWI": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MYS": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "MYT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NAM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NCL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NER": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NFK": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NGA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NIC": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NIU": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NLD": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NOR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NPL": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "NRU": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NZL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "OMN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PAK": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PAN": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PER": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PHL": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "PLW": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PNG": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "POL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PRI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PRT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PRY": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PSE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PYF": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "QAT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "REU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ROU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "RUS": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "RWA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SAU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SDN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SEN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SGP": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "SLB": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SLE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SLV": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SMR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SOM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SPM": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "SRB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SUR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SVK": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SVN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SWE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SWZ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SXM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SYC": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SYR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TCA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TCD": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TGO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "THA": {
+      "platformCode": "apac",
+      "pmc": "rgg"
+    },
+    "TJK": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TKL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TKM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TON": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TTO": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TUN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TUR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TUV": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TWN": {
+      "platformCode": "twm",
+      "pmc": "rgg"
+    },
+    "TZA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "UGA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "UKR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "URY": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "USA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "UZB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "VAT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "VCT": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "VEN": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "VIR": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "VNM": {
+      "platformCode": "vng",
+      "pmc": "rgg"
+    },
+    "VUT": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "WLF": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "YEM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ZAF": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ZMB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ZWE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    }
+  },
+  "payments.pay_mobile.platforms.valorant": {
+    "USA": {
+      "platformCode": "na",
+      "pmc": "rgg"
+    }
+  },
+  "payments.pay_mobile.platforms.wildrift": {
+    "ABW": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "AFG": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AGO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AIA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "ALA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ALB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AND": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ARE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ARG": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "ARM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ASM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "ATG": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "AUS": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "AUT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "AZE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BEL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BEN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BES": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BFA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BGD": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "BGR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BHR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BHS": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BIH": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BLM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BLR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BLZ": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BMU": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BOL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BRA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BRB": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "BRN": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "BTN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "BWA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CAN": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CHE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CHL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CIV": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CMR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "COD": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "COG": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "COK": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "COL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CPV": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CRI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CUW": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CXR": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CYM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "CYP": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "CZE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "DEU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "DJI": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "DMA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "DNK": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "DOM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "DZA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ECU": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "EGY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ESP": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "EST": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ETH": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "FIN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "FJI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "FLK": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "FRA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "FRO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GAB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GBR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GEO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GGY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GHA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GIB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GIN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GLP": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GNQ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GRC": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GRD": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GRL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "GTM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GUF": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GUM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "GUY": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "HKG": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "HND": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "HRV": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "HTI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "HUN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "IDN": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "IMN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "IND": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "IOT": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "IRL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "IRQ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ISL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ISR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ITA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "JAM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "JEY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "JOR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "JPN": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "KAZ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "KEN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "KGZ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "KHM": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "KIR": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "KNA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "KOR": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "KWT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LAO": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "LBN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LBR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LBY": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LCA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "LIE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LKA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LSO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LTU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LUX": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "LVA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MAC": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "MAF": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MAR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MCO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MDA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MDG": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MDV": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MEX": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MHL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MKD": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MLI": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MLT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MMR": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "MNE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MNG": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "MNP": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MOZ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MRT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MSR": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MTQ": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "MUS": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MWI": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "MYS": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "MYT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NAM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NCL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NER": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NFK": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NGA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NIC": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NIU": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NLD": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NOR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "NPL": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "NRU": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "NZL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "OMN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PAK": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PAN": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PER": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PHL": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "PLW": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PNG": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "POL": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PRI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PRT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PRY": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "PSE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "PYF": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "QAT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "REU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ROU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "RUS": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "RWA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SAU": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SDN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SEN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SGP": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "SGS": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SLB": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SLE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SLV": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SMR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SOM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SPM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SRB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SUR": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SVK": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SVN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SWE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SWZ": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SXM": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "SYC": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "SYR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TCA": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TGO": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "THA": {
+      "platformCode": "asia",
+      "pmc": "rgg"
+    },
+    "TJK": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TKL": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TKM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TON": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TTO": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TUN": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TUR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "TUV": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "TWN": {
+      "platformCode": "twm",
+      "pmc": "rgg"
+    },
+    "TZA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "UGA": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "UKR": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "UMI": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "URY": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "USA": {
+      "allowExternal": true,
+      "platformCode": "americas",
+      "pmc": "rgg",
+      "pmcRegionalInstance": "rgi"
+    },
+    "UZB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "VAT": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "VCT": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "VEN": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "VIR": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "VNM": {
+      "platformCode": "vng",
+      "pmc": "rgg"
+    },
+    "VUT": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "WLF": {
+      "platformCode": "americas",
+      "pmc": "rgg"
+    },
+    "YEM": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ZAF": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ZMB": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    },
+    "ZWE": {
+      "platformCode": "europe",
+      "pmc": "rgg"
+    }
+  },
+  "payments.pay_mobile.storefront-suffixes": {
+    "external": {
+      "android": "android",
+      "ios": "ios"
+    },
+    "internal": "mobile"
+  },
+  "payments.pay_plugin.platform-type.lor": "homebase",
+  "payments.pay_plugin.platform-type.lorm": "homebase",
+  "payments.pay_plugin.platform-type.tft": "lol",
+  "payments.pay_plugin.platforms.2xko": {
+    "ABW": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "AFG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AGO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AIA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ALA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ALB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AND": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ARE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ARG": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "ARM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ASM": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "ATA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ATF": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ATG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AUS": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "AUT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AZE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BDI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BEL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BEN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BES": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BFA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BGD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BGR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BHR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BHS": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "BIH": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BLM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BLR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BLZ": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "BMU": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "BOL": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "BRA": {
+      "platformCode": "br",
+      "pmc": "rgl"
+    },
+    "BRB": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "BRN": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "BTN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BVT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BWA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CAF": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CAN": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "CCK": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "CHE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CHL": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "CIV": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CMR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "COD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "COG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "COK": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "COL": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "COM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CPV": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CRI": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "CUW": {
+      "platformCode": "na",
+      "pmc": "rgl"
+    },
+    "CXR": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "CYM": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "CYP": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CZE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "DEU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "DJI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "DMA": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "DNK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "DOM": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "DZA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ECU": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "EGY": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ERI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ESH": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ESP": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "EST": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ETH": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FIN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FJI": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "FLK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FRA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FRO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FSM": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "GAB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GBR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GEO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GGY": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GHA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GIB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GIN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GLP": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GMB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GNB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GNQ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GRC": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GRD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GRL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GTM": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "GUF": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "GUM": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "GUY": {
+      "platformCode": "latam",
+      "pmc": "rgl"
+    },
+    "HKG": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "HMD": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "HND": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "HRV": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "HTI": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "HUN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "IDN": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "IMN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "IND": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "IOT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "IRL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "IRQ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ISL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ISR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ITA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "JAM": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "JEY": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "JOR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "JPN": {
+      "platformCode": "nea",
+      "pmc": "rgj"
+    },
+    "KAZ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "KEN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "KGZ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "KHM": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "KIR": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "KNA": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "KOR": {
+      "platformCode": "kr",
+      "pmc": "rgk"
+    },
+    "KWT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LAO": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "LBN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LBR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LBY": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LCA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LIE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LKA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LSO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LTU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LUX": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LVA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MAC": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "MAF": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MAR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MCO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MDA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MDG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MDV": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MEX": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "MHL": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "MKD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MLI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MLT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MMR": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "MNE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MNG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MNP": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "MOZ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MRT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MSR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MTQ": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "MUS": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MWI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MYS": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "MYT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NAM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NCL": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "NER": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NFK": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "NGA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NIC": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "NIU": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "NLD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NOR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NPL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NRU": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "NZL": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "OMN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PAK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PAN": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "PCN": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "PER": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "PHL": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "PLW": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "PNG": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "POL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PRI": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "PRT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PRY": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "PSE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PYF": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "QAT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "REU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ROU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "RUS": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "RWA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SAU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SDN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SEN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SGP": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "SGS": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SHN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SJM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SLB": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "SLE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SLV": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "SMR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SOM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SPM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SRB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SSD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "STP": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SUR": {
+      "platformCode": "latam",
+      "pmc": "rgl"
+    },
+    "SVK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SVN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SWE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SWZ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SXM": {
+      "platformCode": "eu",
+      "pmc": "rgi"
+    },
+    "SYC": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SYR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TCA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TCD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TGO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "THA": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "TJK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TKL": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "TKM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TLS": {
+      "platformCode": "sea",
+      "pmc": "rgs"
+    },
+    "TON": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "TTO": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "TUN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TUR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TUV": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "TWN": {
+      "platformCode": "twm",
+      "pmc": "rgs"
+    },
+    "TZA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "UGA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "UKR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "UMI": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "URY": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "USA": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "UZB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "VAT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "VCT": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "VEN": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "VGB": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "VIR": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "VNM": {
+      "platformCode": "vng",
+      "pmc": "rgs"
+    },
+    "VUT": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "WLF": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "WSM": {
+      "platformCode": "sea",
+      "pmc": "rgl"
+    },
+    "YEM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ZAF": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ZMB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ZWE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    }
+  },
+  "payments.pay_plugin.platforms.lor": {
+    "ABW": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "AFG": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "AGO": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "AIA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ALA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ALB": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "AND": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ARE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ARG": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "ARM": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ASM": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "ATA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ATF": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ATG": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "AUS": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "AUT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "AZE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BDI": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BEL": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BEN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BES": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BFA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BGD": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "BGR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BHR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BHS": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BIH": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BLM": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BLR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BLZ": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BMU": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BOL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BRA": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "BRB": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BRN": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "BTN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BVT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "BWA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "CAF": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "CAN": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CCK": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "CHE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "CHL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CIV": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "CMR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "COD": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "COG": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "COK": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "COL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "COM": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "CPV": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "CRI": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CUW": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CXR": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "CYM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CYP": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "CZE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "DEU": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "DJI": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "DMA": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "DNK": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "DOM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "DZA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ECU": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "EGY": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ERI": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ESH": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ESP": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "EST": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ETH": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "FIN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "FJI": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "FLK": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "FRA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "FRO": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "FSM": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "GAB": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GBR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GEO": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GGY": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GHA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GIB": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GIN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GLP": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "GMB": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GNB": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GNQ": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GRC": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GRD": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GRL": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "GTM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "GUF": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "GUM": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "GUY": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "HKG": {
+      "platformCode": "twm",
+      "pmc": "rgs"
+    },
+    "HMD": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "HND": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "HRV": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "HTI": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "HUN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "IDN": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "IMN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "IND": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "IOT": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "IRL": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "IRQ": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ISL": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ISR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ITA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "JAM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "JEY": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "JOR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "JPN": {
+      "platformCode": "apac",
+      "pmc": "rgj"
+    },
+    "KAZ": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "KEN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "KGZ": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "KHM": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "KIR": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "KNA": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "KOR": {
+      "platformCode": "apac",
+      "pmc": "rgk"
+    },
+    "KWT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LAO": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "LBN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LBR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LBY": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LCA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LIE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LKA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LSO": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LTU": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LUX": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "LVA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MAC": {
+      "platformCode": "twm",
+      "pmc": "rgs"
+    },
+    "MAF": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MAR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MCO": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MDA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MDG": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MDV": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MEX": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "MHL": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "MKD": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MLI": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MLT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MMR": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "MNE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MNG": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MNP": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "MOZ": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MRT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MSR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MTQ": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "MUS": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MWI": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "MYS": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "MYT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "NAM": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "NCL": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "NER": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "NFK": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "NGA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "NIC": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "NIU": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "NLD": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "NOR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "NPL": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "NRU": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "NZL": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "OMN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "PAK": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "PAN": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PCN": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "PER": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PHL": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "PLW": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "PNG": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "POL": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "PRI": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PRT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "PRY": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PSE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "PYF": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "QAT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "REU": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "RKS": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ROU": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "RUS": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "RWA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SAU": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SDN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SEN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SGP": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "SGS": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SHN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SJM": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SLB": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "SLE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SLV": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "SMR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SOM": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SPM": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "SRB": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SSD": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "STP": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SUR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SVK": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SVN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SWE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SWZ": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SXM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "SYC": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "SYR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "TCA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "TCD": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "TGO": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "THA": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "TJK": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "TKL": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "TKM": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "TLS": {
+      "platformCode": "apac",
+      "pmc": "rgs"
+    },
+    "TON": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "TTO": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "TUN": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "TUR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "TUV": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "TWN": {
+      "platformCode": "twm",
+      "pmc": "rgs"
+    },
+    "TZA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "UGA": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "UKR": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "UMI": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "URY": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "USA": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "UZB": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "VAT": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "VCT": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "VEN": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "VGB": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "VIR": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "VNM": {
+      "platformCode": "vng",
+      "pmc": "rgs"
+    },
+    "VUT": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "WLF": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "WSM": {
+      "platformCode": "americas",
+      "pmc": "rgl"
+    },
+    "YEM": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ZAF": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ZMB": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    },
+    "ZWE": {
+      "platformCode": "europe",
+      "pmc": "rgl"
+    }
+  },
+  "payments.pay_plugin.platforms.lorm": {
+    "ABW": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "AFG": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "AGO": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "AIA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ALA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ALB": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "AND": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ARE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ARG": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "ARM": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ASM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "ATG": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "AUS": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "AUT": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "AZE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BEL": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BEN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BES": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BFA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BGD": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "BGR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BHR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BHS": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BIH": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BLM": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BLR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BLZ": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BMU": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BOL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BRA": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BRB": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "BRN": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "BTN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "BWA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "CAN": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CHE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "CHL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CIV": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "CMR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "COD": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "COG": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "COK": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "COL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CPV": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "CRI": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CUW": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CXR": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CYM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "CYP": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "CZE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "DEU": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "DJI": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "DMA": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "DNK": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "DOM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "DZA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ECU": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "EGY": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ESP": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "EST": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ETH": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "FIN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "FJI": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "FRA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "FRO": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GAB": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GBR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GEO": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GGY": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GHA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GIB": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GIN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GLP": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "GNQ": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GRC": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GRD": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GRL": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "GTM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "GUF": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "GUM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "GUY": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "HKG": {
+      "platformCode": "twm",
+      "pmc": "rgi"
+    },
+    "HND": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "HRV": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "HTI": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "HUN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "IDN": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "IMN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "IND": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "IOT": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "IRL": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "IRQ": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ISL": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ISR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ITA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "JAM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "JEY": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "JOR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "JPN": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "KAZ": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "KEN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "KGZ": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "KHM": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "KIR": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "KNA": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "KOR": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "KWT": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LAO": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "LBN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LBR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LBY": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LCA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LIE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LKA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LSO": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LTU": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LUX": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "LVA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MAC": {
+      "platformCode": "twm",
+      "pmc": "rgi"
+    },
+    "MAF": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MAR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MCO": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MDA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MDG": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MDV": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MEX": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "MHL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "MKD": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MLI": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MLT": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MMR": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "MNE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MNG": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MNP": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "MOZ": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MRT": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MTQ": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "MUS": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MWI": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "MYS": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "MYT": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "NAM": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "NCL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "NER": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "NFK": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "NGA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "NIC": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "NIU": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "NLD": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "NOR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "NPL": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "NRU": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "NZL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "OMN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "PAK": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "PAN": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PER": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PHL": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "PLW": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PNG": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "POL": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "PRI": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PRT": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "PRY": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "PSE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "PYF": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "QAT": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "REU": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ROU": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "RUS": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "RWA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SAU": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SDN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SEN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SGP": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "SLB": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "SLE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SLV": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "SMR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SOM": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SPM": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "SRB": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SUR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SVK": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SVN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SWE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SWZ": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SXM": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "SYC": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "SYR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "TCA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "TGO": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "THA": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "TJK": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "TKL": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "TKM": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "TON": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "TTO": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "TUN": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "TUR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "TUV": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "TWN": {
+      "platformCode": "twm",
+      "pmc": "rgi"
+    },
+    "TZA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "UGA": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "UKR": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "URY": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "USA": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "UZB": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "VAT": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "VCT": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "VEN": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "VIR": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "VNM": {
+      "platformCode": "apac",
+      "pmc": "rgi"
+    },
+    "VUT": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "WLF": {
+      "platformCode": "americas",
+      "pmc": "rgi"
+    },
+    "YEM": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ZAF": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ZMB": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    },
+    "ZWE": {
+      "platformCode": "europe",
+      "pmc": "rgi"
+    }
+  },
+  "payments.pay_plugin.platforms.tft": {
+    "ABW": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "AFG": {
+      "platformCode": "me1",
+      "pmc": "rgl"
+    },
+    "AGO": {
+      "platformCode": "br1",
+      "pmc": "rgl"
+    },
+    "AIA": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "ALA": {
+      "platformCode": "ph2",
+      "pmc": "rgs"
+    },
+    "ALB": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "AND": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ARE": {
+      "platformCode": "ru",
+      "pmc": "rgl"
+    },
+    "ARG": {
+      "platformCode": "la2",
+      "pmc": "rgi"
+    },
+    "ARM": {
+      "platformCode": "ru",
+      "pmc": "rgl"
+    },
+    "ASM": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "ATA": {
+      "platformCode": "jp1",
+      "pmc": "rgj"
+    },
+    "ATG": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "AUS": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "AUT": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "AZE": {
+      "platformCode": "tr1",
+      "pmc": "rgl"
+    },
+    "BDI": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "BEL": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "BEN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "BES": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "BFA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "BGD": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "BGR": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "BHR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "BHS": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "BIH": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "BLM": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "BLR": {
+      "platformCode": "ru",
+      "pmc": "rgl"
+    },
+    "BLZ": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "BMU": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "BOL": {
+      "platformCode": "la2",
+      "pmc": "rgi"
+    },
+    "BRA": {
+      "platformCode": "br1",
+      "pmc": "rgl"
+    },
+    "BRB": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "BRN": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "BTN": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "BWA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "CAN": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "CHE": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "CHL": {
+      "platformCode": "la2",
+      "pmc": "rgi"
+    },
+    "CIV": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "CMR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "COD": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "COG": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "COK": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "COL": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "COM": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "CPV": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "CRI": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "CUB": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "CUW": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "CYM": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "CYP": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "CZE": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "DEU": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "DJI": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "DMA": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "DNK": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "DOM": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "DZA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ECU": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "EGY": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "ERI": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ESP": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "EST": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "ETH": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "FIN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "FJI": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "FRA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "FRO": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "FSM": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GAB": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GBR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GEO": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "GGY": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GHA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GIB": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GIN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GLP": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "GMB": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GNB": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "GNQ": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GRC": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "GRD": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "GRL": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "GTM": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "GUF": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "GUM": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "GUY": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "HKG": {
+      "platformCode": "tw2",
+      "pmc": "rgs"
+    },
+    "HMD": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "HND": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "HRV": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "HTI": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "HUN": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "IDN": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "IMN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "IND": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "IOT": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "IRL": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "IRN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "IRQ": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ISL": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "ISR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ITA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "JAM": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "JEY": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "JOR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "JPN": {
+      "platformCode": "jp1",
+      "pmc": "rgj"
+    },
+    "KAZ": {
+      "platformCode": "ru",
+      "pmc": "rgl"
+    },
+    "KEN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "KGZ": {
+      "platformCode": "ru",
+      "pmc": "rgl"
+    },
+    "KHM": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "KIR": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "KNA": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "KOR": {
+      "platformCode": "kr",
+      "pmc": "rgk"
+    },
+    "KWT": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "LAO": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "LBN": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "LBR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "LBY": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "LCA": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "LIE": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "LKA": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "LSO": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "LTU": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "LUX": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "LVA": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "MAC": {
+      "platformCode": "tw2",
+      "pmc": "rgs"
+    },
+    "MAF": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MAR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MCO": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MDA": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "MDG": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MDV": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "MEX": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "MHL": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "MKD": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "MLI": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MLT": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MMR": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "MNE": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MNG": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MNP": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "MOZ": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MRT": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MSR": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "MTQ": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "MUS": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "MWI": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "MYS": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "MYT": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "NAM": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "NAN": {
+      "platformCode": "kr",
+      "pmc": "rgk"
+    },
+    "NCL": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "NER": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "NFK": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "NGA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "NIC": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "NLD": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "NOR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "NPL": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "NRU": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "NZL": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "OMN": {
+      "platformCode": "me1",
+      "pmc": "rgl"
+    },
+    "PAK": {
+      "platformCode": "me1",
+      "pmc": "rgl"
+    },
+    "PAN": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "PER": {
+      "platformCode": "la2",
+      "pmc": "rgi"
+    },
+    "PHL": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "PLW": {
+      "platformCode": "tw2",
+      "pmc": "rgs"
+    },
+    "PNG": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "POL": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "PRI": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "PRT": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "PRY": {
+      "platformCode": "la2",
+      "pmc": "rgi"
+    },
+    "PSE": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "PYF": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "QAT": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "REU": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ROU": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "RUS": {
+      "platformCode": "ru",
+      "pmc": "rgl"
+    },
+    "RWA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SAU": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SDN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SEN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SGP": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "SJM": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SLB": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "SLE": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SLV": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "SMR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SOM": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "SPM": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "SRB": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "SSD": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "STP": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SUR": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "SVK": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "SVN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SWE": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SWZ": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SXM": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "SYC": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "SYR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "TCA": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "TCD": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "TGO": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "THA": {
+      "platformCode": "sg2",
+      "pmc": "rgs"
+    },
+    "TJK": {
+      "platformCode": "ru",
+      "pmc": "rgl"
+    },
+    "TKM": {
+      "platformCode": "eun1",
+      "pmc": "rgl"
+    },
+    "TLS": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "TON": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "TTO": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "TUN": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "TUR": {
+      "platformCode": "tr1",
+      "pmc": "rgl"
+    },
+    "TWN": {
+      "platformCode": "tw2",
+      "pmc": "rgs"
+    },
+    "TZA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "UGA": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "UKR": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "UMI": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "URY": {
+      "platformCode": "la2",
+      "pmc": "rgi"
+    },
+    "USA": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "UZB": {
+      "platformCode": "ru",
+      "pmc": "rgl"
+    },
+    "VAT": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "VCT": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "VEN": {
+      "platformCode": "la1",
+      "pmc": "rgi"
+    },
+    "VGB": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "VIR": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "VNM": {
+      "platformCode": "vn2",
+      "pmc": "rgs"
+    },
+    "VUT": {
+      "platformCode": "oc1",
+      "pmc": "rgl"
+    },
+    "WSM": {
+      "platformCode": "na1",
+      "pmc": "rgi"
+    },
+    "XKX": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "YEM": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ZAF": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ZMB": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    },
+    "ZWE": {
+      "platformCode": "euw1",
+      "pmc": "rgl"
+    }
+  },
+  "payments.pay_plugin.platforms.valorant": {
+    "ABW": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "AFG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AGO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AIA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ALA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ALB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AND": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ARE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ARG": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "ARM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ASM": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "ATA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ATF": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ATG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AUS": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "AUT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "AZE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BDI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BEL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BEN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BES": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BFA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BGD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BGR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BHR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BHS": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "BIH": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BLM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BLR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BLZ": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "BMU": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "BOL": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "BRA": {
+      "platformCode": "br",
+      "pmc": "rgl"
+    },
+    "BRB": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "BRN": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "BTN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BVT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "BWA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CAF": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CAN": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "CCK": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "CHE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CHL": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "CIV": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CMR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "COD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "COG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "COK": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "COL": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "COM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CPV": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CRI": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "CUW": {
+      "platformCode": "na",
+      "pmc": "rgl"
+    },
+    "CXR": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "CYM": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "CYP": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "CZE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "DEU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "DJI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "DMA": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "DNK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "DOM": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "DZA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ECU": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "EGY": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ERI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ESH": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ESP": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "EST": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ETH": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FIN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FJI": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "FLK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FRA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FRO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "FSM": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "GAB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GBR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GEO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GGY": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GHA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GIB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GIN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GLP": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GMB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GNB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GNQ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GRC": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GRD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GRL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "GTM": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "GUF": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "GUM": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "GUY": {
+      "platformCode": "latam",
+      "pmc": "rgl"
+    },
+    "HKG": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "HMD": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "HND": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "HRV": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "HTI": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "HUN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "IDN": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "IMN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "IND": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "IOT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "IRL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "IRQ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ISL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ISR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ITA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "JAM": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "JEY": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "JOR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "JPN": {
+      "platformCode": "ap",
+      "pmc": "rgj"
+    },
+    "KAZ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "KEN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "KGZ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "KHM": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "KIR": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "KNA": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "KOR": {
+      "platformCode": "kr",
+      "pmc": "rgk"
+    },
+    "KWT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LAO": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "LBN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LBR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LBY": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LCA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LIE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LKA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LSO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LTU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LUX": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "LVA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MAC": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "MAF": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MAR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MCO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MDA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MDG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MDV": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MEX": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "MHL": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "MKD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MLI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MLT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MMR": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "MNE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MNG": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MNP": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "MOZ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MRT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MSR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MTQ": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "MUS": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MWI": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "MYS": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "MYT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NAM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NCL": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "NER": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NFK": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "NGA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NIC": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "NIU": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "NLD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NOR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NPL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "NRU": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "NZL": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "OMN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PAK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PAN": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "PCN": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "PER": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "PHL": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "PLW": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "PNG": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "POL": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PRI": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "PRT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PRY": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "PSE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "PYF": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "QAT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "REU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ROU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "RUS": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "RWA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SAU": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SDN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SEN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SGP": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "SGS": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SHN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SJM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SLB": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "SLE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SLV": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "SMR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SOM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SPM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SRB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SSD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "STP": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SUR": {
+      "platformCode": "latam",
+      "pmc": "rgl"
+    },
+    "SVK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SVN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SWE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SWZ": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SXM": {
+      "platformCode": "eu",
+      "pmc": "rgi"
+    },
+    "SYC": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "SYR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TCA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TCD": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TGO": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "THA": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "TJK": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TKL": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "TKM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TLS": {
+      "platformCode": "ap",
+      "pmc": "rgs"
+    },
+    "TON": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "TTO": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "TUN": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TUR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "TUV": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "TWN": {
+      "platformCode": "twm",
+      "pmc": "rgs"
+    },
+    "TZA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "UGA": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "UKR": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "UMI": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "URY": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "USA": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "UZB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "VAT": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "VCT": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "VEN": {
+      "platformCode": "latam",
+      "pmc": "rgi"
+    },
+    "VGB": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "VIR": {
+      "platformCode": "na",
+      "pmc": "rgi"
+    },
+    "VNM": {
+      "platformCode": "vng",
+      "pmc": "rgs"
+    },
+    "VUT": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "WLF": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "WSM": {
+      "platformCode": "ap",
+      "pmc": "rgl"
+    },
+    "YEM": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ZAF": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ZMB": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    },
+    "ZWE": {
+      "platformCode": "eu",
+      "pmc": "rgl"
+    }
+  },
+  "payments.pay_plugin.platforms.valorant.ext-main-shipping": {
+    "CAN": {
+      "platformCode": "ext1",
+      "pmc": "stage"
+    },
+    "MEX": {
+      "platformCode": "ext1",
+      "pmc": "stage"
+    },
+    "USA": {
+      "platformCode": "ext1",
+      "pmc": "stage"
+    }
+  },
+  "payments.pay_plugin.product-storefronts.lion.live": {
+    "2xko": "2xko",
+    "lion": "2xko"
+  },
+  "payments.pay_plugin.product-storefronts.lor": {
+    "bacon": "lor"
+  },
+  "payments.pay_plugin.product-storefronts.lor.live": {
+    "bacon": "lor"
+  },
+  "payments.pay_plugin.product-storefronts.teamfighttactics.live": {
+    "teamfighttactics": "tft"
+  },
+  "payments.pay_plugin.product-storefronts.valorant.live": {
+    "ares": "valorant",
+    "valorant": "valorant"
+  },
+  "rms.affinities": {
+    "asia": "wss://asia.edge.rms.si.riotgames.com",
+    "eu": "wss://eu.edge.rms.si.riotgames.com",
+    "sea": "wss://sea.edge.rms.si.riotgames.com",
+    "us": "wss://us.edge.rms.si.riotgames.com"
+  },
+  "rms.affinity.enabled": true,
+  "rms.affinity_login.enabled": true,
+  "rms.esports.affinities": {
+    "asia": "wss://asia.edge.rms.si.lolesports.com",
+    "eu": "wss://eu.edge.rms.si.lolesports.com",
+    "sea": "wss://sea.edge.rms.si.lolesports.com",
+    "us": "wss://us.edge.rms.si.lolesports.com"
+  },
+  "rms.lolesports.affinities": {
+    "asia": "wss://asia.edge.rms.si.lolesports.com",
+    "eu": "wss://eu.edge.rms.si.lolesports.com",
+    "sea": "wss://sea.edge.rms.si.lolesports.com",
+    "us": "wss://us.edge.rms.si.lolesports.com"
+  },
+  "rms.riotesports.affinities": {
+    "asia": "wss://asia.edge.rms.si.riotesports.com",
+    "eu": "wss://eu.edge.rms.si.riotesports.com",
+    "sea": "wss://sea.edge.rms.si.riotesports.com",
+    "us": "wss://us.edge.rms.si.riotesports.com"
+  },
+  "social.discord.enabled": true,
+  "social.discord.presence.enabled": true,
+  "social.discord.presence_party.enabled": true,
+  "social.plain_text_private_data": false,
+  "social.platform-social.playstation.webapi.check_restrictions_for_all_controllers": false,
+  "social.supporting_products": [
+    "riot_client",
+    "ritoplus"
+  ],
+  "social.supporting_products_presences_enabled": true,
+  "voice_chat.voice_recording_upload_uri": "https://voiceevaluation-recording-prod-usw2.pp.sgp.pvp.net/voicerecording/v1/upload"
+}

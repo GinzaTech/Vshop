@@ -130,7 +130,7 @@ const getLatestRelease = async () => {
     tag_name: string;
     html_url?: string;
   }>({
-    url: "https://api.github.com/repos/vshopapp/mobile/releases/latest",
+    url: "https://api.github.com/repos/GinzaTech/Vshop/releases/latest",
     method: "GET",
   });
 

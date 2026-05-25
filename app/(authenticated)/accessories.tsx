@@ -10,7 +10,6 @@ import { useUserStore } from "~/hooks/useUserStore";
 import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
-import PageIntro from "~/components/ui/PageIntro";
 import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 
 function AccessoryShop() {
@@ -32,11 +31,6 @@ function AccessoryShop() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <PageIntro
-        title={t("accessories_page.title")}
-        subtitle={t("accessories_page.subtitle")}
-        style={styles.header}
-      />
 
       <View style={styles.searchBar}>
         <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
@@ -56,7 +50,11 @@ function AccessoryShop() {
         </InfoPill>
         <InfoPill style={styles.metricPill}>
           <Icon name="clock-outline" size={16} color={COLORS.TEXT_PRIMARY} />
-          <Countdown timestamp={timestamp} />
+          <Countdown
+            timestamp={timestamp}
+            showIcon={false}
+            textStyle={styles.countdownText}
+          />
         </InfoPill>
       </View>
 
@@ -126,7 +124,10 @@ const styles = StyleSheet.create({
     color: COLORS.PURE_WHITE,
     fontWeight: "700",
   },
+  countdownText: {
+    color: COLORS.TEXT_PRIMARY,
+    fontWeight: "700",
+  },
 });
 
 export default AccessoryShop;
-

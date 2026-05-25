@@ -130,6 +130,7 @@ function Layout() {
       <AppWarmup />
       <Tabs
         initialRouteName="profile"
+        backBehavior="history"
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
           headerShown: false,
@@ -192,8 +193,19 @@ function Layout() {
           name="combat"
           options={{
             href: null,
-            headerShown: true,
+            headerShown: false,
             title: t("combat") || "Combat",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="combat_session"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("combat_session_page.title") || "Session",
             headerStyle: styles.secondaryHeader,
             headerTintColor: COLORS.TEXT_PRIMARY,
             headerShadowVisible: false,
@@ -225,7 +237,7 @@ function Layout() {
           name="gallery"
           options={{
             href: null,
-            headerShown: true,
+            headerShown: false,
             title: t("gallery"),
             headerStyle: styles.secondaryHeader,
             headerTintColor: COLORS.TEXT_PRIMARY,
@@ -238,6 +250,61 @@ function Layout() {
             href: null,
             headerShown: true,
             title: t("history") || "History",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="contracts"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("contracts_page.title") || "Contracts",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="leaderboard"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("leaderboard_page.title") || "Leaderboard",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="item_upgrades"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("item_upgrades_page.title") || "Upgrades",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="friends"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("friends_page.title") || "Friends",
+            headerStyle: styles.secondaryHeader,
+            headerTintColor: COLORS.TEXT_PRIMARY,
+            headerShadowVisible: false,
+          }}
+        />
+        <Tabs.Screen
+          name="about"
+          options={{
+            href: null,
+            headerShown: true,
+            title: t("about_page.title") || "About",
             headerStyle: styles.secondaryHeader,
             headerTintColor: COLORS.TEXT_PRIMARY,
             headerShadowVisible: false,

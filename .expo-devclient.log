@@ -1,0 +1,1464 @@
+Starting project at C:\Users\kona\Desktop\Vshop
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:8090
+Logs for your project will appear below.
+Android Bundled 15058ms C:\Users\kona\Desktop\Vshop\index.ts (1814 modules)
+ LOG  i18next: languageChanged vi
+ LOG  i18next: initialized {"appendNamespaceToCIMode": false, "appendNamespaceToMissingKey": false, "compatibilityJSON": "v3", "contextSeparator": "_", "debug": true, "defaultNS": ["translation"], "fallbackLng": ["en"], "fallbackNS": false, "ignoreJSONStructure": true, "initImmediate": true, "interpolation": {"escapeValue": false, "format": [Function bound format], "formatSeparator": ",", "maxReplaces": 1000, "nestingOptionsSeparator": ",", "nestingPrefix": "$t(", "nestingSuffix": ")", "prefix": "{{", "skipOnVariables": true, "suffix": "}}", "unescapePrefix": "-"}, "joinArrays": false, "keySeparator": ".", "load": "all", "missingInterpolationHandler": false, "missingKeyHandler": false, "nonExplicitSupportedLngs": false, "ns": ["translation"], "nsSeparator": ":", "overloadTranslationOptionHandler": [Function overloadTranslationOptionHandler], "parseMissingKeyHandler": false, "partialBundledLanguages": false, "pluralSeparator": "_", "postProcess": false, "postProcessPassResolved": false, "preload": false, "react": {"useSuspense": false}, "resources": {"ar": {"VAPILangCode": "ar-AE", "translation": [Object]}, "de": {"VAPILangCode": "de-DE", "translation": [Object]}, "en": {"VAPILangCode": "en-US", "translation": [Object]}, "es": {"VAPILangCode": "es-ES", "translation": [Object]}, "fr": {"VAPILangCode": "fr-FR", "translation": [Object]}, "it": {"VAPILangCode": "it-IT", "translation": [Object]}, "jp": {"VAPILangCode": "ja-JP", "translation": [Object]}, "ko": {"VAPILangCode": "ko-KR", "translation": [Object]}, "no": {"VAPILangCode": "en-US", "translation": [Object]}, "pl": {"VAPILangCode": "pl-PL", "translation": [Object]}, "pt": {"VAPILangCode": "pt-BR", "translation": [Object]}, "ru": {"VAPILangCode": "ru-RU", "translation": [Object]}, "th": {"VAPILangCode": "th-TH", "translation": [Object]}, "tr": {"VAPILangCode": "tr-TR", "translation": [Object]}, "uk": {"VAPILangCode": "vi-VN", "translation": [Object]}, "vi": {"VAPILangCode": "vi-VN", "translation": [Object]}, "zh-Hans": {"VAPILangCode": "zh-CN", "translation": [Object]}, "zh-Hant": {"VAPILangCode": "zh-TW", "translation": [Object]}}, "returnEmptyString": true, "returnNull": false, "returnObjects": false, "returnedObjectHandler": false, "saveMissing": false, "saveMissingPlurals": true, "saveMissingTo": "fallback", "simplifyPluralSuffix": true, "supportedLngs": false, "updateMissing": false}
+Android Bundled 262ms C:\Users\kona\Desktop\Vshop\utils\plausible.ts (650 modules)
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  GET https://pd.ap.a.pvp.net/match-history/v1/history/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26/competitiveupdates
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/e88ed07e-3c42-44b1-88dc-ae5a60fa09f4
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/24c8bd75-a3c4-42e2-a6a0-bfe476825b21
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/51772f6c-eeb2-4863-95f2-5b87a4cee65e
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/0a89b6bd-fb63-42fd-9035-c43eb6cacd4d
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/2fa59c64-90cd-4743-857b-fe8bc8497952
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/871d9891-3a87-4727-b324-7b5338fd544e
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/f4c77ae8-6540-4813-b2b2-1aac48a6971f
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/c79310df-b827-4a1f-96d5-973b1220ef27
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/eb91ef15-4c65-4114-9311-b2ea30354054
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/52e3ea07-e6f7-46c8-82dd-c1d9b57ed5d9
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/8960ce10-6eba-427b-842f-fd97476b9d62
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/8cc57224-39a5-4ad6-b355-2271d7d69642
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/dc5fd8b3-2d09-4dde-b058-f2cbba9c57b4
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/8328c947-e7d1-4d46-abad-f486c69b1ba4
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/bfba837e-b497-451a-9336-7026f83d922a
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/5f712472-4241-42f4-8bfa-e6d7ba5d8e8d
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/722aa344-78da-4546-94e3-ba8a670855f6
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/89872955-d1d0-41ed-9c7f-3469acccece1
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/2d1824b1-e3e1-4d3b-a5f9-ab7ada13649f
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/1d81f748-acde-43bb-8c0c-90552e8daaf9
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/parties/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/pregame/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/core-game/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+Android Bundled 70ms C:\Users\kona\Desktop\Vshop\index.ts (1 module)
+ LOG  i18next: languageChanged vi
+ LOG  i18next: initialized {"appendNamespaceToCIMode": false, "appendNamespaceToMissingKey": false, "compatibilityJSON": "v3", "contextSeparator": "_", "debug": true, "defaultNS": ["translation"], "fallbackLng": ["en"], "fallbackNS": false, "ignoreJSONStructure": true, "initImmediate": true, "interpolation": {"escapeValue": false, "format": [Function bound format], "formatSeparator": ",", "maxReplaces": 1000, "nestingOptionsSeparator": ",", "nestingPrefix": "$t(", "nestingSuffix": ")", "prefix": "{{", "skipOnVariables": true, "suffix": "}}", "unescapePrefix": "-"}, "joinArrays": false, "keySeparator": ".", "load": "all", "missingInterpolationHandler": false, "missingKeyHandler": false, "nonExplicitSupportedLngs": false, "ns": ["translation"], "nsSeparator": ":", "overloadTranslationOptionHandler": [Function overloadTranslationOptionHandler], "parseMissingKeyHandler": false, "partialBundledLanguages": false, "pluralSeparator": "_", "postProcess": false, "postProcessPassResolved": false, "preload": false, "react": {"useSuspense": false}, "resources": {"ar": {"VAPILangCode": "ar-AE", "translation": [Object]}, "de": {"VAPILangCode": "de-DE", "translation": [Object]}, "en": {"VAPILangCode": "en-US", "translation": [Object]}, "es": {"VAPILangCode": "es-ES", "translation": [Object]}, "fr": {"VAPILangCode": "fr-FR", "translation": [Object]}, "it": {"VAPILangCode": "it-IT", "translation": [Object]}, "jp": {"VAPILangCode": "ja-JP", "translation": [Object]}, "ko": {"VAPILangCode": "ko-KR", "translation": [Object]}, "no": {"VAPILangCode": "en-US", "translation": [Object]}, "pl": {"VAPILangCode": "pl-PL", "translation": [Object]}, "pt": {"VAPILangCode": "pt-BR", "translation": [Object]}, "ru": {"VAPILangCode": "ru-RU", "translation": [Object]}, "th": {"VAPILangCode": "th-TH", "translation": [Object]}, "tr": {"VAPILangCode": "tr-TR", "translation": [Object]}, "uk": {"VAPILangCode": "vi-VN", "translation": [Object]}, "vi": {"VAPILangCode": "vi-VN", "translation": [Object]}, "zh-Hans": {"VAPILangCode": "zh-CN", "translation": [Object]}, "zh-Hant": {"VAPILangCode": "zh-TW", "translation": [Object]}}, "returnEmptyString": true, "returnNull": false, "returnObjects": false, "returnedObjectHandler": false, "saveMissing": false, "saveMissingPlurals": true, "saveMissingTo": "fallback", "simplifyPluralSuffix": true, "supportedLngs": false, "updateMissing": false}
+Android Bundled 25ms C:\Users\kona\Desktop\Vshop\utils\plausible.ts (1 module)
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/parties/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/pregame/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/core-game/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+Android Bundled 66ms C:\Users\kona\Desktop\Vshop\index.ts (1 module)
+ LOG  i18next: languageChanged vi
+ LOG  i18next: initialized {"appendNamespaceToCIMode": false, "appendNamespaceToMissingKey": false, "compatibilityJSON": "v3", "contextSeparator": "_", "debug": true, "defaultNS": ["translation"], "fallbackLng": ["en"], "fallbackNS": false, "ignoreJSONStructure": true, "initImmediate": true, "interpolation": {"escapeValue": false, "format": [Function bound format], "formatSeparator": ",", "maxReplaces": 1000, "nestingOptionsSeparator": ",", "nestingPrefix": "$t(", "nestingSuffix": ")", "prefix": "{{", "skipOnVariables": true, "suffix": "}}", "unescapePrefix": "-"}, "joinArrays": false, "keySeparator": ".", "load": "all", "missingInterpolationHandler": false, "missingKeyHandler": false, "nonExplicitSupportedLngs": false, "ns": ["translation"], "nsSeparator": ":", "overloadTranslationOptionHandler": [Function overloadTranslationOptionHandler], "parseMissingKeyHandler": false, "partialBundledLanguages": false, "pluralSeparator": "_", "postProcess": false, "postProcessPassResolved": false, "preload": false, "react": {"useSuspense": false}, "resources": {"ar": {"VAPILangCode": "ar-AE", "translation": [Object]}, "de": {"VAPILangCode": "de-DE", "translation": [Object]}, "en": {"VAPILangCode": "en-US", "translation": [Object]}, "es": {"VAPILangCode": "es-ES", "translation": [Object]}, "fr": {"VAPILangCode": "fr-FR", "translation": [Object]}, "it": {"VAPILangCode": "it-IT", "translation": [Object]}, "jp": {"VAPILangCode": "ja-JP", "translation": [Object]}, "ko": {"VAPILangCode": "ko-KR", "translation": [Object]}, "no": {"VAPILangCode": "en-US", "translation": [Object]}, "pl": {"VAPILangCode": "pl-PL", "translation": [Object]}, "pt": {"VAPILangCode": "pt-BR", "translation": [Object]}, "ru": {"VAPILangCode": "ru-RU", "translation": [Object]}, "th": {"VAPILangCode": "th-TH", "translation": [Object]}, "tr": {"VAPILangCode": "tr-TR", "translation": [Object]}, "uk": {"VAPILangCode": "vi-VN", "translation": [Object]}, "vi": {"VAPILangCode": "vi-VN", "translation": [Object]}, "zh-Hans": {"VAPILangCode": "zh-CN", "translation": [Object]}, "zh-Hant": {"VAPILangCode": "zh-TW", "translation": [Object]}}, "returnEmptyString": true, "returnNull": false, "returnObjects": false, "returnedObjectHandler": false, "saveMissing": false, "saveMissingPlurals": true, "saveMissingTo": "fallback", "simplifyPluralSuffix": true, "supportedLngs": false, "updateMissing": false}
+Android Bundled 25ms C:\Users\kona\Desktop\Vshop\utils\plausible.ts (1 module)
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ LOG  GET https://pd.ap.a.pvp.net/match-details/v1/matches/e88ed07e-3c42-44b1-88dc-ae5a60fa09f4
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/parties/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/pregame/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/core-game/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/parties/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/pregame/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/core-game/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/parties/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/pregame/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/core-game/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ ERROR  Error: Text strings must be rendered within a <Text> component.
+
+This error is located at:
+    in RCTView (created by View)
+    in View (created by InfoPill)
+    in InfoPill (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by AccessoryShop)
+    in RCTView (created by View)
+    in View (created by ScrollView)
+    in RCTScrollView (created by ScrollView)
+    in ScrollView (created by ScrollView)
+    in ScrollView (created by AccessoryShop)
+    in AccessoryShop
+    in Unknown (created by Route(accessories))
+    in Suspense (created by Route(accessories))
+    in Route (created by Route(accessories))
+    in Route(accessories) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by Screen)
+    in RCTView (created by View)
+    in View (created by Background)
+    in Background (created by Screen)
+    in Screen (created by BottomTabView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by MaybeScreen)
+    in MaybeScreen (created by BottomTabView)
+    in RNSScreenContainer (created by ScreenContainer)
+    in ScreenContainer (created by MaybeScreenContainer)
+    in MaybeScreenContainer (created by BottomTabView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by BottomTabView)
+    in BottomTabView (created by BottomTabNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by BottomTabNavigator)
+    in BottomTabNavigator
+    in Unknown (created by Layout)
+    in Layout
+    in Unknown (created by Route((authenticated)))
+    in Suspense (created by Route((authenticated)))
+    in Route (created by Route((authenticated)))
+    in Route((authenticated)) (created by SceneView)
+    in StaticContainer
+    in EnsureSingleNavigator (created by SceneView)
+    in SceneView (created by SceneView)
+    in RCTView (created by View)
+    in View (created by DebugContainer)
+    in DebugContainer (created by MaybeNestedStack)
+    in MaybeNestedStack (created by SceneView)
+    in RCTView (created by View)
+    in View (created by SceneView)
+    in RNSScreen (created by Animated(Anonymous))
+    in Animated(Anonymous) (created by InnerScreen)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by InnerScreen)
+    in InnerScreen (created by Screen)
+    in Screen (created by SceneView)
+    in SceneView (created by NativeStackViewInner)
+    in Suspender (created by Freeze)
+    in Suspense (created by Freeze)
+    in Freeze (created by DelayedFreeze)
+    in DelayedFreeze (created by ScreenStack)
+    in RNSScreenStack (created by ScreenStack)
+    in ScreenStack (created by NativeStackViewInner)
+    in NativeStackViewInner (created by NativeStackView)
+    in RCTView (created by View)
+    in View (created by SafeAreaProviderCompat)
+    in SafeAreaProviderCompat (created by NativeStackView)
+    in NativeStackView (created by NativeStackNavigator)
+    in PreventRemoveProvider (created by NavigationContent)
+    in NavigationContent
+    in Unknown (created by NativeStackNavigator)
+    in NativeStackNavigator
+    in Unknown (created by RootLayout)
+    in ThemeProvider (created by RootLayout)
+    in StripeProvider (created by StripeProvider)
+    in StripeProvider (created by RootLayout)
+    in ThemeProvider (created by Provider)
+    in RCTView (created by View)
+    in View (created by Portal.Host)
+    in Portal.Host (created by Provider)
+    in Provider (created by RootLayout)
+    in PlausibleProvider (created by RootLayout)
+    in RNGestureHandlerRootView (created by GestureHandlerRootView)
+    in GestureHandlerRootView (created by RootLayout)
+    in RootLayout
+    in Unknown (created by Route())
+    in Suspense (created by Route())
+    in Route (created by Route())
+    in Route() (created by ContextNavigator)
+    in RNCSafeAreaProvider (created by SafeAreaProvider)
+    in SafeAreaProvider (created by wrapper)
+    in wrapper (created by ContextNavigator)
+    in EnsureSingleNavigator
+    in BaseNavigationContainer
+    in ThemeProvider
+    in NavigationContainerInner (created by ContextNavigator)
+    in ContextNavigator (created by ExpoRoot)
+    in ExpoRoot (created by App)
+    in App (created by ErrorOverlay)
+    in ErrorToastContainer (created by ErrorOverlay)
+    in ErrorOverlay (created by withDevTools(ErrorOverlay))
+    in withDevTools(ErrorOverlay)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in RCTView (created by View)
+    in View (created by AppContainer)
+    in AppContainer
+    in main(RootComponent), js engine: hermes
+ LOG  GET https://valorant-api.com/v1/agents?language=vi-VN
+ LOG  POST https://entitlements.auth.riotgames.com/api/token/v1/
+ LOG  GET https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout
+ LOG  PUT https://pd.ap.a.pvp.net/name-service/v2/players
+ LOG  POST https://pd.ap.a.pvp.net/store/v3/storefront/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/e7c63390-eda7-46e0-bb7a-a6abdacd2433
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/3ad1b2b2-acdb-4524-852f-954a76ddae0a
+ LOG  GET https://pd.ap.a.pvp.net/store/v1/entitlements/991adf11-cd4a-55d2-937f-4ec21521fd26/d5f120f8-ff8c-4aac-92ea-f2b5acbe9475
+ LOG  GET https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://valorant-api.com/v1/bundles/4a21cfb3-4bb5-4046-7958-219725a89961?language=vi-VN
+ LOG  GET https://valorant-api.com/v1/bundles/1d0f4bbc-4237-1338-5712-1081e21295a1?language=vi-VN
+ LOG  GET https://api.github.com/repos/GinzaTech/Vshop/releases/latest
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/parties/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/pregame/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/core-game/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/pregame/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ WARN  [combat] Failed to quit pregame lobby [AxiosError: Request failed with status code 404]
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/parties/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/pregame/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26
+ LOG  GET https://glz-ap-1.ap.a.pvp.net/core-game/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26

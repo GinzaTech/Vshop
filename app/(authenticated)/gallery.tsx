@@ -36,34 +36,29 @@ function Gallery() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filter, setFilter] = React.useState<"all" | "wishlist">("all");
   const debouncedQuery = useDebounceValue(searchQuery, 100);
-  // @ts-ignore
-  const [gallerySkins, setGallerySkins] = React.useState<GalleryWeapon[]>([]);
   const { skinIds, toggleSkin } = useWishlistStore();
+  const gallerySkins = React.useMemo(() => {
+    return getAssets()
+      .skins.filter((skin) => {
+        const matchesQuery = skin.displayName.match(
+          new RegExp(
+            debouncedQuery.replace(/[&/\\#,+()$~%.^'":*?<>{}]/g, ""),
+            "i"
+          )
+        );
+        const matchesTier = skin.contentTierUuid;
+        const matchesWishlist =
+          filter === "all" || skinIds.includes(skin.levels[0].uuid);
 
-  React.useEffect(() => {
-    setGallerySkins(
-      getAssets()
-        .skins.filter((skin) => {
-          const matchesQuery = skin.displayName.match(
-            new RegExp(
-              debouncedQuery.replace(/[&/\\#,+()$~%.^'":*?<>{}]/g, ""),
-              "i"
-            )
-          );
-          const matchesTier = skin.contentTierUuid;
-          const matchesWishlist =
-            filter === "all" || skinIds.includes(skin.levels[0].uuid);
-
-          return Boolean(matchesQuery && matchesTier && matchesWishlist);
-        })
-        .map((item) => ({
-          ...item,
-          onWishlist: skinIds.includes(item.levels[0].uuid),
-        }))
-        .sort((a, b) =>
-          a.onWishlist === b.onWishlist ? 0 : a.onWishlist ? -1 : 1
-        )
-    );
+        return Boolean(matchesQuery && matchesTier && matchesWishlist);
+      })
+      .map((item) => ({
+        ...item,
+        onWishlist: skinIds.includes(item.levels[0].uuid),
+      }))
+      .sort((a, b) =>
+        a.onWishlist === b.onWishlist ? 0 : a.onWishlist ? -1 : 1
+      );
   }, [debouncedQuery, filter, skinIds]);
 
   const renderItem = React.useCallback(

@@ -2,16 +2,28 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { VCurrencies, VItemTypes } from "./misc";
 import https from "https-browserify";
-import { fetchBundle, fetchAgent, getAssets, getAgent } from "./valorant-assets";
+import { fetchBundle, getAssets } from "./valorant-assets";
+import {
+  logAxiosRequest,
+  logAxiosResponse,
+  logAxiosError,
+  initApiLogger,
+} from "./api-logger";
+
+void initApiLogger();
+
 axios.interceptors.request.use(
   function (config) {
     if (__DEV__) console.log(`${config.method?.toUpperCase()} ${config.url}`);
-    return config;
+    (config as any).metadata = { startTime: Date.now() };
+    return logAxiosRequest(config);
   },
   function (error) {
     return Promise.reject(error);
   }
 );
+
+axios.interceptors.response.use(logAxiosResponse, logAxiosError);
 
 
 export interface PlayerLoadoutResponse {
@@ -76,6 +88,25 @@ export interface CompetitiveMMRResponse {
   };
 }
 
+export interface CurrentGameMatchResponse {
+  MatchID: string;
+  Players: {
+    Subject: string;
+    [key: string]: any;
+  }[];
+  [key: string]: any;
+}
+
+export interface PartyResponse {
+  ID: string;
+  Members: {
+    Subject: string;
+    IsReady: boolean;
+    [key: string]: any;
+  }[];
+  [key: string]: any;
+}
+
 export const extractOwnedItemIds = (response?: OwnedItemsResponse | null) =>
   Array.from(
     new Set(
@@ -118,6 +149,7 @@ export let defaultUser = {
   },
   ownedSkinIds: [] as string[],
   accessToken: "",
+  idToken: "",
   entitlementsToken: "",
 };
 
@@ -199,13 +231,16 @@ export async function parseShop(shop: StorefrontResponse) {
   let main: SkinShopItem[] = [];
   const { skins, buddies, cards, sprays, titles } = getAssets();
 
-  for (var i = 0; i < singleItemStoreOffers.length; i++) {
-    const offer = singleItemStoreOffers[i];
+  for (let mainIndex = 0; mainIndex < singleItemStoreOffers.length; mainIndex++) {
+    const offer = singleItemStoreOffers[mainIndex];
 
-    const skin = skins.find((_skin) => _skin.levels[0].uuid === offer.OfferID);
+    const skin = skins.find((_skin) =>
+      _skin.levels?.some((level) => level.uuid === offer.OfferID) ||
+      _skin.chromas?.some((chroma) => chroma.uuid === offer.OfferID)
+    );
 
     if (skin) {
-      main[i] = {
+      main[mainIndex] = {
         ...skin,
         price: offer.Cost[VCurrencies.VP],
       };
@@ -214,40 +249,110 @@ export async function parseShop(shop: StorefrontResponse) {
 
   /* BUNDLES */
   const bundles: BundleShopItem[] = [];
-  for (var b = 0; b < shop.FeaturedBundle.Bundles.length; b++) {
-    const bundle = shop.FeaturedBundle.Bundles[b];
-    const bundleAsset = await fetchBundle(bundle.DataAssetID);
+  const featuredBundles = shop.FeaturedBundle.Bundles?.length
+    ? shop.FeaturedBundle.Bundles
+    : shop.FeaturedBundle.Bundle
+      ? [shop.FeaturedBundle.Bundle]
+      : [];
 
-    if (bundleAsset != null) {
-      bundles.push({
-        ...bundleAsset,
-        price: bundle.Items.map((item) => item.DiscountedPrice).reduce(
-          (a, b) => a + b
-        ),
-        items: bundle.Items.filter(
-          (item) => item.Item.ItemTypeID === VItemTypes.SkinLevel
-        ).map((item) => {
-          const skin = skins.find(
-            (_skin) => _skin.levels[0].uuid === item.Item.ItemID
-          ) as ValorantSkin;
+  const bundleResults = await Promise.all(
+    featuredBundles.map(async (bundle) => {
+      const bundleAsset = await fetchBundle(bundle.DataAssetID);
+      return { bundle, bundleAsset };
+    })
+  );
 
-          return {
-            ...skin,
-            price: item.BasePrice,
-          };
-        }),
-      });
+  for (const { bundle, bundleAsset } of bundleResults) {
+    if (bundleAsset == null) continue;
+
+    const allItems: (SkinShopItem | AccessoryShopItem)[] = [];
+
+    for (const item of bundle.Items) {
+      const uuid = item.Item.ItemID;
+      const typeId = item.Item.ItemTypeID;
+      const price = item.BasePrice;
+
+      if (typeId === VItemTypes.SkinLevel || typeId === VItemTypes.SkinChroma) {
+        const skin = skins.find((_skin) =>
+          _skin.uuid === uuid ||
+          _skin.levels?.some((level) => level.uuid === uuid) ||
+          _skin.chromas?.some((chroma) => chroma.uuid === uuid)
+        );
+        if (skin) {
+          allItems.push({ ...skin, price } as SkinShopItem);
+        } else {
+          allItems.push({
+            uuid,
+            displayName: "",
+            themeUuid: "",
+            assetPath: "",
+            chromas: [],
+            levels: [],
+            price,
+          } as SkinShopItem);
+        }
+      } else if (typeId === VItemTypes.Spray) {
+        const spray = sprays.find((s) => s.uuid === uuid);
+        if (spray) {
+          allItems.push({
+            uuid: spray.uuid,
+            displayName: spray.displayName,
+            displayIcon: spray.fullTransparentIcon || spray.displayIcon,
+            price,
+          });
+        }
+      } else if (typeId === VItemTypes.PlayerCard) {
+        const card = cards.find((c) => c.uuid === uuid);
+        if (card) {
+          allItems.push({
+            uuid: card.uuid,
+            displayName: card.displayName,
+            displayIcon: card.largeArt || card.displayIcon,
+            price,
+          });
+        }
+      } else if (typeId === VItemTypes.PlayerTitle) {
+        const title = titles.find((t) => t.uuid === uuid);
+        if (title) {
+          allItems.push({
+            uuid: title.uuid,
+            displayName: title.displayName,
+            price,
+          });
+        }
+      } else if (typeId === VItemTypes.Buddy) {
+        const buddy = buddies.find((b) =>
+          b.levels?.some((level) => level.uuid === uuid)
+        );
+        if (buddy) {
+          allItems.push({
+            uuid: buddy.uuid,
+            displayName: buddy.displayName,
+            displayIcon: buddy.levels?.[0]?.displayIcon || buddy.displayIcon,
+            price,
+          });
+        }
+      }
     }
+
+    bundles.push({
+      ...bundleAsset,
+      price: bundle.Items.map((item) => item.DiscountedPrice).reduce(
+        (a, b) => a + b
+      ),
+      items: allItems,
+    });
   }
 
   /* NIGHT MARKET */
   let nightMarket: NightMarketItem[] = [];
   if (shop.BonusStore) {
-    var bonusStore = shop.BonusStore.BonusStoreOffers;
-    for (var k = 0; k < bonusStore.length; k++) {
+    const bonusStore = shop.BonusStore.BonusStoreOffers;
+    for (let k = 0; k < bonusStore.length; k++) {
       let itemid = bonusStore[k].Offer.Rewards[0].ItemID;
-      const skin = skins.find(
-        (_skin) => _skin.levels[0].uuid === itemid
+      const skin = skins.find((_skin) =>
+        _skin.levels?.some((level) => level.uuid === itemid) ||
+        _skin.chromas?.some((chroma) => chroma.uuid === itemid)
       ) as ValorantSkin;
 
       nightMarket.push({
@@ -262,45 +367,45 @@ export async function parseShop(shop: StorefrontResponse) {
   /* ACCESSORY SHOP */
   let accessoryStore = shop.AccessoryStore.AccessoryStoreOffers;
   let accessory: AccessoryShopItem[] = [];
-  for (var i = 0; i < accessoryStore.length; i++) {
-    const accessoryItem = accessoryStore[i].Offer;
+  for (let accessoryIndex = 0; accessoryIndex < accessoryStore.length; accessoryIndex++) {
+    const accessoryItem = accessoryStore[accessoryIndex].Offer;
 
     // This is a pain because of different return types
-    const buddy = buddies.find(
-      (_skin) => _skin.levels[0].uuid === accessoryItem.Rewards[0].ItemID
+    const buddy = buddies.find((_buddy) =>
+      _buddy.levels?.some((level) => level.uuid === accessoryItem.Rewards[0].ItemID)
     );
     const card = cards.find(
-      (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
+      (_card) => _card.uuid === accessoryItem.Rewards[0].ItemID
     );
     const title = titles.find(
-      (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
+      (_title) => _title.uuid === accessoryItem.Rewards[0].ItemID
     );
     const spray = sprays.find(
-      (_skin) => _skin.uuid === accessoryItem.Rewards[0].ItemID
+      (_spray) => _spray.uuid === accessoryItem.Rewards[0].ItemID
     );
 
     if (buddy) {
-      accessory[i] = {
+      accessory[accessoryIndex] = {
         uuid: buddy.levels[0].uuid,
         displayName: buddy.displayName,
         displayIcon: buddy.levels[0].displayIcon,
         price: accessoryItem.Cost[VCurrencies.KC],
       };
     } else if (card) {
-      accessory[i] = {
+      accessory[accessoryIndex] = {
         uuid: card.uuid,
         displayName: card.displayName,
         displayIcon: card.largeArt,
         price: accessoryItem.Cost[VCurrencies.KC],
       };
     } else if (title) {
-      accessory[i] = {
+      accessory[accessoryIndex] = {
         uuid: title.uuid,
         displayName: title.displayName,
         price: accessoryItem.Cost[VCurrencies.KC],
       };
     } else if (spray) {
-      accessory[i] = {
+      accessory[accessoryIndex] = {
         uuid: spray.uuid,
         displayName: spray.displayName,
         displayIcon: spray.fullTransparentIcon,
@@ -463,6 +568,8 @@ export async function playerLoadout(
   entitlementsToken: string,
   region: string,
   userId: string) {
+  console.log("accessToken:", accesstoken);
+  console.log("entitlementsToken:", entitlementsToken);
   const res = await axios.request<PlayerLoadoutResponse>({
     url: getUrl({ name: "player", region: region, userId: userId }),
     method: "GET",
@@ -589,6 +696,7 @@ function getUrl({
   matchId,
   agentId,
   itemTypeId,
+  code,
 }: {
   name: string;
   region?: string | null;
@@ -596,6 +704,7 @@ function getUrl({
   matchId?: string | null;
   agentId?: string | null;
   itemTypeId?: string | null;
+  code?: string | null;
 }) {
   const URLS: Record<string, string> = {
     auth: "https://auth.riotgames.com/api/v1/authorization/",
@@ -613,9 +722,728 @@ function getUrl({
     mmr: `https://pd.${region}.a.pvp.net/mmr/v1/players/${userId}`,
     "owned-items": `https://pd.${region}.a.pvp.net/store/v1/entitlements/${userId}/${itemTypeId}`,
     "match-history": `https://pd.${region}.a.pvp.net/match-history/v1/history/${userId}`,
-    "match-details": `https://pd.${region}.a.pvp.net/match-details/v1/matches/${matchId}`
+    "match-details": `https://pd.${region}.a.pvp.net/match-details/v1/matches/${matchId}`,
+    "competitive-updates": `https://pd.${region}.a.pvp.net/mmr/v1/players/${userId}/competitiveupdates`,
+    "pregame-player": `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/players/${userId}`,
+    "pregame-match": `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}`,
+    "select-agent": `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/select/${agentId}`,
+    "pregame-loadouts": `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/loadouts`,
+    "coregame-player": `https://glz-${region}-1.${region}.a.pvp.net/core-game/v1/players/${userId}`,
+    "coregame-match": `https://glz-${region}-1.${region}.a.pvp.net/core-game/v1/matches/${matchId}`,
+    "coregame-loadouts": `https://glz-${region}-1.${region}.a.pvp.net/core-game/v1/matches/${matchId}/loadouts`,
+    "coregame-quit": `https://glz-${region}-1.${region}.a.pvp.net/core-game/v1/matches/${matchId}/quit`,
+    "party-player": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/players/${userId}`,
+    "party": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}`,
+    "party-ready": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/members/${userId}/setReady`,
+    "party-remove": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/players/${userId}`,
+    "party-join-queue": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/matchmaking/join`,
+    "party-leave-queue": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/matchmaking/leave`,
+    "party-invite-code": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/invitecode`,
+    "party-join-by-code": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/players/joinbycode/${code}`,
+    "party-muc-token": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/muctoken`,
+    "contracts": `https://pd.${region}.a.pvp.net/contracts/v1/contracts/${userId}`,
+    "activate-contract": `https://pd.${region}.a.pvp.net/contracts/v1/contracts/${userId}/special/${itemTypeId}`,
+    "item-upgrades": `https://pd.${region}.a.pvp.net/contract-definitions/v3/item-upgrades`,
+    "content": `https://shared.${region}.a.pvp.net/content-service/v3/content`,
+    "leaderboard": `https://pd.${region}.a.pvp.net/mmr/v1/leaderboards/affinity/${region}/queue/competitive/season/${itemTypeId}`,
+    "config": `https://pd.${region}.a.pvp.net/v1/config/${region}`,
+    "penalties": `https://pd.${region}.a.pvp.net/restrictions/v3/penalties`,
+    "playerinfo": "https://auth.riotgames.com/userinfo",
+    "riotgeo": "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant",
+    "pastoken": "https://riot-geo.pas.si.riotgames.com/pas/v1/service/chat",
+    "riotclientconfig": "https://clientconfig.rpg.riotgames.com/api/v1/config/player?app=Riot%20Client",
   };
 
   return URLS[name];
 }
 
+// ---------------------------------------------------------------------------
+// getCompetitiveUpdates
+// ---------------------------------------------------------------------------
+export async function getCompetitiveUpdates(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string,
+  params?: { startIndex?: number; endIndex?: number; queue?: string }
+) {
+  const res = await axios.request({
+    url: getUrl({ name: "competitive-updates", region, userId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    params,
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// getPlayerNames  – resolves a list of subject UUIDs to GameName/TagLine
+// ---------------------------------------------------------------------------
+export async function getPlayerNames(
+  accessToken: string,
+  entitlementsToken: string,
+  subjects: string[],
+  region: string
+): Promise<{ Subject: string; GameName: string; TagLine: string }[]> {
+  const res = await axios.request<
+    { Subject: string; GameName: string; TagLine: string }[]
+  >({
+    url: getUrl({ name: "name", region }),
+    method: "PUT",
+    headers: {
+      ...extraHeaders(),
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+    },
+    data: subjects,
+    validateStatus: () => true,
+  });
+  return Array.isArray(res.data) ? res.data : [];
+}
+
+// ---------------------------------------------------------------------------
+// Pre-game
+// ---------------------------------------------------------------------------
+export async function getPreGamePlayer(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
+): Promise<{ Subject: string; MatchID: string; Version: number } | null> {
+  const res = await axios.request<PreGamePlayerResponse>({
+    url: getUrl({ name: "pregame-player", region, userId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+export async function getPreGameMatch(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  matchId: string
+): Promise<LockCharacterResponse | null> {
+  const res = await axios.request<LockCharacterResponse>({
+    url: getUrl({ name: "pregame-match", region, matchId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+export async function selectAgent(
+  accessToken: string,
+  entitlementsToken: string,
+  userId: string,
+  region: string,
+  agentId: string
+): Promise<any> {
+  const matchId = await getMatchID(accessToken, entitlementsToken, region, userId);
+  const res = await axios.request({
+    url: getUrl({ name: "select-agent", region, matchId, agentId }),
+    method: "POST",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Core-game (live match)
+// ---------------------------------------------------------------------------
+export async function getCurrentGamePlayer(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
+): Promise<{ Subject: string; MatchID: string; Version: number } | null> {
+  const res = await axios.request<{ Subject: string; MatchID: string; Version: number }>({
+    url: getUrl({ name: "coregame-player", region, userId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+export async function getCurrentGameMatch(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  matchId: string
+): Promise<CurrentGameMatchResponse | null> {
+  const res = await axios.request<CurrentGameMatchResponse>({
+    url: getUrl({ name: "coregame-match", region, matchId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Party
+// ---------------------------------------------------------------------------
+export async function getPartyPlayer(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
+): Promise<{ CurrentPartyID: string; [key: string]: any } | null> {
+  const res = await axios.request<{ CurrentPartyID: string; [key: string]: any }>({
+    url: getUrl({ name: "party-player", region, userId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+export async function getParty(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  partyId: string
+): Promise<PartyResponse | null> {
+  const res = await axios.request<PartyResponse>({
+    // reuse matchId slot in getUrl to pass partyId
+    url: getUrl({ name: "party", region, matchId: partyId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+export async function getPartyMucToken(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  partyId: string
+): Promise<PartyChatTokenResponse | null> {
+  const url = getUrl({ name: "party-muc-token", region, matchId: partyId });
+  const res = await axios.request<PartyChatTokenResponse>({
+    url,
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  const responseData = res.data as any;
+  const logData =
+    responseData && typeof responseData === "object"
+      ? {
+          ...responseData,
+          Token: responseData.Token ? "[redacted]" : responseData.Token,
+        }
+      : responseData;
+  console.log("[party-muc-token] response", {
+    status: res.status,
+    url,
+    partyId,
+    data: logData,
+  });
+  if (res.status !== 200) {
+    const message =
+      responseData?.message ||
+      responseData?.errorCode ||
+      `HTTP ${res.status}`;
+    throw new Error(`Could not get party chat token (${res.status}: ${message})`);
+  }
+  return res.data;
+}
+
+export async function setPartyReady(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  partyId: string,
+  userId: string,
+  ready: boolean
+): Promise<PartyResponse | null> {
+  const res = await axios.request<PartyResponse>({
+    url: getUrl({ name: "party-ready", region, matchId: partyId, userId }),
+    method: "POST",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "Content-Type": "application/json",
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    data: { ready },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+export async function generatePartyInviteCode(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  partyId: string
+): Promise<PartyResponse | null> {
+  const res = await axios.request<PartyResponse>({
+    url: getUrl({ name: "party-invite-code", region, matchId: partyId }),
+    method: "POST",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "Content-Type": "application/json",
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+export async function disablePartyInviteCode(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  partyId: string
+): Promise<PartyResponse | null> {
+  const res = await axios.request<PartyResponse>({
+    url: getUrl({ name: "party-invite-code", region, matchId: partyId }),
+    method: "DELETE",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+export async function joinPartyByCode(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  inviteCode: string
+): Promise<{ CurrentPartyID?: string; [key: string]: any } | null> {
+  const res = await axios.request<{ CurrentPartyID?: string; [key: string]: any }>({
+    url: getUrl({
+      name: "party-join-by-code",
+      region,
+      code: encodeURIComponent(inviteCode),
+    }),
+    method: "POST",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "Content-Type": "application/json",
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Contracts
+// ---------------------------------------------------------------------------
+export async function getContracts(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
+): Promise<ContractsResponse | null> {
+  const res = await axios.request<ContractsResponse>({
+    url: getUrl({ name: "contracts", region, userId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  console.log("[contracts] response", {
+    status: res.status,
+    data: res.data,
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Activate Contract
+// ---------------------------------------------------------------------------
+export async function activateContract(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string,
+  contractId: string
+): Promise<ContractsResponse | null> {
+  const res = await axios.request<ContractsResponse>({
+    url: getUrl({ name: "activate-contract", region, userId, itemTypeId: contractId }),
+    method: "POST",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "Content-Type": "application/json",
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  console.log("[activate-contract] response", {
+    status: res.status,
+    contractId,
+    data: res.data,
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Item Upgrades (Radianite skin upgrades)
+// ---------------------------------------------------------------------------
+export async function getItemUpgrades(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string
+): Promise<ItemUpgradesResponse | null> {
+  const res = await axios.request<ItemUpgradesResponse>({
+    url: getUrl({ name: "item-upgrades", region }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Fetch Content (seasons, acts, events)
+// ---------------------------------------------------------------------------
+export async function getContent(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string
+): Promise<ContentResponse | null> {
+  const res = await axios.request<ContentResponse>({
+    url: getUrl({ name: "content", region }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Leaderboard
+// ---------------------------------------------------------------------------
+export async function getLeaderboard(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  seasonId: string,
+  params?: { startIndex?: number; size?: number; query?: string }
+): Promise<LeaderboardResponse | null> {
+  const res = await axios.request<LeaderboardResponse>({
+    url: getUrl({ name: "leaderboard", region, itemTypeId: seasonId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    params,
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
+export async function getConfig(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string
+): Promise<ConfigResponse | null> {
+  const res = await axios.request<ConfigResponse>({
+    url: getUrl({ name: "config", region }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Penalties
+// ---------------------------------------------------------------------------
+export async function getPenalties(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string
+): Promise<PenaltiesResponse | null> {
+  const res = await axios.request<PenaltiesResponse>({
+    url: getUrl({ name: "penalties", region }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Player Info (from auth.riotgames.com/userinfo)
+// ---------------------------------------------------------------------------
+export async function getPlayerInfo(
+  accessToken: string
+): Promise<PlayerInfoResponse | null> {
+  const res = await axios.request<PlayerInfoResponse>({
+    url: getUrl({ name: "playerinfo" }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Riot Geo (get region affinity)
+// ---------------------------------------------------------------------------
+export async function getRiotGeo(
+  accessToken: string,
+  idToken: string
+): Promise<RiotGeoResponse | null> {
+  const res = await axios.request<RiotGeoResponse>({
+    url: getUrl({ name: "riotgeo" }),
+    method: "PUT",
+    validateStatus: () => true,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    data: { id_token: idToken },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// PAS Token (chat XMPP auth)
+// ---------------------------------------------------------------------------
+export async function getPASToken(
+  accessToken: string
+): Promise<string | null> {
+  const res = await axios.request<string>({
+    url: getUrl({ name: "pastoken" }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Riot Client Config
+// ---------------------------------------------------------------------------
+export async function getRiotClientConfig(
+  accessToken: string,
+  entitlementsToken: string
+): Promise<RiotClientConfigResponse | null> {
+  const res = await axios.request<RiotClientConfigResponse>({
+    url: getUrl({ name: "riotclientconfig" }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Pre-Game Loadouts
+// ---------------------------------------------------------------------------
+export async function getPregameLoadouts(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  matchId: string
+): Promise<PregameLoadoutsResponse | null> {
+  const res = await axios.request<PregameLoadoutsResponse>({
+    url: getUrl({ name: "pregame-loadouts", region, matchId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Current Game Loadouts
+// ---------------------------------------------------------------------------
+export async function getCurrentGameLoadouts(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  matchId: string
+): Promise<CurrentGameLoadoutsResponse | null> {
+  const res = await axios.request<CurrentGameLoadoutsResponse>({
+    url: getUrl({ name: "coregame-loadouts", region, matchId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Quit Current Game
+// ---------------------------------------------------------------------------
+export async function quitCurrentGame(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  matchId: string
+): Promise<any> {
+  const res = await axios.request({
+    url: getUrl({ name: "coregame-quit", region, matchId }),
+    method: "POST",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Party: Remove Player
+// ---------------------------------------------------------------------------
+export async function removeFromParty(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
+): Promise<void> {
+  await axios.request({
+    url: getUrl({ name: "party-remove", region, userId }),
+    method: "DELETE",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Party: Enter Matchmaking Queue
+// ---------------------------------------------------------------------------
+export async function enterMatchmakingQueue(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  partyId: string
+): Promise<PartyResponse | null> {
+  const res = await axios.request<PartyResponse>({
+    url: getUrl({ name: "party-join-queue", region, matchId: partyId }),
+    method: "POST",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "Content-Type": "application/json",
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Party: Leave Matchmaking Queue
+// ---------------------------------------------------------------------------
+export async function leaveMatchmakingQueue(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  partyId: string
+): Promise<PartyResponse | null> {
+  const res = await axios.request<PartyResponse>({
+    url: getUrl({ name: "party-leave-queue", region, matchId: partyId }),
+    method: "POST",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "Content-Type": "application/json",
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res.status === 200 ? res.data : null;
+}

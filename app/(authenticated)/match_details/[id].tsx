@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { getAssets, getAgent } from "~/utils/valorant-assets";
+import { getPlayerNames } from "~/utils/valorant-api";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 
@@ -61,6 +62,11 @@ export default function MatchDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const user = useUserStore((state) => state.user);
+  const matchSummary = useMatchStore((state) =>
+    typeof id === "string"
+      ? state.matches.find((match: any) => match.MatchID === id) || null
+      : null
+  );
   const cachedDetails = useMatchStore((state) =>
     typeof id === "string" ? state.detailsById[id] : null
   );
@@ -104,6 +110,61 @@ export default function MatchDetailsScreen() {
     fetchDetails();
   }, [cachedDetails, fetchMatchDetails, id, user]);
 
+  React.useEffect(() => {
+    if (!details || !user.accessToken || !user.entitlementsToken || !user.region || !id) return;
+
+    const loadNames = async () => {
+      // Check if details already has playerIdentities with names
+      const identities = details.playerIdentities || details.PlayerIdentities || [];
+      const hasNames = identities.some(
+        (ident: any) => ident.gameName || ident.GameName
+      );
+      if (hasNames) {
+        return;
+      }
+
+      const subjects = (details.players || []).map((p: any) => p.subject);
+      if (subjects.length === 0) return;
+
+      try {
+        const names = await getPlayerNames(
+          user.accessToken,
+          user.entitlementsToken,
+          subjects,
+          user.region
+        );
+
+        if (names && names.length > 0) {
+          const updatedIdentities = names.map((nameEntry: any) => ({
+            subject: nameEntry.Subject,
+            gameName: nameEntry.GameName,
+            tagLine: nameEntry.TagLine,
+          }));
+
+          const updatedDetails = {
+            ...details,
+            playerIdentities: updatedIdentities,
+          };
+
+          // Update local state
+          setDetails(updatedDetails);
+
+          // Update Zustand store cache
+          useMatchStore.setState((state) => ({
+            detailsById: {
+              ...state.detailsById,
+              [id as string]: updatedDetails,
+            },
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch player names in MatchDetailsScreen:", err);
+      }
+    };
+
+    loadNames();
+  }, [details, user, id]);
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -142,6 +203,27 @@ export default function MatchDetailsScreen() {
       agent?.displayName ||
       t("match_details_page.player_fallback");
 
+    // Resolve name from playerIdentities
+    const identities = details.playerIdentities || details.PlayerIdentities || [];
+    const identity = identities.find(
+      (ident: any) =>
+        (ident.subject || ident.Subject || "").toLowerCase() ===
+        (player.subject || "").toLowerCase()
+    );
+    const gameName =
+      identity?.gameName ||
+      identity?.GameName ||
+      player.gameName ||
+      player.GameName ||
+      t("match_details_page.player_fallback");
+    const tagLine =
+      identity?.tagLine ||
+      identity?.TagLine ||
+      player.tagLine ||
+      player.TagLine ||
+      "";
+    const fullName = tagLine ? `${gameName}#${tagLine}` : gameName;
+
     return (
       <View key={player.subject} style={[styles.playerRow, isMe && styles.myRow]}>
         <View style={styles.playerLeft}>
@@ -161,11 +243,11 @@ export default function MatchDetailsScreen() {
               contentPosition="center"
             />
           </View>
-          <View>
-            <Text style={[styles.playerName, isMe && styles.myPlayerName]}>
-              {player.gameName}
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.playerName, isMe && styles.myPlayerName]} numberOfLines={1}>
+              {fullName}
             </Text>
-            <Text style={styles.playerMeta}>
+            <Text style={styles.playerMeta} numberOfLines={1}>
               {safeMeta}
             </Text>
           </View>
@@ -181,7 +263,7 @@ export default function MatchDetailsScreen() {
   };
 
   const renderTeamCard = (title: string, team: any, rows: any[], tone: string) => (
-    <GlassCard style={styles.teamCard}>
+    <View style={styles.teamCard}>
       <View style={styles.teamHeader}>
         <View>
           <Text style={styles.teamTitle}>{title}</Text>
@@ -198,7 +280,7 @@ export default function MatchDetailsScreen() {
         </View>
       </View>
       {rows.map(renderPlayerRow)}
-    </GlassCard>
+    </View>
   );
 
   return (
@@ -227,7 +309,7 @@ export default function MatchDetailsScreen() {
                 style={styles.sheetBackButton}
                 onPress={() => router.back()}
               >
-                <Icon name="arrow-left" size={20} color={COLORS.TEXT_PRIMARY} />
+                <Icon name="arrow-left" size={20} color="#ffffff" />
               </TouchableOpacity>
 
               <View style={styles.mapHeaderBlock}>
@@ -251,6 +333,59 @@ export default function MatchDetailsScreen() {
                 <Text style={styles.scoreValue}>{redTeam?.roundsWon ?? 0}</Text>
               </View>
             </View>
+
+            {matchSummary?.stats ? (
+              <View style={styles.summaryCard}>
+                <View style={styles.summaryTopRow}>
+                  <View>
+                    <Text style={styles.summaryTitle}>
+                      {t("match_details_page.performance_title")}
+                    </Text>
+                    <Text style={styles.summarySubtitle}>
+                      {matchSummary.stats.kda} • {t("history_page.metrics.acs")} {matchSummary.stats.acs}
+                    </Text>
+                  </View>
+                  {matchSummary.stats.rankIcon ? (
+                    <Image
+                      source={{ uri: matchSummary.stats.rankIcon }}
+                      style={styles.summaryRankIcon}
+                      contentFit="contain"
+                    />
+                  ) : null}
+                </View>
+
+                <View style={styles.summaryMetricRow}>
+                  <View style={styles.summaryMetricItem}>
+                    <Text style={styles.summaryMetricLabel}>
+                      {t("history_page.metrics.rr")}
+                    </Text>
+                    <Text style={styles.summaryMetricValue}>
+                      {typeof matchSummary.stats.rrEarned === "number"
+                        ? `${matchSummary.stats.rrEarned > 0 ? "+" : ""}${matchSummary.stats.rrEarned}`
+                        : "--"}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryMetricItem}>
+                    <Text style={styles.summaryMetricLabel}>
+                      {t("history_page.metrics.hs")}
+                    </Text>
+                    <Text style={styles.summaryMetricValue}>
+                      {matchSummary.stats.headshotPct || "--"}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryMetricItem}>
+                    <Text style={styles.summaryMetricLabel}>
+                      {t("match_details_page.rank_after")}
+                    </Text>
+                    <Text style={styles.summaryMetricValue}>
+                      {typeof matchSummary.stats.rrAfter === "number"
+                        ? matchSummary.stats.rrAfter
+                        : "--"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
 
             {renderTeamCard(
               t("match_details_page.blue_team_full"),
@@ -314,7 +449,7 @@ const styles = StyleSheet.create({
   body: {
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    backgroundColor: COLORS.BACKGROUND,
+    backgroundColor: "#12161a",
     minHeight: "100%",
   },
   bodyContent: {
@@ -326,7 +461,7 @@ const styles = StyleSheet.create({
     width: 54,
     height: 5,
     borderRadius: 999,
-    backgroundColor: COLORS.BORDER,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
     marginBottom: 18,
   },
   sheetHeaderRow: {
@@ -338,9 +473,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.SURFACE,
+    backgroundColor: "#1a1d24",
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
+    borderColor: "rgba(255, 255, 255, 0.08)",
     alignItems: "center",
     justifyContent: "center",
     ...GLOBAL_STYLES.shadow,
@@ -350,14 +485,14 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   mapTitle: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#ffffff",
   },
   mapSubtitle: {
     marginTop: 4,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 15,
   },
   scoreboard: {
     flexDirection: "row",
@@ -371,105 +506,169 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   scoreLabel: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   scoreValue: {
     marginTop: 6,
-    fontSize: 40,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#ffffff",
   },
   scoreDivider: {
-    color: COLORS.TEXT_SECONDARY,
-    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.4)",
+    fontWeight: "800",
+    fontSize: 16,
     paddingHorizontal: 12,
   },
-  teamCard: {
+  summaryCard: {
     marginBottom: 16,
+    backgroundColor: "#1a1d24",
+    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 14,
+    ...GLOBAL_STYLES.shadow,
+  },
+  summaryTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  summaryTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  summarySubtitle: {
+    marginTop: 4,
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 13,
+  },
+  summaryRankIcon: {
+    width: 34,
+    height: 34,
+  },
+  summaryMetricRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 14,
+  },
+  summaryMetricItem: {
+    flex: 1,
+  },
+  summaryMetricLabel: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  summaryMetricValue: {
+    marginTop: 4,
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  teamCard: {
+    marginBottom: 12,
+    backgroundColor: "#1a1d24",
+    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 10,
+    ...GLOBAL_STYLES.shadow,
   },
   teamHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   teamTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#ffffff",
   },
   teamSubtitle: {
-    marginTop: 4,
-    color: COLORS.TEXT_SECONDARY,
+    marginTop: 2,
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 11,
   },
   teamScorePill: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: RADIUS.chip,
   },
   teamScorePillText: {
     color: COLORS.PURE_WHITE,
-    fontWeight: "700",
+    fontWeight: "800",
+    fontSize: 10,
   },
   playerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 5,
     borderTopWidth: 1,
-    borderTopColor: COLORS.BORDER,
+    borderTopColor: "rgba(255, 255, 255, 0.06)",
   },
   myRow: {
-    backgroundColor: "rgba(255,255,255,0.32)",
-    borderRadius: 18,
-    marginVertical: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderRadius: 10,
+    marginVertical: 1,
+    paddingHorizontal: 4,
   },
   playerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     flex: 1,
   },
   agentIconShell: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(23,26,31,0.08)",
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   agentIcon: {
-    width: 38,
-    height: 38,
+    width: 24,
+    height: 24,
   },
   playerName: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 14,
+    color: "#ffffff",
+    fontSize: 11,
     fontWeight: "700",
   },
   myPlayerName: {
-    color: COLORS.ACCENT,
+    color: COLORS.PURE_WHITE,
   },
   playerMeta: {
-    marginTop: 2,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
+    marginTop: 1,
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 9,
   },
   playerRight: {
     alignItems: "flex-end",
-    marginLeft: 12,
+    marginLeft: 8,
   },
   kdaText: {
-    color: COLORS.TEXT_PRIMARY,
+    color: "#ffffff",
     fontWeight: "700",
+    fontSize: 11,
   },
   scoreText: {
-    marginTop: 4,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
+    marginTop: 2,
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 9,
   },
 });

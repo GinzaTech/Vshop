@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { playerMatchHistory, matchDetails } from "~/utils/valorant-api";
+import {
+    getCompetitiveUpdates,
+    matchDetails,
+    playerMatchHistory,
+} from "~/utils/valorant-api";
 import { getAssets, getAgent } from "~/utils/valorant-assets";
 import { defaultUser } from "~/utils/valorant-api"; // Assuming we can get user info or pass it
 import { preloadImageUrls } from "~/utils/preload";
@@ -32,12 +36,21 @@ interface MatchStats {
     roundsWon: number;
     roundsLost: number;
     agentIcon: string;
+    agentId: string | null;
+    agentName: string;
+    agentPortrait: string | null;
     mapName: string;
     mapImage: string;
     gameMode: string;
     rankTier: number | null;
     rankName: string | null;
     rankIcon: string | null;
+    rrEarned: number | null;
+    rrAfter: number | null;
+    rrBefore: number | null;
+    rrPerformanceBonus: number | null;
+    rrAfkPenalty: number | null;
+    competitiveMovement: string | null;
 }
 
 interface Match {
@@ -180,6 +193,18 @@ export const useMatchStore = create<MatchState>()(
                 queue: "competitive",
             });
 
+            const competitiveUpdates = await getCompetitiveUpdates(
+                user.accessToken,
+                user.entitlementsToken,
+                user.region,
+                user.id,
+                {
+                    startIndex: 0,
+                    endIndex: 20,
+                    queue: "competitive",
+                }
+            );
+
             if (!historyData?.History?.length) {
                 historyData = await fetchHistorySafe({
                     startIndex: 0,
@@ -208,6 +233,9 @@ export const useMatchStore = create<MatchState>()(
                     }
                 });
             });
+            const competitiveUpdateByMatch = new Map<string, any>(
+                (competitiveUpdates?.Matches || []).map((entry: any) => [entry.MatchID, entry])
+            );
             const detailsById: Record<string, any> = {};
 
             const detailPromises = historyList.map(async (match: any) => {
@@ -259,6 +287,7 @@ export const useMatchStore = create<MatchState>()(
                     const mapInfo = assets.maps ? assets.maps.find((m: any) => m.mapUrl === details.matchInfo?.mapId) : null;
                     const agentInfo = agents ? agents.find((a: any) => a.uuid === myself.characterId) : null;
                     const rawRankTier = Number(
+                        competitiveUpdateByMatch.get(match.MatchID)?.TierAfterUpdate ??
                         myself?.competitiveTier ??
                         myself?.competitiveTierId ??
                         0
@@ -278,6 +307,7 @@ export const useMatchStore = create<MatchState>()(
                         tierInfo?.largeIcon ||
                         tierInfo?.rankTriangleDownIcon ||
                         null;
+                    const competitiveUpdate: any = competitiveUpdateByMatch.get(match.MatchID);
 
                     return {
                         ...match,
@@ -296,12 +326,43 @@ export const useMatchStore = create<MatchState>()(
                             roundsWon: myTeam ? myTeam.roundsWon : 0,
                             roundsLost: myTeam ? (myTeam.roundsPlayed - myTeam.roundsWon) : 0,
                             agentIcon: agentInfo?.displayIcon,
+                            agentId: myself.characterId || null,
+                            agentName: agentInfo?.displayName || "Agent",
+                            agentPortrait:
+                                agentInfo?.bustPortrait ||
+                                agentInfo?.fullPortraitV2 ||
+                                agentInfo?.fullPortrait ||
+                                null,
                             mapName: mapInfo?.displayName || details.matchInfo.mapId,
                             mapImage: mapInfo?.listViewIcon || mapInfo?.splash,
                             gameMode: details.matchInfo.gameMode,
                             rankTier,
                             rankName: rankName || tierInfo?.tierName || null,
                             rankIcon,
+                            rrEarned:
+                                typeof competitiveUpdate?.RankedRatingEarned === "number"
+                                    ? competitiveUpdate.RankedRatingEarned
+                                    : null,
+                            rrAfter:
+                                typeof competitiveUpdate?.RankedRatingAfterUpdate === "number"
+                                    ? competitiveUpdate.RankedRatingAfterUpdate
+                                    : null,
+                            rrBefore:
+                                typeof competitiveUpdate?.RankedRatingBeforeUpdate === "number"
+                                    ? competitiveUpdate.RankedRatingBeforeUpdate
+                                    : null,
+                            rrPerformanceBonus:
+                                typeof competitiveUpdate?.RankedRatingPerformanceBonus === "number"
+                                    ? competitiveUpdate.RankedRatingPerformanceBonus
+                                    : null,
+                            rrAfkPenalty:
+                                typeof competitiveUpdate?.AFKPenalty === "number"
+                                    ? competitiveUpdate.AFKPenalty
+                                    : null,
+                            competitiveMovement:
+                                typeof competitiveUpdate?.CompetitiveMovement === "string"
+                                    ? competitiveUpdate.CompetitiveMovement
+                                    : null,
                         }
                     };
                 } catch (e) {

@@ -14,7 +14,6 @@ import {
 } from "~/components/popups/equipHelpers";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
-import PageIntro from "~/components/ui/PageIntro";
 
 const Equip = () => {
   const { t } = useTranslation();
@@ -40,11 +39,6 @@ const Equip = () => {
 
   return (
     <View style={styles.container}>
-      <PageIntro
-        title={t("equipment_page.title")}
-        subtitle={t("equipment_page.subtitle")}
-        style={styles.header}
-      />
 
       <Searchbar
         placeholder={t("equipment_page.search_placeholder")}

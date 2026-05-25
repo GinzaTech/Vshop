@@ -11,7 +11,7 @@
   },
   "bundles": "Bộ sưu tập",
   "chromas": "Màu",
-  "combat": "Lịch sử đấu",
+  "combat": "Trận Đấu",
   "copy_riot_id": "Sao chép Riot ID",
   "Controller": "Kiểm soát",
   "credits": "Ghi công",
@@ -47,7 +47,7 @@
   "info": "Thông tin",
   "Initiator": "Khởi tranh",
   "invalid_amount": "Số lượng tối thiểu là {{amount}}.",
-  "kc": "Kingdom Credits",
+  "kc": "KC",
   "language": "Ngôn ngữ",
   "languages": {
     "ar": "Tiếng Ả Rập",
@@ -89,7 +89,7 @@
     "restore": "Khôi phục ủng hộ",
     "success": "Đơn của bạn đang được xử lý. Có thể bạn cần khởi động lại ứng dụng để thấy quyền lợi mới."
   },
-  "rad": "Điểm Radianite",
+  "rad": "RP",
   "region": "Vùng",
   "region_info": "Vui lòng chọn đúng vùng, nếu không cửa hàng của bạn sẽ hiển thị không chính xác.",
   "regions": {
@@ -114,7 +114,7 @@
     "download_github": "Tải trên GitHub"
   },
   "videos": "Video",
-  "vp": "Valorant Points",
+  "vp": "VP",
   "welcome": "Chào mừng đến với VShop",
   "welcome_back": "Chào mừng quay lại",
   "welcome_back_info": "Vui lòng chờ trong giây lát, chúng tôi đang đăng nhập lại cho bạn.",
@@ -176,7 +176,13 @@
     "subtitle": "Ưu đãi giới hạn thời gian với giá giảm cho một số skin được chọn.",
     "empty_title": "Hôm nay chưa có Chợ Đêm",
     "empty_subtitle": "Hiện chưa có ưu đãi giảm giá nào trong lượt này.",
-    "deal": "Ưu đãi"
+    "deal": "Ưu đãi",
+    "badge": "NIGHT MARKET",
+    "limited_badge": "LIMITED ITEM",
+    "special_offer_badge": "SPECIAL OFFER",
+    "off_label": "OFF",
+    "ends_in": "Ends in ",
+    "info_note": "The Night Market offers are unique to your account and cannot be refreshed. Once the timer expires, these specific offers will disappear."
   },
   "gallery_page": {
     "title": "Thư viện skin",
@@ -192,7 +198,7 @@
   },
   "accessories_page": {
     "title": "Cửa hàng phụ kiện",
-    "subtitle": "Thẻ, spray, buddy và danh hiệu có thể mua bằng Kingdom Credits.",
+    "subtitle": "Thẻ, spray, buddy và danh hiệu có thể mua bằng KC.",
     "search_placeholder": "Tìm phụ kiện",
     "empty_title": "Không tìm thấy phụ kiện",
     "empty_subtitle": "Hãy thử từ khóa khác để tìm vật phẩm trong lượt này.",
@@ -221,7 +227,16 @@
       "kda": "KDA",
       "kd": "K/D",
       "acs": "ACS",
-      "hs": "HS%"
+      "hs": "HS%",
+      "rr": "RR",
+      "bonus": "Thưởng",
+      "penalty": "Phạt"
+    },
+    "queue_titles": {
+      "competitive": "Thi đấu xếp hạng",
+      "swiftplay": "Thi đấu nhanh",
+      "deathmatch": "Deathmatch",
+      "spike_rush": "Spike Rush"
     },
     "map_preview": "Xem trước bản đồ"
   },
@@ -309,10 +324,19 @@
     "red_team": "Đỏ",
     "blue_team_full": "Đội Xanh",
     "red_team_full": "Đội Đỏ",
-    "vs": "VS"
+    "vs": "VS",
+    "performance_title": "Hiệu suất trận đấu",
+    "rank_after": "RR sau trận"
   },
   "crosshair_page": {
-    "copied": "Đã sao chép"
+    "copied": "Đã sao chép",
+    "search_placeholder": "Search player or team...",
+    "categories": {
+      "all": "All",
+      "pro": "Pro",
+      "content": "Content",
+      "fun": "Fun"
+    }
   },
   "profile_page": {
     "hero_badge": "Hồ sơ trang bị",
@@ -358,5 +382,190 @@
       "update_now": "Cập nhật ngay",
       "open_release": "Mở bản phát hành"
     }
+  },
+  "combat_page": {
+    "subtitle": "Chọn, khóa và theo dõi phiên VALORANT hiện tại trong cùng một màn hình.",
+    "session_pregame": "Đang trong chọn tướng",
+    "session_live": "Trận đang diễn ra",
+    "session_idle": "Chưa có phiên hoạt động",
+    "no_active_session": "Chưa có phiên hoạt động",
+    "no_map": "Chưa có bản đồ",
+    "loading": "Đang tải",
+    "select_agent_title": "Hãy chọn đặc vụ",
+    "select_agent_message": "Bạn cần chọn một đặc vụ trước khi khóa.",
+    "lock_failed_title": "Khóa thất bại",
+    "lock_failed_message": "Hiện không thể khóa đặc vụ đó.",
+    "party_chat_solo_unavailable": "Chat tổ đội chỉ khả dụng khi có người chơi khác trong tổ đội của bạn.",
+    "actions": {
+      "cancel": "Hủy",
+      "lock": "Khóa đặc vụ",
+      "locking": "Đang khóa...",
+      "refresh": "Làm mới",
+      "ready": "Sẵn sàng",
+      "unready": "Bỏ sẵn sàng",
+      "view_match": "Chi tiết"
+    }
+  },
+  "combat_session_page": {
+    "title": "Phiên đấu",
+    "pregame_title": "Phiên chọn tướng",
+    "live_title": "Phiên đang đấu",
+    "idle_title": "Chưa có phiên",
+    "no_match_title": "Chưa có trận hoạt động",
+    "empty_title": "Không tìm thấy trận đang hoạt động",
+    "empty_subtitle": "Hãy vào hàng chờ hoặc mở chọn đặc vụ trước, sau đó làm mới màn này.",
+    "no_map": "Chưa có bản đồ",
+    "unknown_queue": "Chưa có hàng chờ",
+    "session_state": "Trạng thái phiên",
+    "session_pregame": "Chọn tướng",
+    "session_live": "Đang diễn ra",
+    "party_access": "Quyền truy cập tổ đội",
+    "party_queue": "Hàng chờ",
+    "unavailable": "Không khả dụng",
+    "ally_team": "Đội của bạn",
+    "party_members": "Thành viên tổ đội",
+    "roster_empty": "Hiện chưa có danh sách đội.",
+    "player_fallback": "Người chơi",
+    "agent_unselected": "Chưa chọn đặc vụ",
+    "actions": {
+      "ready": "Đặt sẵn sàng",
+      "unready": "Bỏ sẵn sàng"
+    },
+    "enemy_team": "Đội địch"
+  },
+  "contracts_page": {
+    "title": "Hợp đồng",
+    "subtitle": "Tiến trình Battle Pass, Event Pass và Hợp đồng Đặc vụ.",
+    "loading": "Đang tải hợp đồng...",
+    "empty_title": "Không tìm thấy hợp đồng",
+    "empty_subtitle": "Không thể tải dữ liệu hợp đồng. Kéo để làm mới.",
+    "battlepass": "Battle Pass",
+    "eventpass": "Event Pass",
+    "agent_contract": "Hợp đồng Đặc vụ",
+    "progression": "Cấp {{level}}",
+    "xp_progress": "{{current}} / {{next}} XP",
+    "activate": "Kích hoạt",
+    "activated": "Đang hoạt động",
+    "agent_contracts_title": "Hợp đồng Đặc vụ",
+    "no_battlepass": "Không có Battle Pass đang hoạt động",
+    "missions_title": "Nhiệm vụ Hàng ngày & Hàng tuần",
+    "mission_progress": "{{current}} / {{target}}",
+    "mission_complete": "Hoàn thành"
+  },
+  "leaderboard_page": {
+    "title": "Bảng xếp hạng",
+    "subtitle": "Top Radiant và thứ hạng thi đấu.",
+    "loading": "Đang tải bảng xếp hạng...",
+    "empty_title": "Không có dữ liệu bảng xếp hạng",
+    "empty_subtitle": "Không thể tải bảng xếp hạng. Kéo để làm mới.",
+    "search_placeholder": "Tìm theo tên người chơi...",
+    "rank_label": "Hạng",
+    "player": "Người chơi",
+    "rr": "RR",
+    "wins": "Thắng",
+    "tier_icon": "Cấp",
+    "rank_header": "#{{rank}}",
+    "season_select": "Mùa",
+    "load_more": "Tải thêm",
+    "no_results": "Không tìm thấy người chơi nào."
+  },
+  "item_upgrades_page": {
+    "title": "Nâng cấp Skin",
+    "subtitle": "Nâng cấp skin và sidegrade bằng Radianite.",
+    "loading": "Đang tải nâng cấp...",
+    "empty_title": "Không có nâng cấp khả dụng",
+    "empty_subtitle": "Bạn chưa có skin nào có thể nâng cấp hoặc dữ liệu chưa được tải.",
+    "upgrade_title": "Tiến trình",
+    "sidegrade_title": "Sidegrade",
+    "cost": "Chi phí",
+    "currency_rad": "Radianite Points",
+    "select_option": "Chọn biến thể",
+    "apply": "Áp dụng",
+    "owned": "Đã sở hữu",
+    "locked": "Đã khóa"
+  },
+  "friends_page": {
+    "title": "Bạn bè",
+    "subtitle": "Danh sách bạn bè và trạng thái trực tuyến.",
+    "loading": "Đang tải bạn bè...",
+    "empty_title": "Không tìm thấy bạn bè",
+    "empty_subtitle": "Hãy thêm bạn bè trong Riot client để thấy họ ở đây.",
+    "online": "Trực tuyến",
+    "offline": "Ngoại tuyến",
+    "in_menu": "Trong Menu",
+    "in_game": "Trong trận",
+    "in_pregame": "Đang chọn tướng",
+    "idle": "Rảnh",
+    "dnd": "Không làm phiền",
+    "mobile": "Di động",
+    "friend_since": "Bạn bè từ",
+    "last_online": "Hoạt động {{time}}",
+    "playing_valorant": "VALORANT",
+    "playing_lol": "Liên Minh Huyền Thoại"
+  },
+  "about_page": {
+    "title": "Giới thiệu & Cấu hình",
+    "subtitle": "Thông tin tài khoản, vùng và cấu hình Riot client.",
+    "loading": "Đang tải cấu hình...",
+    "player_info_title": "Thông tin Tài khoản Riot",
+    "account_created": "Ngày tạo tài khoản",
+    "email_verified": "Email đã xác thực",
+    "phone_verified": "Số điện thoại đã xác thực",
+    "yes": "Có",
+    "no": "Không",
+    "country": "Quốc gia",
+    "region_affinity": "Vùng ưu tiên",
+    "live_region": "Vùng hiện tại",
+    "config_title": "URL Dịch vụ & Cấu hình",
+    "content_service": "Nội dung",
+    "store_service": "Cửa hàng",
+    "party_service": "Tổ đội",
+    "mmr_service": "MMR",
+    "pregame_service": "Trước trận",
+    "matchhistory_service": "Lịch sử đấu",
+    "matchdetails_service": "Chi tiết trận",
+    "session_labels_old": "Nhãn phiên",
+    "toggled_on": "Bật",
+    "toggled_off": "Tắt",
+    "current_season_title": "Season hiện tại",
+    "episode": "Episode",
+    "act": "Act",
+    "act_ends": "Act kết thúc",
+    "feature_toggles": "Giới thiệu",
+    "profile": "Tên hiển thị",
+    "edit": "Chỉnh sửa",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "reset_action": "Đặt lại",
+    "reset_title": "Đặt lại cấu hình?",
+    "reset_confirm": "Toàn bộ URL tùy chỉnh sẽ bị xóa và trả về mặc định từ Riot.",
+    "overridden": "Tùy chỉnh",
+    "override_active": "Một số URL dịch vụ đang được ghi đè cục bộ.",
+    "reset_toggles_title": "Đặt lại Feature Toggles?",
+    "reset_toggles_confirm": "Toàn bộ toggle tùy chỉnh sẽ được đặt về mặc định từ Riot.",
+    "toggle_override_active": "{{count}} toggle đang được ghi đè cục bộ."
+  },
+  "session_labels": {
+    "queue": {
+      "standard": "Đặt bom",
+      "competitive": "Xếp hạng",
+      "swiftplay": "Nhanh",
+      "spike_rush": "Spike Rush",
+      "escalation": "Leo thang",
+      "deathmatch": "Deathmatch",
+      "team_deathmatch": "TDM",
+      "custom": "Tùy chỉnh"
+    },
+    "access": {
+      "open": "Mở",
+      "closed": "Đóng"
+    }
+  },
+  "reauth": {
+    "riot_account": "Riot Games account"
+  },
+  "login_web_view": {
+    "error": "WebView error",
+    "http_error": "HTTP {{statusCode}} {{description}}"
   }
 }

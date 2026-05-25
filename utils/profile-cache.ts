@@ -34,8 +34,8 @@ export const PROFILE_WARM_CACHE_TTL = 5 * 60 * 1000;
 const profileWarmupInFlight = new Map<string, Promise<ProfileWarmCache | null>>();
 
 export const getSessionAuthKey = (user: typeof defaultUser) =>
-  user.accessToken && user.entitlementsToken && user.region && user.id
-    ? [user.accessToken, user.entitlementsToken, user.region, user.id].join("|")
+  user.region && user.id
+    ? [user.region, user.id].join("|")
     : "guest";
 
 export const isProfileCacheFresh = (

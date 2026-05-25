@@ -54,11 +54,14 @@ import {
   formatSpraySlot,
   WEAPON_NAME_ORDER,
 } from "~/components/GalleryProfile";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, GLOBAL_STYLES } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { VItemTypes } from "~/utils/misc";
 
-const formatUpgradeLevel = (weapon: EquippedWeapon) => {
+const formatUpgradeLevel = (
+  weapon: EquippedWeapon,
+  t: (key: string, options?: Record<string, unknown>) => string
+) => {
   if (!weapon.upgradeLevel) {
     return null;
   }
@@ -67,10 +70,10 @@ const formatUpgradeLevel = (weapon: EquippedWeapon) => {
     weapon.maxUpgradeLevel &&
     weapon.maxUpgradeLevel > 1
   ) {
-    return `Lv ${weapon.upgradeLevel}/${weapon.maxUpgradeLevel}`;
+    return t("profile_page.level", { level: `${weapon.upgradeLevel}/${weapon.maxUpgradeLevel}` });
   }
 
-  return `Lv ${weapon.upgradeLevel}`;
+  return t("profile_page.level", { level: weapon.upgradeLevel });
 };
 
 const normalizeWeaponKey = (value?: string) =>
@@ -255,6 +258,12 @@ function Profile() {
   const refreshTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const initialFetchTaskRef = React.useRef<ReturnType<
+    typeof InteractionManager.runAfterInteractions
+  > | null>(null);
+  const initialFetchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const palette = React.useMemo(
     () => {
@@ -276,11 +285,11 @@ function Profile() {
 
   const profileStats = React.useMemo(
     () => [
-      { key: "vp", label: "VP", value: user.balances.vp, icon: "vp" as const },
-      { key: "rad", label: "RAD", value: user.balances.rad, icon: "rad" as const },
-      { key: "kc", label: "KC", value: user.balances.kc, icon: "kc" as const },
+      { key: "vp", label: t("vp"), value: user.balances.vp, icon: "vp" as const },
+      { key: "rad", label: t("rad"), value: user.balances.rad, icon: "rad" as const },
+      { key: "kc", label: t("kc"), value: user.balances.kc, icon: "kc" as const },
     ],
-    [user.balances.kc, user.balances.rad, user.balances.vp]
+    [t, user.balances.kc, user.balances.rad, user.balances.vp]
   );
 
   const tabItems = React.useMemo(
@@ -547,6 +556,11 @@ function Profile() {
   React.useEffect(
     () => () => {
       pickerTaskRef.current?.cancel();
+      initialFetchTaskRef.current?.cancel();
+      if (initialFetchTimeoutRef.current) {
+        clearTimeout(initialFetchTimeoutRef.current);
+        initialFetchTimeoutRef.current = null;
+      }
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
         refreshTimeoutRef.current = null;
@@ -576,7 +590,27 @@ function Profile() {
       return;
     }
 
-    void fetchLoadoutData(!cachedProfile?.loadoutSnapshot);
+    initialFetchTaskRef.current?.cancel();
+    if (initialFetchTimeoutRef.current) {
+      clearTimeout(initialFetchTimeoutRef.current);
+      initialFetchTimeoutRef.current = null;
+    }
+
+    initialFetchTaskRef.current = InteractionManager.runAfterInteractions(() => {
+      initialFetchTimeoutRef.current = setTimeout(() => {
+        initialFetchTimeoutRef.current = null;
+        void fetchLoadoutData(!cachedProfile?.loadoutSnapshot);
+      }, cachedProfile?.loadoutSnapshot ? 120 : 260);
+    });
+
+    return () => {
+      initialFetchTaskRef.current?.cancel();
+      initialFetchTaskRef.current = null;
+      if (initialFetchTimeoutRef.current) {
+        clearTimeout(initialFetchTimeoutRef.current);
+        initialFetchTimeoutRef.current = null;
+      }
+    };
   }, [authKey, cachedProfile, fetchLoadoutData, hasAuth, t]);
 
   const loadoutDetails = React.useMemo<EquippedWeapon[]>(() => {
@@ -1262,12 +1296,12 @@ function Profile() {
           if (confirmation.loadout) {
             syncLoadoutState(confirmation.loadout);
           }
-          setPickerError("Riot has not confirmed this skin change yet. Try again.");
+          setPickerError(t("equip_page.error_loading"));
         }
       } catch (err) {
         if (__DEV__) console.error(err);
         pendingLoadoutRef.current = null;
-        setPickerError("Could not equip this skin right now.");
+        setPickerError(t("equip_page.error_loading"));
       } finally {
         setUpdatingLoadout(false);
       }
@@ -1355,12 +1389,12 @@ function Profile() {
           if (confirmation.loadout) {
             syncLoadoutState(confirmation.loadout);
           }
-          setPickerError("Riot has not confirmed this spray change yet. Try again.");
+          setPickerError(t("equip_page.error_loading"));
         }
       } catch (err) {
         if (__DEV__) console.error(err);
         pendingLoadoutRef.current = null;
-        setPickerError("Could not equip this spray right now.");
+        setPickerError(t("equip_page.error_loading"));
       } finally {
         setUpdatingLoadout(false);
       }
@@ -1382,7 +1416,7 @@ function Profile() {
     <View
       style={[
         styles.segmentContainer,
-        { backgroundColor: palette.accent },
+        { backgroundColor: "#11181c" },
       ]}
     >
       {tabItems.map((tab, index) => {
@@ -1395,8 +1429,8 @@ function Profile() {
             style={[
               styles.segmentButton,
               {
-                backgroundColor: active ? palette.background : "transparent",
-                marginLeft: index === 0 ? 0 : 12,
+                backgroundColor: active ? "#ffffff" : "transparent",
+                marginLeft: index === 0 ? 0 : 8,
               },
             ]}
           >
@@ -1405,8 +1439,8 @@ function Profile() {
                 styles.segmentLabel,
                 {
                   color: active
-                    ? palette.accent
-                    : "rgba(255,255,255,0.92)",
+                    ? "#11181c"
+                    : "rgba(255,255,255,0.6)",
                 },
               ]}
             >
@@ -1419,13 +1453,13 @@ function Profile() {
   );
 
   const renderProfileHero = () => (
-    <View style={[styles.heroCard, { backgroundColor: palette.accent }]}>
+    <View style={[styles.heroCard, { backgroundColor: "#1a1d24" }]}>
       <View style={styles.heroTopRow}>
-        <View style={styles.heroBadge}>
-          <Icon name="shield-account-outline" size={16} color={COLORS.PURE_WHITE} />
-          <Text style={styles.heroBadgeText}>{t("profile_page.hero_badge")}</Text>
+        <View style={[styles.heroBadge, { backgroundColor: "rgba(48, 164, 108, 0.15)" }]}>
+          <Icon name="shield-account-outline" size={14} color="#30a46c" />
+          <Text style={[styles.heroBadgeText, { color: "#30a46c" }]}>{t("profile_page.hero_badge")}</Text>
         </View>
-        <View style={styles.heroRegionPill}>
+        <View style={[styles.heroRegionPill, { backgroundColor: "rgba(255,255,255,0.1)" }]}>
           <Text style={styles.heroRegionText}>{regionLabel}</Text>
         </View>
       </View>
@@ -1435,7 +1469,7 @@ function Profile() {
           {user.name || t("profile_page.agent_fallback")}
         </Text>
         {user.TagLine ? (
-          <View style={styles.heroTagPill}>
+          <View style={[styles.heroTagPill, { backgroundColor: "rgba(255,255,255,0.12)" }]}>
             <Text style={styles.heroTagText}>#{user.TagLine}</Text>
           </View>
         ) : null}
@@ -1443,21 +1477,21 @@ function Profile() {
       <Text style={styles.heroSubtitle}>{t("profile_page.hero_subtitle")}</Text>
 
       <View style={styles.heroMetaRow}>
-        <View style={styles.heroMetaPill}>
-          <Icon name="star-circle-outline" size={14} color={COLORS.PURE_WHITE} />
-          <Text style={styles.heroMetaText}>
+        <View style={[styles.heroMetaPill, { backgroundColor: "rgba(255,255,255,0.08)" }]}>
+          <Icon name="star-circle-outline" size={13} color="rgba(255,255,255,0.7)" />
+          <Text style={[styles.heroMetaText, { color: "rgba(255,255,255,0.7)" }]}>
             {t("profile_page.level", {
               level: identityDetails?.level ?? user.progress.level,
             })}
           </Text>
         </View>
-        <View style={styles.heroMetaPill}>
+        <View style={[styles.heroMetaPill, { backgroundColor: "rgba(255,255,255,0.08)" }]}>
           <Icon
             name={hasAuth ? "check-decagram-outline" : "alert-circle-outline"}
-            size={14}
-            color={COLORS.PURE_WHITE}
+            size={13}
+            color="rgba(255,255,255,0.7)"
           />
-          <Text style={styles.heroMetaText}>
+          <Text style={[styles.heroMetaText, { color: "rgba(255,255,255,0.7)" }]}>
             {hasAuth
               ? t("profile_page.account_synced")
               : t("profile_page.sign_in_required")}
@@ -1467,7 +1501,7 @@ function Profile() {
 
       <View style={styles.heroStatsRow}>
         {profileStats.map((stat) => (
-          <View key={stat.key} style={styles.heroStatCard}>
+          <View key={stat.key} style={[styles.heroStatCard, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
             <View style={styles.heroStatLabelRow}>
               <CurrencyIcon icon={stat.icon} style={styles.heroStatIcon} />
               <Text style={styles.heroStatLabel}>{stat.label}</Text>
@@ -1478,7 +1512,7 @@ function Profile() {
       </View>
 
       <View style={styles.heroRankRow}>
-        <View style={styles.heroRankCard}>
+        <View style={[styles.heroRankCard, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
           <Text style={styles.heroRankLabel}>{t("profile_page.current_rank")}</Text>
           <View style={styles.heroRankValueRow}>
             {competitiveRank?.currentIcon ? (
@@ -1491,7 +1525,7 @@ function Profile() {
               <Icon
                 name="shield-outline"
                 size={18}
-                color="rgba(255,255,255,0.82)"
+                color="rgba(255,255,255,0.6)"
               />
             )}
             <Text style={styles.heroRankValue}>
@@ -1500,7 +1534,7 @@ function Profile() {
           </View>
         </View>
 
-        <View style={styles.heroRankCard}>
+        <View style={[styles.heroRankCard, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
           <Text style={styles.heroRankLabel}>{t("profile_page.peak_rank")}</Text>
           <View style={styles.heroRankValueRow}>
             {competitiveRank?.peakIcon ? (
@@ -1513,7 +1547,7 @@ function Profile() {
               <Icon
                 name="shield-half-full"
                 size={18}
-                color="rgba(255,255,255,0.82)"
+                color="rgba(255,255,255,0.6)"
               />
             )}
             <Text style={styles.heroRankValue}>
@@ -1530,13 +1564,11 @@ function Profile() {
 
     return (
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
-          {t("equip_page.sections.identity")}
-        </Text>
         <View
           style={[
             styles.identityContainer,
-            { backgroundColor: palette.card, borderColor: palette.cardBorder },
+            GLOBAL_STYLES.shadow,
+            { backgroundColor: "#ffffff", borderColor: COLORS.BORDER, borderWidth: 1 },
           ]}
         >
           <Image
@@ -1549,29 +1581,23 @@ function Profile() {
             contentFit="cover"
           />
           <View style={styles.identityInfo}>
-            <Text style={[styles.identityTitle, { color: palette.textPrimary }]}>
+            <Text style={[styles.identityTitle, { color: COLORS.TEXT_PRIMARY }]}>
               {identityDetails.cardName || t("equip_page.identity.card_fallback")}
             </Text>
-            <Text
-              style={[styles.identitySubtitle, { color: palette.textSecondary }]}
-            >
-              {identityDetails.titleName ||
-                t("equip_page.identity.title_fallback")}
+            <Text style={[styles.identitySubtitle, { color: COLORS.TEXT_SECONDARY }]}>
+              Khẩu hiệu: {identityDetails.titleName || "Không có"}
+            </Text>
+            <Text style={[styles.identitySubtitle, { color: COLORS.TEXT_SECONDARY }]}>
+              Cấp tài khoản: {identityDetails.level}
             </Text>
             <Text
-              style={[styles.identitySubtitle, { color: palette.textSecondary }]}
+              style={[
+                styles.identitySubtitle,
+                { color: identityDetails.hideLevel ? COLORS.WARNING : COLORS.SUCCESS, fontWeight: "600" }
+              ]}
             >
-              {t("equip_page.identity.account_level", {
-                level: identityDetails.level,
-              })}
+              {identityDetails.hideLevel ? "Ẩn cấp độ hiển thị" : "Hiển thị cấp độ"}
             </Text>
-            {identityDetails.hideLevel && (
-              <Text
-                style={[styles.identitySubtitle, { color: palette.textSecondary }]}
-              >
-                {t("equip_page.identity.level_hidden")}
-              </Text>
-            )}
           </View>
         </View>
       </View>
@@ -1583,8 +1609,8 @@ function Profile() {
 
     return (
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
-          {t("equip_page.sections.sprays")}
+        <Text style={[styles.sectionTitle, { color: COLORS.TEXT_PRIMARY, marginTop: 12 }]}>
+          Bình phun sơn đã trang bị
         </Text>
         <View style={styles.sprayList}>
           {sprayDetails.map((spray) => (
@@ -1595,9 +1621,11 @@ function Profile() {
               onPress={() => handleOpenSprayPicker(spray)}
               style={[
                 styles.sprayCard,
+                GLOBAL_STYLES.shadow,
                 {
-                  backgroundColor: palette.card,
-                  borderColor: palette.cardBorder,
+                  backgroundColor: "#ffffff",
+                  borderColor: COLORS.BORDER,
+                  borderWidth: 1,
                   opacity: updatingLoadout ? 0.72 : 1,
                 },
               ]}
@@ -1608,13 +1636,13 @@ function Profile() {
                 contentFit="contain"
               />
               <Text
-                style={[styles.sprayName, { color: palette.textPrimary }]}
-                numberOfLines={2}
+                style={[styles.sprayName, { color: COLORS.TEXT_PRIMARY }]}
+                numberOfLines={1}
               >
                 {spray.name}
               </Text>
               <Text
-                style={[styles.spraySlot, { color: palette.textSecondary }]}
+                style={[styles.spraySlot, { color: COLORS.TEXT_SECONDARY }]}
               >
                 {formatSpraySlot(spray.slot, t)}
               </Text>
@@ -1631,7 +1659,7 @@ function Profile() {
         weapon.contentTierUuid,
         weapon.contentTierName
       );
-      const upgradeLabel = formatUpgradeLevel(weapon);
+      const upgradeLabel = formatUpgradeLevel(weapon, t);
 
       return (
         <View style={styles.weaponBadgeRow}>
@@ -1707,9 +1735,10 @@ function Profile() {
           style={[
             styles.skinGridCard,
             styles.syncedGridCard,
+            GLOBAL_STYLES.shadow,
             {
-              backgroundColor: tier.cardBackground,
-              borderColor: tier.border,
+              backgroundColor: "#ffffff",
+              borderColor: COLORS.BORDER,
               opacity: updatingLoadout ? 0.72 : 1,
             },
           ]}
@@ -1732,7 +1761,7 @@ function Profile() {
           </View>
           <View style={styles.skinGridDetails}>
             <Text
-              style={[styles.skinGridTitle, { color: palette.textPrimary }]}
+              style={[styles.skinGridTitle, { color: COLORS.TEXT_PRIMARY }]}
               numberOfLines={1}
             >
               {weapon.skinName}
@@ -1742,11 +1771,22 @@ function Profile() {
         </TouchableOpacity>
       );
     },
-    [handleOpenWeaponPicker, palette.textPrimary, renderWeaponBadges, updatingLoadout]
+    [handleOpenWeaponPicker, renderWeaponBadges, updatingLoadout]
   );
 
   const renderPageHeader = () => (
     <>
+      <View style={styles.topHeaderRow}>
+        <View style={styles.topAvatar}>
+          <Text style={styles.topAvatarText}>
+            {(user.name || "V").slice(0, 1).toUpperCase()}
+          </Text>
+        </View>
+        <Text style={styles.topHeaderTitle}>Vshop</Text>
+        <View style={styles.topBalancePill}>
+          <Text style={styles.topBalanceText}>{user.balances.vp} {t("vp")}</Text>
+        </View>
+      </View>
       {renderProfileHero()}
       {renderSegmentedControl()}
     </>
@@ -1826,7 +1866,7 @@ function Profile() {
           >
             {collectionWeaponTabs.map((weaponName) => {
               const active = collectionWeaponFilter === weaponName;
-              const label = weaponName === "all" ? "All" : weaponName;
+              const label = weaponName === "all" ? t("gallery_page.filters.all") : weaponName;
 
               return (
                 <TouchableOpacity
@@ -1920,7 +1960,7 @@ function Profile() {
     const pickerBusy = pickerLoading || updatingLoadout;
 
     const title =
-      pickerState.type === "weapon" ? "Choose an owned skin" : "Choose an owned spray";
+      pickerState.type === "weapon" ? t("equip_page.tabs.skins") : t("equip_page.sections.sprays");
     const subtitle =
       pickerState.type === "weapon"
         ? pickerState.weapon.weaponName
@@ -2136,8 +2176,8 @@ function Profile() {
                               ]}
                             >
                               {option.maxUpgradeLevel && option.maxUpgradeLevel > 1
-                                ? `Lv ${option.upgradeLevel}/${option.maxUpgradeLevel}`
-                                : `Lv ${option.upgradeLevel}`}
+                                ? t("profile_page.level", { level: `${option.upgradeLevel}/${option.maxUpgradeLevel}` })
+                                : t("profile_page.level", { level: option.upgradeLevel })}
                             </Text>
                           </View>
                         ) : null}
@@ -2149,7 +2189,7 @@ function Profile() {
                             { color: palette.accent },
                           ]}
                         >
-                          Equipped now
+                          {t("equip_page.tabs.skins")}
                         </Text>
                       ) : null}
                     </TouchableOpacity>
@@ -2235,7 +2275,7 @@ function Profile() {
                           { color: palette.accent },
                         ]}
                       >
-                        Equipped now
+                        {t("equip_page.sections.sprays")}
                       </Text>
                     ) : null}
                   </TouchableOpacity>
@@ -2404,6 +2444,44 @@ function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  topHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
+  topAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.PURE_BLACK,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  topAvatarText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: COLORS.PURE_WHITE,
+  },
+  topHeaderTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: COLORS.TEXT_PRIMARY,
+    letterSpacing: -0.5,
+  },
+  topBalancePill: {
+    backgroundColor: COLORS.PURE_BLACK,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
+  topBalanceText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
   },
   heroCard: {
     marginHorizontal: 16,

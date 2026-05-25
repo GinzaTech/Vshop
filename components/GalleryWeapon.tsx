@@ -1,212 +1,300 @@
-import React, { useState } from "react";
+import React from "react";
 import {
+  Animated,
+  Easing,
+  LayoutChangeEvent,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Divider, IconButton, Menu } from "react-native-paper";
-import { useTranslation } from "react-i18next";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 
-import GlassCard from "~/components/ui/GlassCard";
 import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
+import { WEAPON_NAME_ORDER } from "~/components/GalleryProfile";
 
-interface props {
+interface Props {
   item: GalleryItem;
   toggleFromWishlist: Function;
 }
 
-export default function GalleryWeapon(props: React.PropsWithChildren<props>) {
+export default function GalleryWeapon({
+  item,
+  toggleFromWishlist,
+}: React.PropsWithChildren<Props>) {
   const { t } = useTranslation();
-  const [menuVisible, setMenuVisible] = useState(false);
   const { showMediaPopup } = useMediaPopupStore();
   const { screenshotModeEnabled } = useFeatureStore();
-  const tier = getContentTierVisual(props.item.contentTierUuid);
+  const previewTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [cardWidth, setCardWidth] = React.useState(0);
+  const sweepTranslateX = React.useRef(new Animated.Value(-160)).current;
+  const sweepOpacity = React.useRef(new Animated.Value(0)).current;
+  const tier = getContentTierVisual(item.contentTierUuid);
+
   const imageSource = React.useMemo(() => {
-    const uri = getDisplayIconUri(props.item);
+    const uri = getDisplayIconUri(item);
 
     if (uri && !screenshotModeEnabled) {
       return { uri, cacheKey: uri };
     }
 
     return require("~/assets/images/noimage.png");
-  }, [props.item, screenshotModeEnabled]);
+  }, [item, screenshotModeEnabled]);
+
+  const weaponType = React.useMemo(() => {
+    const lowerName = item.displayName.toLowerCase();
+    return (
+      WEAPON_NAME_ORDER.find((weapon) =>
+        lowerName.includes(weapon.toLowerCase())
+      ) || t("shop_cards.store_skin")
+    );
+  }, [item.displayName, t]);
+
+  const openPreview = React.useCallback(() => {
+    const media = [
+      ...item.levels.map((level) => level.streamedVideo || level.displayIcon || ""),
+      ...item.chromas.map((chroma) => chroma.streamedVideo || chroma.fullRender || ""),
+    ].filter(Boolean);
+
+    if (media.length > 0) {
+      showMediaPopup(media, item.displayName);
+    }
+  }, [item.chromas, item.displayName, item.levels, showMediaPopup]);
+
+  const handleCardPress = React.useCallback(() => {
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = null;
+      toggleFromWishlist(item.levels[0].uuid);
+
+      const startX = -Math.max(cardWidth * 0.7, 120);
+      sweepTranslateX.stopAnimation();
+      sweepOpacity.stopAnimation();
+      sweepTranslateX.setValue(startX);
+      sweepOpacity.setValue(0);
+
+      Animated.sequence([
+        Animated.timing(sweepOpacity, {
+          toValue: 0.95,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sweepOpacity, {
+          toValue: 0,
+          duration: 360,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      Animated.timing(sweepTranslateX, {
+        toValue: cardWidth + 120,
+        duration: 520,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
+    previewTimeoutRef.current = setTimeout(() => {
+      previewTimeoutRef.current = null;
+      openPreview();
+    }, 220);
+  }, [
+    cardWidth,
+    item.levels,
+    openPreview,
+    sweepOpacity,
+    sweepTranslateX,
+    toggleFromWishlist,
+  ]);
+
+  const handleCardLayout = React.useCallback((event: LayoutChangeEvent) => {
+    setCardWidth(event.nativeEvent.layout.width);
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <View style={styles.wrapper}>
-      <GlassCard
+    <Pressable
+      onPress={handleCardPress}
+      onLayout={handleCardLayout}
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.cardPressed,
+        {
+          backgroundColor: tier.cardBackground,
+          borderColor: tier.border,
+        },
+      ]}
+    >
+      <Animated.View
+        pointerEvents="none"
         style={[
-          styles.card,
+          styles.sweepOverlay,
           {
-            backgroundColor: tier.cardBackground,
-            borderColor: tier.border,
+            opacity: sweepOpacity,
+            transform: [{ translateX: sweepTranslateX }, { rotate: "14deg" }],
           },
         ]}
       >
-        <View style={styles.headerRow}>
-          <Text style={styles.eyebrow} numberOfLines={1}>
-            {tier.label}
-          </Text>
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="dots-horizontal"
-                size={18}
-                style={styles.menuButton}
-                onPress={() => setMenuVisible(true)}
-              />
-            }
-          >
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(false);
-                props.toggleFromWishlist(props.item.levels[0].uuid);
-              }}
-              title={props.item.onWishlist ? t("wishlist.remove") : t("wishlist.add")}
-              icon={props.item.onWishlist ? "minus" : "plus"}
-            />
-            <Divider />
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(false);
-                showMediaPopup(
-                  props.item.levels.map(
-                    (level) => level.streamedVideo || level.displayIcon || ""
-                  ),
-                  t("levels")
-                );
-              }}
-              title={t("levels")}
-              icon="arrow-up-bold"
-            />
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(false);
-                showMediaPopup(
-                  props.item.chromas.map(
-                    (chroma) => chroma.streamedVideo || chroma.fullRender
-                  ),
-                  t("chromas")
-                );
-              }}
-              title={t("chromas")}
-              icon="format-color-fill"
-            />
-          </Menu>
-        </View>
+        <BlurView intensity={55} tint="light" style={styles.sweepBlur}>
+          <View style={styles.sweepTint} />
+        </BlurView>
+      </Animated.View>
 
-        <Pressable
-          onPress={() => {
-            showMediaPopup(
-              props.item.levels.map(
-                (level) => level.streamedVideo || level.displayIcon || ""
-              ),
-              props.item.displayName
-            );
-          }}
-          style={styles.mainContent}
-        >
+      <View style={styles.cardHeader}>
+        <Text style={styles.eyebrow} numberOfLines={1}>
+          {weaponType}
+        </Text>
+        {item.onWishlist ? (
           <View
             style={[
-              styles.imageWrap,
+              styles.savedBadge,
               {
-                backgroundColor: tier.visualBackground,
+                backgroundColor: tier.badgeBackground,
                 borderColor: tier.border,
               },
             ]}
           >
-            <Image
-              source={imageSource}
-              style={styles.image}
-              contentFit="contain"
-              cachePolicy="memory-disk"
-              transition={120}
-              recyclingKey={props.item.uuid}
-            />
-          </View>
-
-          <View style={styles.content}>
-            <Text style={styles.title} numberOfLines={2}>
-              {props.item.displayName}
+            <Text style={[styles.savedBadgeText, { color: tier.text }]}>
+              {t("shop_cards.saved")}
             </Text>
-            <View style={styles.metaRow}>
-              <View
-                style={[
-                  styles.metaPill,
-                  {
-                    backgroundColor: tier.badgeBackground,
-                    borderColor: tier.border,
-                  },
-                ]}
-              >
-                <View
-                  style={[styles.metaDot, { backgroundColor: tier.accent }]}
-                />
-                <Text style={[styles.metaText, { color: tier.text }]}>
-                  {tier.label}
-                </Text>
-              </View>
-              <View style={styles.metaPill}>
-                <Icon
-                  name={props.item.onWishlist ? "heart" : "star-outline"}
-                  size={12}
-                  color={props.item.onWishlist ? COLORS.ACCENT : COLORS.TEXT_SECONDARY}
-                />
-                <Text style={styles.metaText}>
-                  {props.item.onWishlist
-                    ? t("wishlist.name")
-                    : t("gallery_page.collection_label")}
-                </Text>
-              </View>
-            </View>
           </View>
-        </Pressable>
-      </GlassCard>
-    </View>
+        ) : null}
+      </View>
+
+      <View
+        style={[
+          styles.visualFrame,
+          {
+            backgroundColor: tier.visualBackground,
+            borderColor: tier.border,
+          },
+        ]}
+      >
+        <Image
+          style={styles.image}
+          source={imageSource}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          priority="high"
+          transition={120}
+          recyclingKey={item.uuid}
+        />
+      </View>
+
+      <Text style={styles.title} numberOfLines={2}>
+        {item.displayName}
+      </Text>
+
+      <View style={styles.metaRow}>
+        <View
+          style={[
+            styles.metaBadge,
+            {
+              backgroundColor: tier.badgeBackground,
+              borderColor: tier.border,
+            },
+          ]}
+        >
+          <View style={[styles.rarityDot, { backgroundColor: tier.accent }]} />
+          <Text style={[styles.metaBadgeText, { color: tier.text }]} numberOfLines={1}>
+            {tier.label}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.metaBadge,
+            {
+              backgroundColor: tier.badgeBackground,
+              borderColor: tier.border,
+            },
+          ]}
+        >
+          <Text style={[styles.metaBadgeText, { color: tier.text }]}>
+            {t("chromas")} {item.chromas?.length ?? 0}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-  },
   card: {
-    marginBottom: 0,
-    minHeight: 244,
+    position: "relative",
+    flex: 1,
+    minHeight: 238,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    padding: 14,
+    overflow: "hidden",
   },
-  headerRow: {
+  cardPressed: {
+    opacity: 0.92,
+  },
+  sweepOverlay: {
+    position: "absolute",
+    top: -16,
+    bottom: -16,
+    left: 0,
+    width: 92,
+    borderRadius: 30,
+    overflow: "hidden",
+  },
+  sweepBlur: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  sweepTint: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.14)",
+  },
+  cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  mainContent: {
-    flex: 1,
-  },
   eyebrow: {
     flex: 1,
+    marginRight: 10,
     color: COLORS.TEXT_SECONDARY,
     fontSize: 13,
     fontWeight: "600",
-    marginRight: 10,
   },
-  menuButton: {
-    margin: -4,
-  },
-  imageWrap: {
-    width: "100%",
-    height: 114,
-    borderRadius: 18,
-    backgroundColor: COLORS.SURFACE_MUTED,
+  savedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: RADIUS.chip,
     borderWidth: 1,
+  },
+  savedBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  visualFrame: {
+    width: "100%",
+    height: 112,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -214,42 +302,39 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  content: {
-    marginTop: 12,
-    minHeight: 74,
-  },
   title: {
+    marginTop: 12,
     color: COLORS.TEXT_PRIMARY,
     fontSize: 15,
     fontWeight: "700",
     lineHeight: 20,
+    minHeight: 40,
   },
   metaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 10,
     gap: 8,
+    marginTop: 10,
   },
-  metaPill: {
+  metaBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    alignSelf: "flex-start",
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.SURFACE_MUTED,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    marginBottom: 6,
+    minWidth: 82,
   },
-  metaDot: {
+  rarityDot: {
     width: 8,
     height: 8,
-    borderRadius: RADIUS.chip,
+    borderRadius: 4,
+    marginRight: 6,
   },
-  metaText: {
-    color: COLORS.TEXT_SECONDARY,
+  metaBadgeText: {
+    color: COLORS.TEXT_PRIMARY,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

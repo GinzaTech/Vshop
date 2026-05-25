@@ -3,9 +3,7 @@ import * as Network from "expo-network";
 import { InteractionManager } from "react-native";
 
 import { useMatchStore } from "~/hooks/useMatchStore";
-import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { useUserStore } from "~/hooks/useUserStore";
-import { fetchProfileWarmCache } from "~/utils/profile-cache";
 import {
   preloadSessionResources,
   startBackgroundCatalogWarmup,
@@ -13,8 +11,6 @@ import {
 
 export default function AppWarmup() {
   const user = useUserStore((state) => state.user);
-  const fetchMatches = useMatchStore((state) => state.fetchMatches);
-  const setProfileCache = useProfileCacheStore((state) => state.setProfileCache);
   const sessionUserRef = React.useRef(user);
   const warmupKey = React.useMemo(
     () =>
@@ -84,20 +80,18 @@ export default function AppWarmup() {
         const isCellular =
           networkState.type === Network.NetworkStateType.CELLULAR;
         const currentUser = sessionUserRef.current;
+        const matchStore = useMatchStore.getState();
 
-        scheduleTask(120, () =>
+        scheduleTask(180, () =>
           preloadSessionResources(currentUser, { cellular: isCellular })
         );
-        scheduleTask(isCellular ? 420 : 260, () => fetchMatches(currentUser));
-        scheduleTask(isCellular ? 980 : 520, async () => {
-          const cache = await fetchProfileWarmCache(currentUser);
-          if (cache) {
-            setProfileCache(cache);
-          }
+
+        scheduleTask(isCellular ? 7800 : 5200, async () => {
+          await matchStore.fetchMatches(currentUser);
         });
 
         if (!isCellular) {
-          scheduleTask(1800, () => startBackgroundCatalogWarmup());
+          scheduleTask(9000, () => startBackgroundCatalogWarmup());
         }
       } catch (error) {
         if (__DEV__) {
@@ -112,8 +106,6 @@ export default function AppWarmup() {
       clearScheduledWork();
     };
   }, [
-    fetchMatches,
-    setProfileCache,
     user.accessToken,
     user.entitlementsToken,
     user.id,

@@ -16,6 +16,8 @@
   "donate_unlocked": "Du har låst opp donasjonsbegunstninger.",
   "fag": "Gratisagenter",
   "fetching": {
+    "assets": "Fetching assets…",
+    "agent": "Fetching agent?",
     "balances": "Henter kontobalanser …",
     "donator": "Henter donasjonsstatus …",
     "entitlements_token": "Henter berettighetssymbol …",
@@ -48,7 +50,9 @@
     "tr": "Tyrkisk",
     "vi": "Vietnamesisk",
     "zh-Hans": "Forenklet kinesisk",
-    "zh-Hant": "Tradisjonell kinesisk"
+    "zh-Hant": "Tradisjonell kinesisk",
+    "no": "Norwegian",
+    "uk": "Ukrainian"
   },
   "level": "Nivå",
   "levels": "Nivåer",
@@ -70,7 +74,7 @@
     "restore": "Gjenopprett kjøp",
     "success": "Behandler bestillingen din … Omstart av programmet kreves for å se kjøpet."
   },
-  "rad": "Radanite-poeng",
+  "rad": "RP",
   "region": "Region",
   "region_info": "Velg riktig sted, ellers vises butikken unøyaktig.",
   "regions": {
@@ -94,7 +98,7 @@
     "download_github": "Last ned på GitHub"
   },
   "videos": "Videoer",
-  "vp": "Valorant-poeng",
+  "vp": "VP",
   "welcome": "Velkommen til VShop",
   "welcome_back": "Velkommen tilbake",
   "welcome_back_info": "Logger inn igjen.",
@@ -113,5 +117,436 @@
     },
     "remove": "Fjern fra ønskelisten"
   },
-  "xp": "Erfaringspoeng"
+  "xp": "Erfaringspoeng",
+  "accessories": "Accessory Shop",
+  "crosshair": "Crosshair",
+  "dashboard": "Dashboard",
+  "history": "Match History",
+  "kc": "KC",
+  "shop_cards": {
+    "saved": "Saved",
+    "store_skin": "Store skin",
+    "bundle_skin": "Bundle skin"
+  },
+  "shop_page": {
+    "agent_fallback": "Agent",
+    "greeting": "Hello, {{name}}",
+    "subtitle": "Welcome back to your daily store.",
+    "search_placeholder": "Search skins",
+    "section_title": "Select your next drop",
+    "rotation_title": "Daily rotation",
+    "items_count": "{{count}} items",
+    "featured_eyebrow": "Featured daily store",
+    "featured_meta": "Wishlist ready",
+    "preview_title": "Preview",
+    "preview_action": "See more",
+    "empty_title": "No skins found",
+    "empty_subtitle": "Try another search or switch back to all skins.",
+    "filters": {
+      "all": "All skins",
+      "wishlist": "Wishlist"
+    }
+  },
+  "bundles_page": {
+    "title": "Featured bundles",
+    "subtitle": "Explore the current collection and preview every included skin.",
+    "empty_title": "No bundles available",
+    "empty_subtitle": "The featured collection is empty right now. Check back later.",
+    "items_count": "{{count}} items",
+    "included_title": "Included items",
+    "included_count": "{{count}} skins",
+    "hero_badge": "Featured bundle",
+    "hero_eyebrow": "Collection drop",
+    "toggle_show": "Show included skins",
+    "toggle_hide": "Hide included skins"
+  },
+  "night_market_page": {
+    "title": "Night market",
+    "subtitle": "Limited-time deals with reduced prices on selected skins.",
+    "empty_title": "No night market today",
+    "empty_subtitle": "No discounted offers are available in this rotation yet.",
+    "deal": "Deal",
+    "badge": "NIGHT MARKET",
+    "limited_badge": "LIMITED ITEM",
+    "special_offer_badge": "SPECIAL OFFER",
+    "off_label": "OFF",
+    "ends_in": "Ends in ",
+    "info_note": "The Night Market offers are unique to your account and cannot be refreshed. Once the timer expires, these specific offers will disappear."
+  },
+  "gallery_page": {
+    "title": "Skin gallery",
+    "subtitle": "Browse your collection and save favorites for wishlist tracking.",
+    "search_placeholder": "Search skins",
+    "empty_title": "No skins found",
+    "empty_subtitle": "Try a different keyword or clear the wishlist filter.",
+    "collection_label": "Collection",
+    "filters": {
+      "all": "All",
+      "wishlist": "Wishlist"
+    }
+  },
+  "accessories_page": {
+    "title": "Accessory rotation",
+    "subtitle": "Cards, sprays, buddies and titles available for KC.",
+    "search_placeholder": "Search accessories",
+    "empty_title": "No accessories found",
+    "empty_subtitle": "Try another keyword to find items in this rotation.",
+    "card_subtitle": "Accessory rotation"
+  },
+  "equipment_page": {
+    "title": "Equipment collection",
+    "subtitle": "Buddies, sprays, cards and titles in one place.",
+    "search_placeholder": "Search equipment",
+    "empty_title": "No equipment found",
+    "empty_subtitle": "Try a different search term or category."
+  },
+  "history_page": {
+    "title": "Match History",
+    "subtitle": "Tracker-style recent matches with result, KDA, ACS, and pace at a glance.",
+    "loading": "Loading recent matches...",
+    "empty_title": "No matches found",
+    "empty_subtitle": "Pull to refresh once your match history is available.",
+    "pending_title": "Processing match",
+    "pending_at": "{{date}} at {{time}}",
+    "result_victory": "Victory",
+    "result_defeat": "Defeat",
+    "unknown": "Unknown",
+    "summary": {
+      "wins": "Wins",
+      "losses": "Losses",
+      "avg_acs": "Avg ACS",
+      "matches": "{{count}} matches",
+      "snapshot_title": "Recent snapshot",
+      "snapshot_subtitle": "Results, match pace, and key stats from your latest games."
+    },
+    "metrics": {
+      "kda": "KDA",
+      "kd": "K/D",
+      "acs": "ACS",
+      "hs": "HS%",
+      "rr": "RR",
+      "bonus": "Bonus",
+      "penalty": "Penalty"
+    },
+    "map_preview": "Map preview",
+    "queue_titles": {
+      "competitive": "Competitive Match",
+      "swiftplay": "Swiftplay Match",
+      "deathmatch": "Deathmatch",
+      "spike_rush": "Spike Rush"
+    }
+  },
+  "equip_gallery": {
+    "placeholder": "Collection item",
+    "labels": {
+      "buddies": "Gun Buddy",
+      "sprays": "Spray",
+      "cards": "Player Card",
+      "titles": "Title"
+    }
+  },
+  "match_details_page": {
+    "error_loading": "Failed to load match details.",
+    "player_fallback": "Player",
+    "unknown_map": "Unknown Map",
+    "standard": "Standard",
+    "blue_team": "Blue",
+    "red_team": "Red",
+    "blue_team_full": "Blue Team",
+    "red_team_full": "Red Team",
+    "vs": "VS",
+    "performance_title": "Match performance",
+    "rank_after": "RR after"
+  },
+  "equip_page": {
+    "tabs": {
+      "loadout": "Loadout",
+      "skins": "Equipped skins",
+      "collection": "Skin collection"
+    },
+    "sections": {
+      "identity": "Identity",
+      "sprays": "Sprays",
+      "weapons": "Weapons",
+      "buddies": "Gun Buddies",
+      "cards": "Player Cards",
+      "titles": "Player Titles"
+    },
+    "categories": {
+      "Sidearm": "Sidearms",
+      "Sidearms": "Sidearms",
+      "SMG": "SMGs",
+      "SMGs": "SMGs",
+      "Shotgun": "Shotguns",
+      "Shotguns": "Shotguns",
+      "Rifle": "Rifles",
+      "Rifles": "Rifles",
+      "Assault Rifles": "Assault rifles",
+      "Sniper": "Sniper rifles",
+      "Sniper Rifles": "Sniper rifles",
+      "Heavy": "Heavy weapons",
+      "Heavy Weapons": "Heavy weapons",
+      "Melee": "Melee",
+      "Melee Weapons": "Melee",
+      "Other": "Other",
+      "Other Weapons": "Other"
+    },
+    "identity": {
+      "card_fallback": "Player card",
+      "title_fallback": "No title equipped",
+      "account_level": "Account level: {{level}}",
+      "level_hidden": "Account level hidden"
+    },
+    "search_placeholder": "Search equipped skins",
+    "empty": "No equipped skins found.",
+    "error_loading": "Unable to load your loadout. Pull to refresh and try again.",
+    "missing_auth": "Sign in to see your current equipment.",
+    "unknown_skin": "Unknown skin",
+    "spray_slot_label": "{{slot}} spray",
+    "spray_slots": {
+      "spray1": "Spray 1",
+      "spray2": "Spray 2",
+      "spray3": "Spray 3",
+      "firsthalf": "First half",
+      "secondhalf": "Second half",
+      "any": "Any round",
+      "anyround": "Any round",
+      "pregame": "Pre-round",
+      "postround": "Post-round",
+      "sudden_death": "Sudden death",
+      "default": "Default"
+    }
+  },
+  "crosshair_page": {
+    "copied": "Copied",
+    "search_placeholder": "Search player or team...",
+    "categories": {
+      "all": "All",
+      "pro": "Pro",
+      "content": "Content",
+      "fun": "Fun"
+    }
+  },
+  "profile_page": {
+    "hero_badge": "Loadout Profile",
+    "agent_fallback": "Agent",
+    "hero_subtitle": "Riot account connected",
+    "level": "Level {{level}}",
+    "account_synced": "Account synced",
+    "sign_in_required": "Sign in required",
+    "current_rank": "Current Rank",
+    "peak_rank": "Peak Rank",
+    "unrated": "Unrated"
+  },
+  "settings_page": {
+    "title": "Utilities",
+    "preferences": "Preferences",
+    "links": "Links",
+    "account": "Account",
+    "check_update": "Check for updates",
+    "disclaimer": "VShop is not endorsed by Riot Games in any way. Riot Games, Valorant, and all associated properties are trademarks or registered trademarks of Riot Games, Inc."
+  },
+  "update_popup": {
+    "checking_title": "Checking for updates",
+    "checking_description": "Looking for both OTA patches and newer app releases.",
+    "idle_title": "App updates",
+    "idle_description": "Check whether this build can download a newer update.",
+    "ota_title": "Update ready",
+    "ota_description": "A new JS/UI update is available for this build. Download it now and the app will reload without reinstalling.",
+    "native_title": "Newer build available",
+    "native_dev_description": "This session is running in Expo Go or a development build, so it cannot apply production OTA updates. Build one preview/production app once, then future JS/UI fixes can update in-app.",
+    "native_description": "A newer native build is available. This specific release still needs a new install because the native layer changed.",
+    "error_title": "Unable to update",
+    "current_title": "This build is current",
+    "current_description": "No newer release was found. To update inside the app later, ship one preview/production build with expo-updates enabled.",
+    "up_to_date_title": "You're up to date",
+    "up_to_date_description": "No newer update is available for this build right now.",
+    "meta": {
+      "current_build": "Current build",
+      "latest_release": "Latest release",
+      "channel": "Channel"
+    },
+    "actions": {
+      "close": "Close",
+      "update_now": "Update now",
+      "open_release": "Open release"
+    }
+  },
+  "agent": "Agent",
+  "combat": "Combat",
+  "Controller": "Controller",
+  "Duelist": "Duelist",
+  "equip": "Equipment",
+  "Initiator": "Initiator",
+  "Sentinel": "Sentinel",
+  "combat_page": {
+    "subtitle": "Select, lock, and monitor your current VALORANT session in one place.",
+    "session_pregame": "Pregame active",
+    "session_live": "Live match",
+    "session_idle": "No active session",
+    "no_active_session": "No active session",
+    "no_map": "Map unavailable",
+    "loading": "Loading",
+    "select_agent_title": "Select an agent",
+    "select_agent_message": "Choose an agent before trying to lock.",
+    "lock_failed_title": "Lock failed",
+    "lock_failed_message": "Unable to lock that agent right now.",
+    "party_chat_solo_unavailable": "Party chat is only available when another player is in your party.",
+    "actions": {
+      "cancel": "Cancel",
+      "lock": "Lock Agent",
+      "locking": "Locking...",
+      "refresh": "Refresh",
+      "ready": "Ready",
+      "unready": "Unready",
+      "view_match": "Details"
+    }
+  },
+  "combat_session_page": {
+    "title": "Session",
+    "pregame_title": "Pregame session",
+    "live_title": "Live session",
+    "idle_title": "Session idle",
+    "no_match_title": "No active match",
+    "empty_title": "No active match found",
+    "empty_subtitle": "Queue into a match or open agent select first, then refresh this page.",
+    "no_map": "Map unavailable",
+    "unknown_queue": "Queue unavailable",
+    "session_state": "Session state",
+    "session_pregame": "Pregame",
+    "session_live": "In progress",
+    "party_access": "Party access",
+    "party_queue": "Queue",
+    "unavailable": "Unavailable",
+    "ally_team": "Your team",
+    "party_members": "Party members",
+    "roster_empty": "No team roster is available yet.",
+    "player_fallback": "Player",
+    "agent_unselected": "Agent not selected",
+    "actions": {
+      "ready": "Set Ready",
+      "unready": "Unset Ready"
+    },
+    "enemy_team": "Enemy team"
+  },
+  "session_labels": {
+    "queue": {
+      "standard": "Standard",
+      "competitive": "Competitive",
+      "swiftplay": "Swiftplay",
+      "spike_rush": "Spike Rush",
+      "escalation": "Escalation",
+      "deathmatch": "Deathmatch",
+      "team_deathmatch": "Team Deathmatch",
+      "custom": "Custom"
+    },
+    "access": {
+      "open": "Open",
+      "closed": "Closed"
+    }
+  },
+  "battery_optimization_warning": {
+    "action": "Disable battery optimization",
+    "description": "Battery optimization is enabled for VShop. This may prevent wishlist notifications from working properly."
+  },
+  "reauth": {
+    "riot_account": "Riot Games account"
+  },
+  "login_web_view": {
+    "error": "WebView error",
+    "http_error": "HTTP {{statusCode}} {{description}}"
+  },
+  "contracts_page": {
+    "title": "Contracts",
+    "subtitle": "Battle Pass, Event Passes, and Agent Contract progress.",
+    "loading": "Loading contracts...",
+    "empty_title": "No contracts found",
+    "empty_subtitle": "Unable to load contract data. Pull to refresh.",
+    "battlepass": "Battle Pass",
+    "eventpass": "Event Pass",
+    "agent_contract": "Agent Contract",
+    "progression": "Level {{level}}",
+    "xp_progress": "{{current}} / {{next}} XP",
+    "activate": "Activate",
+    "no_battlepass": "No active Battle Pass",
+    "missions_title": "Daily & Weekly Missions",
+    "mission_progress": "{{current}} / {{target}}",
+    "mission_complete": "Complete"
+  },
+  "leaderboard_page": {
+    "title": "Leaderboard",
+    "subtitle": "Top Radiant and competitive rankings.",
+    "loading": "Loading leaderboard...",
+    "empty_title": "No leaderboard data",
+    "empty_subtitle": "Unable to load leaderboard. Pull to refresh.",
+    "search_placeholder": "Search by player name...",
+    "rank_label": "Rank",
+    "player": "Player",
+    "rr": "RR",
+    "wins": "Wins",
+    "tier_icon": "Tier",
+    "rank_header": "#{{rank}}",
+    "season_select": "Season",
+    "load_more": "Load more",
+    "no_results": "No players found matching your search."
+  },
+  "item_upgrades_page": {
+    "title": "Skin Upgrades",
+    "subtitle": "Radianite-powered skin upgrades and sidegrades.",
+    "loading": "Loading upgrades...",
+    "empty_title": "No upgrades available",
+    "empty_subtitle": "You don't have any upgradable skins or the feature data hasn't loaded.",
+    "upgrade_title": "Progression",
+    "sidegrade_title": "Sidegrade",
+    "cost": "Cost",
+    "currency_rad": "Radianite Points",
+    "select_option": "Pick variant",
+    "apply": "Apply",
+    "owned": "Owned",
+    "locked": "Locked"
+  },
+  "friends_page": {
+    "title": "Friends",
+    "subtitle": "Your friends list and online status.",
+    "loading": "Loading friends...",
+    "empty_title": "No friends found",
+    "empty_subtitle": "Add friends in the Riot client to see them here.",
+    "online": "Online",
+    "offline": "Offline",
+    "in_menu": "In Menus",
+    "in_game": "In Game",
+    "in_pregame": "In Agent Select",
+    "idle": "Idle",
+    "dnd": "Do Not Disturb",
+    "mobile": "Mobile",
+    "friend_since": "Friend since",
+    "last_online": "Last seen {{time}}",
+    "playing_valorant": "VALORANT",
+    "playing_lol": "League of Legends"
+  },
+  "about_page": {
+    "title": "About & Config",
+    "subtitle": "Account info, region, and Riot client configuration.",
+    "loading": "Loading config...",
+    "player_info_title": "Riot Account Info",
+    "account_created": "Account created",
+    "email_verified": "Email verified",
+    "phone_verified": "Phone verified",
+    "yes": "Yes",
+    "no": "No",
+    "country": "Country",
+    "region_affinity": "Region Affinity",
+    "live_region": "Live region",
+    "config_title": "Service URLs & Config",
+    "content_service": "Content",
+    "store_service": "Store",
+    "party_service": "Party",
+    "mmr_service": "MMR",
+    "pregame_service": "Pregame",
+    "matchhistory_service": "Match History",
+    "matchdetails_service": "Match Details",
+    "session_labels_old": "Session Labels",
+    "toggled_on": "On",
+    "toggled_off": "Off"
+  }
 }

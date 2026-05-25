@@ -38,7 +38,7 @@ export const resources = {
   ru: { translation: ru, VAPILangCode: "ru-RU" },
   th: { translation: th, VAPILangCode: "th-TH" },
   tr: { translation: tr, VAPILangCode: "tr-TR" },
-  uk: { translation: uk, VAPILangCode: "vi-VN" },
+  uk: { translation: uk, VAPILangCode: "uk-UA" },
   vi: { translation: vi, VAPILangCode: "vi-VN" },
   "zh-Hans": { translation: zhHans, VAPILangCode: "zh-CN" },
   "zh-Hant": { translation: zhHant, VAPILangCode: "zh-TW" },

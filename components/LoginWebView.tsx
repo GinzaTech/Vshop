@@ -1,10 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from "react-native";
 import { useUserStore } from "~/hooks/useUserStore";
-import { getAccessTokenFromUri } from "~/utils/misc";
+import { getAccessTokenFromUri, getIdTokenFromUri } from "~/utils/misc";
 import { defaultUser } from "~/utils/valorant-api";
 import Loading from "./Loading";
 import WebView from "react-native-webview";
@@ -20,6 +20,11 @@ const LOGIN_URL =
 const isAuthCallbackUrl = (url?: string) =>
   Boolean(url && (url.includes("access_token=") || url.includes("id_token=")));
 
+const wait = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
 interface LoginWebViewProps {
   minHeight?: number;
   style?: StyleProp<ViewStyle>;
@@ -33,6 +38,7 @@ export default function LoginWebView({
   const { setUser } = useUserStore();
   const [loading, setLoading] = useState<string | null>(null);
   const [webIssue, setWebIssue] = useState<string | null>(null);
+  const authInFlightRef = useRef(false);
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
   const resolvedMinHeight =
@@ -48,8 +54,15 @@ export default function LoginWebView({
     if (!newNavState.url) return;
 
     if (isAuthCallbackUrl(newNavState.url)) {
+      if (authInFlightRef.current) {
+        return;
+      }
+
+      authInFlightRef.current = true;
       setWebIssue(null);
       const accessToken = getAccessTokenFromUri(newNavState.url);
+      const idToken = getIdTokenFromUri(newNavState.url);
+      const loginStart = Date.now();
       try {
         const region =
           (await AsyncStorage.getItem("region")) || defaultUser.region;
@@ -57,30 +70,37 @@ export default function LoginWebView({
         setLoading(t("fetching.storefront"));
         const authenticatedUser = await buildAuthenticatedUser(
           accessToken,
-          region
+          region,
+          undefined,
+          idToken
         );
 
         setUser(authenticatedUser);
 
-        setLoading(t("fetching.storefront") + " (Warming up...)");
-        try {
-          await Promise.allSettled([
-            useMatchStore.getState().fetchMatches(authenticatedUser),
-            fetchProfileWarmCache(authenticatedUser).then((cache) => {
-              if (cache) {
-                useProfileCacheStore.getState().setProfileCache(cache);
-              }
-            }),
-          ]);
-        } catch (preloadErr) {
+        setLoading(t("fetching.progress"));
+
+        void Promise.allSettled([
+          useMatchStore.getState().fetchMatches(authenticatedUser),
+          fetchProfileWarmCache(authenticatedUser).then((cache) => {
+            if (cache) {
+              useProfileCacheStore.getState().setProfileCache(cache);
+            }
+          }),
+        ]).catch((preloadErr) => {
           if (__DEV__) {
             console.log("Preload failed, falling back", preloadErr);
           }
+        });
+
+        const remainingDelay = Math.max(0, 2000 - (Date.now() - loginStart));
+        if (remainingDelay > 0) {
+          await wait(remainingDelay);
         }
 
-        router.replace("/shop");
+        router.replace("/profile");
       } catch (e) {
         console.log(e);
+        authInFlightRef.current = false;
 
         if (!__DEV__) {
           await clearAllCookies(true);
@@ -131,7 +151,7 @@ export default function LoginWebView({
             return;
           }
 
-          const issue = `${event.nativeEvent.description || "WebView error"} (${event.nativeEvent.code})`;
+          const issue = `${event.nativeEvent.description || t("login_web_view.error")} (${event.nativeEvent.code})`;
           setWebIssue(issue);
           if (__DEV__) {
             console.log("[LoginWebView] error", {
@@ -146,7 +166,7 @@ export default function LoginWebView({
             return;
           }
 
-          const issue = `HTTP ${event.nativeEvent.statusCode} ${event.nativeEvent.description || ""}`.trim();
+          const issue = t("login_web_view.http_error", { statusCode: event.nativeEvent.statusCode, description: event.nativeEvent.description || "" }).trim();
           setWebIssue(issue);
           if (__DEV__) {
             console.log("[LoginWebView] http-error", {

@@ -35,26 +35,57 @@ function NightMarket() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <PageIntro
-        title={t("night_market_page.title")}
-        subtitle={t("night_market_page.subtitle")}
-        style={styles.header}
-      />
-
-      <View style={styles.metricRow}>
-        <InfoPill style={[styles.metricPill, styles.balanceMetricPill]}>
-          <CurrencyIcon icon="vp" style={styles.metricIcon} />
-          <Text style={styles.metricText}>{user.balances.vp}</Text>
-        </InfoPill>
-        <InfoPill style={styles.metricPill}>
-          <Icon name="clock-outline" size={16} color={COLORS.TEXT_PRIMARY} />
-          <Countdown timestamp={timestamp} />
-        </InfoPill>
+      {/* Premium Custom Header */}
+      <View style={styles.headerRow}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Vshop</Text>
+          <View style={styles.marketBadge}>
+            <Icon name="moon-waning-crescent" size={10} color="#ff4655" style={{ marginRight: 4 }} />
+            <Text style={styles.marketBadgeText}>{t("night_market_page.badge")}</Text>
+          </View>
+        </View>
+        <View style={styles.headerRight}>
+          <View style={styles.headerBalance}>
+            <Text style={styles.headerBalanceText}>{user.balances.vp} {t("vp")}</Text>
+            <Text style={styles.headerBalanceSubText}>{user.name || "KONA_Prime"}</Text>
+          </View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{(user.name || "V").slice(0, 1).toUpperCase()}</Text>
+          </View>
+        </View>
       </View>
 
-      {user.shops.nightMarket.map((item) => (
-        <NightMarketItem item={item} key={item.uuid} />
-      ))}
+      {/* Intro Text */}
+      <View style={styles.introContainer}>
+        <Text style={styles.introTitle}>{t("night_market_page.title")}</Text>
+        <Text style={styles.introSubtitle}>
+          {t("night_market_page.subtitle")}
+        </Text>
+      </View>
+
+      {/* Black Countdown Pill Banner */}
+      <View style={styles.countdownContainer}>
+        <View style={styles.countdownPill}>
+          <Icon name="clock-outline" size={16} color={COLORS.PURE_WHITE} style={{ marginRight: 6 }} />
+          <Text style={styles.countdownPillLabel}>{t("night_market_page.ends_in")}</Text>
+          <Countdown timestamp={timestamp} textStyle={{ color: COLORS.PURE_WHITE, fontWeight: "700" }} />
+        </View>
+      </View>
+
+      {/* Items List */}
+      <View style={styles.list}>
+        {user.shops.nightMarket.map((item) => (
+          <NightMarketItem item={item} key={item.uuid} />
+        ))}
+      </View>
+
+      {/* Bottom Info Note */}
+      <View style={styles.infoNoteCard}>
+        <Icon name="information-outline" size={20} color={COLORS.TEXT_SECONDARY} style={{ marginRight: 12 }} />
+        <Text style={styles.infoNoteText}>
+          {t("night_market_page.info_note")}
+        </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -68,29 +99,118 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 140,
   },
-  header: {
-    marginBottom: 18,
-  },
-  metricRow: {
+  headerRow: {
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+    paddingTop: 10,
+  },
+  headerLeft: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: COLORS.TEXT_PRIMARY,
+    letterSpacing: -0.5,
+  },
+  marketBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 70, 85, 0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  marketBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#ff4655",
+    letterSpacing: 1,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerBalance: {
+    alignItems: "flex-end",
+    marginRight: 10,
+  },
+  headerBalanceText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  headerBalanceSubText: {
+    fontSize: 11,
+    color: COLORS.TEXT_SECONDARY,
+    marginTop: 1,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.PURE_BLACK,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.PURE_WHITE,
+  },
+  introContainer: {
     marginBottom: 20,
   },
-  metricPill: {
+  introTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: 6,
+  },
+  introSubtitle: {
+    fontSize: 13,
+    color: COLORS.TEXT_SECONDARY,
+    lineHeight: 18,
+  },
+  countdownContainer: {
+    marginBottom: 20,
+    alignItems: "flex-start",
+  },
+  countdownPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.PURE_BLACK,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  countdownPillLabel: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.7)",
+    fontWeight: "600",
+  },
+  list: {
+    gap: 16,
+    marginBottom: 24,
+  },
+  infoNoteCard: {
+    flexDirection: "row",
+    backgroundColor: COLORS.SURFACE,
+    padding: 16,
+    borderRadius: 16,
+    borderColor: COLORS.BORDER,
+    borderWidth: 1,
+    alignItems: "flex-start",
+  },
+  infoNoteText: {
     flex: 1,
-  },
-  balanceMetricPill: {
-    backgroundColor: COLORS.VALORANT_DARK_BLUE,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  metricIcon: {
-    width: 14,
-    height: 14,
-    tintColor: COLORS.PURE_WHITE,
-  },
-  metricText: {
-    color: COLORS.PURE_WHITE,
-    fontWeight: "700",
+    fontSize: 12,
+    color: COLORS.TEXT_SECONDARY,
+    lineHeight: 16,
   },
 });
 

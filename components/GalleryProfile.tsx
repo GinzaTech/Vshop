@@ -162,8 +162,8 @@ export interface IdentityDetails {
   hideLevel: boolean;
 }
 
-export const resolveCategory = (meta?: WeaponMetadata): string => {
-  if (!meta) return "Other";
+export const resolveCategory = (meta?: WeaponMetadata, t?: TFunction): string => {
+  if (!meta) return t ? t("equip_page.categories.Other") : "Other";
 
   if (meta.shopData?.categoryText) {
     return meta.shopData.categoryText;
@@ -177,10 +177,10 @@ export const resolveCategory = (meta?: WeaponMetadata): string => {
   }
 
   if (meta.displayName.toLowerCase().includes("melee")) {
-    return "Melee";
+    return t ? t("equip_page.categories.Melee") : "Melee";
   }
 
-  return "Other";
+  return t ? t("equip_page.categories.Other") : "Other";
 };
 
 export const formatSpraySlot = (slot: string, t: TFunction) => {
@@ -236,7 +236,7 @@ export const formatSpraySlot = (slot: string, t: TFunction) => {
   ) {
     return defaultTranslation !== defaultTranslationKey
       ? defaultTranslation
-      : "Default";
+      : t("equip_page.spray_slots.default");
   }
 
   return t("equip_page.spray_slot_label", {

@@ -42,8 +42,8 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
 
   const handlePreviewPress = useCallback(() => {
     const media = [
-      ...item.levels.map((level) => level.streamedVideo || level.displayIcon || ""),
-      ...item.chromas.map((chroma) => chroma.streamedVideo || chroma.fullRender || ""),
+      ...(item.levels ?? []).map((level) => level.streamedVideo || level.displayIcon || ""),
+      ...(item.chromas ?? []).map((chroma) => chroma.streamedVideo || chroma.fullRender || ""),
     ].filter(Boolean);
 
     if (media.length > 0) {
@@ -52,7 +52,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   }, [item.chromas, item.displayName, item.levels, showMediaPopup]);
 
   const isFavorited = useMemo(
-    () => skinIds.includes(item.levels[0].uuid),
+    () => (item.levels?.length ? skinIds.includes(item.levels[0].uuid) : false),
     [item.levels, skinIds]
   );
   const tier = useMemo(
@@ -85,7 +85,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
       previewTimeoutRef.current = null;
-      toggleSkin(item.levels[0].uuid);
+      toggleSkin(item.levels?.[0]?.uuid ?? item.uuid);
       const startX = -Math.max(cardWidth * 0.7, 120);
 
       sweepTranslateX.stopAnimation();
@@ -119,7 +119,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       previewTimeoutRef.current = null;
       handlePreviewPress();
     }, 220);
-  }, [cardWidth, handlePreviewPress, item.levels, sweepOpacity, sweepTranslateX, toggleSkin]);
+  }, [cardWidth, handlePreviewPress, item.levels, item.uuid, sweepOpacity, sweepTranslateX, toggleSkin]);
   const handleCardLayout = useCallback((event: LayoutChangeEvent) => {
     setCardWidth(event.nativeEvent.layout.width);
   }, []);
@@ -140,8 +140,13 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         styles.card,
         pressed && styles.cardPressed,
         {
-          backgroundColor: tier.cardBackground,
+          backgroundColor: COLORS.SURFACE,
           borderColor: tier.border,
+          shadowColor: COLORS.PURE_BLACK,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.04,
+          shadowRadius: 12,
+          elevation: 2,
         },
       ]}
     >
@@ -181,15 +186,19 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         ) : null}
       </View>
 
+      <Text style={styles.title} numberOfLines={1}>
+        {item.displayName}
+      </Text>
+
       <View
         style={[
           styles.visualFrame,
           {
-            backgroundColor: tier.visualBackground,
+            backgroundColor: tier.cardBackground, // Nền nhạt theo độ hiếm làm nổi bật hình ảnh súng
             borderColor: tier.border,
           },
         ]}
-        >
+      >
         <Image
           style={styles.image}
           source={imageSource}
@@ -201,15 +210,10 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         />
       </View>
 
-      <Text style={styles.title} numberOfLines={2}>
-        {item.displayName}
-      </Text>
-
       <View style={styles.metaRow}>
         <View
           style={[
             styles.metaBadge,
-            styles.priceBadge,
             {
               backgroundColor: tier.badgeBackground,
               borderColor: tier.border,
@@ -312,12 +316,12 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   title: {
-    marginTop: 12,
+    marginTop: 2,
+    marginBottom: 10,
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
-    lineHeight: 20,
-    minHeight: 40,
+    lineHeight: 22,
   },
   metaRow: {
     flexDirection: "row",

@@ -1,11 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList, Dimensions, ImageSourcePropType } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList, ImageSourcePropType } from "react-native";
 import { useTranslation } from "react-i18next";
 import { getAgent } from "~/utils/valorant-assets";
 import { COLORS } from "~/constants/DesignSystem";
-
-const { width } = Dimensions.get("window");
-const BOX_SIZE = width / 5 - 10;
 
 interface Role {
     icon: ImageSourcePropType;
@@ -126,8 +123,8 @@ export const RoleSelector: React.FC<RoleSelectorProps> = React.memo(({ roles, se
 ));
 
 const AgentItem = React.memo(({ item, onPress }: { item: ValorantAgent; onPress: (agent: ValorantAgent) => void }) => (
-    <View style={styles.box}>
-        <TouchableOpacity style={styles.box} onPress={() => onPress(item)}>
+    <View style={styles.boxWrap}>
+        <TouchableOpacity style={styles.box} onPress={() => onPress(item)} activeOpacity={0.85}>
             <Image source={{ uri: item.displayIcon }} style={styles.icon} />
         </TouchableOpacity>
     </View>
@@ -145,6 +142,7 @@ export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgent
             numColumns={5}
             renderItem={renderItem}
             contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
         />
     );
 });
@@ -214,11 +212,17 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         justifyContent: "center",
+        width: "100%",
+        paddingBottom: 8,
+    },
+    boxWrap: {
+        width: "20%",
+        paddingHorizontal: 4,
+        marginBottom: 10,
     },
     box: {
-        width: BOX_SIZE,
-        height: BOX_SIZE,
-        margin: 5,
+        width: "100%",
+        aspectRatio: 1,
         backgroundColor: COLORS.SURFACE,
         borderRadius: 14,
         borderWidth: 1,

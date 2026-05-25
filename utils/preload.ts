@@ -28,11 +28,10 @@ const uniqueUrls = (urls: (string | null | undefined)[]) =>
 
 const MAX_CATALOG_WARMUP_URLS = 180;
 
-const getSkinImageUrl = (item: SkinShopItem | NightMarketItem | GalleryItem) =>
+const getSkinImageUrl = (item: SkinShopItem | NightMarketItem | GalleryItem | AccessoryShopItem) =>
   getDisplayIconUri(item) ||
-  item.displayIcon ||
-  item.chromas?.[0]?.displayIcon ||
-  item.chromas?.[0]?.fullRender;
+  ("chromas" in item ? item.chromas?.[0]?.displayIcon ?? item.chromas?.[0]?.fullRender : undefined) ||
+  item.displayIcon;
 
 export async function preloadImageUrls(
   urls: (string | null | undefined)[],

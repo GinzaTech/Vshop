@@ -25,6 +25,13 @@ export const getAccessTokenFromUri = (uri: string) => {
   return match[1];
 };
 
+export const getIdTokenFromUri = (uri: string) => {
+  const match = uri.match(/id_token=([^\s&]+)/);
+  if (!match) throw new Error("Could not extract id token from uri");
+
+  return match[1];
+};
+
 export const getDisplayIcon = (
   item: SkinShopItem | NightMarketItem | GalleryItem | AccessoryShopItem,
   screenshotModeEnabled: boolean

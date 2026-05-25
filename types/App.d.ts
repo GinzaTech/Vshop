@@ -20,7 +20,7 @@ interface NightMarketItem extends SkinShopItem {
 
 interface BundleShopItem extends ValorantBundle {
   price: number;
-  items: SkinShopItem[];
+  items: (SkinShopItem | AccessoryShopItem)[];
 }
 
 interface Balance {

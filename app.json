@@ -2,7 +2,7 @@
   "expo": {
     "name": "VShop",
     "slug": "vshop",
-    "version": "4.0.1",
+    "version": "4.0.3",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -17,7 +17,7 @@
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2f343b"
+    "backgroundColor": "#2f343b"
     },
     "ios": {
       "bundleIdentifier": "dev.vasc.vshop",
@@ -33,7 +33,7 @@
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "package": "com.android.vshop",
-      "versionCode": 74
+      "versionCode": 75
     },
     "web": {
       "bundler": "metro",

@@ -1,5 +1,4 @@
-import { StyleProp, TextStyle, View, ViewStyle } from "react-native";
-import { Text } from "react-native-paper";
+import { StyleProp, Text, TextStyle, View, ViewStyle } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useState } from "react";
 import { COLORS } from "~/constants/DesignSystem";

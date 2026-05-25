@@ -3,18 +3,14 @@ import { jwtDecode } from "jwt-decode";
 import { loadAgent, loadAssets } from "./valorant-assets";
 import {
   defaultUser,
-  extractOwnedItemIds,
   getBalances,
   getEntitlementsToken,
-  OwnedItemsResponse,
   getProgress,
   getShop,
   getUserId,
   getUsername,
-  ownedItems,
   parseShop,
 } from "./valorant-api";
-import { VItemTypes } from "./misc";
 
 const ACCESS_TOKEN_BUFFER_SECONDS = 90;
 
@@ -53,52 +49,23 @@ export const canResumeUserSession = (
 export async function buildAuthenticatedUser(
   accessToken: string,
   region: string,
-  seedUser?: typeof defaultUser
+  seedUser?: typeof defaultUser,
+  idToken = seedUser?.idToken ?? ""
 ) {
   await Promise.all([loadAssets(), loadAgent()]);
 
   const entitlementsToken = await getEntitlementsToken(accessToken);
   const userId = getUserId(accessToken);
 
-  const [username, shop, progress, balances, ownedSkinResults] =
+  const [username, shop, progress, balances] =
     await Promise.all([
       getUsername(accessToken, entitlementsToken, userId, region),
       getShop(accessToken, entitlementsToken, region, userId),
       getProgress(accessToken, entitlementsToken, region, userId),
       getBalances(accessToken, entitlementsToken, region, userId),
-      Promise.allSettled([
-        ownedItems(
-          accessToken,
-          entitlementsToken,
-          region,
-          userId,
-          VItemTypes.SkinLevel
-        ),
-        ownedItems(
-          accessToken,
-          entitlementsToken,
-          region,
-          userId,
-          VItemTypes.SkinChroma
-        ),
-      ]),
     ]);
 
   const shops = await parseShop(shop);
-  const settledOwnedSkinResults = Array.isArray(ownedSkinResults)
-    ? ownedSkinResults.filter(
-        (
-          result
-        ): result is PromiseSettledResult<OwnedItemsResponse> => Boolean(result)
-      )
-    : [];
-  const ownedSkinIds = Array.from(
-    new Set(
-      settledOwnedSkinResults.flatMap((result) =>
-        result.status === "fulfilled" ? extractOwnedItemIds(result.value) : []
-      )
-    )
-  );
 
   return {
     ...defaultUser,
@@ -110,8 +77,8 @@ export async function buildAuthenticatedUser(
     shops,
     progress,
     balances,
-    ownedSkinIds,
     accessToken,
+    idToken,
     entitlementsToken,
   };
 }

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTranslation } from "react-i18next";
 
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
@@ -204,12 +205,18 @@ const CrosshairRender = ({ style }: { style: CrosshairData["style"] }) => {
 };
 
 export default function CrosshairDatabase() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<CrosshairData>(CROSSHAIR_DB[0]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [copiedName, setCopiedName] = useState<string | null>(null);
 
-  const categories = ["All", "Pro", "Content", "Fun"];
+  const categories: { value: string; label: string }[] = [
+    { value: "All", label: t("crosshair_page.categories.all") },
+    { value: "Pro", label: t("crosshair_page.categories.pro") },
+    { value: "Content", label: t("crosshair_page.categories.content") },
+    { value: "Fun", label: t("crosshair_page.categories.fun") },
+  ];
 
   const filteredData = useMemo(() => {
     return CROSSHAIR_DB.filter((item) => {
@@ -255,7 +262,7 @@ export default function CrosshairDatabase() {
             <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
             <TextInput
               style={styles.input}
-              placeholder="Search player or team..."
+              placeholder={t("crosshair_page.search_placeholder")}
               placeholderTextColor={COLORS.TEXT_SECONDARY}
               value={search}
               onChangeText={setSearch}
@@ -265,20 +272,20 @@ export default function CrosshairDatabase() {
           <View style={styles.tabs}>
             {categories.map((category) => (
               <TouchableOpacity
-                key={category}
-                onPress={() => setActiveCategory(category)}
+                key={category.value}
+                onPress={() => setActiveCategory(category.value)}
                 style={[
                   styles.tab,
-                  activeCategory === category && styles.tabActive,
+                  activeCategory === category.value && styles.tabActive,
                 ]}
               >
                 <Text
                   style={[
                     styles.tabText,
-                    activeCategory === category && styles.tabTextActive,
+                    activeCategory === category.value && styles.tabTextActive,
                   ]}
                 >
-                  {category}
+                  {category.label}
                 </Text>
               </TouchableOpacity>
             ))}

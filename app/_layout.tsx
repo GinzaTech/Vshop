@@ -68,7 +68,6 @@ function RootLayout() {
   const bootstrappedRef = useRef(false);
 
   useEffect(() => {
-    // "Sync" background fetch with local state
     const notificationEnabled = useWishlistStore.getState().notificationEnabled;
     if (notificationEnabled) {
       initBackgroundFetch();
@@ -102,11 +101,6 @@ function RootLayout() {
       }
 
       if (canResumeUserSession(user, region)) {
-        if (!cancelled) {
-          router.replace("/shop");
-        }
-        await SplashScreen.hideAsync();
-
         try {
           const authenticatedUser = await buildAuthenticatedUser(
             user.accessToken,
@@ -116,12 +110,15 @@ function RootLayout() {
 
           if (!cancelled) {
             setUser(authenticatedUser);
+            router.replace("/profile");
           }
+          await SplashScreen.hideAsync();
         } catch {
           if (!cancelled) {
             setUser({ ...defaultUser, region });
             router.replace("/reauth");
           }
+          await SplashScreen.hideAsync();
         }
         return;
       }
