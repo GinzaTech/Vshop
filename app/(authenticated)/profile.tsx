@@ -1860,18 +1860,7 @@ function Profile() {
       })
     );
 
-  const renderCollectionTab = () => (
-    <FlatList
-      style={styles.collectionContainer}
-      data={filteredCollection}
-      keyExtractor={(item) => item.collectionId}
-      numColumns={2}
-      refreshing={refreshing}
-      onRefresh={handleRefresh}
-      contentContainerStyle={styles.collectionList}
-      columnWrapperStyle={styles.collectionRow}
-      showsVerticalScrollIndicator={false}
-      ListHeaderComponent={
+  const renderCollectionHeader = () => (
         <>
           {renderPageHeader()}
           <Searchbar
@@ -1917,13 +1906,10 @@ function Profile() {
             })}
           </ScrollView>
         </>
-      }
-      ListEmptyComponent={
-        <Text style={[styles.emptyText, { color: palette.textSecondary }]}>
-          {t("equip_page.empty")}
-        </Text>
-      }
-      renderItem={({ item }) => {
+  );
+
+  const renderCollectionItem = React.useCallback(
+    ({ item }: { item: OwnedWeaponCollectionItem }) => {
         const tier = getContentTierVisual(
           item.contentTierUuid,
           item.contentTierName
@@ -1966,7 +1952,38 @@ function Profile() {
             </Text>
           </View>
         );
-      }}
+    },
+    [palette.textPrimary, renderWeaponBadges]
+  );
+
+  const renderCollectionEmpty = React.useCallback(
+    () => (
+      <Text style={[styles.emptyText, { color: palette.textSecondary }]}>
+        {t("equip_page.empty")}
+      </Text>
+    ),
+    [palette.textSecondary, t]
+  );
+
+  const renderCollectionTab = () => (
+    <FlatList
+      style={styles.collectionContainer}
+      data={filteredCollection}
+      keyExtractor={(item) => item.collectionId}
+      numColumns={2}
+      refreshing={refreshing}
+      onRefresh={handleRefresh}
+      contentContainerStyle={styles.collectionList}
+      columnWrapperStyle={styles.collectionRow}
+      showsVerticalScrollIndicator={false}
+      ListHeaderComponent={renderCollectionHeader}
+      ListEmptyComponent={renderCollectionEmpty}
+      renderItem={renderCollectionItem}
+      removeClippedSubviews
+      initialNumToRender={8}
+      maxToRenderPerBatch={6}
+      windowSize={5}
+      updateCellsBatchingPeriod={24}
     />
   );
 
