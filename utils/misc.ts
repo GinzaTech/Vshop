@@ -18,6 +18,45 @@ export const VItemTypes = {
 
 export const regions = ["eu", "na", "ap", "kr"];
 
+export const normalizeValorantShard = (region?: string | null) => {
+  const normalized = (region || "").trim().toLowerCase();
+  const platformToShard: Record<string, string> = {
+    ap: "ap",
+    asia: "ap",
+    hk: "ap",
+    jp: "ap",
+    jp1: "ap",
+    sea: "ap",
+    sg: "ap",
+    sg2: "ap",
+    th: "ap",
+    th1: "ap",
+    tw: "ap",
+    vn: "ap",
+    vn2: "ap",
+    eu: "eu",
+    eun1: "eu",
+    euw1: "eu",
+    ru: "eu",
+    ru1: "eu",
+    tr: "eu",
+    tr1: "eu",
+    kr: "kr",
+    kr1: "kr",
+    na: "na",
+    na1: "na",
+    na2: "na",
+    br: "na",
+    br1: "na",
+    la1: "na",
+    la2: "na",
+    latam: "na",
+    pbe: "pbe",
+  };
+
+  return platformToShard[normalized] || normalized;
+};
+
 export const getAccessTokenFromUri = (uri: string) => {
   const match = uri.match(/access_token=([^\s&]+)/);
   if (!match) throw new Error("Could not extract access token from uri");

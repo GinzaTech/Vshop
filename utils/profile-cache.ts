@@ -26,12 +26,43 @@ export type ProfileWarmCache = {
   ownedSkinItemIds: string[];
   ownedSprayItemIds: string[];
   competitiveRank: CompetitiveRankSummary | null;
+  rankCacheVersion?: number;
   updatedAt: number;
 };
 
 export const PROFILE_WARM_CACHE_TTL = 5 * 60 * 1000;
+export const PROFILE_RANK_CACHE_VERSION = 9;
 
 const profileWarmupInFlight = new Map<string, Promise<ProfileWarmCache | null>>();
+
+const FALLBACK_COMPETITIVE_TIER_NAMES: Record<number, string> = {
+  0: "Unrated",
+  3: "Iron 1",
+  4: "Iron 2",
+  5: "Iron 3",
+  6: "Bronze 1",
+  7: "Bronze 2",
+  8: "Bronze 3",
+  9: "Silver 1",
+  10: "Silver 2",
+  11: "Silver 3",
+  12: "Gold 1",
+  13: "Gold 2",
+  14: "Gold 3",
+  15: "Platinum 1",
+  16: "Platinum 2",
+  17: "Platinum 3",
+  18: "Diamond 1",
+  19: "Diamond 2",
+  20: "Diamond 3",
+  21: "Ascendant 1",
+  22: "Ascendant 2",
+  23: "Ascendant 3",
+  24: "Immortal 1",
+  25: "Immortal 2",
+  26: "Immortal 3",
+  27: "Radiant",
+};
 
 export const getSessionAuthKey = (user: typeof defaultUser) =>
   user.region && user.id
@@ -42,6 +73,14 @@ export const isProfileCacheFresh = (
   cache?: Pick<ProfileWarmCache, "updatedAt"> | null,
   ttl = PROFILE_WARM_CACHE_TTL
 ) => Boolean(cache?.updatedAt && Date.now() - cache.updatedAt < ttl);
+
+export const hasValidCompetitiveRankCache = (
+  cache?: Pick<ProfileWarmCache, "competitiveRank" | "rankCacheVersion"> | null
+) =>
+  Boolean(
+    cache?.rankCacheVersion === PROFILE_RANK_CACHE_VERSION &&
+      (cache.competitiveRank?.currentTier || cache.competitiveRank?.peakTier)
+  );
 
 const formatCompetitiveTierName = (
   value?: string | null,
@@ -76,13 +115,60 @@ const toTitleCase = (value?: string | null) =>
       `${prefix}${char.toLocaleUpperCase("vi-VN")}`
     );
 
-export function buildCompetitiveRankSummary(
-  mmrResult?: CompetitiveMMRResponse | null
-): CompetitiveRankSummary | null {
-  if (!mmrResult) {
+const resolveTierName = (
+  tier: number | null,
+  tierInfo?: { name: string; icon: string | null } | null
+) => {
+  if (tierInfo?.name) {
+    return tierInfo.name;
+  }
+
+  if (tier !== null) {
+    return FALLBACK_COMPETITIVE_TIER_NAMES[tier] || `Tier ${tier}`;
+  }
+
+  return FALLBACK_COMPETITIVE_TIER_NAMES[0];
+};
+
+const getCompetitiveQueueSkill = (mmrResult: CompetitiveMMRResponse) => {
+  const queueSkills = mmrResult?.QueueSkills;
+  if (!queueSkills || typeof queueSkills !== "object") {
     return null;
   }
 
+  const directCompetitive = (queueSkills as Record<string, any>).competitive;
+  if (directCompetitive) {
+    return directCompetitive;
+  }
+
+  const competitiveEntry = Object.entries(queueSkills as Record<string, any>).find(
+    ([queueName, queueData]) =>
+      queueName.toLocaleLowerCase("en-US").includes("competitive") &&
+      queueData &&
+      typeof queueData === "object"
+  );
+
+  if (competitiveEntry?.[1]) {
+    return competitiveEntry[1];
+  }
+
+  return (
+    Object.values(queueSkills as Record<string, any>).find(
+      (queueData) =>
+        queueData &&
+        typeof queueData === "object" &&
+        queueData.SeasonalInfoBySeasonID &&
+        typeof queueData.SeasonalInfoBySeasonID === "object"
+    ) ?? null
+  );
+};
+
+const toRankTier = (value: unknown) => {
+  const tier = Number(value ?? 0);
+  return Number.isFinite(tier) && tier > 0 ? tier : null;
+};
+
+const getTierLookup = () => {
   const tierLookup = new Map<number, { name: string; icon: string | null }>();
   const competitiveTierSeasons = Array.isArray(getAssets().competitiveTiers)
     ? getAssets().competitiveTiers
@@ -107,39 +193,57 @@ export function buildCompetitiveRankSummary(
     });
   });
 
-  const competitiveData = mmrResult?.QueueSkills?.competitive;
+  return tierLookup;
+};
+
+const buildCompetitiveRankSummaryFromTiers = (
+  currentTier: number | null,
+  peakTier: number | null
+): CompetitiveRankSummary => {
+  const tierLookup = getTierLookup();
+  const currentTierInfo = currentTier ? tierLookup.get(currentTier) : null;
+  const peakTierInfo = peakTier ? tierLookup.get(peakTier) : null;
+
+  return {
+    currentTier,
+    currentName: formatCompetitiveTierName(
+      resolveTierName(currentTier, currentTierInfo)
+    ),
+    currentIcon: currentTierInfo?.icon || null,
+    peakTier,
+    peakName: formatCompetitiveTierName(resolveTierName(peakTier, peakTierInfo)),
+    peakIcon: peakTierInfo?.icon || null,
+  };
+};
+
+export function buildCompetitiveRankSummary(
+  mmrResult?: CompetitiveMMRResponse | null
+): CompetitiveRankSummary | null {
+  if (!mmrResult) {
+    return null;
+  }
+
+  const competitiveData = getCompetitiveQueueSkill(mmrResult);
   const latestCompetitiveUpdate = (mmrResult as any)?.LatestCompetitiveUpdate;
   const seasonalInfo =
     competitiveData?.SeasonalInfoBySeasonID &&
     typeof competitiveData.SeasonalInfoBySeasonID === "object"
       ? competitiveData.SeasonalInfoBySeasonID
       : {};
-  const currentSeasonId =
-    typeof latestCompetitiveUpdate?.SeasonID === "string"
-      ? latestCompetitiveUpdate.SeasonID
-      : null;
-  const currentSeasonInfo = currentSeasonId
-    ? (seasonalInfo as Record<string, any>)[currentSeasonId]
-    : null;
+  const seasonValues = Object.values(seasonalInfo) as any[];
 
-  const latestTierRaw = Number(latestCompetitiveUpdate?.TierAfterUpdate ?? 0);
-  const seasonCurrentTierRaw = Number(
-    currentSeasonInfo?.CompetitiveTier ?? competitiveData?.CompetitiveTier ?? 0
-  );
-  const currentTierCandidate =
-    Number.isFinite(latestTierRaw) && latestTierRaw > 0
-      ? latestTierRaw
-      : seasonCurrentTierRaw;
   const currentTier =
-    Number.isFinite(currentTierCandidate) && currentTierCandidate > 0
-      ? currentTierCandidate
-      : null;
+    toRankTier(latestCompetitiveUpdate?.TierAfterUpdate) ||
+    toRankTier(competitiveData?.CompetitiveTier);
 
-  const peakFromSeasons = Object.values(seasonalInfo).reduce((max, season: any) => {
-    const seasonPeak = Number(
-      season?.Rank ?? season?.SeasonHighestCompetitiveTier ?? season?.CompetitiveTier ?? 0
+  const peakFromSeasons = seasonValues.reduce<number>((max, season: any) => {
+    const seasonPeak = Math.max(
+      toRankTier(season?.Rank) ?? 0,
+      toRankTier(season?.CompetitiveTier) ?? 0,
+      toRankTier(season?.SeasonHighestCompetitiveTier) ?? 0
     );
-    return Number.isFinite(seasonPeak) && seasonPeak > max ? seasonPeak : max;
+
+    return seasonPeak > max ? seasonPeak : max;
   }, 0);
 
   const explicitPeakRaw = Number(competitiveData?.HighestCompetitiveTier ?? 0);
@@ -151,19 +255,22 @@ export function buildCompetitiveRankSummary(
   );
   const peakTier = peakTierCandidate > 0 ? peakTierCandidate : null;
 
-  const currentTierInfo = currentTier ? tierLookup.get(currentTier) : null;
-  const peakTierInfo = peakTier ? tierLookup.get(peakTier) : null;
+  return buildCompetitiveRankSummaryFromTiers(currentTier, peakTier);
+}
 
-  return {
-    currentTier,
-    currentName: formatCompetitiveTierName(currentTierInfo?.name || "Unrated"),
-    currentIcon: currentTierInfo?.icon || null,
-    peakTier,
-    peakName: formatCompetitiveTierName(peakTierInfo?.name || "Unrated", {
-      stripDivision: true,
-    }),
-    peakIcon: peakTierInfo?.icon || null,
-  };
+export async function fetchCompetitiveRankSummary(user: typeof defaultUser) {
+  const mmrResult = await getCompetitiveMMR(
+    user.accessToken,
+    user.entitlementsToken,
+    user.region,
+    user.id
+  ).catch(() => null);
+
+  const mmrSummary = buildCompetitiveRankSummary(
+    (mmrResult as CompetitiveMMRResponse | null) ?? null
+  );
+
+  return mmrSummary?.currentTier || mmrSummary?.peakTier ? mmrSummary : null;
 }
 
 const collectProfileWarmupUrls = (
@@ -233,13 +340,9 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
     user.entitlementsToken,
     user.region,
     user.id
-  );
+  ).catch(() => null);
 
-  if (!loadoutSnapshot) {
-    return null;
-  }
-
-  const [ownershipResults, mmrResult] = await Promise.all([
+  const [ownershipResults, competitiveRank] = await Promise.all([
     Promise.allSettled([
       ownedItems(
         user.accessToken,
@@ -263,12 +366,7 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
         VItemTypes.Spray
       ),
     ]),
-    getCompetitiveMMR(
-      user.accessToken,
-      user.entitlementsToken,
-      user.region,
-      user.id
-    ).catch(() => null),
+    fetchCompetitiveRankSummary(user).catch(() => null),
   ]);
 
   const ownedSkinIds = new Set<string>(user.ownedSkinIds ?? []);
@@ -288,15 +386,13 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
     });
   });
 
-  const competitiveRank = buildCompetitiveRankSummary(
-    (mmrResult as CompetitiveMMRResponse | null) ?? null
-  );
   const cache: ProfileWarmCache = {
     authKey: getSessionAuthKey(user),
     loadoutSnapshot,
     ownedSkinItemIds: Array.from(ownedSkinIds),
     ownedSprayItemIds: Array.from(ownedSprayIds),
     competitiveRank,
+    rankCacheVersion: PROFILE_RANK_CACHE_VERSION,
     updatedAt: Date.now(),
   };
 

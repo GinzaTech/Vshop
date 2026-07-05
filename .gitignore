@@ -17,6 +17,8 @@ expo-dev.err.log
 
 # Env files
 .env*
+*.env
+out/
 .jks
 # Native folders
 android/

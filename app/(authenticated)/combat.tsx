@@ -106,6 +106,7 @@ function PartyChatPanel({
   region: string;
   currentUser: { id: string; name: string; TagLine: string };
 }) {
+  const { t } = useTranslation();
   const partyRoom = useChatStore((state) => state.partyChatRoom);
   const presencePartyId = useChatStore((state) => state.currentPartyId);
   const friends = useChatStore((state) => state.friends);
@@ -172,7 +173,7 @@ function PartyChatPanel({
     } finally {
       setLoading(false);
     }
-  }, [accessToken, currentUser.id, entitlementsToken, partyId, partyMemberCount, presencePartyId, region, roomName]);
+  }, [accessToken, currentUser.id, entitlementsToken, partyId, partyMemberCount, presencePartyId, region, roomName, t]);
 
   React.useEffect(() => {
     void loadPartyChat();
@@ -335,13 +336,22 @@ export default function Combat() {
     t,
     "combat_page.no_active_session"
   );
+  const isIdleSession = sessionSnapshot.state === "idle";
+  const sessionStateLabel =
+    sessionSnapshot.state === "pregame"
+      ? t("combat_page.session_pregame")
+      : sessionSnapshot.state === "live"
+        ? t("combat_page.session_live")
+        : t("combat_page.session_idle");
+  const mapDisplayName = mapInfo?.displayName || t("combat_page.no_map");
+  const queueDisplayLabel = queueLabel;
   const partySize = sessionSnapshot.party?.Members?.length || 0;
   const partyCapacity = getSessionPartyCapacity({
     queueId: rawQueueLabel,
     customMode: sessionSnapshot.party?.CustomGameData?.Settings?.Mode,
     customPartySize: sessionSnapshot.party?.CustomGameData?.MaxPartySize,
   });
-  const panelWidth = Math.max(width - 40, 280);
+  const panelWidth = Math.max(width - 32, 280);
 
   const handlePanelScrollEnd = React.useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -447,83 +457,93 @@ export default function Combat() {
   return (
     <View style={styles.screen}>
       <View style={styles.content}>
-
-      <GlassCard style={styles.sessionCard}>
-        <View style={styles.sessionTopRow}>
-          <View style={styles.sessionHeaderCopy}>
-            <Text style={styles.sessionEyebrow}>
-              {sessionSnapshot.state === "pregame"
-                ? t("combat_page.session_pregame")
-                : sessionSnapshot.state === "live"
-                  ? t("combat_page.session_live")
-                  : t("combat_page.session_idle")}
+        <View style={styles.screenHeader}>
+          <Text style={styles.screenTitle}>Phiên đấu</Text>
+          {!isIdleSession ? (
+            <Text style={styles.screenSubtitle} numberOfLines={1}>
+              {sessionStateLabel}
             </Text>
-            <Text style={styles.sessionTitle}>
-              {mapInfo?.displayName || t("combat_page.no_map")}
-            </Text>
-            <Text style={styles.sessionSubtitle} numberOfLines={1}>
-              {queueLabel}
-            </Text>
-          </View>
-          <View style={styles.sessionActions}>
-
-            {sessionSnapshot.partyId ? (
-              <ValorantButton
-                title={
-                  currentPartyMember?.IsReady
-                    ? t("combat_page.actions.unready")
-                    : t("combat_page.actions.ready")
-                }
-                variant="secondary"
-                onPress={() => {
-                  void togglePartyReadyState();
-                }}
-                style={styles.inlineButton}
-              />
-            ) : null}
-          </View>
+          ) : null}
         </View>
 
-        {mapInfo?.listViewIcon ? (
-          <Image
-            source={{ uri: mapInfo.listViewIcon }}
-            style={styles.sessionImage}
-            contentFit="cover"
-          />
-        ) : null}
+        <GlassCard
+          style={styles.matchSummaryCard}
+          contentStyle={styles.matchSummaryContent}
+        >
+          <View style={styles.matchSummaryMain}>
+            <View style={styles.sessionHeaderCopy}>
+              <Text style={styles.sessionEyebrow}>
+                {isIdleSession ? "Combat" : sessionStateLabel}
+              </Text>
+              <Text style={styles.sessionTitle} numberOfLines={1}>
+                {mapDisplayName}
+              </Text>
+              <Text style={styles.sessionSubtitle} numberOfLines={1}>
+                {queueDisplayLabel}
+              </Text>
+            </View>
 
-        <View style={styles.metricRow}>
-          <InfoPill style={styles.metricPill}>
-            <Icon name="map-outline" size={16} color={COLORS.TEXT_PRIMARY} />
-            <Text style={styles.metricText}>
-              {mapInfo?.displayName || t("combat_page.no_map")}
-            </Text>
-          </InfoPill>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => {
-              if (sessionSnapshot.state !== "idle") {
-                router.push("/combat_session" as never);
-              }
-            }}
-            style={styles.metricPill}
-          >
-            <InfoPill style={styles.flex1}>
-              <Icon name="account-group-outline" size={16} color={COLORS.TEXT_PRIMARY} />
-              <Text style={styles.metricText}>
-                {partySize}/{partyCapacity}
+            <View style={styles.matchSummarySide}>
+              {sessionSnapshot.partyId ? (
+                <ValorantButton
+                  title={
+                    currentPartyMember?.IsReady
+                      ? t("combat_page.actions.unready")
+                      : t("combat_page.actions.ready")
+                  }
+                  variant="secondary"
+                  onPress={() => {
+                    void togglePartyReadyState();
+                  }}
+                  style={styles.inlineButton}
+                />
+              ) : null}
+              {mapInfo?.listViewIcon ? (
+                <Image
+                  source={{ uri: mapInfo.listViewIcon }}
+                  style={styles.sessionImage}
+                  contentFit="cover"
+                />
+              ) : null}
+            </View>
+          </View>
+
+          <View style={styles.metricRow}>
+            <InfoPill style={styles.metricPill}>
+              <Icon name="map-outline" size={14} color={COLORS.TEXT_PRIMARY} />
+              <Text style={styles.metricText} numberOfLines={1}>
+                {mapDisplayName}
               </Text>
             </InfoPill>
-          </TouchableOpacity>
-          <InfoPill style={styles.metricPill}>
-            <Icon name="pulse" size={16} color={COLORS.TEXT_PRIMARY} />
-            <Text style={styles.metricText}>
-              {sessionLoading ? t("combat_page.loading") : queueLabel}
-            </Text>
-          </InfoPill>
-        </View>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                if (sessionSnapshot.state !== "idle") {
+                  router.push("/combat_session" as never);
+                }
+              }}
+              style={styles.metricTouch}
+            >
+              <InfoPill style={styles.flex1}>
+                <Icon name="account-group-outline" size={14} color={COLORS.TEXT_PRIMARY} />
+                <Text style={styles.metricText}>
+                  {partySize}/{partyCapacity}
+                </Text>
+              </InfoPill>
+            </TouchableOpacity>
+            <InfoPill style={styles.metricPill}>
+              <Icon name="pulse" size={14} color={COLORS.TEXT_PRIMARY} />
+              <Text style={styles.metricText} numberOfLines={1}>
+                {sessionLoading ? t("combat_page.loading") : queueDisplayLabel}
+              </Text>
+            </InfoPill>
+          </View>
+        </GlassCard>
 
-        <View style={styles.partyCodePanel}>
+        <GlassCard
+          style={styles.partyCodeCard}
+          contentStyle={styles.partyCodeContent}
+        >
           <View style={styles.partyCodeHeader}>
             <Text style={styles.partyCodeTitle}>Party code</Text>
             {sessionSnapshot.partyId ? (
@@ -540,7 +560,7 @@ export default function Combat() {
             ) : null}
           </View>
 
-          {sessionSnapshot.partyId ? (
+          <View style={styles.joinCodeRow}>
             <View style={styles.currentCodeRow}>
               <Text style={styles.currentCodeText} numberOfLines={1}>
                 {sessionSnapshot.party?.InviteCode || "No active code"}
@@ -552,7 +572,7 @@ export default function Combat() {
                     style={styles.smallIconButton}
                     onPress={handleCopyCode}
                   >
-                    <Icon name="content-copy" size={17} color={COLORS.TEXT_PRIMARY} />
+                    <Icon name="content-copy" size={15} color={COLORS.TEXT_PRIMARY} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     activeOpacity={0.75}
@@ -560,14 +580,11 @@ export default function Combat() {
                     disabled={partyCodeLoading}
                     onPress={handleDisableCode}
                   >
-                    <Icon name="link-off" size={17} color={COLORS.WARNING} />
+                    <Icon name="link-off" size={15} color={COLORS.WARNING} />
                   </TouchableOpacity>
                 </>
               ) : null}
             </View>
-          ) : null}
-
-          <View style={styles.joinCodeRow}>
             <TextInput
               value={joinCode}
               onChangeText={setJoinCode}
@@ -593,113 +610,114 @@ export default function Combat() {
               <Text style={styles.joinCodeButtonText}>Join</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </GlassCard>
+        </GlassCard>
 
-      <View style={styles.panelLabelRow}>
-        <Text
-          style={[
-            styles.panelLabel,
-            activePanelIndex === 0 ? styles.panelLabelActive : null,
-          ]}
-        >
-          Agents
-        </Text>
-        <Icon name="chevron-right" size={17} color={COLORS.TEXT_SECONDARY} />
-        <Text
-          style={[
-            styles.panelLabel,
-            activePanelIndex === 1 ? styles.panelLabelActive : null,
-          ]}
-        >
-          Party chat
-        </Text>
-      </View>
-
-      <FlatList
-        data={COMBAT_PANELS}
-        horizontal
-        pagingEnabled
-        bounces={false}
-        keyExtractor={(item) => item}
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handlePanelScrollEnd}
-        style={styles.panelPager}
-        renderItem={({ item }) => (
-          <View style={[styles.panelPage, { width: panelWidth }]}>
-            {item === "agents" ? (
-              <>
-                <View style={styles.roleSelectorWrap}>
-                  {ROLES.map((role) => (
-                    <TouchableOpacity
-                      key={role.id}
-                      style={[
-                        styles.roleBtn,
-                        selectedRole === role.id && styles.roleBtnSelected,
-                      ]}
-                      onPress={() => filterByRole(role.id)}
-                    >
-                      <Image source={role.icon} style={styles.roleIcon} />
-                      <Text
-                        style={[
-                          styles.roleLabel,
-                          selectedRole === role.id && styles.roleLabelSelected,
-                        ]}
-                      >
-                        {role.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <View style={styles.gridWrap}>
-                  <AgentGrid agents={filteredAgents} onAgentPress={handleAgentPress} />
-                </View>
-              </>
-            ) : (
-              <PartyChatPanel
-                partyId={sessionSnapshot.partyId}
-                roomName={sessionSnapshot.party?.MUCName}
-                partyMemberCount={sessionSnapshot.party?.Members?.length || 0}
-                accessToken={user.accessToken}
-                entitlementsToken={user.entitlementsToken}
-                region={user.region}
-                currentUser={{
-                  id: user.id,
-                  name: user.name,
-                  TagLine: user.TagLine,
-                }}
-              />
-            )}
+        <View style={styles.agentModule}>
+          <View style={styles.panelLabelRow}>
+            <Text
+              style={[
+                styles.panelLabel,
+                activePanelIndex === 0 ? styles.panelLabelActive : null,
+              ]}
+            >
+              Agents
+            </Text>
+            <Icon name="chevron-right" size={17} color={COLORS.TEXT_SECONDARY} />
+            <Text
+              style={[
+                styles.panelLabel,
+                activePanelIndex === 1 ? styles.panelLabelActive : null,
+              ]}
+            >
+              Party chat
+            </Text>
           </View>
-        )}
-      />
 
-      <View style={styles.footer}>
-        <View style={styles.buttonWrapper}>
-          <ValorantButton
-            title={t("combat_page.actions.cancel")}
-            variant="secondary"
-            onPress={() => {
-              void handleCancel();
-            }}
+          <FlatList
+            data={COMBAT_PANELS}
+            horizontal
+            pagingEnabled
+            bounces={false}
+            keyExtractor={(item) => item}
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handlePanelScrollEnd}
+            style={styles.panelPager}
+            renderItem={({ item }) => (
+              <View style={[styles.panelPage, { width: panelWidth }]}>
+                {item === "agents" ? (
+                  <>
+                    <View style={styles.roleSelectorWrap}>
+                      {ROLES.map((role) => (
+                        <TouchableOpacity
+                          key={role.id}
+                          style={[
+                            styles.roleBtn,
+                            selectedRole === role.id && styles.roleBtnSelected,
+                          ]}
+                          onPress={() => filterByRole(role.id)}
+                        >
+                          <Image source={role.icon} style={styles.roleIcon} />
+                          <Text
+                            style={[
+                              styles.roleLabel,
+                              selectedRole === role.id && styles.roleLabelSelected,
+                            ]}
+                          >
+                            {role.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <View style={styles.gridWrap}>
+                      <AgentGrid agents={filteredAgents} onAgentPress={handleAgentPress} />
+                    </View>
+                  </>
+                ) : (
+                  <PartyChatPanel
+                    partyId={sessionSnapshot.partyId}
+                    roomName={sessionSnapshot.party?.MUCName}
+                    partyMemberCount={sessionSnapshot.party?.Members?.length || 0}
+                    accessToken={user.accessToken}
+                    entitlementsToken={user.entitlementsToken}
+                    region={user.region}
+                    currentUser={{
+                      id: user.id,
+                      name: user.name,
+                      TagLine: user.TagLine,
+                    }}
+                  />
+                )}
+              </View>
+            )}
           />
         </View>
-        <View style={styles.buttonWrapper}>
-          <ValorantButton
-            title={
-              locking
-                ? t("combat_page.actions.locking")
-                : selectedAgent
-                  ? `${t("combat_page.actions.lock")} ${selectedAgent.displayName}`
-                  : t("combat_page.actions.lock")
-            }
-            onPress={() => {
-              void handleLockPress();
-            }}
-          />
+
+        <View style={styles.footer}>
+          <View style={styles.buttonWrapper}>
+            <ValorantButton
+              title={t("combat_page.actions.cancel")}
+              variant="secondary"
+              onPress={() => {
+                void handleCancel();
+              }}
+            />
+          </View>
+          <View style={styles.buttonWrapper}>
+            <ValorantButton
+              title={
+                locking
+                  ? t("combat_page.actions.locking")
+                  : selectedAgent
+                    ? `${t("combat_page.actions.lock")} ${selectedAgent.displayName}`
+                    : t("combat_page.actions.lock")
+              }
+              onPress={() => {
+                void handleLockPress();
+              }}
+            />
+          </View>
         </View>
-      </View>
       </View>
     </View>
   );
@@ -711,73 +729,102 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.BACKGROUND,
   },
   content: {
-    padding: 20,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
     flex: 1,
   },
   flex1: {
     flex: 1,
   },
-  sessionCard: {
-    marginBottom: 18,
+  screenHeader: {
+    minHeight: 58,
+    justifyContent: "center",
+    marginBottom: 8,
   },
-  sessionTopRow: {
+  screenTitle: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 26,
+    fontWeight: "900",
+  },
+  screenSubtitle: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  matchSummaryCard: {
+    marginBottom: 10,
+  },
+  matchSummaryContent: {
+    padding: 14,
+  },
+  matchSummaryMain: {
     flexDirection: "row",
+    alignItems: "stretch",
     justifyContent: "space-between",
     gap: 12,
   },
   sessionHeaderCopy: {
     flex: 1,
     minWidth: 0,
+    justifyContent: "center",
   },
   sessionEyebrow: {
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   sessionTitle: {
-    marginTop: 6,
+    marginTop: 5,
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 23,
+    fontWeight: "900",
   },
   sessionSubtitle: {
-    marginTop: 4,
+    marginTop: 3,
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: "700",
   },
-  sessionActions: {
-    alignItems: "flex-end",
+  matchSummarySide: {
+    width: 118,
     gap: 8,
   },
   inlineButton: {
-    minWidth: 108,
+    minWidth: 0,
+    width: "100%",
+    minHeight: 38,
   },
   sessionImage: {
     width: "100%",
-    height: 120,
-    borderRadius: 20,
-    marginTop: 14,
+    height: 72,
+    borderRadius: 16,
   },
   metricRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 14,
+    gap: 8,
+    marginTop: 12,
   },
   metricPill: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 36,
+    paddingHorizontal: 8,
+  },
+  metricTouch: {
+    flex: 0.75,
   },
   metricText: {
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "800",
   },
-  partyCodePanel: {
-    marginTop: 14,
-    gap: 10,
+  partyCodeCard: {
+    marginBottom: 10,
+  },
+  partyCodeContent: {
+    padding: 12,
   },
   partyCodeHeader: {
     flexDirection: "row",
@@ -791,8 +838,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   partyCodeHeaderButton: {
-    minHeight: 34,
-    borderRadius: 14,
+    minHeight: 30,
+    borderRadius: 12,
     paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -806,16 +853,18 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   currentCodeRow: {
+    flex: 1,
+    minWidth: 110,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   currentCodeText: {
     flex: 1,
     minHeight: 38,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
     color: COLORS.TEXT_PRIMARY,
     backgroundColor: COLORS.SURFACE_MUTED,
     borderWidth: 1,
@@ -824,9 +873,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   smallIconButton: {
-    width: 38,
+    width: 34,
     height: 38,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.SURFACE_MUTED,
@@ -836,24 +885,26 @@ const styles = StyleSheet.create({
   joinCodeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+    marginTop: 10,
   },
   joinCodeInput: {
-    flex: 1,
-    minHeight: 42,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    flex: 0.95,
+    minWidth: 96,
+    minHeight: 38,
+    borderRadius: 12,
+    paddingHorizontal: 10,
     color: COLORS.TEXT_PRIMARY,
     backgroundColor: COLORS.SURFACE_MUTED,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
   },
   joinCodeButton: {
-    minHeight: 42,
-    minWidth: 72,
-    borderRadius: 14,
+    minHeight: 38,
+    minWidth: 58,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.ACCENT,
@@ -863,14 +914,24 @@ const styles = StyleSheet.create({
   },
   joinCodeButtonText: {
     color: COLORS.PURE_WHITE,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
+  },
+  agentModule: {
+    flex: 1,
+    minHeight: 0,
+    borderRadius: 24,
+    padding: 10,
+    backgroundColor: COLORS.SURFACE,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    marginBottom: 12,
   },
   panelLabelRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   panelLabel: {
     color: COLORS.TEXT_SECONDARY,
@@ -889,33 +950,41 @@ const styles = StyleSheet.create({
   },
   gridWrap: {
     flex: 1,
+    minHeight: 0,
   },
   footer: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.BORDER,
+    backgroundColor: COLORS.BACKGROUND,
   },
   buttonWrapper: {
     flex: 1,
   },
   roleSelectorWrap: {
     backgroundColor: "#000000",
-    borderRadius: 12,
+    borderRadius: 18,
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 8,
-    marginBottom: 14,
+    minHeight: 82,
+    paddingVertical: 9,
+    marginBottom: 10,
   },
   roleBtn: {
+    flex: 1,
     alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 4,
   },
   roleBtnSelected: {
     borderBottomWidth: 2,
     borderBottomColor: "#ffffff",
   },
   roleIcon: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     resizeMode: "contain",
   },
   roleLabel: {

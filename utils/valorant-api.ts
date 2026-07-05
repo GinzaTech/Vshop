@@ -1,6 +1,6 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-import { VCurrencies, VItemTypes } from "./misc";
+import { normalizeValorantShard, VCurrencies, VItemTypes } from "./misc";
 import https from "https-browserify";
 import { fetchBundle, getAssets } from "./valorant-assets";
 import {
@@ -24,6 +24,21 @@ axios.interceptors.request.use(
 );
 
 axios.interceptors.response.use(logAxiosResponse, logAxiosError);
+
+const maskSecretForLog = (value?: string | null) => {
+  const text = String(value || "");
+  if (!text) return "";
+  return text.length > 16 ? `${text.slice(0, 8)}...${text.slice(-6)}` : "***";
+};
+
+const logValorantApiDebug = (
+  label: string,
+  payload: Record<string, unknown>
+) => {
+  if (__DEV__) {
+    console.log(`[valorant-api] ${label}`, payload);
+  }
+};
 
 
 export interface PlayerLoadoutResponse {
@@ -81,11 +96,35 @@ export interface CompetitiveMMRResponse {
       SeasonalInfoBySeasonID?: Record<
         string,
         {
+          Rank?: number;
           CompetitiveTier?: number;
+          RankedRating?: number;
+          WinsByTier?: Record<string, number> | null;
+          SeasonHighestCompetitiveTier?: number;
         }
       >;
     };
   };
+  LatestCompetitiveUpdate?: {
+    SeasonID?: string;
+    TierAfterUpdate?: number;
+    TierBeforeUpdate?: number;
+    RankedRatingAfterUpdate?: number;
+    MatchStartTime?: number;
+  };
+}
+
+export interface ValorantSessionResponse {
+  subject?: string;
+  clientVersion?: string;
+  clientPlatformInfo?: {
+    platformType?: string;
+    platformOS?: string;
+    platformOSVersion?: string;
+    platformChipset?: string;
+    platformDevice?: string;
+  };
+  [key: string]: any;
 }
 
 export interface CurrentGameMatchResponse {
@@ -153,12 +192,33 @@ export let defaultUser = {
   entitlementsToken: "",
 };
 
+const DEFAULT_RIOT_CLIENT_VERSION = "release-13.00-shipping-32-4990475";
+const RIOT_CLIENT_PLATFORM =
+  "eyJwbGF0Zm9ybVR5cGUiOiJQQyIsInBsYXRmb3JtT1MiOiJXaW5kb3dzIiwicGxhdGZvcm1PU1ZlcnNpb24iOiIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwicGxhdGZvcm1DaGlwc2V0IjoiVW5rbm93biJ9";
 
+let riotClientVersionOverride: string | null = null;
+
+export const setRiotClientVersionOverride = (version?: string | null) => {
+  const normalizedVersion = typeof version === "string" ? version.trim() : "";
+
+  if (!normalizedVersion) {
+    riotClientVersionOverride = null;
+    return null;
+  }
+
+  riotClientVersionOverride = normalizedVersion;
+  return riotClientVersionOverride;
+};
+
+export const getRiotClientVersionForRequests = () =>
+  riotClientVersionOverride ||
+  getAssets().riotClientVersion ||
+  DEFAULT_RIOT_CLIENT_VERSION;
 
 const extraHeaders = () => ({
   "X-Riot-ClientVersion":
-    getAssets().riotClientVersion || "43.0.1.4195386.4190634",
-  "X-Riot-ClientPlatform": "eyJwbGF0Zm9ybVR5cGUiOiJQQyIsInBsYXRmb3JtT1MiOiJXaW5kb3dzIiwicGxhdGZvcm1PU1ZlcnNpb24iOiIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwicGxhdGZvcm1DaGlwc2V0IjoiVW5rbm93biJ9",
+    getRiotClientVersionForRequests(),
+  "X-Riot-ClientPlatform": RIOT_CLIENT_PLATFORM,
 });
 
 export async function getEntitlementsToken(accessToken: string) {
@@ -563,23 +623,30 @@ export async function quitPreGameLobby(
   return res.data;
 }
 
+function maskToken(token: string) {
+  if (!token) return "";
+  return `${token.slice(0, 12)}...${token.slice(-8)}`;
+}
+
 export async function playerLoadout(
-  accesstoken: string,
-  entitlementsToken: string,
-  region: string,
-  userId: string) {
-  console.log("accessToken:", accesstoken);
-  console.log("entitlementsToken:", entitlementsToken);
+    accesstoken: string,
+    entitlementsToken: string,
+    region: string,
+    userId: string
+) {
   const res = await axios.request<PlayerLoadoutResponse>({
     url: getUrl({ name: "player", region: region, userId: userId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
       ...extraHeaders(),
-      'X-Riot-Entitlements-JWT': entitlementsToken,
+      "X-Riot-Entitlements-JWT": entitlementsToken,
       Authorization: `Bearer ${accesstoken}`,
-    }
-  })
+    },
+  });
+
+  console.log("Player Loadout status:", res.status);
+
   return res.status === 200 ? res.data : null;
 }
 
@@ -651,13 +718,54 @@ export async function playerMatchHistory(
   return res.data;
 }
 
+export async function getValorantSession(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
+) {
+  const res = await axios.request<ValorantSessionResponse>({
+    url: getUrl({ name: "session", region, userId }),
+    method: "GET",
+    validateStatus: () => true,
+    headers: {
+      ...extraHeaders(),
+      "X-Riot-Entitlements-JWT": entitlementsToken,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return res.status === 200 ? res.data : null;
+}
+
+export async function hydrateRiotClientVersionFromSession(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
+  userId: string
+) {
+  const session = await getValorantSession(
+    accessToken,
+    entitlementsToken,
+    region,
+    userId
+  ).catch(() => null);
+  const sessionVersion = session?.clientVersion?.trim();
+
+  if (!sessionVersion) {
+    return null;
+  }
+
+  return setRiotClientVersionOverride(sessionVersion);
+}
+
 export async function getCompetitiveMMR(
   accessToken: string,
   entitlementsToken: string,
   region: string,
   userId: string
 ) {
-  const res = await axios.request<CompetitiveMMRResponse>({
+  const requestMmr = () => axios.request<CompetitiveMMRResponse>({
     url: getUrl({ name: "mmr", region: region, userId: userId }),
     method: "GET",
     validateStatus: () => true,
@@ -668,7 +776,43 @@ export async function getCompetitiveMMR(
     },
   });
 
-  return res.status === 200 ? res.data : {};
+  logValorantApiDebug("MMR_FetchPlayer request", {
+    region,
+    userId: maskSecretForLog(userId),
+    accessToken: maskSecretForLog(accessToken),
+    entitlementsToken: maskSecretForLog(entitlementsToken),
+  });
+
+  const res = await requestMmr();
+  logValorantApiDebug("MMR_FetchPlayer response", {
+    status: res.status,
+    statusText: res.statusText,
+    data: res.data,
+  });
+
+  if (res.status === 200) {
+    return res.data;
+  }
+
+  const currentVersion = getRiotClientVersionForRequests();
+  const sessionVersion = await hydrateRiotClientVersionFromSession(
+    accessToken,
+    entitlementsToken,
+    region,
+    userId
+  );
+
+  if (sessionVersion && sessionVersion !== currentVersion) {
+    const retryRes = await requestMmr();
+    logValorantApiDebug("MMR_FetchPlayer retry response", {
+      status: retryRes.status,
+      statusText: retryRes.statusText,
+      data: retryRes.data,
+    });
+    return retryRes.status === 200 ? retryRes.data : {};
+  }
+
+  return {};
 }
 
 export async function matchDetails(
@@ -706,48 +850,50 @@ function getUrl({
   itemTypeId?: string | null;
   code?: string | null;
 }) {
+  const shard = normalizeValorantShard(region);
   const URLS: Record<string, string> = {
     auth: "https://auth.riotgames.com/api/v1/authorization/",
     entitlements: "https://entitlements.auth.riotgames.com/api/token/v1/",
-    storefront: `https://pd.${region}.a.pvp.net/store/v3/storefront/${userId}`,
-    wallet: `https://pd.${region}.a.pvp.net/store/v1/wallet/${userId}`,
-    playerxp: `https://pd.${region}.a.pvp.net/account-xp/v1/players/${userId}`,
+    storefront: `https://pd.${shard}.a.pvp.net/store/v3/storefront/${userId}`,
+    wallet: `https://pd.${shard}.a.pvp.net/store/v1/wallet/${userId}`,
+    playerxp: `https://pd.${shard}.a.pvp.net/account-xp/v1/players/${userId}`,
     weapons: "https://valorant-api.com/v1/weapons/",
-    offers: `https://pd.${region}.a.pvp.net/store/v1/offers/`,
-    name: `https://pd.${region}.a.pvp.net/name-service/v2/players`,
-    matchID: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/players/${userId}`,
-    lock: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/lock/${agentId}`,
-    quit: `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/quit`,
-    player: `https://pd.${region}.a.pvp.net/personalization/v2/players/${userId}/playerloadout`,
-    mmr: `https://pd.${region}.a.pvp.net/mmr/v1/players/${userId}`,
-    "owned-items": `https://pd.${region}.a.pvp.net/store/v1/entitlements/${userId}/${itemTypeId}`,
-    "match-history": `https://pd.${region}.a.pvp.net/match-history/v1/history/${userId}`,
-    "match-details": `https://pd.${region}.a.pvp.net/match-details/v1/matches/${matchId}`,
-    "competitive-updates": `https://pd.${region}.a.pvp.net/mmr/v1/players/${userId}/competitiveupdates`,
-    "pregame-player": `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/players/${userId}`,
-    "pregame-match": `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}`,
-    "select-agent": `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/select/${agentId}`,
-    "pregame-loadouts": `https://glz-${region}-1.${region}.a.pvp.net/pregame/v1/matches/${matchId}/loadouts`,
-    "coregame-player": `https://glz-${region}-1.${region}.a.pvp.net/core-game/v1/players/${userId}`,
-    "coregame-match": `https://glz-${region}-1.${region}.a.pvp.net/core-game/v1/matches/${matchId}`,
-    "coregame-loadouts": `https://glz-${region}-1.${region}.a.pvp.net/core-game/v1/matches/${matchId}/loadouts`,
-    "coregame-quit": `https://glz-${region}-1.${region}.a.pvp.net/core-game/v1/matches/${matchId}/quit`,
-    "party-player": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/players/${userId}`,
-    "party": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}`,
-    "party-ready": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/members/${userId}/setReady`,
-    "party-remove": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/players/${userId}`,
-    "party-join-queue": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/matchmaking/join`,
-    "party-leave-queue": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/matchmaking/leave`,
-    "party-invite-code": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/invitecode`,
-    "party-join-by-code": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/players/joinbycode/${code}`,
-    "party-muc-token": `https://glz-${region}-1.${region}.a.pvp.net/parties/v1/parties/${matchId}/muctoken`,
-    "contracts": `https://pd.${region}.a.pvp.net/contracts/v1/contracts/${userId}`,
-    "activate-contract": `https://pd.${region}.a.pvp.net/contracts/v1/contracts/${userId}/special/${itemTypeId}`,
-    "item-upgrades": `https://pd.${region}.a.pvp.net/contract-definitions/v3/item-upgrades`,
-    "content": `https://shared.${region}.a.pvp.net/content-service/v3/content`,
-    "leaderboard": `https://pd.${region}.a.pvp.net/mmr/v1/leaderboards/affinity/${region}/queue/competitive/season/${itemTypeId}`,
-    "config": `https://pd.${region}.a.pvp.net/v1/config/${region}`,
-    "penalties": `https://pd.${region}.a.pvp.net/restrictions/v3/penalties`,
+    offers: `https://pd.${shard}.a.pvp.net/store/v1/offers/`,
+    name: `https://pd.${shard}.a.pvp.net/name-service/v2/players`,
+    matchID: `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/players/${userId}`,
+    lock: `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}/lock/${agentId}`,
+    quit: `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}/quit`,
+    player: `https://pd.${shard}.a.pvp.net/personalization/v2/players/${userId}/playerloadout`,
+    mmr: `https://pd.${shard}.a.pvp.net/mmr/v1/players/${userId}`,
+    "owned-items": `https://pd.${shard}.a.pvp.net/store/v1/entitlements/${userId}/${itemTypeId}`,
+    "match-history": `https://pd.${shard}.a.pvp.net/match-history/v1/history/${userId}`,
+    "match-details": `https://pd.${shard}.a.pvp.net/match-details/v1/matches/${matchId}`,
+    "competitive-updates": `https://pd.${shard}.a.pvp.net/mmr/v1/players/${userId}/competitiveupdates`,
+    session: `https://glz-${shard}-1.${shard}.a.pvp.net/session/v1/sessions/${userId}`,
+    "pregame-player": `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/players/${userId}`,
+    "pregame-match": `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}`,
+    "select-agent": `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}/select/${agentId}`,
+    "pregame-loadouts": `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}/loadouts`,
+    "coregame-player": `https://glz-${shard}-1.${shard}.a.pvp.net/core-game/v1/players/${userId}`,
+    "coregame-match": `https://glz-${shard}-1.${shard}.a.pvp.net/core-game/v1/matches/${matchId}`,
+    "coregame-loadouts": `https://glz-${shard}-1.${shard}.a.pvp.net/core-game/v1/matches/${matchId}/loadouts`,
+    "coregame-quit": `https://glz-${shard}-1.${shard}.a.pvp.net/core-game/v1/matches/${matchId}/quit`,
+    "party-player": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/players/${userId}`,
+    "party": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}`,
+    "party-ready": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/members/${userId}/setReady`,
+    "party-remove": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/players/${userId}`,
+    "party-join-queue": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/matchmaking/join`,
+    "party-leave-queue": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/matchmaking/leave`,
+    "party-invite-code": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/invitecode`,
+    "party-join-by-code": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/players/joinbycode/${code}`,
+    "party-muc-token": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/muctoken`,
+    "contracts": `https://pd.${shard}.a.pvp.net/contracts/v1/contracts/${userId}`,
+    "activate-contract": `https://pd.${shard}.a.pvp.net/contracts/v1/contracts/${userId}/special/${itemTypeId}`,
+    "item-upgrades": `https://pd.${shard}.a.pvp.net/contract-definitions/v3/item-upgrades`,
+    "content": `https://shared.${shard}.a.pvp.net/content-service/v3/content`,
+    "leaderboard": `https://pd.${shard}.a.pvp.net/mmr/v1/leaderboards/affinity/${shard}/queue/competitive/season/${itemTypeId}`,
+    "config": `https://pd.${shard}.a.pvp.net/v1/config/${shard}`,
+    "penalties": `https://pd.${shard}.a.pvp.net/restrictions/v3/penalties`,
     "playerinfo": "https://auth.riotgames.com/userinfo",
     "riotgeo": "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant",
     "pastoken": "https://riot-geo.pas.si.riotgames.com/pas/v1/service/chat",
@@ -767,6 +913,14 @@ export async function getCompetitiveUpdates(
   userId: string,
   params?: { startIndex?: number; endIndex?: number; queue?: string }
 ) {
+  logValorantApiDebug("MMR_FetchCompetitiveUpdates request", {
+    region,
+    userId: maskSecretForLog(userId),
+    params,
+    accessToken: maskSecretForLog(accessToken),
+    entitlementsToken: maskSecretForLog(entitlementsToken),
+  });
+
   const res = await axios.request({
     url: getUrl({ name: "competitive-updates", region, userId }),
     method: "GET",
@@ -777,6 +931,11 @@ export async function getCompetitiveUpdates(
       Authorization: `Bearer ${accessToken}`,
     },
     params,
+  });
+  logValorantApiDebug("MMR_FetchCompetitiveUpdates response", {
+    status: res.status,
+    statusText: res.statusText,
+    data: res.data,
   });
   return res.status === 200 ? res.data : null;
 }

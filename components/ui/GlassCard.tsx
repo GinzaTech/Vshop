@@ -5,6 +5,7 @@ import { GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 
 interface GlassCardProps extends ViewProps {
     style?: StyleProp<ViewStyle>;
+    contentStyle?: StyleProp<ViewStyle>;
     children: React.ReactNode;
     intensity?: number;
     tint?: "light" | "dark" | "default";
@@ -12,6 +13,7 @@ interface GlassCardProps extends ViewProps {
 
 export default function GlassCard({
     style,
+    contentStyle,
     children,
     intensity = 18,
     tint = "light",
@@ -20,7 +22,7 @@ export default function GlassCard({
     return (
         <View style={[styles.container, style]} {...props}>
             <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
-            <View style={styles.content}>{children}</View>
+            <View style={[styles.content, contentStyle]}>{children}</View>
         </View>
     );
 }
@@ -34,5 +36,6 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 16,
+        flexShrink: 1,
     },
 });

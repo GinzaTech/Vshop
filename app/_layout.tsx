@@ -110,6 +110,9 @@ function RootLayout() {
 
           if (!cancelled) {
             setUser(authenticatedUser);
+            if (authenticatedUser.region && authenticatedUser.region !== region) {
+              await AsyncStorage.setItem("region", authenticatedUser.region);
+            }
             router.replace("/profile");
           }
           await SplashScreen.hideAsync();

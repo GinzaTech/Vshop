@@ -132,11 +132,8 @@ function Settings() {
     { key: "combat", label: t("combat"), icon: "target", route: "/combat" },
     { key: "history", label: t("history"), icon: "history", route: "/history" },
     { key: "crosshair", label: t("crosshair"), icon: "crosshairs-gps", route: "/crosshair" },
-    { key: "contracts", label: t("contracts_page.title"), icon: "passport", route: "/contracts" },
     { key: "leaderboard", label: t("leaderboard_page.title"), icon: "podium", route: "/leaderboard" },
-    { key: "upgrades", label: t("item_upgrades_page.title"), icon: "lightning-bolt", route: "/item_upgrades" },
     { key: "friends", label: t("friends_page.title"), icon: "account-group-outline", route: "/friends" },
-    { key: "about", label: t("about_page.title"), icon: "information-outline", route: "/about" },
     {
       key: "update",
       label: t("settings_page.check_update"),

@@ -22,19 +22,19 @@ import CurrencyIcon from "~/components/CurrencyIcon";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import {
-  CompetitiveMMRResponse,
   extractOwnedItemIds,
-  getCompetitiveMMR,
   ownedItems,
   playerLoadout,
   PlayerLoadoutResponse,
   updatePlayerLoadout,
 } from "~/utils/valorant-api";
 import {
-  buildCompetitiveRankSummary,
   CompetitiveRankSummary,
+  fetchCompetitiveRankSummary,
   getSessionAuthKey,
+  hasValidCompetitiveRankCache,
   isProfileCacheFresh,
+  PROFILE_RANK_CACHE_VERSION,
 } from "~/utils/profile-cache";
 import { getAssets } from "~/utils/valorant-assets";
 import {
@@ -211,6 +211,9 @@ function Profile() {
   const cachedProfile = useProfileCacheStore(
     (state) => state.cacheByAuth[authKey] ?? null
   );
+  const cachedCompetitiveRank = hasValidCompetitiveRankCache(cachedProfile)
+    ? cachedProfile?.competitiveRank ?? null
+    : null;
   const [activeTab, setActiveTab] = React.useState<TabKey>("loadout");
   const [loading, setLoading] = React.useState(!cachedProfile?.loadoutSnapshot);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -238,7 +241,7 @@ function Profile() {
     cachedProfile?.ownedSprayItemIds ?? []
   );
   const [competitiveRank, setCompetitiveRank] =
-    React.useState<CompetitiveRankSummary | null>(cachedProfile?.competitiveRank ?? null);
+    React.useState<CompetitiveRankSummary | null>(cachedCompetitiveRank);
   const [weaponMetadata, setWeaponMetadata] = React.useState<WeaponMetadataMap>({});
   const [searchQuery, setSearchQuery] = React.useState("");
   const [collectionWeaponFilter, setCollectionWeaponFilter] = React.useState("all");
@@ -264,6 +267,8 @@ function Profile() {
   const initialFetchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const rankRefreshAuthKeyRef = React.useRef<string | null>(null);
+  const fetchLoadoutInFlightRef = React.useRef(false);
 
   const palette = React.useMemo(
     () => {
@@ -356,14 +361,17 @@ function Profile() {
         : user.ownedSkinIds ?? []
     );
     setOwnedSprayItemIds(cachedProfile.ownedSprayItemIds ?? []);
-    setCompetitiveRank(cachedProfile.competitiveRank ?? null);
+    setCompetitiveRank(cachedCompetitiveRank);
     setError(null);
     setLoading(false);
-  }, [cachedProfile, hasAuth, syncLoadoutState, user.ownedSkinIds]);
+  }, [cachedCompetitiveRank, cachedProfile, hasAuth, syncLoadoutState, user.ownedSkinIds]);
 
   const fetchLoadoutData = React.useCallback(
     async (showSpinner = true) => {
       if (!hasAuth) return;
+      if (fetchLoadoutInFlightRef.current) return;
+
+      fetchLoadoutInFlightRef.current = true;
 
       if (showSpinner) {
         setLoading(true);
@@ -382,11 +390,13 @@ function Profile() {
           if (loadoutSnapshotRef.current) {
             syncLoadoutState(loadoutSnapshotRef.current);
           }
-          setCompetitiveRank(null);
+          setCompetitiveRank(
+            competitiveRank ?? cachedCompetitiveRank
+          );
           return;
         }
 
-        const [ownershipResults, mmrResult] = await Promise.all([
+        const [ownershipResults, nextCompetitiveRank] = await Promise.all([
           Promise.allSettled([
             ownedItems(
               user.accessToken,
@@ -410,19 +420,12 @@ function Profile() {
               VItemTypes.Spray
             ),
           ]),
-          getCompetitiveMMR(
-            user.accessToken,
-            user.entitlementsToken,
-            user.region,
-            user.id
-          )
-            .then((result) => result as CompetitiveMMRResponse)
-            .catch((err) => {
-              if (__DEV__) {
-                console.warn("[profile] competitive MMR unavailable", err);
-              }
-              return null;
-            }),
+          fetchCompetitiveRankSummary(user).catch((err) => {
+            if (__DEV__) {
+              console.warn("[profile] competitive rank unavailable", err);
+            }
+            return null;
+          }),
         ]);
 
         const pendingLoadout = pendingLoadoutRef.current;
@@ -496,16 +499,21 @@ function Profile() {
           }
         }
 
-        const nextCompetitiveRank = buildCompetitiveRankSummary(
-          (mmrResult as CompetitiveMMRResponse | null) ?? null
-        );
-        setCompetitiveRank(nextCompetitiveRank);
+        const resolvedCompetitiveRank =
+          nextCompetitiveRank ?? competitiveRank ?? cachedCompetitiveRank;
+
+        setCompetitiveRank(resolvedCompetitiveRank);
         setProfileCache({
           authKey,
           loadoutSnapshot: response,
           ownedSkinItemIds: nextOwnedSkinList,
           ownedSprayItemIds: nextOwnedSprayList,
-          competitiveRank: nextCompetitiveRank,
+          competitiveRank: resolvedCompetitiveRank,
+          rankCacheVersion: nextCompetitiveRank
+            ? PROFILE_RANK_CACHE_VERSION
+            : cachedCompetitiveRank
+              ? cachedProfile?.rankCacheVersion
+              : undefined,
           updatedAt: Date.now(),
         });
       } catch (err) {
@@ -513,6 +521,7 @@ function Profile() {
           console.warn("[profile] fetchLoadoutData failed", err);
         }
       } finally {
+        fetchLoadoutInFlightRef.current = false;
         if (showSpinner) {
           setLoading(false);
         }
@@ -520,6 +529,9 @@ function Profile() {
     },
     [
       authKey,
+      cachedCompetitiveRank,
+      cachedProfile,
+      competitiveRank,
       hasAuth,
       syncLoadoutState,
       user.accessToken,
@@ -586,8 +598,20 @@ function Profile() {
       return;
     }
 
-    if (isProfileCacheFresh(cachedProfile)) {
-      return;
+    const hasRankCache = hasValidCompetitiveRankCache(cachedProfile);
+    const hasLoadoutCache = Boolean(cachedProfile?.loadoutSnapshot);
+
+    if (isProfileCacheFresh(cachedProfile) && hasLoadoutCache) {
+      if (hasRankCache) {
+        rankRefreshAuthKeyRef.current = null;
+        return;
+      }
+
+      if (rankRefreshAuthKeyRef.current === authKey) {
+        return;
+      }
+
+      rankRefreshAuthKeyRef.current = authKey;
     }
 
     initialFetchTaskRef.current?.cancel();
@@ -752,15 +776,17 @@ function Profile() {
     const assets = getAssets();
     const card = assets.cards.find((item) => item.uuid === identity.PlayerCardID);
     const title = assets.titles.find((item) => item.uuid === identity.PlayerTitleID);
+    const accountLevel =
+      identity.AccountLevel > 0 ? identity.AccountLevel : user.progress.level;
 
     return {
-      cardArt: card?.wideArt || card?.largeArt || card?.displayIcon,
+      cardArt: card?.displayIcon || card?.largeArt || card?.wideArt,
       cardName: card?.displayName,
       titleName: title?.titleText || title?.displayName,
-      level: identity.AccountLevel,
+      level: accountLevel,
       hideLevel: identity.HideAccountLevel,
     };
-  }, [identity]);
+  }, [identity, user.progress.level]);
 
   const ownedSkinIdSet = React.useMemo(
     () => new Set(ownedSkinItemIds),
@@ -1571,15 +1597,23 @@ function Profile() {
             { backgroundColor: "#ffffff", borderColor: COLORS.BORDER, borderWidth: 1 },
           ]}
         >
-          <Image
-            source={
-              identityDetails.cardArt
-                ? { uri: identityDetails.cardArt }
-                : FALLBACK_IMAGE
-            }
-            style={styles.identityImage}
-            contentFit="cover"
-          />
+          <View style={styles.identityImageFrame}>
+            <Image
+              source={
+                identityDetails.cardArt
+                  ? { uri: identityDetails.cardArt }
+                  : FALLBACK_IMAGE
+              }
+              style={styles.identityImage}
+              contentFit="cover"
+            />
+            <View style={styles.identityLevelBadge}>
+              <Icon name="star-circle-outline" size={13} color="#ffffff" />
+              <Text style={styles.identityLevelText}>
+                {identityDetails.level}
+              </Text>
+            </View>
+          </View>
           <View style={styles.identityInfo}>
             <Text style={[styles.identityTitle, { color: COLORS.TEXT_PRIMARY }]}>
               {identityDetails.cardName || t("equip_page.identity.card_fallback")}
@@ -1589,14 +1623,6 @@ function Profile() {
             </Text>
             <Text style={[styles.identitySubtitle, { color: COLORS.TEXT_SECONDARY }]}>
               Cấp tài khoản: {identityDetails.level}
-            </Text>
-            <Text
-              style={[
-                styles.identitySubtitle,
-                { color: identityDetails.hideLevel ? COLORS.WARNING : COLORS.SUCCESS, fontWeight: "600" }
-              ]}
-            >
-              {identityDetails.hideLevel ? "Ẩn cấp độ hiển thị" : "Hiển thị cấp độ"}
             </Text>
           </View>
         </View>
@@ -2921,9 +2947,33 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
   },
-  identityImage: {
+  identityImageFrame: {
     width: 150,
     height: 150,
+    position: "relative",
+  },
+  identityImage: {
+    width: "100%",
+    height: "100%",
+  },
+  identityLevelBadge: {
+    position: "absolute",
+    right: 10,
+    bottom: 10,
+    minWidth: 48,
+    height: 28,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(26, 29, 36, 0.86)",
+  },
+  identityLevelText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800",
+    marginLeft: 4,
   },
   identityInfo: {
     flex: 1,

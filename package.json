@@ -10,7 +10,14 @@
     "prebuild:ios": "expo prebuild --platform ios --clean",
     "run:android": "expo run:android",
     "run:ios": "expo run:ios",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "rso:local": "node scripts/local-rso.js",
+    "rso:local:env": "node scripts/local-rso.js --out test/.env",
+    "test:mmr": "node scripts/test-mmr.js",
+    "test:mmr:env": "node scripts/test-mmr.js --env test/.env",
+    "test:mmr:new": "node scripts/mmr-new.js",
+    "test:mmr:write-local": "node test/write-mmr-env.js --local --out test/.env",
+    "test:mmr:local": "node test/write-mmr-env.js --local --out test/.env && node scripts/test-mmr.js --env test/.env"
   },
   "jest": {
     "preset": "jest-expo"

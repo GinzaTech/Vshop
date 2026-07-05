@@ -300,7 +300,12 @@ export async function joinPartyXmppChat({
     throw new Error("Could not join party chat room");
   }
 
-  xmppClientInstance.joinRoom(room, mucToken.Token, userId);
+  const client = xmppClientInstance;
+  if (!client || useChatStore.getState().status === "error") {
+    throw new Error("Party chat connection is not available");
+  }
+
+  client.joinRoom(room, mucToken.Token, userId);
   useChatStore.getState().setPartyChatRoom(room);
   return room;
 }

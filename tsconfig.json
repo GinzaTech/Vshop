@@ -12,5 +12,9 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "./types"
+  ],
+  "exclude": [
+    "node_modules",
+    "valorant-api-docs"
   ]
 }

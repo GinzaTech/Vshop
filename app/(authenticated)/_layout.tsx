@@ -1,13 +1,22 @@
-import type { ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup from "~/components/popups/MediaPopup";
 import { COLORS, GLOBAL_STYLES } from "~/constants/DesignSystem";
+import { useUserStore } from "~/hooks/useUserStore";
 
 const PRIMARY_ROUTES: Record<
   string,
@@ -30,14 +39,33 @@ const PRIMARY_ROUTE_ORDER = [
 
 function FloatingTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const hasNightMarketItems = useUserStore(
+    ({ user }) => user.shops.nightMarket.length > 0
+  );
+  const [collapsed, setCollapsed] = useState(false);
+  const collapseProgress = useRef(new Animated.Value(1)).current;
+  const moreLongPressHandledRef = useRef(false);
   const activeRoute = state.routes[state.index];
+
+  useEffect(() => {
+    Animated.timing(collapseProgress, {
+      toValue: collapsed ? 0 : 1,
+      duration: 190,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [collapseProgress, collapsed]);
 
   if (!(activeRoute?.name in PRIMARY_ROUTES)) {
     return null;
   }
 
   const visibleRoutes = state.routes
-    .filter((route: any) => route.name in PRIMARY_ROUTES)
+    .filter(
+      (route: any) =>
+        route.name in PRIMARY_ROUTES &&
+        (route.name !== "night_market" || hasNightMarketItems)
+    )
     .sort(
       (left: any, right: any) =>
         PRIMARY_ROUTE_ORDER.indexOf(left.name as (typeof PRIMARY_ROUTE_ORDER)[number]) -
@@ -52,72 +80,143 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
         { paddingBottom: Math.max(insets.bottom, 12) },
       ]}
     >
-      <View style={[styles.tabBar, Platform.OS === "web" && styles.tabBarWeb]}>
-        {visibleRoutes.map((route: any) => {
-          const routeIndex = state.routes.findIndex(
-            (item: any) => item.key === route.key
-          );
-          const focused = state.index === routeIndex;
-          const { icon, label } = PRIMARY_ROUTES[route.name];
-          const options = descriptors[route.key]?.options ?? {};
+      {collapsed ? (
+        <Animated.View
+          style={[
+            styles.collapsedTabBar,
+            styles.collapsedTabBarDocked,
+            Platform.OS === "web" && styles.tabBarWeb,
+            {
+              opacity: collapseProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 0],
+              }),
+              transform: [
+                {
+                  scale: collapseProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 0.82],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Expand navigation"
+            onPress={() => {
+              moreLongPressHandledRef.current = false;
+              setCollapsed(false);
+            }}
+            style={({ pressed }) => [
+              styles.collapsedTabButton,
+              pressed && styles.collapsedTabButtonPressed,
+            ]}
+          >
+            <Icon name="dots-grid" size={26} color={COLORS.PURE_BLACK} />
+          </Pressable>
+        </Animated.View>
+      ) : (
+        <Animated.View
+          style={[
+            styles.tabBar,
+            !hasNightMarketItems && styles.tabBarWithoutMarket,
+            Platform.OS === "web" && styles.tabBarWeb,
+            {
+              opacity: collapseProgress,
+              transform: [
+                {
+                  scale: collapseProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.92, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {visibleRoutes.map((route: any) => {
+            const routeIndex = state.routes.findIndex(
+              (item: any) => item.key === route.key
+            );
+            const focused = state.index === routeIndex;
+            const { icon, label } = PRIMARY_ROUTES[route.name];
+            const options = descriptors[route.key]?.options ?? {};
+            const isMoreRoute = route.name === "settings";
 
-          return (
-            <Pressable
-              key={route.key}
-              accessibilityRole="button"
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              onPress={() => {
-                const event = navigation.emit({
-                  type: "tabPress",
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-
-                if (!focused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-              }}
-              style={({ pressed }) => [
-                styles.tabButton,
-                pressed && styles.tabButtonPressed,
-              ]}
-            >
-              {({ pressed }) => (
-                <>
-                  <View
-                    style={[
-                      styles.tabIconWrap,
-                      focused && styles.tabIconWrapActive,
-                      pressed && !focused && styles.tabIconWrapPressed,
-                    ]}
-                  >
-                    <Icon
-                      name={icon}
-                      size={22}
-                      color={
-                        focused
-                          ? COLORS.PURE_BLACK
-                          : pressed
-                            ? COLORS.TEXT_PRIMARY
-                            : COLORS.PURE_WHITE
+            return (
+              <Pressable
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityLabel={options.tabBarAccessibilityLabel}
+                delayLongPress={isMoreRoute ? 1000 : undefined}
+                onLongPress={
+                  isMoreRoute
+                    ? () => {
+                        moreLongPressHandledRef.current = true;
+                        setCollapsed(true);
                       }
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.tabLabel,
-                      focused && styles.tabLabelActive,
-                      pressed && !focused && styles.tabLabelPressed,
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
+                    : undefined
+                }
+                onPress={() => {
+                  if (moreLongPressHandledRef.current) {
+                    moreLongPressHandledRef.current = false;
+                    return;
+                  }
+
+                  const event = navigation.emit({
+                    type: "tabPress",
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
+
+                  if (!focused && !event.defaultPrevented) {
+                    navigation.navigate(route.name);
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.tabButton,
+                  pressed && styles.tabButtonPressed,
+                ]}
+              >
+                {({ pressed }) => (
+                  <>
+                    <View
+                      style={[
+                        styles.tabIconWrap,
+                        focused && styles.tabIconWrapActive,
+                        pressed && !focused && styles.tabIconWrapPressed,
+                      ]}
+                    >
+                      <Icon
+                        name={icon}
+                        size={22}
+                        color={
+                          focused
+                            ? COLORS.PURE_BLACK
+                            : pressed
+                              ? COLORS.TEXT_PRIMARY
+                              : COLORS.PURE_WHITE
+                        }
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.tabLabel,
+                        focused && styles.tabLabelActive,
+                        pressed && !focused && styles.tabLabelPressed,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            );
+          })}
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -343,9 +442,37 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.06)",
     ...GLOBAL_STYLES.shadow,
   },
+  tabBarWithoutMarket: {
+    width: "78%",
+  },
   tabBarWeb: {
     pointerEvents: "auto",
   } as any,
+  collapsedTabBar: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 7,
+    borderRadius: 999,
+    backgroundColor: COLORS.PURE_BLACK,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    ...GLOBAL_STYLES.shadow,
+  },
+  collapsedTabBarDocked: {
+    alignSelf: "flex-end",
+    marginRight: 22,
+  },
+  collapsedTabButton: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.PURE_WHITE,
+  },
+  collapsedTabButtonPressed: {
+    transform: [{ scale: 0.96 }],
+  },
   tabButton: {
     flex: 1,
     alignItems: "center",

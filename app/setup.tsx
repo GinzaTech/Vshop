@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Dimensions, SafeAreaView, ScrollView, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import {
   Button,
   Paragraph,
@@ -15,10 +15,10 @@ import { useUserStore } from "~/hooks/useUserStore";
 import LoginWebView from "~/components/LoginWebView";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS } from "~/constants/DesignSystem";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width: windowWidth, height: windowHeight } = Dimensions.get("window");
-const FOOTER_OFFSET = 132;
-const PAGE_HEIGHT = windowHeight - FOOTER_OFFSET;
+const FOOTER_HEIGHT = 92;
+const HORIZONTAL_PADDING = 20;
 
 function Setup() {
   const scrollViewRef = useRef<ScrollView>(null);
@@ -26,10 +26,23 @@ function Setup() {
   const { t } = useTranslation();
   const { user, setUser } = useUserStore();
   const { colors } = useTheme();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const pageHeight = useMemo(
+    () =>
+      Math.max(
+        560,
+        windowHeight - insets.top - insets.bottom - FOOTER_HEIGHT
+      ),
+    [insets.bottom, insets.top, windowHeight]
+  );
+  const heroImageHeight = Math.min(windowHeight * 0.34, 300);
+  const loginHeight = Math.max(430, pageHeight - 144);
 
   return (
-    <>
+    <View style={styles.root}>
       <ScrollView
+        style={styles.pager}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -43,15 +56,15 @@ function Setup() {
           style={{
             justifyContent: "space-evenly",
             width: windowWidth,
-            height: PAGE_HEIGHT,
-            paddingHorizontal: 20,
+            height: pageHeight,
+            paddingHorizontal: HORIZONTAL_PADDING,
             paddingVertical: 12,
           }}
         >
-          <GlassCard style={{ overflow: "hidden" }}>
+          <GlassCard style={{ overflow: "hidden" }} contentStyle={{ padding: 0 }}>
             <Image
               style={{
-                height: windowHeight * 0.44,
+                height: heroImageHeight,
                 width: "100%",
               }}
               contentFit="cover"
@@ -80,13 +93,13 @@ function Setup() {
         <View
           style={{
             width: windowWidth,
-            height: PAGE_HEIGHT,
-            padding: 20,
+            height: pageHeight,
+            padding: HORIZONTAL_PADDING,
             paddingTop: 12,
             paddingBottom: 12,
           }}
         >
-          <GlassCard style={{ flex: 1 }}>
+          <GlassCard style={{ flex: 1 }} contentStyle={{ flex: 1 }}>
             <Title
               style={{ fontSize: 28, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}
             >
@@ -119,33 +132,38 @@ function Setup() {
           <View
             style={{
               width: windowWidth,
-              height: PAGE_HEIGHT,
-              paddingHorizontal: 20,
+              height: pageHeight,
+              paddingHorizontal: HORIZONTAL_PADDING,
               paddingTop: 12,
               paddingBottom: 12,
             }}
           >
-            <GlassCard style={{ flex: 1 }}>
+            <GlassCard style={{ flex: 1 }} contentStyle={{ flex: 1 }}>
               <View
                 style={{
-                  paddingBottom: 12,
+                  paddingBottom: 10,
                 }}
               >
                 <Title
-                  style={{ fontSize: 28, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}
+                  style={{ fontSize: 26, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}
                 >
                   {t("signin")}
                 </Title>
-                <Paragraph style={{ marginBottom: 10, color: COLORS.TEXT_SECONDARY }}>
+                <Paragraph style={{ marginBottom: 4, color: COLORS.TEXT_SECONDARY }}>
                   {t("signin_info")}
                 </Paragraph>
               </View>
-              <LoginWebView minHeight={PAGE_HEIGHT * 0.78} />
+              <LoginWebView minHeight={loginHeight} />
             </GlassCard>
           </View>
         )}
       </ScrollView>
-      <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+      <View
+        style={{
+          paddingHorizontal: HORIZONTAL_PADDING,
+          paddingBottom: Math.max(8, insets.bottom + 8),
+        }}
+      >
         <GlassCard>
           <View style={{ flexDirection: "row" }}>
             <Button
@@ -186,8 +204,18 @@ function Setup() {
         </GlassCard>
       </View>
       <SafeAreaView style={{ backgroundColor: colors.background }} />
-    </>
+    </View>
   );
 }
 
 export default Setup;
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  pager: {
+    flex: 1,
+  },
+});

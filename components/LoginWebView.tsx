@@ -16,6 +16,7 @@ import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { fetchProfileWarmCache } from "~/utils/profile-cache";
 const LOGIN_URL =
   "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid";
+const PROFILE_PRELOAD_TIMEOUT_MS = 4500;
 
 const isAuthCallbackUrl = (url?: string) =>
   Boolean(url && (url.includes("access_token=") || url.includes("id_token=")));
@@ -42,7 +43,7 @@ export default function LoginWebView({
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
   const resolvedMinHeight =
-    minHeight ?? Math.max(680, Math.min(height * 0.91, 820));
+    minHeight ?? Math.max(500, Math.min(height * 0.74, 720));
 
   const handleWebViewChange = async (newNavState: {
     url?: string;
@@ -75,27 +76,37 @@ export default function LoginWebView({
           idToken
         );
 
+        if (authenticatedUser.region && authenticatedUser.region !== region) {
+          await AsyncStorage.setItem("region", authenticatedUser.region);
+        }
+
         setUser(authenticatedUser);
 
         setLoading(t("fetching.progress"));
 
-        void Promise.allSettled([
-          useMatchStore.getState().fetchMatches(authenticatedUser),
-          fetchProfileWarmCache(authenticatedUser).then((cache) => {
-            if (cache) {
-              useProfileCacheStore.getState().setProfileCache(cache);
-            }
-          }),
-        ]).catch((preloadErr) => {
+        void useMatchStore.getState().fetchMatches(authenticatedUser).catch((preloadErr) => {
           if (__DEV__) {
-            console.log("Preload failed, falling back", preloadErr);
+            console.log("Match preload failed, falling back", preloadErr);
           }
         });
 
+        const profileWarmupPromise = fetchProfileWarmCache(authenticatedUser)
+          .then((cache) => {
+            if (cache) {
+              useProfileCacheStore.getState().setProfileCache(cache);
+            }
+          })
+          .catch((preloadErr) => {
+            if (__DEV__) {
+              console.log("Profile preload failed, falling back", preloadErr);
+            }
+          });
+
         const remainingDelay = Math.max(0, 2000 - (Date.now() - loginStart));
-        if (remainingDelay > 0) {
-          await wait(remainingDelay);
-        }
+        await Promise.allSettled([
+          remainingDelay > 0 ? wait(remainingDelay) : Promise.resolve(),
+          Promise.race([profileWarmupPromise, wait(PROFILE_PRELOAD_TIMEOUT_MS)]),
+        ]);
 
         router.replace("/profile");
       } catch (e) {
@@ -191,6 +202,7 @@ export default function LoginWebView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignSelf: "stretch",
     borderRadius: 24,
     overflow: "hidden",
     backgroundColor: COLORS.SURFACE,
