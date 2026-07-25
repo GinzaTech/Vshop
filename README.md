@@ -1,146 +1,362 @@
 # VShop
-<a href="https://github.com/VShopApp/mobile/releases/latest/download/VShop.apk">
-  <img alt="GitHub release (latest by date and asset)" src="https://img.shields.io/github/downloads/VShopApp/mobile/latest/VShop.apk?label=APK&color=%23fa4454&logo=android&logoColor=white">
+
+<a href="https://github.com/GinzaTech/Vshop/releases/latest">
+  <img alt="GitHub release" src="https://img.shields.io/github/v/release/GinzaTech/Vshop?color=%23fa4454&logo=github&logoColor=white">
+</a>
+<a href="https://github.com/GinzaTech/Vshop/releases/latest">
+  <img alt="APK Download" src="https://img.shields.io/github/downloads/GinzaTech/Vshop/latest/total?label=APK%20Downloads&color=%23fa4454&logo=android&logoColor=white">
+</a>
+<a href="https://hosted.weblate.org/engage/vshop/">
+  <img src="https://hosted.weblate.org/widget/vshop/mobile/multi-red.svg" alt="Translation status" />
 </a>
 
-# Installation
+A third-party companion app for **Valorant** — browse the daily store, check match history, view your profile loadout, track competitive rank, chat with friends, and more.
 
-This document provides instructions on how to set up your environment to work with a React Native application.
-
-## Install Environment
-
-To ensure your system is ready for React Native development, please verify the following dependencies and settings:
-
-### 1. **ADB (Android Debug Bridge)**
-
-Install the Android Debug Bridge (ADB) to interact with connected Android devices. [here](https://dl.google.com/android/repository/platform-tools-latest-windows.zip)
-
-B1: Add the platform-tools directory to your system PATH:
-- Open setting.
-- Click on System.
-- Click on About.
-- Click on Advanced system settings.
-- Click on Environment variables.
-- Under the "System variables" section, select or search Path variable, and click the Edit button.
-- Paste the path to the platform-tools directory, and click the OK button.
-- You should place platform-tools in drive C and copy the path C://platform-tools.
-
-B2: Open a command prompt and run the following command to verify the installation:
-If you run adb devices and it shows the device name like this, you have successfully connected your device to your computer.
-```bash
-adb devices
-List of devices attached
-45218ba device 
-```
-If it doesn't show the device name, you should install the ADB driver on your computer to properly recognize your phone. like this
-```bash
-adb devices
-List of devices attached
-```
-### 2. **JDK (Java Development Kit)**
-- **Install**:
-    - [Download JDK](https://www.oracle.com/java/technologies/javase-jdk17-downloads.html).
-    - Set the `JAVA_HOME` environment variable to the JDK installation path.
-    - Add the JDK `bin` directory to the system `PATH` environment variable.
-    - Verify the installation by running `java -version` in a terminal.
-
-### 3. **Android Studio**
-- **Install**:
-    - Install the latest version of [Android Studio](https://developer.android.com/studio).
-    - Configure the Android SDK during the installation process.
-    - Set the `ANDROID_HOME` environment variable to the Android SDK installation path.
-
-### 4. **Node.js**
-- **Install**:
-    - [Download Node.js](https://nodejs.org/dist/v22.12.0/node-v22.12.0-x64.msi).
-    - Verify the installation by running `node -v` and `npm -v` in a terminal.
-  
-### 5. **Expo orbit**
-- **Install**:
-    - [Download Expo orbit](https://github.com/expo/orbit/releases/download/expo-orbit-v2.0.1/Expo.Orbit-2.0.1-x64.Setup.exe).
-- **Create account**:
-    - Open the chrome and create an account. [here](https://expo.dev/signup)
-    - After creating an account, you can log in to the Expo with terminal.
-    - Run `expo login` in a terminal.
-    - Enter your email and password.
-    - You can check your login status by running `expo whoami` in a terminal.
-    - If you are logged in, you will see your username.
-    - If you are not logged in, you will see "Not logged in".
 ---
-## Start the project
-### 1. **Clone the repository**
-```bash
-git clone link
+
+## Table of Contents
+
+- [English](#english)
+  - [Features](#features)
+  - [Tech Stack](#tech-stack)
+  - [Architecture](#architecture)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Development](#development)
+  - [Build](#build)
+  - [Credits](#credits)
+- [Tiếng Việt](#tiếng-việt)
+  - [Tính năng](#tính-năng)
+  - [Công nghệ](#công-nghệ)
+  - [Kiến trúc](#kiến-trúc)
+  - [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
+  - [Cài đặt](#cài-đặt)
+  - [Phát triển](#phát-triển)
+  - [Build](#build-1)
+  - [Ghi công](#ghi-công)
+
+---
+
+# English
+
+## Features
+
+| Category | Features |
+|---|---|
+| **Store** | Daily shop (4 skins), Night Market, Bundles, Accessory shop, Item upgrades |
+| **Profile** | Loadout editor (skins, sprays, cards, titles), Collection browser, Competitive rank |
+| **Match History** | 30 matches cached, daily summaries (K/D, ADR, ACS), match details with scoreboard + economy chart + round timeline |
+| **Combat** | Live session info (pregame/live), party management, agent select, real-time match board |
+| **Social** | Friends list with presence, 1:1 DM via Riot XMPP, party chat |
+| **Reference** | Skin gallery, equipment browser, agent database, crosshair codes, leaderboard |
+| **Performance** | Offline-first MMKV cache, delta sync, gzip compression, adaptive TTL on 4G |
+| **UX** | Animated loading screen, skeleton shimmer, press-scale cards, sliding tab indicator, screen transitions |
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Framework** | React Native 0.74.5 + Expo SDK 51 |
+| **Routing** | Expo Router (file-based) |
+| **State** | Zustand 4.5.5 + persist middleware |
+| **Storage** | MMKV (sync, ultra-fast) + AsyncStorage fallback |
+| **Animations** | react-native-reanimated 3.10, moti 0.30 |
+| **UI** | react-native-paper, custom glassmorphism design system |
+| **i18n** | react-i18next (18 languages) |
+| **Network** | axios with gzip, keep-alive, request dedup |
+| **Images** | expo-image (memory-disk cache) |
+| **Auth** | Riot RSO OAuth2 (WebView) |
+| **Chat** | XMPP over TCP socket (react-native-tcp-socket) |
+| **Payments** | Stripe (native) |
+| **Analytics** | Plausible, Sentry (native) |
+| **OTA Updates** | expo-updates |
+
+## Architecture
+
 ```
-### 2. **Install dependencies**
+App Launch
+  |
+  +-> Loading Screen (animated)
+  |     |
+  |     +-> Wave 1: RiotClientConfig (feature flags, chat config)
+  |     +-> Wave 2 (parallel):
+  |           +-> buildAuthenticatedUser (entitlements, shop, balances, progress)
+  |           +-> fetchMatches (30 matches + hydrate details)
+  |           +-> fetchProfileWarmCache (loadout, owned items, rank)
+  |     |
+  |     +-> Diff vs cache -> update only changed data -> Enter app
+  |
+  +-> UI reads from Zustand stores (persisted via MMKV)
+  +-> Background: delta sync (only fetch NEW matches, TTL-gated)
+```
+
+**Data flow:** API -> diff -> cache (MMKV) -> UI reads from cache
+
+## Prerequisites
+
+### 1. ADB (Android Debug Bridge)
+- Download [platform-tools](https://dl.google.com/android/repository/platform-tools-latest-windows.zip)
+- Extract to `C:\platform-tools`
+- Add to system PATH:
+  - System Properties > Environment Variables > Path > Edit > New > `C:\platform-tools`
+- Verify: `adb devices` should list your connected device
+
+### 2. JDK 17
+- [Download JDK 17](https://www.oracle.com/java/technologies/javase-jdk17-downloads.html)
+- Set `JAVA_HOME` environment variable
+- Add JDK `bin` to PATH
+- Verify: `java -version`
+
+### 3. Android Studio
+- [Download Android Studio](https://developer.android.com/studio)
+- Install Android SDK (API 34+)
+- Set `ANDROID_HOME` environment variable
+
+### 4. Node.js
+- [Download Node.js v22+](https://nodejs.org/)
+- Verify: `node -v` and `npm -v`
+
+### 5. Expo CLI
 ```bash
-npm install
 npm install -g eas-cli
+expo login
 ```
-### 3. **Start the project**
+
+## Installation
+
 ```bash
-npm start
+# Clone the repository
+git clone https://github.com/GinzaTech/Vshop.git
+cd Vshop
+
+# Install dependencies
+npm install
 ```
 
-### Match UI development preview
+## Development
 
-Match History and Match Detail normally use the signed-in Riot account. A complete mock data set is also available in development builds so the layout can be checked without changing API responses:
+```bash
+# Start Metro bundler
+npm start
+
+# Run on Android device/emulator
+npm run android
+
+# Clear Metro cache (if needed)
+npx expo start --clear
+```
+
+### Demo Mode (Match UI)
+
+Match History and Match Details can be previewed with mock data in dev builds:
 
 ```text
 /history?demo=1
 /match_details/mock-match-001?demo=1
 ```
 
-The mock includes 25 rounds for horizontal timeline and economy-chart testing. Production builds ignore the `demo` query parameter.
+### Project Structure
 
-2. **Create Project in Expo**
-- Go to the [Expo website](https://expo.dev/) and create a new project.
-- Click on the "Project" button.
-- Click on the "Create new project" button.
-- Enter the project name and click on the "Create project" button.
-- Run command
-```bash
-npm install --global eas-cli
 ```
-and 
-```bash
-eas init --id your project id
+app/                    # Expo Router screens
+  (authenticated)/      # Tab navigator + all authenticated screens
+  _layout.tsx           # Root layout (providers, bootstrap)
+components/             # Reusable UI components
+  ui/                   # Design system primitives (GlassCard, ValorantButton, etc.)
+  matches/              # Match-related components
+  match-detail/         # Match detail screen components
+hooks/                  # Zustand stores (user, match, profile, wishlist, combat)
+utils/                  # Business logic, API layer, caching, sync
+constants/              # Design tokens, hardcoded data
+types/                  # TypeScript type definitions
+assets/                 # Images, i18n translations
 ```
-3. **Build Internal App**
-- Run command
-- If you see any question y/n you can press y
-- And wait for the build to finish
-- You need to connect your phone to your computer, enable USB debugging, connect both devices to the same Wi-Fi network
-- Install Expo Go on your phone.
+
+## Build
+
+### Development Build
 ```bash
 eas build --profile development --platform android
 ```
-The build process for the development version can take some time, so please be patient. Once the build is complete, you can install it on your device and make any changes you desire.
 
-4. **Install App**
-- Click Dashboard on the Expo website, you can see Projects and click on the project you want to install.
-- Click Android internal distribution build
-- Click on the "Install" button.
-- Scan your QR code or use url to install the app on your phone.
-- You can also download the APK file and install it on your phone.
-
-5. **Android public release build**
-- Run command
+### Production Build
 ```bash
 eas build --platform android
 ```
 
-VShop allows you to check your game Store, Night Market, Profile and more. It runs entirely on your device and securely transmits your credentials to the official Riot Games servers (more information in our <a href="https://docs.vshop.one/security">docs</a>).
-
-## Translations
-Translations are available on [Weblate](https://hosted.weblate.org/projects/vshop/mobile/).<br>
-<a href="https://hosted.weblate.org/engage/vshop/">
-<img src="https://hosted.weblate.org/widget/vshop/mobile/multi-red.svg" alt="Translation status" />
-</a>
+Install via QR code or APK from the Expo dashboard.
 
 ## Credits
-This app would not have been possible without the following projects:
-- [Unofficial API documentation](https://github.com/techchrism/valorant-api-docs)
-- [In-Game assets](https://valorant-api.com) 
 
-I would also like to thank all of our translations and other projects members, which are listed on the [credits page](https://vshop.one/credits) 💖
+- **Author**: [vascYT](https://github.com/GinzaTech)
+- [Unofficial Valorant API documentation](https://github.com/techchrism/valorant-api-docs)
+- [In-game assets](https://valorant-api.com)
+- All [translators](https://hosted.weblate.org/projects/vshop/mobile/) and contributors
+
+---
+
+# Tiếng Việt
+
+## Tính năng
+
+| Danh mục | Tính năng |
+|---|---|
+| **Cửa hàng** | Shop hàng ngày (4 skin), Night Market, Bundle, Shop phụ kiện, Nâng cấp skin |
+| **Profile** | Chỉnh loadout (skin, spray, card, title), Bộ sưu tập, Rank competitive |
+| **Lịch sử đấu** | Cache 30 trận, tóm tắt theo ngày (K/D, ADR, ACS), chi tiết trận (bảng điểm, biểu đồ kinh tế, timeline) |
+| **Combat** | Thông tin phiên realtime (pregame/live), quản lý party, chọn agent, bảng trận đấu trực tiếp |
+| **Xã hội** | Danh sách bạn bè, nhắn tin 1-1 qua XMPP, chat party |
+| **Tham khảo** | Thư viện skin, trình duyệt trang bị, database agent, mã crosshair, bảng xếp hạng |
+| **Hiệu năng** | Cache MMKV offline-first, delta sync, nén gzip, TTL thích ứng trên 4G |
+| **Trải nghiệm** | Màn hình loading animation, skeleton shimmer, hiệu ứng bấm card, thanh tab trượt, chuyển màn hình mượt |
+
+## Công nghệ
+
+| Lớp | Công nghệ |
+|---|---|
+| **Framework** | React Native 0.74.5 + Expo SDK 51 |
+| **Routing** | Expo Router (file-based) |
+| **State** | Zustand 4.5.5 + persist middleware |
+| **Storage** | MMKV (đồng bộ, siêu nhanh) + AsyncStorage fallback |
+| **Animation** | react-native-reanimated 3.10, moti 0.30 |
+| **UI** | react-native-paper, design system glassmorphism tùy chỉnh |
+| **Đa ngôn ngữ** | react-i18next (18 ngôn ngữ) |
+| **Mạng** | axios với gzip, keep-alive, chống request trùng |
+| **Ảnh** | expo-image (cache memory-disk) |
+| **Xác thực** | Riot RSO OAuth2 (WebView) |
+| **Chat** | XMPP qua TCP socket (react-native-tcp-socket) |
+| **Thanh toán** | Stripe (native) |
+| **Phân tích** | Plausible, Sentry (native) |
+| **OTA** | expo-updates |
+
+## Kiến trúc
+
+```
+Mở app
+  |
+  +-> Màn hình Loading (animation)
+  |     |
+  |     +-> Wave 1: RiotClientConfig (feature flags, chat config)
+  |     +-> Wave 2 (song song):
+  |           +-> buildAuthenticatedUser (entitlements, shop, balances, progress)
+  |           +-> fetchMatches (30 trận + hydrate chi tiết)
+  |           +-> fetchProfileWarmCache (loadout, item sở hữu, rank)
+  |     |
+  |     +-> So sánh (diff) với cache -> chỉ update dữ liệu thay đổi -> Vào app
+  |
+  +-> UI đọc từ Zustand stores (lưu bằng MMKV)
+  +-> Nền: delta sync (chỉ lấy trận mới, theo TTL)
+```
+
+**Luồng dữ liệu:** API -> diff -> cache (MMKV) -> UI đọc từ cache
+
+## Yêu cầu hệ thống
+
+### 1. ADB (Android Debug Bridge)
+- Tải [platform-tools](https://dl.google.com/android/repository/platform-tools-latest-windows.zip)
+- Giải nén vào `C:\platform-tools`
+- Thêm vào PATH:
+  - System Properties > Environment Variables > Path > Edit > New > `C:\platform-tools`
+- Kiểm tra: `adb devices` phải hiện thiết bị đã kết nối
+
+### 2. JDK 17
+- [Tải JDK 17](https://www.oracle.com/java/technologies/javase-jdk17-downloads.html)
+- Đặt biến `JAVA_HOME`
+- Thêm JDK `bin` vào PATH
+- Kiểm tra: `java -version`
+
+### 3. Android Studio
+- [Tải Android Studio](https://developer.android.com/studio)
+- Cài Android SDK (API 34+)
+- Đặt biến `ANDROID_HOME`
+
+### 4. Node.js
+- [Tải Node.js v22+](https://nodejs.org/)
+- Kiểm tra: `node -v` và `npm -v`
+
+### 5. Expo CLI
+```bash
+npm install -g eas-cli
+expo login
+```
+
+## Cài đặt
+
+```bash
+# Clone dự án
+git clone https://github.com/GinzaTech/Vshop.git
+cd Vshop
+
+# Cài dependencies
+npm install
+```
+
+## Phát triển
+
+```bash
+# Khởi động Metro bundler
+npm start
+
+# Chạy trên thiết bị/máy ảo Android
+npm run android
+
+# Xóa cache Metro (khi cần)
+npx expo start --clear
+```
+
+### Chế độ Demo (UI Lịch sử đấu)
+
+Có thể xem trước Lịch sử đấu và Chi tiết trận bằng mock data trong bản dev:
+
+```text
+/history?demo=1
+/match_details/mock-match-001?demo=1
+```
+
+### Cấu trúc dự án
+
+```
+app/                    # Màn hình Expo Router
+  (authenticated)/      # Tab navigator + tất cả màn hình đã đăng nhập
+  _layout.tsx           # Layout gốc (providers, bootstrap)
+components/             # Component UI tái sử dụng
+  ui/                   # Primitives design system (GlassCard, ValorantButton, ...)
+  matches/              # Component liên quan trận đấu
+  match-detail/         # Component màn hình chi tiết trận
+hooks/                  # Zustand stores (user, match, profile, wishlist, combat)
+utils/                  # Logic, API layer, cache, sync
+constants/              # Design tokens, dữ liệu cố định
+types/                  # Định nghĩa kiểu TypeScript
+assets/                 # Ảnh, bản dịch i18n
+```
+
+## Build
+
+### Build Development
+```bash
+eas build --profile development --platform android
+```
+
+### Build Production
+```bash
+eas build --platform android
+```
+
+Cài qua QR code hoặc file APK từ dashboard Expo.
+
+## Ghi công
+
+- **Tác giả**: [vascYT](https://github.com/GinzaTech)
+- [Tài liệu API Valorant không chính thức](https://github.com/techchrism/valorant-api-docs)
+- [Asset trong game](https://valorant-api.com)
+- Tất cả [người dịch](https://hosted.weblate.org/projects/vshop/mobile/) và người đóng góp
+
+---
+
+## Translations
+
+Translations are available on [Weblate](https://hosted.weblate.org/projects/vshop/mobile/).
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
