@@ -1,0 +1,108 @@
+﻿{
+  "expo": {
+    // T├¬n hiß╗ân thß╗ï cß╗ºa ß╗⌐ng dß╗Ñng
+    "name": "VShop",
+    // Slug (─æß╗ïnh danh) cho Expo
+    "slug": "vshop",
+    // Phi├¬n bß║ún ß╗⌐ng dß╗Ñng (theo semantic versioning)
+    "version": "4.0.3",
+    // Ch├¡nh s├ích runtime version: ─æß╗ông bß╗Ö vß╗¢i app version
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    // H╞░ß╗¢ng m├án h├¼nh: portrait (dß╗ìc)
+    "orientation": "portrait",
+    // ─É╞░ß╗¥ng dß║½n icon ß╗⌐ng dß╗Ñng
+    "icon": "./assets/images/icon.png",
+    // URL scheme ─æß╗â mß╗ƒ app tß╗½ tr├¼nh duyß╗çt (vd: vshop://)
+    "scheme": "vshop",
+    // Giao diß╗çn ng╞░ß╗¥i d├╣ng: tß╗▒ ─æß╗Öng (light/dark mode theo hß╗ç thß╗æng)
+    "userInterfaceStyle": "automatic",
+    // Cß║Ñu h├¼nh cß║¡p nhß║¡t OTA (over-the-air) qua Expo Updates
+    "updates": {
+      // URL dß╗▒ ├ín tr├¬n EAS Update
+      "url": "https://u.expo.dev/90bdf4e2-2472-4cd1-a168-4a5ee4e62218",
+      // Kiß╗âm tra update khi c├│ lß╗ùi (ON_ERROR_RECOVERY)
+      "checkAutomatically": "ON_ERROR_RECOVERY"
+    },
+    // Cß║Ñu h├¼nh m├án h├¼nh splash (khß╗ƒi ─æß╗Öng)
+    "splash": {
+      // H├¼nh ß║únh splash
+      "image": "./assets/images/splash.png",
+      // Chß║┐ ─æß╗Ö resize: contain (giß╗» tß╗ë lß╗ç)
+      "resizeMode": "contain",
+      // M├áu nß╗ün splash
+      "backgroundColor": "#2f343b"
+    },
+    // Cß║Ñu h├¼nh ri├¬ng cho iOS
+    "ios": {
+      "bundleIdentifier": "dev.vasc.vshop",  // Bundle ID tr├¬n App Store
+      "buildNumber": "29",                    // Sß╗æ bß║ún build iOS
+      "supportsTablet": true                  // Hß╗ù trß╗ú m├íy t├¡nh bß║úng
+    },
+    // Cß║Ñu h├¼nh ri├¬ng cho Android
+    "android": {
+      // Chß║┐ ─æß╗Ö b├án ph├¡m: pan (di chuyß╗ân to├án bß╗Ö layout khi b├án ph├¡m hiß╗çn)
+      "softwareKeyboardLayoutMode": "pan",
+      // Icon th├¡ch ß╗⌐ng (adaptive icon) cho Android 8+
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#2f343b"
+      },
+      // C├íc quyß╗ün Android y├¬u cß║ºu
+      "permissions": [
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+      ],
+      // Package name tr├¬n Google Play
+      "package": "com.android.vshop",
+      // Version code Android (sß╗æ nguy├¬n, t─âng dß║ºn mß╗ùi bß║ún build)
+      "versionCode": 75
+    },
+    // Cß║Ñu h├¼nh cho nß╗ün tß║úng web
+    "web": {
+      // Bundler sß╗¡ dß╗Ñng: Metro (bundler mß║╖c ─æß╗ïnh cß╗ºa React Native)
+      "bundler": "metro",
+      // ─Éß╗ïnh dß║íng ─æß║ºu ra: static (trang t─⌐nh)
+      "output": "static"
+    },
+    // Danh s├ích plugin Expo sß╗¡ dß╗Ñng
+    "plugins": [
+      "expo-router",                      // ─Éiß╗üu h╞░ß╗¢ng dß╗▒a tr├¬n file system
+      "expo-localization",                // ─Éa ng├┤n ngß╗» v├á ─æß╗ïnh dß║íng ─æß╗ïa ph╞░╞íng
+      "expo-updates",                     // Cß║¡p nhß║¡t OTA
+      // Plugin dev launcher: chß║┐ ─æß╗Ö launch mß║╖c ─æß╗ïnh l├á "most-recent"
+      [
+        "expo-dev-launcher",
+        {
+          "launchMode": "most-recent"
+        }
+      ],
+      // Plugin th├┤ng b├ío: icon v├á m├áu sß║»c
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#7b838f"
+        }
+      ],
+      "react-native-background-fetch"     // T├íc vß╗Ñ nß╗ün ─æß╗ïnh kß╗│
+    ],
+    // C├íc thß╗¡ nghiß╗çm (experiments) ─æang bß║¡t
+    "experiments": {
+      "typedRoutes": true  // Hß╗ù trß╗ú typed routes cho expo-router
+    },
+    // Cß║Ñu h├¼nh mß╗ƒ rß╗Öng (extra)
+    "extra": {
+      // Cß║Ñu h├¼nh EAS (Expo Application Services)
+      "eas": {
+        "projectId": "90bdf4e2-2472-4cd1-a168-4a5ee4e62218"
+      },
+      // Cß║Ñu h├¼nh router: tß║»t origin (kh├┤ng d├╣ng origin trong link)
+      "router": {
+        "origin": false
+      }
+    },
+    // Chß╗º sß╗ƒ hß╗»u dß╗▒ ├ín tr├¬n Expo
+    "owner": "hyeon004"
+  }
+}
