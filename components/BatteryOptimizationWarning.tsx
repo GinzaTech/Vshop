@@ -1,3 +1,7 @@
+// 📦 BatteryOptimizationWarning.tsx – Cảnh báo tối ưu pin Android
+// Hiển thị banner khi thông báo wishlist được bật nhưng thiết bị
+// đang có chế độ tối ưu pin, có thể ảnh hưởng đến background fetch
+
 import { Banner } from "react-native-paper";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useState } from "react";
@@ -9,14 +13,22 @@ import { AppState, Platform } from "react-native";
 import * as Application from "expo-application";
 import { COLORS } from "~/constants/DesignSystem";
 
+/**
+ * BatteryOptimizationWarning – Component hiển thị cảnh báo tối ưu pin
+ * Chỉ hoạt động trên Android, kiểm tra trạng thái tối ưu pin khi app focus,
+ * cho phép người dùng yêu cầu tắt tối ưu pin cho ứng dụng
+ */
 export default function BatteryOptimizationWarning() {
+  // State: có đang bị tối ưu pin không?
   const [batteryOptimizationEnabled, setBatteryOptimizationEnabled] =
     useState(false);
   const { t } = useTranslation();
+  // Chỉ hiển thị khi người dùng đã bật thông báo wishlist
   const notificationEnabled = useWishlistStore(
     (state) => state.notificationEnabled
   );
 
+  // Effect: Kiểm tra tối ưu pin khi mount và mỗi khi app focus lại
   useEffect(() => {
     if (Platform.OS !== "android") return;
 
@@ -31,11 +43,18 @@ export default function BatteryOptimizationWarning() {
     };
   }, []);
 
+  /**
+   * checkBatteryOptimizations – Kiểm tra trạng thái tối ưu pin hiện tại
+   */
   const checkBatteryOptimizations = async () => {
     const enabled = await isBatteryOptimizationEnabledAsync();
     setBatteryOptimizationEnabled(enabled);
   };
 
+  /**
+   * requestIgnoreBatteryOptimizations – Mở settings Android để người dùng
+   * tắt tối ưu pin cho app này
+   */
   const requestIgnoreBatteryOptimizations = async () => {
     await startActivityAsync(
       ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
@@ -45,6 +64,7 @@ export default function BatteryOptimizationWarning() {
   };
 
   return (
+    // Banner chỉ visible khi notificationEnabled && batteryOptimizationEnabled
     <Banner
       visible={notificationEnabled && batteryOptimizationEnabled}
       style={{

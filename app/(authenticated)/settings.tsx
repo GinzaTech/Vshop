@@ -1,3 +1,7 @@
+// 📦 settings.tsx – Màn hình Cài đặt (Settings)
+// Cho phép người dùng quản lý tài khoản, ngôn ngữ, thông báo, các shortcut tính năng,
+// kiểm tra cập nhật, và các liên kết hữu ích
+
 import React from "react";
 import {
   Linking,
@@ -34,21 +38,40 @@ import {
   checkForAppUpdate,
 } from "~/utils/app-update";
 
+/**
+ * Settings – Component chính hiển thị trang cài đặt
+ * Gồm: shortcut grid, preferences (ngôn ngữ, thông báo, screenshot mode),
+ * links (Discord, credits, privacy), account (copy ID, logout), và update popup
+ */
 function Settings() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { user, resetUser } = useUserStore();
-  const { screenshotModeEnabled, toggleScreenshotMode } = useFeatureStore();
+  // User store: thông tin user + hàm reset
+  const user = useUserStore((state) => state.user);
+  const resetUser = useUserStore((state) => state.resetUser);
+  // Feature store: screenshot mode
+  const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
+  const toggleScreenshotMode = useFeatureStore((state) => state.toggleScreenshotMode);
+  // Wishlist store: trạng thái thông báo
   const notificationEnabled = useWishlistStore((state) => state.notificationEnabled);
   const setNotificationEnabled = useWishlistStore(
     (state) => state.setNotificationEnabled
   );
+
+  // State: popup kiểm tra cập nhật
   const [updatePopupVisible, setUpdatePopupVisible] = React.useState(false);
+  // State: đang kiểm tra cập nhật
   const [checkingUpdate, setCheckingUpdate] = React.useState(false);
+  // State: đang áp dụng cập nhật OTA
   const [applyingUpdate, setApplyingUpdate] = React.useState(false);
+  // State: kết quả kiểm tra cập nhật
   const [updateResult, setUpdateResult] =
     React.useState<AppUpdateCheckResult | null>(null);
 
+  /**
+   * handleLogout – Xử lý đăng xuất: xóa cookies, reset user, dừng background fetch,
+   * tắt thông báo, chuyển về màn hình setup
+   */
   const handleLogout = async () => {
     await clearAllCookies(true);
     await AsyncStorage.removeItem("region");
@@ -58,6 +81,11 @@ function Settings() {
     router.replace("/setup");
   };
 
+  /**
+   * toggleNotificationState – Bật/tắt thông báo wishlist
+   * Khi bật: yêu cầu quyền thông báo, khởi tạo background fetch
+   * Khi tắt: dừng background fetch
+   */
   const toggleNotificationState = async () => {
     if (!notificationEnabled) {
       const permission = await Notifications.requestPermissionsAsync();
@@ -79,6 +107,9 @@ function Settings() {
     }
   };
 
+  /**
+   * handleCheckForUpdates – Mở popup kiểm tra cập nhật
+   */
   const handleCheckForUpdates = async () => {
     setUpdatePopupVisible(true);
     setCheckingUpdate(true);
@@ -91,6 +122,10 @@ function Settings() {
     }
   };
 
+  /**
+   * handleUpdatePrimaryAction – Xử lý hành động chính trong popup cập nhật
+   * Nếu có OTA: áp dụng OTA update; nếu không: mở link release
+   */
   const handleUpdatePrimaryAction = async () => {
     if (!updateResult) return;
 
@@ -118,6 +153,7 @@ function Settings() {
     setUpdatePopupVisible(false);
   };
 
+  // Danh sách các shortcut (lối tắt) đến các tính năng chính
   const shortcutItems: {
     key: string;
     label: string | undefined;
@@ -142,6 +178,16 @@ function Settings() {
     },
   ];
 
+  /**
+   * renderRow – Render một hàng trong card cài đặt
+   * @param icon – Tên icon
+   * @param title – Tiêu đề
+   * @param description – Mô tả (tùy chọn)
+   * @param onPress – Hàm xử lý khi bấm
+   * @param right – Component bên phải (tùy chọn, mặc định là chevron)
+   * @param danger – Nếu true thì icon nền đỏ
+   * @param compact – Nếu true thì thu nhỏ kích thước
+   */
   const renderRow = ({
     icon,
     title,
@@ -201,12 +247,15 @@ function Settings() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {/* Hero: tiêu đề */}
         <View style={styles.hero}>
           <Text style={styles.title}>{t("settings_page.title")}</Text>
         </View>
 
+        {/* Cảnh báo tối ưu pin Android */}
         <BatteryOptimizationWarning />
 
+        {/* Grid các shortcut tính năng */}
         <View style={styles.shortcutGrid}>
           {shortcutItems.map((item) => (
             <TouchableOpacity
@@ -232,6 +281,7 @@ function Settings() {
           ))}
         </View>
 
+        {/* Section Preferences: ngôn ngữ, thông báo, screenshot mode */}
         <Text style={styles.sectionTitle}>{t("settings_page.preferences")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
@@ -270,6 +320,7 @@ function Settings() {
             : null}
         </GlassCard>
 
+        {/* Section Links: Discord, credits, privacy, xóa tài khoản */}
         <Text style={styles.sectionTitle}>{t("settings_page.links")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
@@ -297,6 +348,7 @@ function Settings() {
           })}
         </GlassCard>
 
+        {/* Section Account: copy Riot ID + logout */}
         <Text style={styles.sectionTitle}>{t("settings_page.account")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
@@ -313,9 +365,11 @@ function Settings() {
           })}
         </GlassCard>
 
+        {/* Disclaimer */}
         <Text style={styles.disclaimer}>{t("settings_page.disclaimer")}</Text>
       </ScrollView>
 
+      {/* Popup kiểm tra cập nhật */}
       <UpdatePopup
         visible={updatePopupVisible}
         checking={checkingUpdate}
@@ -331,36 +385,46 @@ function Settings() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// StyleSheet – Định nghĩa styles cho màn hình Settings
+// ═══════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
+  // screen – Container chính
   screen: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
+  // content – Padding cho ScrollView
   content: {
     padding: 20,
     paddingBottom: 140,
   },
+  // hero – Container tiêu đề
   hero: {
     marginTop: 6,
     marginBottom: 18,
   },
+  // title – Tiêu đề chính
   title: {
     fontSize: 28,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
+  // subtitle – Phụ đề (không dùng nhưng định nghĩa)
   subtitle: {
     marginTop: 6,
     fontSize: 15,
     lineHeight: 22,
     color: COLORS.TEXT_SECONDARY,
   },
+  // shortcutGrid – Grid 2 cột chứa các shortcut
   shortcutGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     marginBottom: 24,
   },
+  // shortcutCard – Một card shortcut
   shortcutCard: {
     width: "48%",
     marginBottom: 12,
@@ -370,6 +434,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.BORDER,
   },
+  // shortcutIcon – Icon trong card shortcut
   shortcutIcon: {
     width: 42,
     height: 42,
@@ -379,20 +444,24 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.SURFACE_MUTED,
     marginBottom: 18,
   },
+  // shortcutLabel – Label của shortcut
   shortcutLabel: {
     fontSize: 16,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
+  // sectionTitle – Tiêu đề section
   sectionTitle: {
     marginBottom: 12,
     fontSize: 18,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
+  // card – Margin bottom cho GlassCard
   card: {
     marginBottom: 22,
   },
+  // row – Một hàng trong card settings
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -400,18 +469,22 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
   },
+  // rowCompact – Hàng với padding nhỏ hơn
   rowCompact: {
     paddingVertical: 4,
   },
+  // rowLeft – Bên trái của row (icon + text)
   rowLeft: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
+  // rowLeftCompact – Row left compact
   rowLeftCompact: {
     gap: 10,
   },
+  // rowIcon – Icon trong row
   rowIcon: {
     width: 42,
     height: 42,
@@ -420,29 +493,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: COLORS.SURFACE_MUTED,
   },
+  // rowIconCompact – Icon compact
   rowIconCompact: {
     width: 36,
     height: 36,
   },
+  // rowIconDanger – Icon màu đỏ danger
   rowIconDanger: {
     backgroundColor: COLORS.ACCENT,
   },
+  // rowTitle – Tiêu đề của row
   rowTitle: {
     fontSize: 15,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
+  // rowTitleCompact – Title compact
   rowTitleCompact: {
     fontSize: 14,
   },
+  // rowDescription – Mô tả trong row
   rowDescription: {
     marginTop: 2,
     color: COLORS.TEXT_SECONDARY,
     fontSize: 13,
   },
+  // rowDescriptionCompact – Description compact
   rowDescriptionCompact: {
     fontSize: 12,
   },
+  // disclaimer – Text disclaimer cuối trang
   disclaimer: {
     textAlign: "center",
     fontSize: 12,

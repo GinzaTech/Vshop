@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-07-04T11:00:23.724Z",
+  "source": "env:C:\\Users\\kona\\Desktop\\Vshop\\test\\.env",
+  "puuid": "991adf11...fd26",
+  "shard": "ap",
+  "clientVersion": "release-13.00-shipping-28-4928912",
+  "results": [
+    {
+      "queryName": "MMR_FetchPlayer",
+      "status": 404,
+      "statusText": "Not Found",
+      "validation": [],
+      "summary": null
+    },
+    {
+      "queryName": "MMR_FetchCompetitiveUpdates",
+      "status": 200,
+      "statusText": "OK",
+      "validation": [],
+      "summary": {
+        "subject": "991adf11...fd26",
+        "matches": 10,
+        "currentTier": 16,
+        "currentName": "Platinum 2",
+        "peakTier": 16,
+        "peakName": "Platinum 2",
+        "rrDelta": 92,
+        "latest": {
+          "matchId": "da349a94-ecc9-4322-907a-cd0cdd0082c7",
+          "seasonId": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+          "tierBefore": 16,
+          "tierAfter": 16,
+          "rrBefore": 43,
+          "rrAfter": 63,
+          "rrEarned": 20,
+          "performanceBonus": 0,
+          "afkPenalty": 0,
+          "matchStartTime": "2026-07-04T10:06:56.228Z"
+        }
+      }
+    },
+    {
+      "queryName": "MMR_FetchCompetitiveUpdates",
+      "status": 200,
+      "statusText": "OK",
+      "validation": [],
+      "summary": {
+        "subject": "991adf11...fd26",
+        "matches": 20,
+        "currentTier": 16,
+        "currentName": "Platinum 2",
+        "peakTier": 16,
+        "peakName": "Platinum 2",
+        "rrDelta": 78,
+        "latest": {
+          "matchId": "da349a94-ecc9-4322-907a-cd0cdd0082c7",
+          "seasonId": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+          "tierBefore": 16,
+          "tierAfter": 16,
+          "rrBefore": 43,
+          "rrAfter": 63,
+          "rrEarned": 20,
+          "performanceBonus": 0,
+          "afkPenalty": 0,
+          "matchStartTime": "2026-07-04T10:06:56.228Z"
+        }
+      }
+    },
+    {
+      "queryName": "MMR_FetchCompetitiveUpdates",
+      "status": 200,
+      "statusText": "OK",
+      "validation": [],
+      "summary": {
+        "paging": {
+          "pageSize": 20,
+          "maxMatches": 40,
+          "queue": "competitive",
+          "statuses": [
+            {
+              "startIndex": 0,
+              "endIndex": 20,
+              "status": 200,
+              "matches": 20
+            },
+            {
+              "startIndex": 20,
+              "endIndex": 40,
+              "status": 200,
+              "matches": 20
+            }
+          ]
+        },
+        "subject": "991adf11...fd26",
+        "matches": 40,
+        "currentTier": 16,
+        "currentName": "Platinum 2",
+        "peakTier": 16,
+        "peakName": "Platinum 2",
+        "rrDelta": 0,
+        "latest": {
+          "matchId": "da349a94-ecc9-4322-907a-cd0cdd0082c7",
+          "seasonId": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+          "tierBefore": 16,
+          "tierAfter": 16,
+          "rrBefore": 43,
+          "rrAfter": 63,
+          "rrEarned": 20,
+          "performanceBonus": 0,
+          "afkPenalty": 0,
+          "matchStartTime": "2026-07-04T10:06:56.228Z"
+        }
+      }
+    }
+  ]
+}

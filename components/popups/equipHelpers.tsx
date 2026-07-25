@@ -1,5 +1,10 @@
 import { getAssets } from "~/utils/valorant-assets";
 
+// ─── EQUIPMENT_SECTIONS ────────────────────────────────────────────────────────
+// Danh sách các danh mục trang bị (equipment) có sẵn.
+// Mỗi mục gồm:
+//   - key: định danh section (khớp với tên collection trong assets)
+//   - labelKey: key i18n để lấy tên hiển thị
 export const EQUIPMENT_SECTIONS = [
   { key: "buddies", labelKey: "equip_page.sections.buddies" },
   { key: "sprays", labelKey: "equip_page.sections.sprays" },
@@ -7,6 +12,12 @@ export const EQUIPMENT_SECTIONS = [
   { key: "titles", labelKey: "equip_page.sections.titles" },
 ];
 
+// ─── sanitizeQuery ─────────────────────────────────────────────────────────────
+// Vệ sinh chuỗi tìm kiếm: trim, loại bỏ ký tự đặc biệt, chuyển về lower case.
+//
+// Tham số:
+//   - value: string | undefined | null – chuỗi cần vệ sinh
+// Return: string đã được làm sạch, hoặc "" nếu null/undefined
 export const sanitizeQuery = (value: string | undefined | null) => {
   if (!value) return "";
 
@@ -16,6 +27,12 @@ export const sanitizeQuery = (value: string | undefined | null) => {
     .toLowerCase();
 };
 
+// ─── getCollectionBySection ────────────────────────────────────────────────────
+// Lấy danh sách item của một section từ Valorant assets.
+//
+// Tham số:
+//   - section: string – tên section ("sprays", "cards", "titles", "buddies")
+// Return: mảng các item tương ứng (mặc định buddies nếu không match)
 export const getCollectionBySection = (section: string) => {
   const assets = getAssets();
 
@@ -32,6 +49,14 @@ export const getCollectionBySection = (section: string) => {
   }
 };
 
+// ─── filterEquipItems ──────────────────────────────────────────────────────────
+// Lọc danh sách item dựa trên query tìm kiếm.
+// Tìm kiếm trên cả displayName (primary) và titleText/category/level name (secondary).
+//
+// Tham số:
+//   - items: any[] – mảng item cần lọc
+//   - query: string – từ khoá tìm kiếm
+// Return: mảng item đã lọc (hoặc items gốc nếu query rỗng)
 export const filterEquipItems = (items: any[], query: string) => {
   const normalized = sanitizeQuery(query);
   if (!normalized) return items;
@@ -51,6 +76,12 @@ export const filterEquipItems = (items: any[], query: string) => {
   });
 };
 
+// ─── sortEquipItems ────────────────────────────────────────────────────────────
+// Sắp xếp danh sách item theo thứ tự alphabet (dựa trên displayName hoặc titleText).
+//
+// Tham số:
+//   - items: any[] – mảng item cần sắp xếp
+// Return: mảng mới đã được sort (không mutate mảng gốc)
 export const sortEquipItems = (items: any[]) => {
   return [...items].sort((a, b) => {
     const valueA = (a.displayName ?? a.titleText ?? "").toLowerCase();
@@ -60,6 +91,19 @@ export const sortEquipItems = (items: any[]) => {
   });
 };
 
+// ─── mapToDisplayItem ──────────────────────────────────────────────────────────
+// Chuyển đổi raw item thành object hiển thị chuẩn hoá cho equip page.
+//
+// Tham số:
+//   - item: any – item gốc từ assets
+//   - section: string – danh mục của item
+// Return: object { id, displayName, subtitle, item, section }
+//   - id: UUID của item (hoặc fallback)
+//   - subtitle: text phụ tuỳ theo section
+//     - "titles": titleText
+//     - "buddies": level[0].displayName
+//     - "sprays": category hoặc level[0].displayName
+//     - "cards": "" (rỗng)
 export const mapToDisplayItem = (item: any, section: string) => {
   const id = item.uuid ?? item.levels?.[0]?.uuid ?? `${section}-${item.displayName}`;
   let subtitle = "";
@@ -89,9 +133,27 @@ export const mapToDisplayItem = (item: any, section: string) => {
   };
 };
 
+// ─── buildEquipDisplayList ─────────────────────────────────────────────────────
+// Helper: map một mảng item raw thành display list.
+//
+// Tham số:
+//   - items: any[] – mảng item gốc
+//   - section: string – danh mục
+// Return: mảng display item đã qua mapToDisplayItem
 export const buildEquipDisplayList = (items: any[], section: string) =>
   items.map((item) => mapToDisplayItem(item, section));
 
+// ─── getEquipmentImage ─────────────────────────────────────────────────────────
+// Lấy URI ảnh hiển thị cho một equipment item.
+// Thứ tự ưu tiên URI khác nhau tuỳ theo section.
+//
+// Tham số:
+//   - displayItem: any – object display (có trường item, section)
+// Return: string | null – URI ảnh hoặc null nếu không có
+//   - cards: displayIcon > smallArt > largeArt
+//   - sprays: displayIcon > fullTransparentIcon > fullIcon
+//   - titles: displayIcon
+//   - buddies: displayIcon > level[0].displayIcon
 export const getEquipmentImage = (displayItem: any) => {
   const { item, section } = displayItem;
 
@@ -99,9 +161,9 @@ export const getEquipmentImage = (displayItem: any) => {
 
   switch (section) {
     case "cards":
-      return item.largeArt ?? item.displayIcon ?? item.smallArt ?? null;
+      return item.displayIcon ?? item.smallArt ?? item.largeArt ?? null;
     case "sprays":
-      return item.fullTransparentIcon ?? item.fullIcon ?? item.displayIcon ?? null;
+      return item.displayIcon ?? item.fullTransparentIcon ?? item.fullIcon ?? null;
     case "titles":
       return item.displayIcon ?? null;
     case "buddies":

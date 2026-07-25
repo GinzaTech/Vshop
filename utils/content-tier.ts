@@ -1,14 +1,16 @@
+// Type định nghĩa bảng màu cho một tier (cấp độ) nội dung
 export type ContentTierVisual = {
-  label: string;
-  accent: string;
-  text: string;
-  border: string;
-  cardBackground: string;
-  visualBackground: string;
-  badgeBackground: string;
-  overlayBackground: string;
+  label: string;           // Tên hiển thị (VD: "Standard", "Premium")
+  accent: string;          // Màu nhấn chính
+  text: string;            // Màu chữ
+  border: string;          // Màu viền
+  cardBackground: string;  // Màu nền card
+  visualBackground: string;// Màu nền visual/image
+  badgeBackground: string; // Màu nền badge
+  overlayBackground: string;// Màu overlay
 };
 
+// Bảng màu mặc định (Standard) - dùng khi không tìm thấy tier tương ứng
 export const DEFAULT_CONTENT_TIER: ContentTierVisual = {
   label: "Standard",
   accent: "#7b838f",
@@ -20,7 +22,9 @@ export const DEFAULT_CONTENT_TIER: ContentTierVisual = {
   overlayBackground: "rgba(47, 52, 59, 0.46)",
 };
 
+// Map tất cả các content tier UUID với bảng màu tương ứng
 export const CONTENT_TIER_VISUALS: Record<string, ContentTierVisual> = {
+  // Select tier
   "12683d76-48d7-84a3-4e09-6985794f0445": {
     label: "Select",
     accent: "#5A9FE2",
@@ -31,6 +35,7 @@ export const CONTENT_TIER_VISUALS: Record<string, ContentTierVisual> = {
     badgeBackground: "rgba(90, 159, 226, 0.16)",
     overlayBackground: "rgba(33, 75, 119, 0.44)",
   },
+  // Deluxe tier
   "0cebb8be-46d7-c12a-d306-e9907bfc5a25": {
     label: "Deluxe",
     accent: "#009587",
@@ -41,6 +46,7 @@ export const CONTENT_TIER_VISUALS: Record<string, ContentTierVisual> = {
     badgeBackground: "rgba(0, 149, 135, 0.16)",
     overlayBackground: "rgba(13, 90, 84, 0.44)",
   },
+  // Premium tier
   "60bca009-4182-7998-dee7-b8a2558dc369": {
     label: "Premium",
     accent: "#D1548D",
@@ -51,6 +57,7 @@ export const CONTENT_TIER_VISUALS: Record<string, ContentTierVisual> = {
     badgeBackground: "rgba(209, 84, 141, 0.16)",
     overlayBackground: "rgba(127, 41, 82, 0.44)",
   },
+  // Exclusive tier
   "e046854e-406c-37f4-6607-19a9ba8426fc": {
     label: "Exclusive",
     accent: "#F5955B",
@@ -61,6 +68,7 @@ export const CONTENT_TIER_VISUALS: Record<string, ContentTierVisual> = {
     badgeBackground: "rgba(245, 149, 91, 0.16)",
     overlayBackground: "rgba(136, 81, 42, 0.46)",
   },
+  // Ultra tier
   "411e4a55-4e59-7757-41f0-86a53f101bb5": {
     label: "Ultra",
     accent: "#FAD663",
@@ -73,6 +81,14 @@ export const CONTENT_TIER_VISUALS: Record<string, ContentTierVisual> = {
   },
 };
 
+/**
+ * Public API: Lấy bảng màu của content tier dựa trên UUID hoặc tên.
+ * Ưu tiên tìm theo UUID, sau đó theo tên (không phân biệt hoa thường).
+ * Trả về DEFAULT_CONTENT_TIER nếu không tìm thấy.
+ * @param contentTierUuid - UUID của content tier (tuỳ chọn)
+ * @param contentTierName - Tên của content tier (tuỳ chọn)
+ * @returns ContentTierVisual - Bảng màu tương ứng
+ */
 export const getContentTierVisual = (
   contentTierUuid?: string,
   contentTierName?: string

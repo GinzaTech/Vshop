@@ -1,674 +1,399 @@
+// 📦 [id].tsx – Màn hình chi tiết trận đấu (Match Details)
+// Hiển thị thông tin đầy đủ của một trận đấu: bảng điểm (scoreboard), hiệu suất (performance),
+// biểu đồ kinh tế, và cho phép share kết quả
+
+import * as Linking from "expo-linking";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
+  Animated,
   ScrollView,
+  Share,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator } from "react-native-paper";
-import { Image } from "expo-image";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
-import { useUserStore } from "~/hooks/useUserStore";
+import { EconomyChart } from "~/components/match-detail/EconomyChart";
+import { MatchDetailHeader } from "~/components/match-detail/MatchDetailHeader";
+import {
+  MatchDetailTabs,
+  type MatchDetailTab,
+} from "~/components/match-detail/MatchDetailTabs";
+import { PerformanceTab } from "~/components/match-detail/PerformanceTab";
+import { ScoreboardTable } from "~/components/match-detail/ScoreboardTable";
+import { StickyShareBar } from "~/components/match-detail/StickyShareBar";
+import {
+  MatchDetailSkeleton,
+  MatchStatePanel,
+} from "~/components/matches/MatchStates";
+import {
+  MATCH_COLORS,
+  MATCH_LAYOUT,
+  MATCH_SPACING,
+} from "~/constants/MatchTheme";
 import { useMatchStore } from "~/hooks/useMatchStore";
-import { getAssets, getAgent } from "~/utils/valorant-assets";
+import { useUserStore } from "~/hooks/useUserStore";
+import { mockMatchDetail } from "~/mocks/match-ui";
+import type {
+  MatchDetailViewModel,
+  MatchDetailsData,
+  MatchPlayerIdentity,
+} from "~/types/match-ui";
+import { buildMatchDetailViewModel } from "~/utils/match-ui";
 import { getPlayerNames } from "~/utils/valorant-api";
-import GlassCard from "~/components/ui/GlassCard";
-import { COLORS, GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * firstParam – Lấy phần tử đầu tiên nếu value là mảng, nếu không thì trả về nguyên value
+ * Dùng để xử lý search params có thể là string hoặc string[]
+ */
+const firstParam = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
 
-const HERO_HEIGHT = 300;
-const SHEET_OVERLAP = 32;
-
-const AGENT_ICON_OFFSETS: Record<string, { x: number; y: number }> = {
-  "41fb69c1-4189-7b37-f117-bcaf1e96f1bf": { x: 0.17, y: -0.07 },
-  "5f8d3a7f-467b-97f3-062c-13acf203c006": { x: 1.22, y: -2.29 },
-  "9f0d8ba9-4140-b941-57d3-a7ad57c6b417": { x: 0.27, y: -1.37 },
-  "22697a3d-45bf-8dd7-4fec-84a9e28c69d7": { x: 1.58, y: -0.06 },
-  "1dbf2edd-4729-0984-3115-daa5eed44993": { x: 0.65, y: -0.19 },
-  "117ed9e3-49f3-6512-3ccf-0cada7e3823b": { x: 0.7, y: -1.38 },
-  "cc8b64c8-4b25-4ff9-6e7f-37b4da43d235": { x: 0.1, y: -1.36 },
-  "dade69b4-4f5a-8528-247b-219e5a1facd6": { x: -0.46, y: -1.58 },
-  "e370fa57-4757-3604-3648-499e1f642d3f": { x: 1.14, y: -0.25 },
-  "95b78ed7-4637-86d9-7e41-71ba8c293152": { x: 0.66, y: -1.56 },
-  "0e38b510-41a8-5780-5e8f-568b2a4f2d6c": { x: 1.18, y: -1.05 },
-  "add6443a-41bd-e414-f6ad-e58d267f4e95": { x: 2.79, y: 0.51 },
-  "601dbbe7-43ce-be57-2a40-4abd24953621": { x: 0.64, y: -3.02 },
-  "1e58de9c-4950-5125-93e9-a0aee9f98746": { x: 1.83, y: -1.68 },
-  "7c8a4701-4de6-9355-b254-e09bc2a34b72": { x: 0.1, y: -0.34 },
-  "bb2a4828-46eb-8cd1-e765-15848195d751": { x: 1.27, y: 1.28 },
-  "8e253930-4c05-31dd-1b6c-968525494517": { x: 1.37, y: -2.41 },
-  "eb93336a-449b-9c1b-0a54-a891f7921d69": { x: 1.36, y: -0.72 },
-  "f94c3b30-42be-e959-889c-5aa313dba261": { x: 1, y: -2.08 },
-  "a3bfb853-43b2-7238-a4f1-ad90e9e46bcc": { x: 0.62, y: -1.94 },
-  "569fdd95-4d10-43ab-ca70-79becc718b46": { x: 2.7, y: 0.32 },
-  "6f2a04ca-43e0-be17-7f36-b3908627744d": { x: 2.92, y: 0.47 },
-  "320b2a48-4d9b-a075-30f1-1f93a9b638fa": { x: 1.87, y: -2.2 },
-  "b444168c-4e35-8076-db47-ef9bf368f384": { x: 0.5, y: -1.7 },
-  "92eeef5d-43b5-1d4a-8d03-b3927a09034b": { x: 0.61, y: -0.95 },
-  "707eab51-4836-f488-046a-cda6bf494859": { x: -0.96, y: -0.16 },
-  "efba5359-4016-a1e5-7626-b1ae76895940": { x: 1.29, y: -1.33 },
-  "df1cb487-4902-002e-5c17-d28e83e78588": { x: -0.19, y: -1.55 },
-  "7f94d92c-4234-0a36-9646-3a87eb8b5c89": { x: 2.49, y: -0.48 },
+/**
+ * isTruthyParam – Kiểm tra xem param có giá trị truthy ("1" hoặc "true") không
+ */
+const isTruthyParam = (value: string | string[] | undefined) => {
+  const resolved = firstParam(value);
+  return resolved === "1" || resolved === "true";
 };
 
+/**
+ * MatchDetailsScreen – Component chi tiết trận đấu
+ * Load dữ liệu match theo ID, hiển thị scoreboard/performance tabs, economy chart, share bar
+ */
 export default function MatchDetailsScreen() {
-  const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
+  // Lấy params từ URL: id (matchId), tab (tab mặc định), demo (chế độ demo)
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    tab?: string | string[];
+    demo?: string | string[];
+  }>();
+  const matchId = firstParam(params.id) ?? "";
+  // isDemo: chế độ dùng mock data (chỉ khi DEV mode và có param demo)
+  const isDemo = __DEV__ && isTruthyParam(params.demo);
+  const requestedTab = firstParam(params.tab);
+  // Thông tin user
   const user = useUserStore((state) => state.user);
-  const matchSummary = useMatchStore((state) =>
-    typeof id === "string"
-      ? state.matches.find((match: any) => match.MatchID === id) || null
-      : null
-  );
+  // Dữ liệu match từ cache (nếu đã load trước đó)
   const cachedDetails = useMatchStore((state) =>
-    typeof id === "string" ? state.detailsById[id] : null
+    matchId ? state.detailsById[matchId] : undefined
   );
+  // Hàm fetch chi tiết match từ store
   const fetchMatchDetails = useMatchStore((state) => state.fetchMatchDetails);
 
-  const [details, setDetails] = React.useState<any>(cachedDetails ?? null);
-  const [loading, setLoading] = React.useState(!cachedDetails);
-  const assets = getAssets();
-  const agents = getAgent().agents;
-  const titleLookup = React.useMemo(() => {
-    const map = new Map<string, string>();
-    (assets.titles || []).forEach((item: any) => {
-      map.set(item.uuid, item.titleText || item.displayName || "");
-    });
-    return map;
-  }, [assets.titles]);
+  // State: dữ liệu chi tiết trận đấu
+  const [details, setDetails] = React.useState<MatchDetailsData | null>(
+    cachedDetails ?? null
+  );
+  // State: trạng thái đang tải
+  const [loading, setLoading] = React.useState(!isDemo && !cachedDetails);
+  // State: lỗi nếu có
+  const [error, setError] = React.useState<string | null>(null);
+  // State: tab đang active (scoreboard hoặc performance)
+  const [activeTab, setActiveTab] = React.useState<MatchDetailTab>(
+    requestedTab === "performance" ? "performance" : "scoreboard"
+  );
+  // State: ID người chơi đang được chọn (để xem performance)
+  const [selectedPlayerId, setSelectedPlayerId] = React.useState("");
+  // State: số vòng đấu đang được chọn
+  const [selectedRoundNumber, setSelectedRoundNumber] = React.useState<number | null>(null);
 
+  // Ref: tham chiếu đến ScrollView để scroll
+  const scrollRef = React.useRef<ScrollView>(null);
+  // Ref: giá trị opacity cho animation chuyển tab
+  const contentOpacity = React.useRef(new Animated.Value(1)).current;
+  // Ref: key của request lấy tên người chơi (tránh gọi lại trùng)
+  const requestedNamesKey = React.useRef<string | null>(null);
+
+  /**
+   * loadDetails – Tải chi tiết trận đấu từ API (hoặc force refresh)
+   * @param force – Nếu true, bỏ qua cache và tải lại
+   */
+  const loadDetails = React.useCallback(
+    async (force = false) => {
+      if (isDemo) return;
+      if (!matchId) {
+        setError(t("match_ui.states.error_body"));
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      const response = await fetchMatchDetails(user, matchId, force);
+      if (response) {
+        setDetails(response);
+      } else {
+        setError(t("match_ui.states.error_body"));
+      }
+      setLoading(false);
+    },
+    [fetchMatchDetails, isDemo, matchId, t, user]
+  );
+
+  // Effect: Load chi tiết match khi component mount (hoặc dùng cache)
   React.useEffect(() => {
-    const fetchDetails = async () => {
-      if (!user.accessToken || !user.entitlementsToken || !user.region || !id) {
-        setLoading(false);
-        return;
-      }
+    if (isDemo) return;
+    if (cachedDetails) {
+      setDetails(cachedDetails);
+      setLoading(false);
+      return;
+    }
+    void loadDetails();
+  }, [cachedDetails, isDemo, loadDetails]);
 
-      if (cachedDetails) {
-        setDetails(cachedDetails);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const data = await fetchMatchDetails(user, id as string);
-        setDetails(data);
-      } catch (error) {
-        console.error("Error fetching details:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDetails();
-  }, [cachedDetails, fetchMatchDetails, id, user]);
-
+  // Effect: Tự động lấy tên người chơi (gameName) nếu chưa có
   React.useEffect(() => {
-    if (!details || !user.accessToken || !user.entitlementsToken || !user.region || !id) return;
+    if (
+      isDemo ||
+      !details ||
+      !user.accessToken ||
+      !user.entitlementsToken ||
+      !user.region
+    ) {
+      return;
+    }
+    // Kiểm tra xem tất cả người chơi đã có tên chưa
+    const alreadyNamed = details.players.every((player) => Boolean(player.gameName));
+    if (alreadyNamed) return;
+    const subjects = details.players.map((player) => player.subject).filter(Boolean);
+    const requestKey = subjects.slice().sort().join(",");
+    if (!requestKey || requestedNamesKey.current === requestKey) return;
+    requestedNamesKey.current = requestKey;
 
-    const loadNames = async () => {
-      // Check if details already has playerIdentities with names
-      const identities = details.playerIdentities || details.PlayerIdentities || [];
-      const hasNames = identities.some(
-        (ident: any) => ident.gameName || ident.GameName
-      );
-      if (hasNames) {
-        return;
-      }
-
-      const subjects = (details.players || []).map((p: any) => p.subject);
-      if (subjects.length === 0) return;
-
-      try {
-        const names = await getPlayerNames(
-          user.accessToken,
-          user.entitlementsToken,
-          subjects,
-          user.region
-        );
-
-        if (names && names.length > 0) {
-          const updatedIdentities = names.map((nameEntry: any) => ({
-            subject: nameEntry.Subject,
-            gameName: nameEntry.GameName,
-            tagLine: nameEntry.TagLine,
-          }));
-
-          const updatedDetails = {
-            ...details,
-            playerIdentities: updatedIdentities,
+    // Gọi API lấy tên người chơi
+    void getPlayerNames(
+      user.accessToken,
+      user.entitlementsToken,
+      subjects,
+      user.region
+    )
+      .then((names) => {
+        if (names.length === 0) return;
+        const identities: MatchPlayerIdentity[] = names.map((name) => ({
+          Subject: name.Subject,
+          GameName: name.GameName,
+          TagLine: name.TagLine,
+        }));
+        setDetails((current) => {
+          if (!current) return current;
+          const next: MatchDetailsData = {
+            ...current,
+            playerIdentities: identities,
           };
-
-          // Update local state
-          setDetails(updatedDetails);
-
-          // Update Zustand store cache
-          useMatchStore.setState((state) => ({
-            detailsById: {
-              ...state.detailsById,
-              [id as string]: updatedDetails,
+          return next;
+        });
+        // Cập nhật store cache sau khi setDetails
+        useMatchStore.setState((state) => ({
+          detailsById: {
+            ...state.detailsById,
+            [matchId]: {
+              ...state.detailsById[matchId],
+              playerIdentities: identities,
             },
-          }));
-        }
-      } catch (err) {
-        console.error("Failed to fetch player names in MatchDetailsScreen:", err);
-      }
-    };
+          },
+        }));
+      })
+      .catch((nameError: unknown) => {
+        if (__DEV__) console.warn("Failed to resolve match player names", nameError);
+      });
+  }, [details, isDemo, matchId, user]);
 
-    loadNames();
-  }, [details, user, id]);
+  /**
+   * viewModel – Dữ liệu đã được transform để render UI
+   * Nếu isDemo thì dùng mockMatchDetail; nếu không thì build từ details
+   */
+  const viewModel = React.useMemo<MatchDetailViewModel | null>(() => {
+    if (isDemo) return mockMatchDetail;
+    if (!details) return null;
+    return buildMatchDetailViewModel(details, user.id);
+  }, [details, isDemo, user.id]);
 
-  if (loading) {
+  // Effect: Khi viewModel thay đổi, cập nhật selectedPlayerId và selectedRoundNumber nếu cần
+  React.useEffect(() => {
+    if (!viewModel) return;
+    // Giữ selectedPlayerId nếu vẫn tồn tại trong danh sách, nếu không thì chọn currentPlayerId
+    setSelectedPlayerId((current) =>
+      viewModel.players.some((player) => player.playerId === current)
+        ? current
+        : viewModel.currentPlayerId
+    );
+    // Giữ selectedRoundNumber nếu vẫn tồn tại, nếu không thì chọn vòng đầu tiên
+    setSelectedRoundNumber((current) =>
+      viewModel.rounds.some((round) => round.roundNumber === current)
+        ? current
+        : viewModel.rounds[0]?.roundNumber ?? null
+    );
+  }, [viewModel]);
+
+  /**
+   * changeTab – Chuyển đổi giữa tab scoreboard và performance với animation fade
+   * @param tab – Tab đích ("scoreboard" | "performance")
+   */
+  const changeTab = React.useCallback(
+    (tab: MatchDetailTab) => {
+      if (tab === activeTab) return;
+      // Fade out nhẹ, đổi tab, scroll lên đầu, fade in
+      contentOpacity.setValue(0.45);
+      setActiveTab(tab);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 190,
+        useNativeDriver: true,
+      }).start();
+    },
+    [activeTab, contentOpacity]
+  );
+
+  /**
+   * selectScoreboardPlayer – Chọn một người chơi từ scoreboard và chuyển sang tab performance
+   * @param playerId – ID người chơi được chọn
+   */
+  const selectScoreboardPlayer = React.useCallback(
+    (playerId: string) => {
+      setSelectedPlayerId(playerId);
+      changeTab("performance");
+    },
+    [changeTab]
+  );
+
+  /**
+   * selectRound – Chọn một vòng đấu và scroll xuống vị trí tương ứng
+   * @param roundNumber – Số vòng đấu
+   */
+  const selectRound = React.useCallback((roundNumber: number) => {
+    setSelectedRoundNumber(roundNumber);
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 430, animated: true });
+    });
+  }, []);
+
+  /**
+   * shareMatch – Chia sẻ kết quả trận đấu qua native Share sheet
+   * Tạo message gồm: map, tỉ số, KDA của người chơi, link
+   */
+  const shareMatch = React.useCallback(async () => {
+    if (!viewModel) return;
+    const selectedPerformance =
+      viewModel.playerPerformance[selectedPlayerId] ??
+      viewModel.playerPerformance[viewModel.currentPlayerId];
+    const summary = selectedPerformance?.summary;
+    const link = Linking.createURL(`/match_details/${viewModel.match.id}`);
+    const message = [
+      `${viewModel.match.mapName} ${viewModel.match.teamAScore}:${viewModel.match.teamBScore}`,
+      summary
+        ? `${summary.agentName} ${summary.kills}/${summary.deaths}/${summary.assists}`
+        : null,
+      link,
+    ]
+      .filter((line): line is string => Boolean(line))
+      .join("\n");
+    await Share.share({ message, title: viewModel.match.mapName });
+  }, [selectedPlayerId, viewModel]);
+
+  // Hiển thị skeleton loading khi đang tải
+  if (loading && !viewModel) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator animating color={COLORS.ACCENT} size="large" />
-      </View>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
+        <MatchDetailSkeleton />
+      </SafeAreaView>
     );
   }
 
-  if (!details) {
+  // Hiển thị error state nếu có lỗi hoặc không có viewModel
+  if (!viewModel || error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{t("match_details_page.error_loading")}</Text>
-      </View>
+      <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+        <MatchStatePanel
+          icon="alert-circle-outline"
+          title={t("match_ui.states.error_title")}
+          body={error || t("match_ui.states.error_body")}
+          primaryLabel={t("match_ui.actions.retry")}
+          onPrimaryPress={() => void loadDetails(true)}
+          secondaryLabel={t("match_ui.actions.back")}
+          onSecondaryPress={() => router.back()}
+        />
+      </SafeAreaView>
     );
   }
-
-  const mapInfo = assets.maps?.find(
-    (item: any) => item.mapUrl === details.matchInfo?.mapId
-  );
-  const teams = details.teams || [];
-  const blueTeam = teams.find((team: any) => team.teamId === "Blue");
-  const redTeam = teams.find((team: any) => team.teamId === "Red");
-  const players = details.players || [];
-  const bluePlayers = players.filter((player: any) => player.teamId === "Blue");
-  const redPlayers = players.filter((player: any) => player.teamId === "Red");
-  const renderPlayerRow = (player: any) => {
-    const agent = agents.find((item: any) => item.uuid === player.characterId);
-    const isMe = player.subject === user.id;
-    const agentIconUri = agent?.displayIcon || agent?.displayIconSmall;
-    const agentOffset = AGENT_ICON_OFFSETS[player.characterId] ?? { x: 0, y: 0 };
-    const rawTitle = typeof player.playerTitle === "string" ? player.playerTitle : "";
-    const resolvedTitle = titleLookup.get(rawTitle);
-    const safeMeta =
-      resolvedTitle ||
-      (rawTitle && !UUID_PATTERN.test(rawTitle) ? rawTitle : "") ||
-      agent?.displayName ||
-      t("match_details_page.player_fallback");
-
-    // Resolve name from playerIdentities
-    const identities = details.playerIdentities || details.PlayerIdentities || [];
-    const identity = identities.find(
-      (ident: any) =>
-        (ident.subject || ident.Subject || "").toLowerCase() ===
-        (player.subject || "").toLowerCase()
-    );
-    const gameName =
-      identity?.gameName ||
-      identity?.GameName ||
-      player.gameName ||
-      player.GameName ||
-      t("match_details_page.player_fallback");
-    const tagLine =
-      identity?.tagLine ||
-      identity?.TagLine ||
-      player.tagLine ||
-      player.TagLine ||
-      "";
-    const fullName = tagLine ? `${gameName}#${tagLine}` : gameName;
-
-    return (
-      <View key={player.subject} style={[styles.playerRow, isMe && styles.myRow]}>
-        <View style={styles.playerLeft}>
-          <View style={styles.agentIconShell}>
-            <Image
-              source={agentIconUri ? { uri: agentIconUri } : undefined}
-              style={[
-                styles.agentIcon,
-                {
-                  transform: [
-                    { translateX: agentOffset.x },
-                    { translateY: agentOffset.y },
-                  ],
-                },
-              ]}
-              contentFit="contain"
-              contentPosition="center"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.playerName, isMe && styles.myPlayerName]} numberOfLines={1}>
-              {fullName}
-            </Text>
-            <Text style={styles.playerMeta} numberOfLines={1}>
-              {safeMeta}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.playerRight}>
-          <Text style={styles.kdaText}>
-            {player.stats?.kills}/{player.stats?.deaths}/{player.stats?.assists}
-          </Text>
-          <Text style={styles.scoreText}>{player.stats?.score}</Text>
-        </View>
-      </View>
-    );
-  };
-
-  const renderTeamCard = (title: string, team: any, rows: any[], tone: string) => (
-    <View style={styles.teamCard}>
-      <View style={styles.teamHeader}>
-        <View>
-          <Text style={styles.teamTitle}>{title}</Text>
-          <Text style={styles.teamSubtitle}>
-            {team?.won
-              ? t("history_page.result_victory")
-              : t("history_page.result_defeat")}
-          </Text>
-        </View>
-        <View style={[styles.teamScorePill, { backgroundColor: tone }]}>
-          <Text style={styles.teamScorePillText}>
-            {team?.roundsWon ?? 0} / {team?.roundsPlayed ?? 0}
-          </Text>
-        </View>
-      </View>
-      {rows.map(renderPlayerRow)}
-    </View>
-  );
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.hero}>
-        <Image
-          source={{ uri: mapInfo?.splash }}
-          style={StyleSheet.absoluteFillObject}
-          contentFit="cover"
-        />
-        <View style={styles.heroOverlay} />
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        overScrollMode="never"
-      >
-        <View style={styles.body}>
-          <View style={styles.bodyContent}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeaderRow}>
-              <TouchableOpacity
-                style={styles.sheetBackButton}
-                onPress={() => router.back()}
-              >
-                <Icon name="arrow-left" size={20} color="#ffffff" />
-              </TouchableOpacity>
-
-              <View style={styles.mapHeaderBlock}>
-                <Text style={styles.mapTitle}>
-                  {mapInfo?.displayName || t("match_details_page.unknown_map")}
-                </Text>
-                <Text style={styles.mapSubtitle}>
-                  {details.matchInfo?.queueID || t("match_details_page.standard")}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.scoreboard}>
-              <View style={styles.scoreItem}>
-                <Text style={styles.scoreLabel}>{t("match_details_page.blue_team")}</Text>
-                <Text style={styles.scoreValue}>{blueTeam?.roundsWon ?? 0}</Text>
-              </View>
-              <Text style={styles.scoreDivider}>{t("match_details_page.vs")}</Text>
-              <View style={styles.scoreItem}>
-                <Text style={styles.scoreLabel}>{t("match_details_page.red_team")}</Text>
-                <Text style={styles.scoreValue}>{redTeam?.roundsWon ?? 0}</Text>
-              </View>
-            </View>
-
-            {matchSummary?.stats ? (
-              <View style={styles.summaryCard}>
-                <View style={styles.summaryTopRow}>
-                  <View>
-                    <Text style={styles.summaryTitle}>
-                      {t("match_details_page.performance_title")}
-                    </Text>
-                    <Text style={styles.summarySubtitle}>
-                      {matchSummary.stats.kda} • {t("history_page.metrics.acs")} {matchSummary.stats.acs}
-                    </Text>
-                  </View>
-                  {matchSummary.stats.rankIcon ? (
-                    <Image
-                      source={{ uri: matchSummary.stats.rankIcon }}
-                      style={styles.summaryRankIcon}
-                      contentFit="contain"
-                    />
-                  ) : null}
-                </View>
-
-                <View style={styles.summaryMetricRow}>
-                  <View style={styles.summaryMetricItem}>
-                    <Text style={styles.summaryMetricLabel}>
-                      {t("history_page.metrics.rr")}
-                    </Text>
-                    <Text style={styles.summaryMetricValue}>
-                      {typeof matchSummary.stats.rrEarned === "number"
-                        ? `${matchSummary.stats.rrEarned > 0 ? "+" : ""}${matchSummary.stats.rrEarned}`
-                        : "--"}
-                    </Text>
-                  </View>
-                  <View style={styles.summaryMetricItem}>
-                    <Text style={styles.summaryMetricLabel}>
-                      {t("history_page.metrics.hs")}
-                    </Text>
-                    <Text style={styles.summaryMetricValue}>
-                      {matchSummary.stats.headshotPct || "--"}
-                    </Text>
-                  </View>
-                  <View style={styles.summaryMetricItem}>
-                    <Text style={styles.summaryMetricLabel}>
-                      {t("match_details_page.rank_after")}
-                    </Text>
-                    <Text style={styles.summaryMetricValue}>
-                      {typeof matchSummary.stats.rrAfter === "number"
-                        ? matchSummary.stats.rrAfter
-                        : "--"}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ) : null}
-
-            {renderTeamCard(
-              t("match_details_page.blue_team_full"),
-              blueTeam,
-              bluePlayers,
-              "#73c9d1"
-            )}
-            {renderTeamCard(
-              t("match_details_page.red_team_full"),
-              redTeam,
-              redPlayers,
-              "#ff8d7a"
+    <SafeAreaView style={styles.screen} edges={["top"]}>
+      {/* Header: thông tin match + nút đóng */}
+      <MatchDetailHeader
+        match={viewModel.match}
+        locale={i18n.language || "en"}
+        onClose={() => router.back()}
+      />
+      {/* Tabs: Scoreboard / Performance */}
+      <MatchDetailTabs activeTab={activeTab} onChange={changeTab} />
+      {/* Nội dung cuộn với animation opacity khi chuyển tab */}
+      <Animated.View style={[styles.scrollShell, { opacity: contentOpacity }]}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          directionalLockEnabled
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.contentWidth}>
+            {activeTab === "scoreboard" ? (
+              <>
+                <EconomyChart points={viewModel.economy} />
+                <ScoreboardTable
+                  players={viewModel.players}
+                  onSelectPlayer={selectScoreboardPlayer}
+                />
+              </>
+            ) : (
+              <PerformanceTab
+                data={viewModel}
+                selectedPlayerId={selectedPlayerId}
+                selectedRoundNumber={selectedRoundNumber}
+                onSelectPlayer={setSelectedPlayerId}
+                onSelectRound={selectRound}
+              />
             )}
           </View>
-        </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </Animated.View>
+      {/* Thanh share cố định dưới cùng */}
+      <StickyShareBar onShare={() => void shareMatch()} />
+    </SafeAreaView>
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// StyleSheet – Định nghĩa styles cho màn hình Match Details
+// ═══════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
+  // screen – Container SafeAreaView, nền appBackground từ MatchTheme
   screen: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
+    backgroundColor: MATCH_COLORS.appBackground,
   },
-  centered: {
+  // scrollShell – View bọc ScrollView, chiếm toàn bộ không gian còn lại
+  scrollShell: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: COLORS.BACKGROUND,
   },
-  errorText: {
-    color: COLORS.TEXT_SECONDARY,
-  },
-  hero: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: HERO_HEIGHT,
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(17,17,17,0.08)",
-  },
-  circleButton: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.chip,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  // scroll – ScrollView chính
   scroll: {
     flex: 1,
   },
+  // scrollContent – Content container, căn giữa theo chiều ngang
   scrollContent: {
-    paddingTop: HERO_HEIGHT - SHEET_OVERLAP,
-    paddingBottom: 40,
-  },
-  body: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    backgroundColor: "#12161a",
-    minHeight: "100%",
-  },
-  bodyContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  sheetHandle: {
-    alignSelf: "center",
-    width: 54,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    marginBottom: 18,
-  },
-  sheetHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  sheetBackButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#1a1d24",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-    ...GLOBAL_STYLES.shadow,
-  },
-  mapHeaderBlock: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  mapTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#ffffff",
-  },
-  mapSubtitle: {
-    marginTop: 4,
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 15,
-  },
-  scoreboard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 24,
-    marginBottom: 20,
-  },
-  scoreItem: {
-    flex: 1,
     alignItems: "center",
   },
-  scoreLabel: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 13,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  scoreValue: {
-    marginTop: 6,
-    fontSize: 36,
-    fontWeight: "800",
-    color: "#ffffff",
-  },
-  scoreDivider: {
-    color: "rgba(255, 255, 255, 0.4)",
-    fontWeight: "800",
-    fontSize: 16,
-    paddingHorizontal: 12,
-  },
-  summaryCard: {
-    marginBottom: 16,
-    backgroundColor: "#1a1d24",
-    borderColor: "rgba(255, 255, 255, 0.06)",
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-    ...GLOBAL_STYLES.shadow,
-  },
-  summaryTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-  },
-  summaryTitle: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  summarySubtitle: {
-    marginTop: 4,
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 13,
-  },
-  summaryRankIcon: {
-    width: 34,
-    height: 34,
-  },
-  summaryMetricRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 14,
-  },
-  summaryMetricItem: {
-    flex: 1,
-  },
-  summaryMetricLabel: {
-    color: "rgba(255, 255, 255, 0.4)",
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  summaryMetricValue: {
-    marginTop: 4,
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  teamCard: {
-    marginBottom: 12,
-    backgroundColor: "#1a1d24",
-    borderColor: "rgba(255, 255, 255, 0.06)",
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 10,
-    ...GLOBAL_STYLES.shadow,
-  },
-  teamHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  teamTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#ffffff",
-  },
-  teamSubtitle: {
-    marginTop: 2,
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 11,
-  },
-  teamScorePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: RADIUS.chip,
-  },
-  teamScorePillText: {
-    color: COLORS.PURE_WHITE,
-    fontWeight: "800",
-    fontSize: 10,
-  },
-  playerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 5,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
-  },
-  myRow: {
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    borderRadius: 10,
-    marginVertical: 1,
-    paddingHorizontal: 4,
-  },
-  playerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flex: 1,
-  },
-  agentIconShell: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
-  },
-  agentIcon: {
-    width: 24,
-    height: 24,
-  },
-  playerName: {
-    color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  myPlayerName: {
-    color: COLORS.PURE_WHITE,
-  },
-  playerMeta: {
-    marginTop: 1,
-    color: "rgba(255, 255, 255, 0.4)",
-    fontSize: 9,
-  },
-  playerRight: {
-    alignItems: "flex-end",
-    marginLeft: 8,
-  },
-  kdaText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 11,
-  },
-  scoreText: {
-    marginTop: 2,
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 9,
+  // contentWidth – Giới hạn chiều rộng nội dung tối đa, có padding bottom
+  contentWidth: {
+    width: "100%",
+    maxWidth: MATCH_LAYOUT.maxContentWidth,
+    paddingBottom: MATCH_SPACING.lg,
   },
 });

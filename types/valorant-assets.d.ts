@@ -30,6 +30,13 @@ interface ValorantAgent {
   abilities?: Ability[];
 }
 
+interface ValorantWeapon {
+  uuid: string;
+  displayName: string;
+  category?: string;
+  displayIcon?: string;
+}
+
 interface Ability {
   slot: string;
   displayName: string;
@@ -80,6 +87,14 @@ interface ValorantSprayAccessory {
   animationGif: string;
   assetPath: string;
   levels: ValorantSprayLevel[];
+}
+
+interface ValorantFlexAccessory {
+  uuid: string;
+  displayName: string;
+  displayNameAllCaps?: string;
+  displayIcon?: string;
+  assetPath: string;
 }
 
 interface ValorantBuddyLevel {

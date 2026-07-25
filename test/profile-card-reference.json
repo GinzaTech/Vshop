@@ -1,0 +1,2911 @@
+{
+  "generatedAt": "2026-07-05T03:07:53.019Z",
+  "source": "env:C:\\Users\\kona\\Desktop\\Vshop\\test\\.env",
+  "note": "Tokens are read from test/.env and are not written to this JSON file.",
+  "session": {
+    "puuid": "991adf11...fd26",
+    "region": "ap",
+    "shard": "ap",
+    "clientVersion": "release-13.00-shipping-32-4990475",
+    "accessTokenExpiresAt": "2026-07-05T03:18:55.000Z"
+  },
+  "profileCardDataFields": [
+    "badgeLabel",
+    "regionLabel",
+    "playerName",
+    "tagLine",
+    "subtitle",
+    "level",
+    "authStatus",
+    "authLabel",
+    "currencies",
+    "currentRank",
+    "peakRank"
+  ],
+  "profileCardData": {
+    "badgeLabel": "Account",
+    "regionLabel": "AP",
+    "playerName": "KONA",
+    "tagLine": "004",
+    "subtitle": "Profile overview",
+    "level": 401,
+    "authStatus": "synced",
+    "authLabel": "Account synced",
+    "playerCard": {
+      "id": "1fb0bee0-49db-fb51-b090-bc834babdb2b",
+      "name": "Reyna ID Card",
+      "displayIcon": "https://media.valorant-api.com/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b/displayicon.png",
+      "smallArt": "https://media.valorant-api.com/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b/smallart.png",
+      "wideArt": "https://media.valorant-api.com/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b/wideart.png",
+      "largeArt": "https://media.valorant-api.com/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b/largeart.png"
+    },
+    "currencies": [
+      {
+        "key": "vp",
+        "label": "VP",
+        "value": 100,
+        "icon": "vp"
+      },
+      {
+        "key": "rad",
+        "label": "Radianite",
+        "value": 20,
+        "icon": "rad"
+      },
+      {
+        "key": "kc",
+        "label": "Kingdom Credits",
+        "value": 3435,
+        "icon": "kc"
+      }
+    ],
+    "currentRank": {
+      "tier": 16,
+      "name": "Platinum 2",
+      "icon": null
+    },
+    "peakRank": {
+      "tier": 18,
+      "name": "Diamond 1",
+      "icon": null
+    }
+  },
+  "responses": {
+    "name": {
+      "name": "name",
+      "request": {
+        "method": "PUT",
+        "url": "https://pd.ap.a.pvp.net/name-service/v2/players"
+      },
+      "response": {
+        "ok": true,
+        "status": 200,
+        "statusText": "OK",
+        "durationMs": 200,
+        "body": [
+          {
+            "DisplayName": "",
+            "Subject": "991adf11-cd4a-55d2-937f-4ec21521fd26",
+            "GameName": "KONA",
+            "TagLine": "004"
+          }
+        ]
+      }
+    },
+    "wallet": {
+      "name": "wallet",
+      "request": {
+        "method": "GET",
+        "url": "https://pd.ap.a.pvp.net/store/v1/wallet/991adf11-cd4a-55d2-937f-4ec21521fd26"
+      },
+      "response": {
+        "ok": true,
+        "status": 200,
+        "statusText": "OK",
+        "durationMs": 81,
+        "body": {
+          "Balances": {
+            "85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741": 100,
+            "85ca954a-41f2-ce94-9b45-8ca3dd39a00d": 3435,
+            "e59aa87c-4cbf-517a-5983-6e81511be9b7": 20,
+            "f08d4ae3-939c-4576-ab26-09ce1f23bb37": 1
+          },
+          "CurrencyLimits": {
+            "85ca954a-41f2-ce94-9b45-8ca3dd39a00d": {
+              "Limits": {
+                "bdf142e6-72fa-5f47-8983-8a68e902abb5": {
+                  "amount": 10000,
+                  "limitType": "TRUNCATION"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "playerXp": {
+      "name": "playerXp",
+      "request": {
+        "method": "GET",
+        "url": "https://pd.ap.a.pvp.net/account-xp/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26"
+      },
+      "response": {
+        "ok": true,
+        "status": 200,
+        "statusText": "OK",
+        "durationMs": 73,
+        "body": {
+          "Version": 4000,
+          "Subject": "991adf11-cd4a-55d2-937f-4ec21521fd26",
+          "Progress": {
+            "Level": 401,
+            "XP": 226
+          },
+          "History": [
+            {
+              "ID": "dc40bcf2-b30f-465e-8f75-1f91c31c5b4b",
+              "CreatedAt": "2026-07-02T12:52:58.219542287Z",
+              "MatchStart": "2026-07-02T12:09:58Z",
+              "StartProgress": {
+                "Level": 399,
+                "XP": 925
+              },
+              "EndProgress": {
+                "Level": 399,
+                "XP": 1337
+              },
+              "XPDelta": 412,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 412
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "57781966-669c-43ec-b662-1aacc3d1f44e",
+              "CreatedAt": "2026-07-02T13:31:19.23741786Z",
+              "MatchStart": "2026-07-02T12:56:45Z",
+              "StartProgress": {
+                "Level": 399,
+                "XP": 1337
+              },
+              "EndProgress": {
+                "Level": 399,
+                "XP": 1664
+              },
+              "XPDelta": 327,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 327
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "44367553-6e11-4057-82fd-5f34716b45e2",
+              "CreatedAt": "2026-07-02T15:05:30.472203256Z",
+              "MatchStart": "2026-07-02T14:27:20Z",
+              "StartProgress": {
+                "Level": 399,
+                "XP": 1664
+              },
+              "EndProgress": {
+                "Level": 399,
+                "XP": 2030
+              },
+              "XPDelta": 366,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 366
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "8852c788-0b1c-4d7c-8cf2-c408947af129",
+              "CreatedAt": "2026-07-02T16:05:04.151347949Z",
+              "MatchStart": "2026-07-02T15:07:32Z",
+              "StartProgress": {
+                "Level": 399,
+                "XP": 2030
+              },
+              "EndProgress": {
+                "Level": 399,
+                "XP": 2587
+              },
+              "XPDelta": 557,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 557
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "b19b0f91-99c4-4622-a11a-40e9b779c5c2",
+              "CreatedAt": "2026-07-03T14:02:25.596343107Z",
+              "MatchStart": "2026-07-03T13:26:39Z",
+              "StartProgress": {
+                "Level": 399,
+                "XP": 2587
+              },
+              "EndProgress": {
+                "Level": 399,
+                "XP": 2925
+              },
+              "XPDelta": 338,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 338
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "3206385f-2822-4bad-862d-1328f934c8e8",
+              "CreatedAt": "2026-07-03T14:53:03.957402095Z",
+              "MatchStart": "2026-07-03T14:04:49Z",
+              "StartProgress": {
+                "Level": 399,
+                "XP": 2925
+              },
+              "EndProgress": {
+                "Level": 399,
+                "XP": 4438
+              },
+              "XPDelta": 1513,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 463
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                },
+                {
+                  "ID": "first-win-of-the-day",
+                  "Amount": 1000
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "c26507ab-7823-4463-9cc8-36647bf44369",
+              "CreatedAt": "2026-07-03T15:43:52.777371616Z",
+              "MatchStart": "2026-07-03T14:56:19Z",
+              "StartProgress": {
+                "Level": 399,
+                "XP": 4438
+              },
+              "EndProgress": {
+                "Level": 399,
+                "XP": 4947
+              },
+              "XPDelta": 509,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 459
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "9cc81ae3-e07a-4491-8a61-7a33e2391a2c",
+              "CreatedAt": "2026-05-26T09:42:03.920263605Z",
+              "LastRetryAt": "2026-05-26T09:42:04.388469519Z",
+              "MatchStart": "2026-05-26T09:19:26Z",
+              "StartProgress": {
+                "Level": 375,
+                "XP": 2936
+              },
+              "EndProgress": {
+                "Level": 375,
+                "XP": 3193
+              },
+              "XPDelta": 257,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 207
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "12a0a843-b8e7-4d1e-80fe-644fa5b87bce",
+              "CreatedAt": "2026-07-03T16:38:59.746513368Z",
+              "MatchStart": "2026-07-03T15:58:10Z",
+              "StartProgress": {
+                "Level": 399,
+                "XP": 4947
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 386
+              },
+              "XPDelta": 439,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 389
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "c51d68ae-5cce-41e6-b684-8efe5aa6e43a",
+              "CreatedAt": "2026-07-03T17:39:40.193194924Z",
+              "MatchStart": "2026-07-03T17:01:47Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 386
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 748
+              },
+              "XPDelta": 362,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 362
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "11f46685-ab5b-4d9b-bcea-98eb7d4a07be",
+              "CreatedAt": "2026-07-04T02:57:34.672153084Z",
+              "MatchStart": "2026-07-04T02:11:51Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 748
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 1236
+              },
+              "XPDelta": 488,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 438
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "9d1240bb-a7bc-4564-b390-43d579e6b04d",
+              "CreatedAt": "2026-07-04T05:57:11.855223882Z",
+              "MatchStart": "2026-07-04T05:22:43Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 1236
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 1615
+              },
+              "XPDelta": 379,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 329
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "898fcc97-9dff-48a3-b81c-a42659942023",
+              "CreatedAt": "2026-07-04T08:21:39.426491579Z",
+              "MatchStart": "2026-07-04T07:44:08Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 1615
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 2023
+              },
+              "XPDelta": 408,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 358
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "da349a94-ecc9-4322-907a-cd0cdd0082c7",
+              "CreatedAt": "2026-07-04T10:47:30.144425871Z",
+              "MatchStart": "2026-07-04T10:06:56Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 2023
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 2460
+              },
+              "XPDelta": 437,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 387
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "bf53cbab-b69e-43a6-9d6f-cc1ed89d865c",
+              "CreatedAt": "2026-07-04T12:29:53.200010753Z",
+              "MatchStart": "2026-07-04T11:53:31Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 2460
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 2804
+              },
+              "XPDelta": 344,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 344
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "c96de563-4979-4352-aa3e-0cdfa12ff5e0",
+              "CreatedAt": "2026-07-04T13:34:28.988756844Z",
+              "MatchStart": "2026-07-04T13:15:39Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 2804
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 4023
+              },
+              "XPDelta": 1219,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 169
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                },
+                {
+                  "ID": "first-win-of-the-day",
+                  "Amount": 1000
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "ece96aea-e46c-4d5c-8b02-e40b960f1bc4",
+              "CreatedAt": "2026-07-04T13:45:33.425591171Z",
+              "MatchStart": "2026-07-04T13:34:58Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 4023
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 4177
+              },
+              "XPDelta": 154,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 104
+                },
+                {
+                  "ID": "match-win",
+                  "Amount": 50
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "a55bd843-bff2-45fe-885b-7e89b773297e",
+              "CreatedAt": "2026-07-04T14:18:32.314251652Z",
+              "MatchStart": "2026-07-04T13:47:37Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 4177
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 4467
+              },
+              "XPDelta": 290,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 290
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "73c10f2f-ecfd-4d23-bd3f-05acccbeecd8",
+              "CreatedAt": "2026-07-04T15:47:14.041679351Z",
+              "MatchStart": "2026-07-04T15:03:35Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 4467
+              },
+              "EndProgress": {
+                "Level": 400,
+                "XP": 4884
+              },
+              "XPDelta": 417,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 417
+                }
+              ],
+              "XPMultipliers": []
+            },
+            {
+              "ID": "02a2f44c-b605-4ffb-83c8-517d7c0a5346",
+              "CreatedAt": "2026-07-04T16:29:38.883424904Z",
+              "MatchStart": "2026-07-04T15:54:19Z",
+              "StartProgress": {
+                "Level": 400,
+                "XP": 4884
+              },
+              "EndProgress": {
+                "Level": 401,
+                "XP": 226
+              },
+              "XPDelta": 342,
+              "XPSources": [
+                {
+                  "ID": "time-played",
+                  "Amount": 342
+                }
+              ],
+              "XPMultipliers": []
+            }
+          ],
+          "LastTimeGrantedFirstWin": "2026-07-04T13:34:28.988750735Z",
+          "NextTimeFirstWinAvailable": "2026-07-05T11:34:28.988750735Z"
+        }
+      }
+    },
+    "playerLoadout": {
+      "name": "playerLoadout",
+      "request": {
+        "method": "GET",
+        "url": "https://pd.ap.a.pvp.net/personalization/v2/players/991adf11-cd4a-55d2-937f-4ec21521fd26/playerloadout"
+      },
+      "response": {
+        "ok": true,
+        "status": 200,
+        "statusText": "OK",
+        "durationMs": 73,
+        "body": {
+          "Subject": "991adf11-cd4a-55d2-937f-4ec21521fd26",
+          "Version": 5253,
+          "Guns": [
+            {
+              "ID": "e336c6b8-418d-9340-d77f-7a9e4cfe0702",
+              "SkinID": "81bd181f-4124-9e58-ffd4-09964dc0d2cc",
+              "SkinLevelID": "68cfd501-4a6b-0059-27c0-218619919fbb",
+              "ChromaID": "463fe130-4b39-c71b-9df5-d2b777d71633",
+              "CharmInstanceID": "b3e75e86-2ef2-5602-ab79-e968efdfae7f",
+              "CharmID": "757829fd-4d56-c9f0-dcbb-9b8d1eb23acf",
+              "CharmLevelID": "8b272577-43a2-fd50-5f33-40bfd25ed556",
+              "Attachments": []
+            },
+            {
+              "ID": "55d8a0f4-4274-ca67-fe2c-06ab45efdf58",
+              "SkinID": "759bca71-4764-19f8-8890-239eedb78fa3",
+              "SkinLevelID": "6d39bae9-4077-6d39-6a13-b4a98f9b4630",
+              "ChromaID": "cc1c3f90-43d5-5675-72d4-fb8e50b488a6",
+              "CharmInstanceID": "c34fab1c-2232-438c-96ca-9d7212102661",
+              "CharmID": "36078eb1-45c0-b82e-a7d5-a9bdbcab305e",
+              "CharmLevelID": "58205c20-4d2d-dff9-a92e-3793752d308d",
+              "Attachments": []
+            },
+            {
+              "ID": "4ade7faa-4cf1-8376-95ef-39884480959b",
+              "SkinID": "db348da1-49f2-0bad-b70a-e4ade9d31655",
+              "SkinLevelID": "4e1b9e7d-4cfc-9a14-4fe1-ea9185cdb6d9",
+              "ChromaID": "c0f23dc2-4ac3-338c-c559-18962151a702",
+              "CharmInstanceID": "9a46e519-a130-4330-88a9-76cf0e9f202a",
+              "CharmID": "9d80ae81-4a0a-8be8-347c-ceafcda2d7bd",
+              "CharmLevelID": "728947fb-4a6f-62c7-cb77-b78293c350f6",
+              "Attachments": []
+            },
+            {
+              "ID": "29a0cfab-485b-f5d5-779a-b59f85e204a8",
+              "SkinID": "31ad3e2e-4034-39bb-8836-67be75b8e7a0",
+              "SkinLevelID": "e22d84df-4e14-74d8-1203-91bed9170faa",
+              "ChromaID": "6e4ae4b6-43c8-3625-538b-3b9b84e8610f",
+              "CharmInstanceID": "4c00a059-6f45-4af7-a202-6da709c4f868",
+              "CharmID": "96e97b3e-4694-f71c-7099-e29764b0a889",
+              "CharmLevelID": "816e4eae-4ceb-36d2-7129-dca33d33acbe",
+              "Attachments": []
+            },
+            {
+              "ID": "42da8ccc-40d5-affc-beec-15aa47b42eda",
+              "SkinID": "9428e52d-4611-c8ff-1b63-7b8e386fe8cb",
+              "SkinLevelID": "6f90d1ed-4acc-d925-4a8a-60913f14d16b",
+              "ChromaID": "1c197677-4fc6-e4c8-69f3-389888e5b063",
+              "CharmInstanceID": "50a7fdfc-0662-5487-a06d-0b67b4c9412a",
+              "CharmID": "757829fd-4d56-c9f0-dcbb-9b8d1eb23acf",
+              "CharmLevelID": "8b272577-43a2-fd50-5f33-40bfd25ed556",
+              "Attachments": []
+            },
+            {
+              "ID": "9c82e19d-4575-0200-1a81-3eacf00cf872",
+              "SkinID": "1b9b0131-42fe-b6a7-d212-699b342ba642",
+              "SkinLevelID": "1def044a-41ff-9f4f-1a97-f7b5708d7fcc",
+              "ChromaID": "aa4aedb0-4454-5acd-41da-1886b1ab1a51",
+              "CharmInstanceID": "79df78b2-e783-5203-aa8c-1110d084810b",
+              "CharmID": "7f87473c-4e73-ff52-7cd8-58a4085f630a",
+              "CharmLevelID": "d6708074-4254-4497-d452-1bb1ca6153fe",
+              "Attachments": []
+            },
+            {
+              "ID": "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a",
+              "SkinID": "044b28ba-4c3b-d315-140d-d9a249da5567",
+              "SkinLevelID": "0e321f27-4803-1df8-7414-78b96f1afe7e",
+              "ChromaID": "0e3787c9-47df-1fe3-8643-f3837674c8ed",
+              "CharmInstanceID": "bb825ffb-8890-4843-ac6b-d2f2749c7a58",
+              "CharmID": "96e97b3e-4694-f71c-7099-e29764b0a889",
+              "CharmLevelID": "816e4eae-4ceb-36d2-7129-dca33d33acbe",
+              "Attachments": []
+            },
+            {
+              "ID": "f7e1b454-4ad4-1063-ec0a-159e56b58941",
+              "SkinID": "8fb27bb1-4080-581d-bcd3-53ae01861654",
+              "SkinLevelID": "b17c1df5-412c-a9bc-fd65-e6afb421b13d",
+              "ChromaID": "0ea6b63d-4e9c-0fd2-46ec-9095d1c04e59",
+              "CharmInstanceID": "9627102d-d63a-4bd5-ab5b-901d6fbfa361",
+              "CharmID": "9d80ae81-4a0a-8be8-347c-ceafcda2d7bd",
+              "CharmLevelID": "728947fb-4a6f-62c7-cb77-b78293c350f6",
+              "Attachments": []
+            },
+            {
+              "ID": "1baa85b4-4c70-1284-64bb-6481dfc3bb4e",
+              "SkinID": "1c1ea3cf-4146-de0f-7e6a-828f68f0bb63",
+              "SkinLevelID": "212a97e3-4d94-87db-18e7-9caa0b8205dc",
+              "ChromaID": "344fed75-47c0-fb2d-2e54-c89ca3b7d8ab",
+              "CharmInstanceID": "c68966d3-dea7-4f34-8dd9-21ebee2bdfc1",
+              "CharmID": "37bb5fa0-40c7-2247-2b0b-6a82a16b04f1",
+              "CharmLevelID": "f1cd02c0-44ca-79b8-1737-ecbdb9b46ae2",
+              "Attachments": []
+            },
+            {
+              "ID": "462080d1-4035-2937-7c09-27aa2a5c27a7",
+              "SkinID": "95ca4d2b-4166-8e0e-8d79-d79957f58b81",
+              "SkinLevelID": "3524b584-4f5a-6f04-4ca7-f8968eaf4851",
+              "ChromaID": "fc7005c4-4455-7298-b5fb-b182031d882b",
+              "CharmInstanceID": "17aa6886-a89d-4ec7-b6fb-d7eeb5699287",
+              "CharmID": "1e553d0e-422f-46c6-4378-5299272355c0",
+              "CharmLevelID": "10540d99-40bc-cfc3-6625-20b07f0920d9",
+              "Attachments": []
+            },
+            {
+              "ID": "910be174-449b-c412-ab22-d0873436b21b",
+              "SkinID": "ea3e6c8a-4e5e-baf9-33c3-7abacf07aaee",
+              "SkinLevelID": "80810960-4718-87f0-5996-f2a5e9855d83",
+              "ChromaID": "831500b0-4d3e-c635-883d-6eafe85a0acc",
+              "CharmInstanceID": "8cee8c30-a783-4776-a74c-a8cc8a7909a2",
+              "CharmID": "25c6099b-411e-573e-673c-b594cba84c10",
+              "CharmLevelID": "abd1acb2-45ca-67a2-328e-b9afc833240a",
+              "Attachments": []
+            },
+            {
+              "ID": "5f0aaf7a-4289-3998-d5ff-eb9a5cf7ef5c",
+              "SkinID": "ae6ca820-4795-5054-76f8-a186b636b231",
+              "SkinLevelID": "9acce26e-499d-bc02-98f2-22af6f9cca23",
+              "ChromaID": "1d816974-4409-eb19-9697-4ca6985b93e6",
+              "CharmInstanceID": "7c160df4-07e6-436a-affc-85c2f51323f1",
+              "CharmID": "6e971616-4ebc-18b9-0155-4aaf8e147fef",
+              "CharmLevelID": "673a41b3-4fff-c348-0510-229b235f440e",
+              "Attachments": []
+            },
+            {
+              "ID": "ec845bf4-4f79-ddda-a3da-0db3774b2794",
+              "SkinID": "3c591590-48d3-d123-3a68-9291d35ab11b",
+              "SkinLevelID": "ecafe849-4342-4ce0-c319-4fa2bffa39e8",
+              "ChromaID": "d679241e-4ce3-6651-530d-7f82ddd96215",
+              "Attachments": []
+            },
+            {
+              "ID": "44d4e95c-4157-0037-81b2-17841bf2e8e3",
+              "SkinID": "7a20502f-45b2-6781-b408-08bc86c5e5e2",
+              "SkinLevelID": "44b156ee-421c-88ff-fa3b-3ebf1c93067d",
+              "ChromaID": "0480a120-42db-4354-12c6-23afed9e64eb",
+              "CharmInstanceID": "341ba5b6-d2cc-443f-aefb-c2e16dd38ba3",
+              "CharmID": "78ee4c57-4263-5aba-c48f-79b3a94259bc",
+              "CharmLevelID": "73ed2f43-4b77-b2c7-d69c-feb2403116d4",
+              "Attachments": []
+            },
+            {
+              "ID": "a03b24d3-4319-996d-0f8c-94bbfba1dfc7",
+              "SkinID": "2460c852-4d1b-a9e3-ccda-43a8e30cb739",
+              "SkinLevelID": "4c974cbb-4739-562c-5e13-6eb15923e5e0",
+              "ChromaID": "d14b651f-45f2-e7c8-f30d-198fd5eef49e",
+              "CharmInstanceID": "72b37364-eddc-5dab-bfde-76dee448482a",
+              "CharmID": "7f87473c-4e73-ff52-7cd8-58a4085f630a",
+              "CharmLevelID": "d6708074-4254-4497-d452-1bb1ca6153fe",
+              "Attachments": []
+            },
+            {
+              "ID": "c4883e50-4494-202c-3ec3-6b8a9284f00b",
+              "SkinID": "fc802ceb-4a39-39ac-adf5-02a812be2f8e",
+              "SkinLevelID": "c8fd6caf-43d1-f3ef-4a5d-1793ad9e558e",
+              "ChromaID": "7bf9393e-448d-21ea-7819-d8a9c8128cb1",
+              "CharmInstanceID": "64c058dc-3ad6-477a-9ffe-a06c7941d5d9",
+              "CharmID": "78ee4c57-4263-5aba-c48f-79b3a94259bc",
+              "CharmLevelID": "73ed2f43-4b77-b2c7-d69c-feb2403116d4",
+              "Attachments": []
+            },
+            {
+              "ID": "2f59173c-4bed-b6c3-2191-dea9b58be9c7",
+              "SkinID": "4e7342a5-4820-2d79-a488-0fa51a4357f7",
+              "SkinLevelID": "0bd22fc5-4cb4-2323-f283-d9acaea58aa6",
+              "ChromaID": "0ea92c62-4483-fed2-46c3-77859912ddad",
+              "Attachments": []
+            },
+            {
+              "ID": "63e6c2b6-4a8e-869c-3d4c-e38355226584",
+              "SkinID": "8dda01a6-4237-f430-ac70-c3ba677963e9",
+              "SkinLevelID": "606a2388-440f-7858-e5e3-5a94d7aeb64f",
+              "ChromaID": "cf42ad75-43db-5426-0645-a7a3fac452c5",
+              "CharmInstanceID": "f8c18df1-8a0f-4e28-afbf-55d7a2d3290a",
+              "CharmID": "daec60f4-45c1-f15a-2a31-a98bb120cb93",
+              "CharmLevelID": "06c916ae-4e72-7801-5a7d-b3b3d36c9d2c",
+              "Attachments": []
+            },
+            {
+              "ID": "ae3de142-4d85-2547-dd26-4e90bed35cf7",
+              "SkinID": "325d2274-487b-8672-84d6-6db8e9798447",
+              "SkinLevelID": "77319adb-433f-4978-5059-d780c0c68d5f",
+              "ChromaID": "74207d99-4255-7837-a09e-90bc1f2444e4",
+              "Attachments": []
+            },
+            {
+              "ID": "410b2e0b-4ceb-1321-1727-20858f7f3477",
+              "SkinID": "902a3bcb-4164-3315-fe03-2088fb897ce4",
+              "SkinLevelID": "75947fc9-4fdd-55ea-5a63-1a920336c8e7",
+              "ChromaID": "f8cd2463-4de6-2f96-561b-c0ab717995f9",
+              "CharmInstanceID": "efadde35-f967-4a0b-8f6d-d7e0859676fd",
+              "CharmID": "fedceff5-4a3e-0506-dbc0-8ba5b9cfd171",
+              "CharmLevelID": "8bd42b70-4f2f-5c7d-33d3-0f83521c8eb5",
+              "Attachments": []
+            }
+          ],
+          "Sprays": [
+            {
+              "EquipSlotID": "04af080a-4071-487b-61c0-5b9c0cfaac74",
+              "SprayID": "0a6db78c-48b9-a32d-c47a-82be597584c1",
+              "SprayLevelID": null
+            },
+            {
+              "EquipSlotID": "5863985e-43ac-b05d-cb2d-139e72970014",
+              "SprayID": "0a6db78c-48b9-a32d-c47a-82be597584c1",
+              "SprayLevelID": null
+            },
+            {
+              "EquipSlotID": "7cdc908e-4f69-9140-a604-899bd879eed1",
+              "SprayID": "0a6db78c-48b9-a32d-c47a-82be597584c1",
+              "SprayLevelID": null
+            },
+            {
+              "EquipSlotID": "0814b2fe-4512-60a4-5288-1fbdcec6ca48",
+              "SprayID": "f0fac2f6-4562-21dd-2bf3-d4aeba5ea0f7",
+              "SprayLevelID": null
+            }
+          ],
+          "Identity": {
+            "PlayerCardID": "1fb0bee0-49db-fb51-b090-bc834babdb2b",
+            "PlayerTitleID": "3d9cda2b-4b2b-11c4-aa34-679987682f16",
+            "AccountLevel": 0,
+            "PreferredLevelBorderID": "ae5eda0d-476b-a159-959c-df93374f4a69",
+            "HideAccountLevel": true
+          },
+          "Incognito": true
+        }
+      }
+    },
+    "playerMmr": {
+      "name": "playerMmr",
+      "request": {
+        "method": "GET",
+        "url": "https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26"
+      },
+      "response": {
+        "ok": true,
+        "status": 200,
+        "statusText": "OK",
+        "durationMs": 116,
+        "body": {
+          "Version": 1783182578929,
+          "Subject": "991adf11-cd4a-55d2-937f-4ec21521fd26",
+          "LatestCompetitiveUpdate": {
+            "MatchID": "02a2f44c-b605-4ffb-83c8-517d7c0a5346",
+            "MapID": "/Game/Maps/Plummet/Plummet",
+            "QueueID": "competitive",
+            "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+            "MatchStartTime": 1783180459670,
+            "MatchLength": 2048322,
+            "TierAfterUpdate": 16,
+            "TierBeforeUpdate": 16,
+            "RankedRatingAfterUpdate": 15,
+            "RankedRatingBeforeUpdate": 24,
+            "RankedRatingEarned": -9,
+            "RankedRatingPerformanceBonus": 0,
+            "RankedRatingRefundApplied": 0,
+            "NewMapIncentiveRRForgiven": 8,
+            "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+            "AFKPenalty": 0,
+            "WasDerankProtected": false,
+            "WasDerankProtectionReplenished": false
+          },
+          "NewPlayerExperienceFinished": true,
+          "IsActRankBadgeHidden": true,
+          "IsLeaderboardAnonymized": false,
+          "OnboardingFlowV2Enabled": true,
+          "OnboardingStatus": "OnboardingComplete",
+          "IsAtDerankProtectedTier": false,
+          "DerankProtectedGamesRemaining": 0,
+          "DerankProtectedStatus": "Empty",
+          "QueueSkills": {
+            "competitive": {
+              "TotalGamesNeededForRating": 0,
+              "TotalGamesNeededForLeaderboard": 0,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "03dfd004-45d4-ebfd-ab0a-948ce780dac4": {
+                  "SeasonID": "03dfd004-45d4-ebfd-ab0a-948ce780dac4",
+                  "NumberOfWins": 49,
+                  "NumberOfWinsWithPlacements": 49,
+                  "NumberOfGames": 87,
+                  "Rank": 14,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 14,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "10": 1,
+                    "11": 7,
+                    "12": 7,
+                    "13": 20,
+                    "14": 14
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "0981a882-4e7d-371a-70c4-c3b4f46c504a": {
+                  "SeasonID": "0981a882-4e7d-371a-70c4-c3b4f46c504a",
+                  "NumberOfWins": 54,
+                  "NumberOfWinsWithPlacements": 54,
+                  "NumberOfGames": 112,
+                  "Rank": 13,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 11,
+                  "RankedRating": 69,
+                  "WinsByTier": {
+                    "9": 3,
+                    "10": 4,
+                    "11": 21,
+                    "12": 25,
+                    "13": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "16118998-4705-5813-86dd-0292a2439d90": {
+                  "SeasonID": "16118998-4705-5813-86dd-0292a2439d90",
+                  "NumberOfWins": 33,
+                  "NumberOfWinsWithPlacements": 33,
+                  "NumberOfGames": 79,
+                  "Rank": 12,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 12,
+                  "RankedRating": 10,
+                  "WinsByTier": {
+                    "11": 7,
+                    "12": 26
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "22d10d66-4d2a-a340-6c54-408c7bd53807": {
+                  "SeasonID": "22d10d66-4d2a-a340-6c54-408c7bd53807",
+                  "NumberOfWins": 23,
+                  "NumberOfWinsWithPlacements": 23,
+                  "NumberOfGames": 39,
+                  "Rank": 16,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 15,
+                  "RankedRating": 24,
+                  "WinsByTier": {
+                    "13": 1,
+                    "14": 8,
+                    "15": 10,
+                    "16": 4
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "292f58db-4c17-89a7-b1c0-ba988f0e9d98": {
+                  "SeasonID": "292f58db-4c17-89a7-b1c0-ba988f0e9d98",
+                  "NumberOfWins": 1,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 16,
+                  "RankedRating": 31,
+                  "WinsByTier": {
+                    "16": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 8
+                },
+                "2de5423b-4aad-02ad-8d9b-c0a931958861": {
+                  "SeasonID": "2de5423b-4aad-02ad-8d9b-c0a931958861",
+                  "NumberOfWins": 44,
+                  "NumberOfWinsWithPlacements": 44,
+                  "NumberOfGames": 94,
+                  "Rank": 14,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 14,
+                  "RankedRating": 10,
+                  "WinsByTier": {
+                    "12": 16,
+                    "13": 27,
+                    "14": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "34093c29-4306-43de-452f-3f944bde22be": {
+                  "SeasonID": "34093c29-4306-43de-452f-3f944bde22be",
+                  "NumberOfWins": 66,
+                  "NumberOfWinsWithPlacements": 66,
+                  "NumberOfGames": 125,
+                  "Rank": 14,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 14,
+                  "RankedRating": 31,
+                  "WinsByTier": {
+                    "10": 7,
+                    "11": 16,
+                    "12": 14,
+                    "13": 14,
+                    "14": 15
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "3ea2b318-423b-cf86-25da-7cbb0eefbe2d": {
+                  "SeasonID": "3ea2b318-423b-cf86-25da-7cbb0eefbe2d",
+                  "NumberOfWins": 152,
+                  "NumberOfWinsWithPlacements": 155,
+                  "NumberOfGames": 352,
+                  "Rank": 18,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 13,
+                  "RankedRating": 10,
+                  "WinsByTier": {
+                    "0": 3,
+                    "11": 1,
+                    "12": 23,
+                    "13": 35,
+                    "14": 9,
+                    "15": 14,
+                    "16": 32,
+                    "17": 36,
+                    "18": 2
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "4401f9fd-4170-2e4c-4bc3-f3b4d7d150d1": {
+                  "SeasonID": "4401f9fd-4170-2e4c-4bc3-f3b4d7d150d1",
+                  "NumberOfWins": 5,
+                  "NumberOfWinsWithPlacements": 5,
+                  "NumberOfGames": 12,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 13,
+                  "RankedRating": 94,
+                  "WinsByTier": {
+                    "13": 5
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 4
+                },
+                "4539cac3-47ae-90e5-3d01-b3812ca3274e": {
+                  "SeasonID": "4539cac3-47ae-90e5-3d01-b3812ca3274e",
+                  "NumberOfWins": 27,
+                  "NumberOfWinsWithPlacements": 27,
+                  "NumberOfGames": 53,
+                  "Rank": 16,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 16,
+                  "RankedRating": 63,
+                  "WinsByTier": {
+                    "14": 8,
+                    "15": 13,
+                    "16": 6
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "476b0893-4c2e-abd6-c5fe-708facff0772": {
+                  "SeasonID": "476b0893-4c2e-abd6-c5fe-708facff0772",
+                  "NumberOfWins": 31,
+                  "NumberOfWinsWithPlacements": 35,
+                  "NumberOfGames": 72,
+                  "Rank": 12,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 12,
+                  "RankedRating": 37,
+                  "WinsByTier": {
+                    "0": 4,
+                    "10": 7,
+                    "11": 18,
+                    "12": 6
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "4c4b8cff-43eb-13d3-8f14-96b783c90cd2": {
+                  "SeasonID": "4c4b8cff-43eb-13d3-8f14-96b783c90cd2",
+                  "NumberOfWins": 123,
+                  "NumberOfWinsWithPlacements": 123,
+                  "NumberOfGames": 239,
+                  "Rank": 17,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 17,
+                  "RankedRating": 31,
+                  "WinsByTier": {
+                    "12": 1,
+                    "13": 33,
+                    "14": 25,
+                    "15": 41,
+                    "16": 12,
+                    "17": 11
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 34,
+                  "NumberOfWinsWithPlacements": 37,
+                  "NumberOfGames": 77,
+                  "Rank": 16,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 16,
+                  "RankedRating": 15,
+                  "WinsByTier": {
+                    "0": 3,
+                    "15": 13,
+                    "16": 21
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "52ca6698-41c1-e7de-4008-8994d2221209": {
+                  "SeasonID": "52ca6698-41c1-e7de-4008-8994d2221209",
+                  "NumberOfWins": 38,
+                  "NumberOfWinsWithPlacements": 40,
+                  "NumberOfGames": 77,
+                  "Rank": 16,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 16,
+                  "RankedRating": 13,
+                  "WinsByTier": {
+                    "0": 2,
+                    "12": 3,
+                    "13": 17,
+                    "14": 9,
+                    "15": 8,
+                    "16": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "5adc33fa-4f30-2899-f131-6fba64c5dd3a": {
+                  "SeasonID": "5adc33fa-4f30-2899-f131-6fba64c5dd3a",
+                  "NumberOfWins": 45,
+                  "NumberOfWinsWithPlacements": 45,
+                  "NumberOfGames": 91,
+                  "Rank": 14,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 13,
+                  "RankedRating": 84,
+                  "WinsByTier": {
+                    "12": 20,
+                    "13": 22,
+                    "14": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "7a85de9a-4032-61a9-61d8-f4aa2b4a84b6": {
+                  "SeasonID": "7a85de9a-4032-61a9-61d8-f4aa2b4a84b6",
+                  "NumberOfWins": 18,
+                  "NumberOfWinsWithPlacements": 20,
+                  "NumberOfGames": 38,
+                  "Rank": 9,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 8,
+                  "RankedRating": 43,
+                  "WinsByTier": {
+                    "0": 2,
+                    "5": 3,
+                    "6": 7,
+                    "8": 6,
+                    "9": 2
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "9c91a445-4f78-1baa-a3ea-8f8aadf4914d": {
+                  "SeasonID": "9c91a445-4f78-1baa-a3ea-8f8aadf4914d",
+                  "NumberOfWins": 104,
+                  "NumberOfWinsWithPlacements": 105,
+                  "NumberOfGames": 217,
+                  "Rank": 10,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 10,
+                  "RankedRating": 44,
+                  "WinsByTier": {
+                    "0": 1,
+                    "7": 10,
+                    "8": 16,
+                    "9": 38,
+                    "10": 40
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "9d85c932-4820-c060-09c3-668636d4df1b": {
+                  "SeasonID": "9d85c932-4820-c060-09c3-668636d4df1b",
+                  "NumberOfWins": 83,
+                  "NumberOfWinsWithPlacements": 83,
+                  "NumberOfGames": 176,
+                  "Rank": 15,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 14,
+                  "RankedRating": 45,
+                  "WinsByTier": {
+                    "12": 3,
+                    "13": 12,
+                    "14": 57,
+                    "15": 11
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "ac12e9b3-47e6-9599-8fa1-0bb473e5efc7": {
+                  "SeasonID": "ac12e9b3-47e6-9599-8fa1-0bb473e5efc7",
+                  "NumberOfWins": 67,
+                  "NumberOfWinsWithPlacements": 71,
+                  "NumberOfGames": 138,
+                  "Rank": 13,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 13,
+                  "RankedRating": 24,
+                  "WinsByTier": {
+                    "0": 4,
+                    "10": 9,
+                    "11": 14,
+                    "12": 36,
+                    "13": 8
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "aca29595-40e4-01f5-3f35-b1b3d304c96e": {
+                  "SeasonID": "aca29595-40e4-01f5-3f35-b1b3d304c96e",
+                  "NumberOfWins": 23,
+                  "NumberOfWinsWithPlacements": 23,
+                  "NumberOfGames": 51,
+                  "Rank": 11,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 10,
+                  "RankedRating": 35,
+                  "WinsByTier": {
+                    "8": 2,
+                    "9": 6,
+                    "10": 11,
+                    "11": 4
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "aef237a0-494d-3a14-a1c8-ec8de84e309c": {
+                  "SeasonID": "aef237a0-494d-3a14-a1c8-ec8de84e309c",
+                  "NumberOfWins": 34,
+                  "NumberOfWinsWithPlacements": 34,
+                  "NumberOfGames": 54,
+                  "Rank": 14,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 14,
+                  "RankedRating": 34,
+                  "WinsByTier": {
+                    "12": 6,
+                    "13": 7,
+                    "14": 21
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 139,
+                  "NumberOfWinsWithPlacements": 139,
+                  "NumberOfGames": 304,
+                  "Rank": 17,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 17,
+                  "RankedRating": 33,
+                  "WinsByTier": {
+                    "14": 25,
+                    "15": 57,
+                    "16": 45,
+                    "17": 12
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "dcde7346-4085-de4f-c463-2489ed47983b": {
+                  "SeasonID": "dcde7346-4085-de4f-c463-2489ed47983b",
+                  "NumberOfWins": 18,
+                  "NumberOfWinsWithPlacements": 18,
+                  "NumberOfGames": 43,
+                  "Rank": 15,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 14,
+                  "RankedRating": 71,
+                  "WinsByTier": {
+                    "14": 14,
+                    "15": 4
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "ec876e6c-43e8-fa63-ffc1-2e8d4db25525": {
+                  "SeasonID": "ec876e6c-43e8-fa63-ffc1-2e8d4db25525",
+                  "NumberOfWins": 31,
+                  "NumberOfWinsWithPlacements": 33,
+                  "NumberOfGames": 66,
+                  "Rank": 13,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 13,
+                  "RankedRating": 58,
+                  "WinsByTier": {
+                    "0": 2,
+                    "11": 6,
+                    "12": 7,
+                    "13": 18
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                }
+              }
+            },
+            "deathmatch": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "dodgeball": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "fortcollins": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "ggteam": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "hurm": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "newmap": {
+              "TotalGamesNeededForRating": 5,
+              "TotalGamesNeededForLeaderboard": 45,
+              "CurrentSeasonGamesNeededForRating": 1,
+              "SeasonalInfoBySeasonID": {
+                "03dfd004-45d4-ebfd-ab0a-948ce780dac4": {
+                  "SeasonID": "03dfd004-45d4-ebfd-ab0a-948ce780dac4",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "4539cac3-47ae-90e5-3d01-b3812ca3274e": {
+                  "SeasonID": "4539cac3-47ae-90e5-3d01-b3812ca3274e",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 2,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 2
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "9c91a445-4f78-1baa-a3ea-8f8aadf4914d": {
+                  "SeasonID": "9c91a445-4f78-1baa-a3ea-8f8aadf4914d",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 0,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": null,
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                }
+              }
+            },
+            "onefa": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "seeding": {
+              "TotalGamesNeededForRating": 5,
+              "TotalGamesNeededForLeaderboard": 49,
+              "CurrentSeasonGamesNeededForRating": 1,
+              "SeasonalInfoBySeasonID": {
+                "d929bc38-4ab6-7da4-94f0-ee84f8ac141e": {
+                  "SeasonID": "d929bc38-4ab6-7da4-94f0-ee84f8ac141e",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 0,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": null,
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                }
+              }
+            },
+            "skirmish2v2": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "skirmishascension1v1": {
+              "TotalGamesNeededForRating": 5,
+              "TotalGamesNeededForLeaderboard": 44,
+              "CurrentSeasonGamesNeededForRating": 1,
+              "SeasonalInfoBySeasonID": {
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 6,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "skirmishascension2v2": {
+              "TotalGamesNeededForRating": 5,
+              "TotalGamesNeededForLeaderboard": 48,
+              "CurrentSeasonGamesNeededForRating": 1,
+              "SeasonalInfoBySeasonID": {
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 2,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 2
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "snowball": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "spikerush": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "swiftplay": {
+              "TotalGamesNeededForRating": 5,
+              "TotalGamesNeededForLeaderboard": 0,
+              "CurrentSeasonGamesNeededForRating": 1,
+              "SeasonalInfoBySeasonID": {
+                "03dfd004-45d4-ebfd-ab0a-948ce780dac4": {
+                  "SeasonID": "03dfd004-45d4-ebfd-ab0a-948ce780dac4",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 4,
+                  "NumberOfGames": 9,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 4
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "0981a882-4e7d-371a-70c4-c3b4f46c504a": {
+                  "SeasonID": "0981a882-4e7d-371a-70c4-c3b4f46c504a",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 8,
+                  "NumberOfGames": 13,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 8
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "22d10d66-4d2a-a340-6c54-408c7bd53807": {
+                  "SeasonID": "22d10d66-4d2a-a340-6c54-408c7bd53807",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 0,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": null,
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "2de5423b-4aad-02ad-8d9b-c0a931958861": {
+                  "SeasonID": "2de5423b-4aad-02ad-8d9b-c0a931958861",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 13,
+                  "NumberOfGames": 30,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 13
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "34093c29-4306-43de-452f-3f944bde22be": {
+                  "SeasonID": "34093c29-4306-43de-452f-3f944bde22be",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 4,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "3ea2b318-423b-cf86-25da-7cbb0eefbe2d": {
+                  "SeasonID": "3ea2b318-423b-cf86-25da-7cbb0eefbe2d",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 3,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "476b0893-4c2e-abd6-c5fe-708facff0772": {
+                  "SeasonID": "476b0893-4c2e-abd6-c5fe-708facff0772",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "4c4b8cff-43eb-13d3-8f14-96b783c90cd2": {
+                  "SeasonID": "4c4b8cff-43eb-13d3-8f14-96b783c90cd2",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 5,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "52ca6698-41c1-e7de-4008-8994d2221209": {
+                  "SeasonID": "52ca6698-41c1-e7de-4008-8994d2221209",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 0,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": null,
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "5adc33fa-4f30-2899-f131-6fba64c5dd3a": {
+                  "SeasonID": "5adc33fa-4f30-2899-f131-6fba64c5dd3a",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "9d85c932-4820-c060-09c3-668636d4df1b": {
+                  "SeasonID": "9d85c932-4820-c060-09c3-668636d4df1b",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ec876e6c-43e8-fa63-ffc1-2e8d4db25525": {
+                  "SeasonID": "ec876e6c-43e8-fa63-ffc1-2e8d4db25525",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 5,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "unrated": {
+              "TotalGamesNeededForRating": 5,
+              "TotalGamesNeededForLeaderboard": 0,
+              "CurrentSeasonGamesNeededForRating": 1,
+              "SeasonalInfoBySeasonID": {
+                "03dfd004-45d4-ebfd-ab0a-948ce780dac4": {
+                  "SeasonID": "03dfd004-45d4-ebfd-ab0a-948ce780dac4",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 7,
+                  "NumberOfGames": 14,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 7
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "0981a882-4e7d-371a-70c4-c3b4f46c504a": {
+                  "SeasonID": "0981a882-4e7d-371a-70c4-c3b4f46c504a",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 30,
+                  "NumberOfGames": 69,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 30
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "16118998-4705-5813-86dd-0292a2439d90": {
+                  "SeasonID": "16118998-4705-5813-86dd-0292a2439d90",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 4,
+                  "NumberOfGames": 14,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 4
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "22d10d66-4d2a-a340-6c54-408c7bd53807": {
+                  "SeasonID": "22d10d66-4d2a-a340-6c54-408c7bd53807",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 0,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": null,
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 0
+                },
+                "292f58db-4c17-89a7-b1c0-ba988f0e9d98": {
+                  "SeasonID": "292f58db-4c17-89a7-b1c0-ba988f0e9d98",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 5,
+                  "NumberOfGames": 14,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 5
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "2de5423b-4aad-02ad-8d9b-c0a931958861": {
+                  "SeasonID": "2de5423b-4aad-02ad-8d9b-c0a931958861",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 74,
+                  "NumberOfGames": 138,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 74
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "34093c29-4306-43de-452f-3f944bde22be": {
+                  "SeasonID": "34093c29-4306-43de-452f-3f944bde22be",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 40,
+                  "NumberOfGames": 77,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 40
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "3ea2b318-423b-cf86-25da-7cbb0eefbe2d": {
+                  "SeasonID": "3ea2b318-423b-cf86-25da-7cbb0eefbe2d",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 5,
+                  "NumberOfGames": 9,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 5
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "4401f9fd-4170-2e4c-4bc3-f3b4d7d150d1": {
+                  "SeasonID": "4401f9fd-4170-2e4c-4bc3-f3b4d7d150d1",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "4539cac3-47ae-90e5-3d01-b3812ca3274e": {
+                  "SeasonID": "4539cac3-47ae-90e5-3d01-b3812ca3274e",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 4,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "476b0893-4c2e-abd6-c5fe-708facff0772": {
+                  "SeasonID": "476b0893-4c2e-abd6-c5fe-708facff0772",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 6,
+                  "NumberOfGames": 12,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 6
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "4c4b8cff-43eb-13d3-8f14-96b783c90cd2": {
+                  "SeasonID": "4c4b8cff-43eb-13d3-8f14-96b783c90cd2",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 5,
+                  "NumberOfGames": 12,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 5
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "52ca6698-41c1-e7de-4008-8994d2221209": {
+                  "SeasonID": "52ca6698-41c1-e7de-4008-8994d2221209",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 5,
+                  "NumberOfGames": 9,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 5
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "5adc33fa-4f30-2899-f131-6fba64c5dd3a": {
+                  "SeasonID": "5adc33fa-4f30-2899-f131-6fba64c5dd3a",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "67e373c7-48f7-b422-641b-079ace30b427": {
+                  "SeasonID": "67e373c7-48f7-b422-641b-079ace30b427",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 16,
+                  "NumberOfGames": 37,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 16
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "7a85de9a-4032-61a9-61d8-f4aa2b4a84b6": {
+                  "SeasonID": "7a85de9a-4032-61a9-61d8-f4aa2b4a84b6",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 36,
+                  "NumberOfGames": 73,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 36
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "9c91a445-4f78-1baa-a3ea-8f8aadf4914d": {
+                  "SeasonID": "9c91a445-4f78-1baa-a3ea-8f8aadf4914d",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 12,
+                  "NumberOfGames": 22,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 12
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ac12e9b3-47e6-9599-8fa1-0bb473e5efc7": {
+                  "SeasonID": "ac12e9b3-47e6-9599-8fa1-0bb473e5efc7",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 2,
+                  "NumberOfGames": 4,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 2
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "aca29595-40e4-01f5-3f35-b1b3d304c96e": {
+                  "SeasonID": "aca29595-40e4-01f5-3f35-b1b3d304c96e",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 9,
+                  "NumberOfGames": 13,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 9
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "aef237a0-494d-3a14-a1c8-ec8de84e309c": {
+                  "SeasonID": "aef237a0-494d-3a14-a1c8-ec8de84e309c",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 1,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 4,
+                  "NumberOfGames": 6,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 4
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "d929bc38-4ab6-7da4-94f0-ee84f8ac141e": {
+                  "SeasonID": "d929bc38-4ab6-7da4-94f0-ee84f8ac141e",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 4,
+                  "NumberOfGames": 7,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 4
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "dcde7346-4085-de4f-c463-2489ed47983b": {
+                  "SeasonID": "dcde7346-4085-de4f-c463-2489ed47983b",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 71,
+                  "NumberOfGames": 154,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 71
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ec876e6c-43e8-fa63-ffc1-2e8d4db25525": {
+                  "SeasonID": "ec876e6c-43e8-fa63-ffc1-2e8d4db25525",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 7,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            },
+            "valaram": {
+              "TotalGamesNeededForRating": 3,
+              "TotalGamesNeededForLeaderboard": 30,
+              "CurrentSeasonGamesNeededForRating": 0,
+              "SeasonalInfoBySeasonID": {
+                "4f0864e2-40af-28a4-de2c-0e9e64e75f23": {
+                  "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 1,
+                  "NumberOfGames": 2,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 1
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                },
+                "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22": {
+                  "SeasonID": "ce2783e8-44fc-dd48-3da3-33b5ba6c4a22",
+                  "NumberOfWins": 0,
+                  "NumberOfWinsWithPlacements": 3,
+                  "NumberOfGames": 18,
+                  "Rank": 0,
+                  "CapstoneWins": 0,
+                  "LeaderboardRank": 0,
+                  "CompetitiveTier": 0,
+                  "RankedRating": 0,
+                  "WinsByTier": {
+                    "0": 3
+                  },
+                  "GamesNeededForRating": 0,
+                  "TotalWinsNeededForRank": 9
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "competitiveUpdates": {
+      "name": "competitiveUpdates",
+      "request": {
+        "method": "GET",
+        "url": "https://pd.ap.a.pvp.net/mmr/v1/players/991adf11-cd4a-55d2-937f-4ec21521fd26/competitiveupdates?startIndex=0&endIndex=20&queue=competitive"
+      },
+      "response": {
+        "ok": true,
+        "status": 200,
+        "statusText": "OK",
+        "durationMs": 84,
+        "body": {
+          "Version": 0,
+          "Subject": "991adf11-cd4a-55d2-937f-4ec21521fd26",
+          "Matches": [
+            {
+              "MatchID": "02a2f44c-b605-4ffb-83c8-517d7c0a5346",
+              "MapID": "/Game/Maps/Plummet/Plummet",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783180459670,
+              "MatchLength": 2048322,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 15,
+              "RankedRatingBeforeUpdate": 24,
+              "RankedRatingEarned": -9,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 8,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "73c10f2f-ecfd-4d23-bd3f-05acccbeecd8",
+              "MapID": "/Game/Maps/Ascent/Ascent",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783177415117,
+              "MatchLength": 2500948,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 24,
+              "RankedRatingBeforeUpdate": 39,
+              "RankedRatingEarned": -15,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "a55bd843-bff2-45fe-885b-7e89b773297e",
+              "MapID": "/Game/Maps/Bonsai/Bonsai",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783172857987,
+              "MatchLength": 1737295,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 39,
+              "RankedRatingBeforeUpdate": 60,
+              "RankedRatingEarned": -21,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "c96de563-4979-4352-aa3e-0cdfa12ff5e0",
+              "MapID": "/Game/Maps/Foxtrot/Foxtrot",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783170939350,
+              "MatchLength": 1013217,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 60,
+              "RankedRatingBeforeUpdate": 43,
+              "RankedRatingEarned": 17,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "bf53cbab-b69e-43a6-9d6f-cc1ed89d865c",
+              "MapID": "/Game/Maps/Bonsai/Bonsai",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783166011911,
+              "MatchLength": 2063501,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 43,
+              "RankedRatingBeforeUpdate": 63,
+              "RankedRatingEarned": -20,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "da349a94-ecc9-4322-907a-cd0cdd0082c7",
+              "MapID": "/Game/Maps/Triad/Triad",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783159616228,
+              "MatchLength": 2317208,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 63,
+              "RankedRatingBeforeUpdate": 43,
+              "RankedRatingEarned": 20,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "898fcc97-9dff-48a3-b81c-a42659942023",
+              "MapID": "/Game/Maps/Juliett/Juliett",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783151048569,
+              "MatchLength": 2143809,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 43,
+              "RankedRatingBeforeUpdate": 25,
+              "RankedRatingEarned": 18,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "9d1240bb-a7bc-4564-b390-43d579e6b04d",
+              "MapID": "/Game/Maps/Ascent/Ascent",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783142563584,
+              "MatchLength": 1968703,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 25,
+              "RankedRatingBeforeUpdate": 10,
+              "RankedRatingEarned": 15,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "11f46685-ab5b-4d9b-bcea-98eb7d4a07be",
+              "MapID": "/Game/Maps/Ascent/Ascent",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783131111867,
+              "MatchLength": 2626134,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 15,
+              "RankedRatingAfterUpdate": 10,
+              "RankedRatingBeforeUpdate": 89,
+              "RankedRatingEarned": 16,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "c51d68ae-5cce-41e6-b684-8efe5aa6e43a",
+              "MapID": "/Game/Maps/Plummet/Plummet",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783098107008,
+              "MatchLength": 2170268,
+              "TierAfterUpdate": 15,
+              "TierBeforeUpdate": 15,
+              "RankedRatingAfterUpdate": 89,
+              "RankedRatingBeforeUpdate": 98,
+              "RankedRatingEarned": -9,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 8,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "12a0a843-b8e7-4d1e-80fe-644fa5b87bce",
+              "MapID": "/Game/Maps/Plummet/Plummet",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783094290878,
+              "MatchLength": 2332055,
+              "TierAfterUpdate": 15,
+              "TierBeforeUpdate": 15,
+              "RankedRatingAfterUpdate": 98,
+              "RankedRatingBeforeUpdate": 81,
+              "RankedRatingEarned": 17,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "c26507ab-7823-4463-9cc8-36647bf44369",
+              "MapID": "/Game/Maps/Foxtrot/Foxtrot",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783090579869,
+              "MatchLength": 2751739,
+              "TierAfterUpdate": 15,
+              "TierBeforeUpdate": 15,
+              "RankedRatingAfterUpdate": 81,
+              "RankedRatingBeforeUpdate": 65,
+              "RankedRatingEarned": 16,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "3206385f-2822-4bad-862d-1328f934c8e8",
+              "MapID": "/Game/Maps/Foxtrot/Foxtrot",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783087489500,
+              "MatchLength": 2777296,
+              "TierAfterUpdate": 15,
+              "TierBeforeUpdate": 15,
+              "RankedRatingAfterUpdate": 65,
+              "RankedRatingBeforeUpdate": 47,
+              "RankedRatingEarned": 18,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "b19b0f91-99c4-4622-a11a-40e9b779c5c2",
+              "MapID": "/Game/Maps/Juliett/Juliett",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783085199916,
+              "MatchLength": 2027851,
+              "TierAfterUpdate": 15,
+              "TierBeforeUpdate": 15,
+              "RankedRatingAfterUpdate": 47,
+              "RankedRatingBeforeUpdate": 66,
+              "RankedRatingEarned": -19,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "8852c788-0b1c-4d7c-8cf2-c408947af129",
+              "MapID": "/Game/Maps/Juliett/Juliett",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783004852871,
+              "MatchLength": 3336219,
+              "TierAfterUpdate": 15,
+              "TierBeforeUpdate": 15,
+              "RankedRatingAfterUpdate": 66,
+              "RankedRatingBeforeUpdate": 66,
+              "RankedRatingEarned": 0,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "44367553-6e11-4057-82fd-5f34716b45e2",
+              "MapID": "/Game/Maps/Ascent/Ascent",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1783002440506,
+              "MatchLength": 2193070,
+              "TierAfterUpdate": 15,
+              "TierBeforeUpdate": 15,
+              "RankedRatingAfterUpdate": 66,
+              "RankedRatingBeforeUpdate": 79,
+              "RankedRatingEarned": -13,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "57781966-669c-43ec-b662-1aacc3d1f44e",
+              "MapID": "/Game/Maps/Ascent/Ascent",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1782997005012,
+              "MatchLength": 1957610,
+              "TierAfterUpdate": 15,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 79,
+              "RankedRatingBeforeUpdate": 0,
+              "RankedRatingEarned": -21,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": true
+            },
+            {
+              "MatchID": "dc40bcf2-b30f-465e-8f75-1f91c31c5b4b",
+              "MapID": "/Game/Maps/Triad/Triad",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1782994198557,
+              "MatchLength": 2469862,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 0,
+              "RankedRatingBeforeUpdate": 9,
+              "RankedRatingEarned": -14,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "e883635a-25d2-4dc6-a587-814742346cd6",
+              "MapID": "/Game/Maps/Bonsai/Bonsai",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1782967479467,
+              "MatchLength": 1998990,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 9,
+              "RankedRatingBeforeUpdate": 25,
+              "RankedRatingEarned": -16,
+              "RankedRatingPerformanceBonus": 0,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            },
+            {
+              "MatchID": "0ef3575a-3e86-4a2d-9c57-ed59bad22343",
+              "MapID": "/Game/Maps/Triad/Triad",
+              "QueueID": "competitive",
+              "SeasonID": "4f0864e2-40af-28a4-de2c-0e9e64e75f23",
+              "MatchStartTime": 1782963158369,
+              "MatchLength": 2153317,
+              "TierAfterUpdate": 16,
+              "TierBeforeUpdate": 16,
+              "RankedRatingAfterUpdate": 25,
+              "RankedRatingBeforeUpdate": 0,
+              "RankedRatingEarned": 25,
+              "RankedRatingPerformanceBonus": 4,
+              "RankedRatingRefundApplied": 0,
+              "NewMapIncentiveRRForgiven": 0,
+              "CompetitiveMovement": "MOVEMENT_UNKNOWN",
+              "AFKPenalty": 0,
+              "WasDerankProtected": false,
+              "WasDerankProtectionReplenished": false
+            }
+          ]
+        }
+      }
+    },
+    "playerCard": {
+      "name": "playerCard",
+      "request": {
+        "method": "GET",
+        "url": "https://valorant-api.com/v1/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b"
+      },
+      "response": {
+        "ok": true,
+        "status": 200,
+        "statusText": "OK",
+        "durationMs": 120,
+        "body": {
+          "status": 200,
+          "data": {
+            "uuid": "1fb0bee0-49db-fb51-b090-bc834babdb2b",
+            "displayName": "Reyna ID Card",
+            "isHiddenIfNotOwned": false,
+            "themeUuid": null,
+            "displayIcon": "https://media.valorant-api.com/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b/displayicon.png",
+            "smallArt": "https://media.valorant-api.com/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b/smallart.png",
+            "wideArt": "https://media.valorant-api.com/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b/wideart.png",
+            "largeArt": "https://media.valorant-api.com/playercards/1fb0bee0-49db-fb51-b090-bc834babdb2b/largeart.png",
+            "assetPath": "ShooterGame/Content/Personalization/PlayerCards/Battlepass/ReynaJoins/Playercard_Reyna_Joins_PrimaryAsset"
+          }
+        }
+      }
+    }
+  }
+}

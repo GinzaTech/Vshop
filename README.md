@@ -81,6 +81,18 @@ npm install -g eas-cli
 ```bash
 npm start
 ```
+
+### Match UI development preview
+
+Match History and Match Detail normally use the signed-in Riot account. A complete mock data set is also available in development builds so the layout can be checked without changing API responses:
+
+```text
+/history?demo=1
+/match_details/mock-match-001?demo=1
+```
+
+The mock includes 25 rounds for horizontal timeline and economy-chart testing. Production builds ignore the `demo` query parameter.
+
 2. **Create Project in Expo**
 - Go to the [Expo website](https://expo.dev/) and create a new project.
 - Click on the "Project" button.

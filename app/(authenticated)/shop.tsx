@@ -1,47 +1,55 @@
+// 📦 shop.tsx – Màn hình Cửa hàng chính (Daily Shop) Valorant
+// Hiển thị các skin có sẵn trong cửa hàng hàng ngày, có bộ lọc "Tất cả" / "Yêu thích",
+// kèm đếm ngược thời gian làm mới và số dư VP
+
 import React from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
 
 import Countdown from "~/components/Countdown";
 import ShopItem from "~/components/ShopItem";
-import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
-import PageIntro from "~/components/ui/PageIntro";
-import SectionHeader from "~/components/ui/SectionHeader";
-import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 
+const CONTENT_PADDING = 20;
+const GRID_GAP = 12;
+
+/**
+ * Shop – Component chính hiển thị cửa hàng hàng ngày
+ * Gồm header (avatar, balance, chào), bộ lọc (all/wishlist),
+ * metric row (VP balance + countdown), và danh sách item dạng grid 2 cột
+ */
 function Shop() {
   const { t } = useTranslation();
+  const { width } = useWindowDimensions();
   const user = useUserStore((state) => state.user);
-  const [query, setQuery] = React.useState("");
   const [mode, setMode] = React.useState<"all" | "wishlist">("all");
   const skinIds = useWishlistStore((state) => state.skinIds);
 
   const timestamp = new Date().getTime() + user.shops.remainingSecs.main * 1000;
 
   const filteredItems = React.useMemo(() => {
-    return user.shops.main.filter((item) => {
-      const matchesQuery = item.displayName
-        .toLowerCase()
-        .includes(query.trim().toLowerCase());
-      const matchesMode =
-        mode === "all" || skinIds.includes(item.levels[0].uuid);
+    if (mode === "all") return user.shops.main;
+    return user.shops.main.filter((item) =>
+      skinIds.includes(item.levels[0]?.uuid),
+    );
+  }, [mode, skinIds, user.shops.main]);
 
-      return matchesQuery && matchesMode;
-    });
-  }, [mode, query, skinIds, user.shops.main]);
+  const columnCount = width >= 700 ? 3 : 2;
+  const cardWidth = Math.floor(
+    (width - CONTENT_PADDING * 2 - GRID_GAP * (columnCount - 1)) / columnCount
+  );
 
   const initials = (user.name || "V").slice(0, 1).toUpperCase();
 
@@ -51,7 +59,7 @@ function Shop() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Premium Custom Header Row */}
+      {/* Premium Custom Header Row: avatar, tên, chào, balance VP */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <View style={styles.avatar}>
@@ -72,34 +80,7 @@ function Shop() {
         </View>
       </View>
 
-      <View style={styles.searchRow}>
-        <View style={styles.searchBar}>
-          <Icon name="magnify" size={22} color={COLORS.TEXT_SECONDARY} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t("shop_page.search_placeholder")}
-            placeholderTextColor={COLORS.TEXT_SECONDARY}
-            style={styles.searchInput}
-          />
-        </View>
-        <TouchableOpacity
-          style={styles.filterButton}
-          activeOpacity={0.85}
-          onPress={() => setMode((current) => (current === "all" ? "wishlist" : "all"))}
-        >
-          <Icon
-            name="tune-variant"
-            size={22}
-            color={COLORS.PURE_WHITE}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.sectionHeading}>
-        {t("shop_page.section_title")}
-      </Text>
-
+      {/* Bộ lọc: All / Wishlist */}
       <View style={styles.chips}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -130,6 +111,7 @@ function Shop() {
         </TouchableOpacity>
       </View>
 
+      {/* Metric row: balance VP + countdown */}
       <View style={styles.metricRow}>
         <InfoPill style={[styles.metricPill, styles.balanceMetricPill]}>
           <View style={styles.metricValueWrapper}>
@@ -143,44 +125,48 @@ function Shop() {
         </InfoPill>
       </View>
 
+      {/* Empty state khi không có item */}
       {filteredItems.length === 0 ? (
         <EmptyStateCard
           title={t("shop_page.empty_title")}
           subtitle={t("shop_page.empty_subtitle")}
           style={styles.emptyState}
         />
-      ) : null}
-
-      {filteredItems.length > 0 ? (
+      ) : (
         <>
           <View style={styles.todayShopHeader}>
-            <Text style={styles.todayShopTitle}>
-              {t("shop_page.section_title")}
-            </Text>
             <Text style={styles.todayShopMeta}>
               {t("shop_page.items_count", { count: filteredItems.length })}
             </Text>
           </View>
-          <TwoColumnGrid
-            items={filteredItems}
-            keyExtractor={(item) => item.uuid}
-            renderItem={(item) => <ShopItem item={item} />}
-          />
+          <View style={styles.list}>
+            {filteredItems.map((item) => (
+              <View key={item.uuid} style={{ width: cardWidth }}>
+                <ShopItem item={item} />
+              </View>
+            ))}
+          </View>
         </>
-      ) : null}
+      )}
     </ScrollView>
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// StyleSheet – Định nghĩa styles cho màn hình Shop
+// ═══════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
+  // screen – Container chính
   screen: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
+  // content – Padding ScrollView
   content: {
     padding: 20,
     paddingBottom: 140,
   },
+  // headerRow – Hàng header (avatar + balance)
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -188,25 +174,30 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 24,
   },
+  // headerLeft – Bên trái header (avatar + text)
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
+  // headerTextContainer – Vùng text bên cạnh avatar
   headerTextContainer: {
     marginLeft: 12,
   },
+  // headerTitle – Tiêu đề "Vshop"
   headerTitle: {
     fontSize: 26,
     fontWeight: "900",
     color: COLORS.TEXT_PRIMARY,
     letterSpacing: -0.5,
   },
+  // headerSubtitle – Câu chào người dùng
   headerSubtitle: {
     fontSize: 13,
     fontWeight: "600",
     color: COLORS.TEXT_SECONDARY,
     marginTop: 2,
   },
+  // headerBalancePill – Pill hiển thị số dư VP
   headerBalancePill: {
     flexDirection: "row",
     alignItems: "center",
@@ -222,12 +213,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
+  // headerBalanceText – Số dư VP
   headerBalanceText: {
     fontSize: 13,
     fontWeight: "800",
     color: COLORS.TEXT_PRIMARY,
     marginRight: 6,
   },
+  // headerBalanceIconWrapper – Icon Ⓢ trong pill
   headerBalanceIconWrapper: {
     width: 18,
     height: 18,
@@ -236,11 +229,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // headerBalanceIconText – Chữ Ⓢ
   headerBalanceIconText: {
     fontSize: 10,
     fontWeight: "900",
     color: COLORS.PURE_WHITE,
   },
+  // avatar – Vòng tròn avatar
   avatar: {
     width: 48,
     height: 48,
@@ -251,63 +246,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.BORDER,
   },
+  // avatarText – Chữ cái đầu trong avatar
   avatarText: {
     fontSize: 18,
     fontWeight: "800",
     color: COLORS.TEXT_PRIMARY,
   },
-  searchRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 24,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    minHeight: 52,
-    shadowColor: COLORS.PURE_BLACK,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  filterButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.PURE_BLACK,
-    shadowColor: COLORS.PURE_BLACK,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  sectionHeading: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: 12,
-  },
+  // chips – Hàng chứa các chip filter
   chips: {
     flexDirection: "row",
     gap: 8,
     marginBottom: 24,
   },
+  // chip – Chip filter mặc định
   chip: {
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -316,28 +267,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.BORDER,
   },
+  // chipActive – Chip đang active (nền đen)
   chipActive: {
     backgroundColor: COLORS.PURE_BLACK,
     borderColor: COLORS.PURE_BLACK,
   },
+  // chipLabel – Text chip mặc định
   chipLabel: {
     color: COLORS.TEXT_PRIMARY,
     fontWeight: "700",
     fontSize: 13,
   },
+  // chipLabelActive – Text chip active (trắng)
   chipLabelActive: {
     color: COLORS.PURE_WHITE,
   },
+  // chipWishlistContent – Nội dung chip wishlist (icon + text)
   chipWishlistContent: {
     flexDirection: "row",
     alignItems: "center",
   },
+  // metricRow – Hàng thông số (balance + countdown)
   metricRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
     marginBottom: 28,
   },
+  // metricPill – Pill thông số
   metricPill: {
     flex: 1,
     minHeight: 48,
@@ -348,14 +305,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
+  // balanceMetricPill – Pill balance (nền xanh đậm Valorant)
   balanceMetricPill: {
     backgroundColor: COLORS.VALORANT_DARK_BLUE,
     borderColor: "rgba(255,255,255,0.04)",
   },
+  // metricValueWrapper – Wrapper icon + số VP
   metricValueWrapper: {
     flexDirection: "row",
     alignItems: "center",
   },
+  // metricIconText – Icon Ⓢ trong metric
   metricIconText: {
     fontSize: 12,
     fontWeight: "900",
@@ -369,28 +329,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 12,
   },
+  // metricValue – Số VP
   metricValue: {
     color: COLORS.PURE_WHITE,
     fontWeight: "800",
     fontSize: 16,
   },
+  // todayShopHeader – Header "Today's shop"
   todayShopHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginTop: 8,
     marginBottom: 16,
   },
-  todayShopTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.TEXT_PRIMARY,
-  },
+  // todayShopMeta – Số lượng item trong shop
   todayShopMeta: {
     fontSize: 13,
     fontWeight: "700",
     color: COLORS.TEXT_SECONDARY,
   },
+  // list – Grid flexWrap (giống Night Market)
+  list: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: GRID_GAP,
+    marginBottom: 24,
+  },
+  // emptyState – Margin cho empty state card
   emptyState: {
     marginTop: 4,
   },

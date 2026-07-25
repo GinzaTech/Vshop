@@ -1,25 +1,46 @@
+// Import axios để thực hiện HTTP request
 import axios from "axios";
+// Import expo-application để lấy thông tin version app
 import * as Application from "expo-application";
+// Import expo-constants để lấy cấu hình từ app.json / app.config
 import Constants from "expo-constants";
+// Import Platform từ react-native để kiểm tra môi trường chạy
 import { Platform } from "react-native";
 
+// Import helper kiểm tra có đang chạy trong Expo Go không
 import { isExpoGo } from "./runtime";
 
+// URL fallback khi không fetch được release mới nhất từ GitHub API
 const FALLBACK_RELEASE_URL = "https://github.com/VShopApp/mobile/releases/latest";
 
+// Type mô tả module expo-updates (dùng để dynamic require)
 type UpdatesModule = typeof import("expo-updates");
 
+/**
+ * Type mô tả môi trường update:
+ * - "standalone": App standalone (production)
+ * - "development": Chế độ dev
+ * - "expo-go": Chạy trong Expo Go
+ * - "web": Chạy trên web
+ */
 export type UpdateEnvironment = "standalone" | "development" | "expo-go" | "web";
 
+/**
+ * Type kết quả kiểm tra update:
+ * - "up-to-date": App đã ở phiên bản mới nhất
+ * - "ota-available": Có bản OTA update
+ * - "native-update": Cần cập nhật native (qua store)
+ * - "error": Có lỗi xảy ra khi kiểm tra
+ */
 export type AppUpdateCheckResult =
   | {
       kind: "up-to-date";
-      currentVersion: string;
-      latestVersion?: string;
-      releaseUrl: string;
-      environment: UpdateEnvironment;
-      canUseOta: boolean;
-      channel: string | null;
+      currentVersion: string;       // Phiên bản hiện tại
+      latestVersion?: string;       // Phiên bản mới nhất (nếu biết)
+      releaseUrl: string;           // URL release
+      environment: UpdateEnvironment;// Môi trường hiện tại
+      canUseOta: boolean;           // Có thể OTA không
+      channel: string | null;       // Channel cập nhật (VD: production, staging)
     }
   | {
       kind: "ota-available";
@@ -47,9 +68,14 @@ export type AppUpdateCheckResult =
       environment: UpdateEnvironment;
       canUseOta: boolean;
       channel: string | null;
-      message: string;
+      message: string; // Thông báo lỗi
     };
 
+/**
+ * Type kết quả áp dụng OTA update:
+ * - applied: true nếu thành công
+ * - applied: false kèm message lỗi nếu thất bại
+ */
 export type ApplyOtaUpdateResult =
   | {
       applied: false;
@@ -59,6 +85,11 @@ export type ApplyOtaUpdateResult =
       applied: true;
     };
 
+/**
+ * Lấy module expo-updates một cách an toàn.
+ * Trả về null nếu đang ở web, Expo Go, hoặc require thất bại.
+ * @returns UpdatesModule | null
+ */
 const getUpdatesModule = (): UpdatesModule | null => {
   if (Platform.OS === "web" || isExpoGo) {
     return null;
@@ -72,6 +103,11 @@ const getUpdatesModule = (): UpdatesModule | null => {
   }
 };
 
+/**
+ * Xác định môi trường cập nhật hiện tại.
+ * Ưu tiên: web > expo-go > development > standalone.
+ * @returns UpdateEnvironment
+ */
 const getUpdateEnvironment = (): UpdateEnvironment => {
   if (Platform.OS === "web") {
     return "web";
@@ -88,12 +124,24 @@ const getUpdateEnvironment = (): UpdateEnvironment => {
   return "standalone";
 };
 
+/**
+ * Chuẩn hóa chuỗi version thành mảng số để so sánh.
+ * VD: "v1.2.3-beta" -> [1, 2, 3]
+ * @param version - Chuỗi version cần chuẩn hóa
+ * @returns number[] - Mảng các phần số
+ */
 const normalizeVersion = (version: string) =>
   version
     .replace(/^[^0-9]+/, "")
     .split(".")
     .map((part) => Number.parseInt(part.replace(/[^0-9]/g, ""), 10) || 0);
 
+/**
+ * So sánh hai chuỗi version theo semver.
+ * @param left - Version thứ nhất
+ * @param right - Version thứ hai
+ * @returns -1 nếu left < right, 1 nếu left > right, 0 nếu bằng nhau
+ */
 const compareVersions = (left: string, right: string) => {
   const leftParts = normalizeVersion(left);
   const rightParts = normalizeVersion(right);
@@ -115,16 +163,30 @@ const compareVersions = (left: string, right: string) => {
   return 0;
 };
 
+/**
+ * Lấy version hiện tại của ứng dụng.
+ * Ưu tiên: nativeApplicationVersion > expoConfig.version > "0.0.0"
+ * @returns string - Version hiện tại
+ */
 const getCurrentVersion = () =>
   Application.nativeApplicationVersion ||
   Constants.expoConfig?.version ||
   "0.0.0";
 
+/**
+ * Lấy build number hiện tại của ứng dụng.
+ * Ưu tiên: nativeBuildVersion > ios.buildNumber > android.versionCode > ""
+ * @returns string - Build number
+ */
 const getCurrentBuild = () =>
   Application.nativeBuildVersion ||
   Constants.expoConfig?.ios?.buildNumber ||
   `${Constants.expoConfig?.android?.versionCode ?? ""}`;
 
+/**
+ * Fetch phiên bản release mới nhất từ GitHub API.
+ * @returns Promise<{ version: string; url: string }> - Version và URL release
+ */
 const getLatestRelease = async () => {
   const response = await axios.request<{
     tag_name: string;
@@ -140,6 +202,11 @@ const getLatestRelease = async () => {
   };
 };
 
+/**
+ * Chuyển đổi error thành thông báo an toàn.
+ * @param error - Lỗi bất kỳ
+ * @returns string - Thông báo lỗi
+ */
 const getSafeErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -148,6 +215,10 @@ const getSafeErrorMessage = (error: unknown) => {
   return "Unable to check for updates right now.";
 };
 
+/**
+ * Public API: Lấy nhãn version hiện tại (VD: "v1.2.3 (42)").
+ * @returns string - Nhãn version
+ */
 export const getCurrentAppVersionLabel = () => {
   const version = getCurrentVersion();
   const build = getCurrentBuild();
@@ -159,6 +230,11 @@ export const getCurrentAppVersionLabel = () => {
   return `v${version}`;
 };
 
+/**
+ * Public API: Kiểm tra xem có bản cập nhật nào không.
+ * Kiểm tra OTA và native release từ GitHub.
+ * @returns Promise<AppUpdateCheckResult> - Kết quả kiểm tra
+ */
 export const checkForAppUpdate = async (): Promise<AppUpdateCheckResult> => {
   const currentVersion = getCurrentVersion();
   const environment = getUpdateEnvironment();
@@ -177,6 +253,7 @@ export const checkForAppUpdate = async (): Promise<AppUpdateCheckResult> => {
     console.warn("[updates] Failed to fetch latest release.", error);
   }
 
+  // Nếu có thể OTA và module updates khả dụng
   if (canUseOta && updates) {
     try {
       const updateResult = await updates.checkForUpdateAsync();
@@ -193,6 +270,7 @@ export const checkForAppUpdate = async (): Promise<AppUpdateCheckResult> => {
         };
       }
     } catch (error) {
+      // Nếu OTA thất bại nhưng có version mới hơn trên GitHub -> native update
       if (
         latestVersion &&
         compareVersions(currentVersion, latestVersion) < 0
@@ -221,6 +299,7 @@ export const checkForAppUpdate = async (): Promise<AppUpdateCheckResult> => {
     }
   }
 
+  // So sánh version hiện tại với latest từ GitHub
   if (latestVersion && compareVersions(currentVersion, latestVersion) < 0) {
     return {
       kind: "native-update",
@@ -244,6 +323,11 @@ export const checkForAppUpdate = async (): Promise<AppUpdateCheckResult> => {
   };
 };
 
+/**
+ * Public API: Áp dụng OTA update (tải và cài đặt).
+ * Chỉ hoạt động ở môi trường standalone.
+ * @returns Promise<ApplyOtaUpdateResult> - Kết quả áp dụng
+ */
 export const applyOtaUpdate = async (): Promise<ApplyOtaUpdateResult> => {
   const updates = getUpdatesModule();
 

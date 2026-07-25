@@ -1,13 +1,20 @@
+// Import XMPPClient để giao tiếp qua giao thức XMPP
 import { XMPPClient } from "./xmpp-client";
+// Import chat store (zustand) để quản lý trạng thái chat
 import { useChatStore } from "./chat-store";
+// Import các hàm API Valorant liên quan đến chat
 import {
   getPASToken,
   getPartyMucToken,
   getPlayerNames,
   getRiotClientConfig,
 } from "./valorant-api";
+// Import jwtDecode để decode JWT token
 import { jwtDecode } from "jwt-decode";
+// Import Buffer từ buffer để decode base64
+import { Buffer } from "buffer";
 
+// Map các region -> chat host fallback (khi không lấy được từ server)
 const fallbackChatHosts: Record<string, string> = {
   ap: "jp1.chat.si.riotgames.com",
   asia: "jp1.chat.si.riotgames.com",
@@ -21,18 +28,103 @@ const fallbackChatHosts: Record<string, string> = {
   na1: "na2.chat.si.riotgames.com",
 };
 
+// Instance duy nhất của XMPPClient
 let xmppClientInstance: XMPPClient | null = null;
+// Key để xác định danh sách bạn bè đang được resolve tên
 let rosterNameResolveKey: string | null = null;
+// Key của kết nối đang hoạt động (accessToken:entitlementsToken:region)
 let activeConnectionKey: string | null = null;
-let currentPartyUserId: string | null = null;
+// User ID hiện tại (đã normalize)
+let currentUserId: string | null = null;
+// Timer để thử lại resolve tên bạn bè
+let rosterNameRetryTimer: ReturnType<typeof setTimeout> | null = null;
+// Timer để thử kết nối lại
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+// Số lần đã thử kết nối lại
+let reconnectAttempt = 0;
 
-const normalizeFriendId = (jidOrId: string) => jidOrId.split("@")[0];
+/**
+ * Chuẩn hóa friend ID từ JID (Jabber ID) hoặc PUUID.
+ * Loại bỏ resource và domain, chỉ lấy phần user ID.
+ * @param jidOrId - JID hoặc ID cần chuẩn hóa
+ * @returns string - ID đã chuẩn hóa (lowercase, trim)
+ */
+const normalizeFriendId = (jidOrId: string) =>
+  jidOrId.split("/")[0].split("@")[0].trim().toLowerCase();
+/**
+ * Chuẩn hóa sender từ message trong party chat.
+ * @param sender - Tên sender (có thể là JID)
+ * @returns string - ID đã chuẩn hóa
+ */
 const normalizeRoomSender = (sender: string) => normalizeFriendId(sender.split("/").pop() || sender);
+/**
+ * Kiểm tra chuỗi có phải định dạng UUID không.
+ * @param value - Chuỗi cần kiểm tra
+ * @returns boolean - true nếu là UUID
+ */
+const looksLikeUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value
+  );
 
-function decodeBase64Utf8(value: string) {
-  return globalThis.atob(value);
+/**
+ * Xoá timer reconnect nếu đang chạy.
+ */
+function clearReconnectTimer() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
 }
 
+/**
+ * Lên lịch thử kết nối lại sau một khoảng thời gian.
+ * Sử dụng exponential backoff (2.5s, 5s, 10s, 20s) tối đa 30s.
+ * @param connectionKey - Key của kết nối
+ * @param accessToken - Access token
+ * @param entitlementsToken - Entitlements token
+ * @param region - Region (tuỳ chọn)
+ * @param userId - User ID (tuỳ chọn)
+ */
+function scheduleReconnect(
+  connectionKey: string,
+  accessToken: string,
+  entitlementsToken: string,
+  region?: string,
+  userId?: string
+) {
+  if (reconnectTimer || activeConnectionKey !== connectionKey) return;
+
+  const delay = Math.min(30_000, 2500 * 2 ** reconnectAttempt);
+  reconnectAttempt += 1;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (activeConnectionKey === connectionKey) {
+      void initChatService(
+        accessToken,
+        entitlementsToken,
+        region,
+        userId
+      );
+    }
+  }, delay);
+}
+
+/**
+ * Decode chuỗi base64 thành UTF-8.
+ * @param value - Chuỗi base64 cần decode
+ * @returns string - Chuỗi UTF-8 đã decode
+ */
+function decodeBase64Utf8(value: string) {
+  return Buffer.from(value, "base64").toString("utf8");
+}
+
+/**
+ * Trích xuất party ID từ chuỗi presence XMPP của Valorant.
+ * Presence chứa XML với phần dữ liệu base64 trong thẻ <p>.
+ * @param status - Chuỗi status từ presence
+ * @returns string | null - Party ID hoặc null nếu không tìm thấy
+ */
 function getPartyIdFromPresence(status: string) {
   const presenceMatch = /<valorant[\s\S]*?<p>([\s\S]*?)<\/p>/.exec(status);
   if (!presenceMatch) return null;
@@ -53,6 +145,13 @@ function getPartyIdFromPresence(status: string) {
   }
 }
 
+/**
+ * Giải quyết host và region XMPP cho chat dựa trên PAS token và client config.
+ * @param accessToken - Access token
+ * @param entitlementsToken - Entitlements token
+ * @param pasToken - PAS token
+ * @returns Promise<{ host: string; xmppRegion: string }> - Host và region XMPP
+ */
 async function resolveChatHost(
   accessToken: string,
   entitlementsToken: string,
@@ -96,12 +195,28 @@ async function resolveChatHost(
   return { host, xmppRegion };
 }
 
+/**
+ * Public API: Khởi tạo dịch vụ chat (kết nối XMPP đến Riot).
+ * Tạo XMPPClient mới, đăng ký các sự kiện, và connect.
+ * Xử lý reconnect nếu kết nối thất bại.
+ * @param accessToken - Access token
+ * @param entitlementsToken - Entitlements token
+ * @param region - Region (tuỳ chọn)
+ * @param userId - User ID (tuỳ chọn)
+ */
 export async function initChatService(
   accessToken: string,
   entitlementsToken: string,
-  region?: string
+  region?: string,
+  userId?: string
 ) {
+  // Key xác định duy nhất một kết nối
   const connectionKey = `${accessToken}:${entitlementsToken}:${region || ""}`;
+  const connectionChanged = activeConnectionKey !== connectionKey;
+  if (userId) {
+    currentUserId = normalizeFriendId(userId);
+  }
+  // Nếu đã kết nối với cùng key và không có lỗi, bỏ qua
   if (
     xmppClientInstance &&
     activeConnectionKey === connectionKey &&
@@ -110,12 +225,22 @@ export async function initChatService(
     return;
   }
 
-  if (xmppClientInstance) {
-    xmppClientInstance.disconnect();
+  clearReconnectTimer();
+  if (connectionChanged) reconnectAttempt = 0;
+
+  if (rosterNameRetryTimer) {
+    clearTimeout(rosterNameRetryTimer);
+    rosterNameRetryTimer = null;
   }
+  rosterNameResolveKey = null;
+
+  // Ngắt kết nối client cũ nếu có
+  const previousClient = xmppClientInstance;
+  xmppClientInstance = null;
+  activeConnectionKey = connectionKey;
+  previousClient?.disconnect();
 
   try {
-    activeConnectionKey = connectionKey;
     useChatStore.getState().setStatus("connecting");
     const pasToken = await getPASToken(accessToken);
 
@@ -129,33 +254,68 @@ export async function initChatService(
       pasToken
     );
 
-    xmppClientInstance = new XMPPClient({
+    if (activeConnectionKey !== connectionKey) return;
+
+    const client = new XMPPClient({
       rsoToken: accessToken,
       pasToken,
       entitlementsToken,
       host,
       xmppRegion,
     });
+    xmppClientInstance = client;
+    // Hàm kiểm tra client hiện tại còn là active không
+    const isActiveClient = () =>
+      xmppClientInstance === client && activeConnectionKey === connectionKey;
 
-    xmppClientInstance.onStateChange = (state) => {
+    // Sự kiện: trạng thái kết nối thay đổi
+    client.onStateChange = (state) => {
+      if (!isActiveClient()) return;
       useChatStore.getState().setStatus(state);
+      if (state === "authenticated") {
+        reconnectAttempt = 0;
+        clearReconnectTimer();
+      } else if (state === "error") {
+        scheduleReconnect(
+          connectionKey,
+          accessToken,
+          entitlementsToken,
+          region,
+          userId
+        );
+      }
     };
 
-    xmppClientInstance.onRoster = (friends) => {
+    // Sự kiện: nhận danh sách bạn bè (roster)
+    client.onRoster = (friends) => {
+      if (!isActiveClient()) return;
       const friendIds = friends.map((friend) => normalizeFriendId(friend.jid));
       useChatStore.getState().setFriends(
-        friends.map((friend) => ({
-          id: normalizeFriendId(friend.jid),
-          jid: friend.jid,
-          gameName: friend.name || "Unknown",
-          tagLine: "",
-          status: "",
-          show: "offline",
-        }))
+        friends.map((friend) => {
+          const friendId = normalizeFriendId(friend.jid);
+          const rosterName = friend.name?.trim();
+          return {
+            id: friendId,
+            jid: friend.jid.split("/")[0],
+            gameName:
+              rosterName &&
+              rosterName !== friendId &&
+              !looksLikeUuid(rosterName)
+                ? rosterName
+                : "Unknown",
+            tagLine: "",
+            status: "",
+            show: "offline",
+          };
+        })
       );
 
+      // Resolve tên bạn bè từ API nếu có region
       if (region && friendIds.length > 0) {
-        const resolveKey = `${region}:${friendIds.join(",")}`;
+        const resolveKey = `${connectionKey}:${friendIds
+          .slice()
+          .sort()
+          .join(",")}`;
         if (rosterNameResolveKey !== resolveKey) {
           rosterNameResolveKey = resolveKey;
           void resolveRosterNames(
@@ -163,15 +323,30 @@ export async function initChatService(
             entitlementsToken,
             region,
             friendIds
-          );
+          ).then((resolved) => {
+            if (resolved || rosterNameResolveKey !== resolveKey) return;
+
+            // Nếu chưa resolve được, thử lại sau 2.5s
+            rosterNameRetryTimer = setTimeout(() => {
+              rosterNameRetryTimer = null;
+              void resolveRosterNames(
+                accessToken,
+                entitlementsToken,
+                region,
+                friendIds
+              );
+            }, 2500);
+          });
         }
       }
     };
 
-    xmppClientInstance.onPresence = (from, status, show, raw) => {
+    // Sự kiện: nhận presence (trạng thái online/offline/game)
+    client.onPresence = (from, status, show, raw) => {
+      if (!isActiveClient()) return;
       const fromUserId = normalizeFriendId(from);
       const partyId =
-        currentPartyUserId && fromUserId === currentPartyUserId
+        currentUserId && fromUserId === currentUserId
           ? getPartyIdFromPresence(raw)
           : null;
       if (partyId) {
@@ -185,47 +360,123 @@ export async function initChatService(
         .updateFriendPresence(normalizeFriendId(from), status, show);
     };
 
-    xmppClientInstance.onMessage = (from, body) => {
-      const friendId = normalizeFriendId(from);
+    // Sự kiện: nhận tin nhắn từ bạn bè
+    client.onMessage = (message) => {
+      if (!isActiveClient()) return;
+      const fromId = normalizeFriendId(message.from);
+      const toId = normalizeFriendId(message.to);
+      const sentByCurrentUser = Boolean(currentUserId && fromId === currentUserId);
+      const friendId = sentByCurrentUser ? toId : fromId;
+
+      if (!friendId) return;
+
       useChatStore.getState().addMessage(friendId, {
-        id: Math.random().toString(36).substring(7),
-        from: friendId,
-        to: "me",
-        body,
-        timestamp: Date.now(),
+        id: message.id,
+        from: sentByCurrentUser ? "me" : friendId,
+        to: sentByCurrentUser ? friendId : "me",
+        body: message.body,
+        timestamp: message.timestamp,
       });
     };
 
-    xmppClientInstance.onGroupMessage = (room, from, body) => {
+    // Sự kiện: nhận tin nhắn từ party chat
+    client.onGroupMessage = (room, from, body) => {
+      if (!isActiveClient()) return;
       const senderId = normalizeRoomSender(from);
       useChatStore.getState().addPartyMessage(room, {
         id: `${room}:${senderId}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
-        from: senderId === currentPartyUserId ? "me" : senderId,
+        from: senderId === currentUserId ? "me" : senderId,
         to: room,
         body,
         timestamp: Date.now(),
       });
     };
 
-    xmppClientInstance.connect();
+    client.connect();
   } catch (error) {
-    console.error("Failed to initialize chat service:", error);
-    activeConnectionKey = null;
+    if (__DEV__) console.error("Failed to initialize chat service:", error);
+    activeConnectionKey = connectionKey;
     useChatStore.getState().setStatus("error");
+    scheduleReconnect(
+      connectionKey,
+      accessToken,
+      entitlementsToken,
+      region,
+      userId
+    );
   }
 }
 
+/**
+ * Public API: Đảm bảo dịch vụ chat đã được khởi tạo và kết nối.
+ * Ném lỗi nếu không thể kết nối.
+ * @param accessToken - Access token
+ * @param entitlementsToken - Entitlements token
+ * @param region - Region (tuỳ chọn)
+ * @param userId - User ID (tuỳ chọn)
+ */
 export async function ensureChatService(
   accessToken: string,
   entitlementsToken: string,
-  region?: string
+  region?: string,
+  userId?: string
 ) {
-  await initChatService(accessToken, entitlementsToken, region);
+  await initChatService(accessToken, entitlementsToken, region, userId);
   if (!xmppClientInstance || useChatStore.getState().status === "error") {
     throw new Error("Could not connect to Riot chat service");
   }
 }
 
+/**
+ * Chờ cho đến khi chat được xác thực (authenticated).
+ * Timeout sau timeoutMs mili giây.
+ * @param timeoutMs - Thời gian chờ tối đa (mặc định 15s)
+ */
+async function waitForChatAuthentication(timeoutMs = 15_000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const status = useChatStore.getState().status;
+    if (status === "authenticated") return;
+    if (status === "error") {
+      throw new Error("Could not connect to Riot chat service");
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  throw new Error("Riot chat connection timed out. Please refresh party chat.");
+}
+
+/**
+ * Public API: Theo dõi presence của party hiện tại.
+ * Đảm bảo chat service đã được kết nối.
+ * @param params - Object chứa accessToken, entitlementsToken, region, userId
+ */
+export async function watchOwnPartyPresence({
+  accessToken,
+  entitlementsToken,
+  region,
+  userId,
+}: {
+  accessToken: string;
+  entitlementsToken: string;
+  region: string;
+  userId: string;
+}) {
+  currentUserId = normalizeFriendId(userId);
+  await ensureChatService(accessToken, entitlementsToken, region, userId);
+}
+
+/**
+ * Resolve tên hiển thị (GameName) cho danh sách bạn bè từ API Valorant.
+ * Chia danh sách thành các chunk 50 người để tránh quá tải API.
+ * @param accessToken - Access token
+ * @param entitlementsToken - Entitlements token
+ * @param region - Region
+ * @param friendIds - Danh sách friend IDs
+ * @returns Promise<boolean> - true nếu resolve thành công
+ */
 async function resolveRosterNames(
   accessToken: string,
   entitlementsToken: string,
@@ -233,41 +484,108 @@ async function resolveRosterNames(
   friendIds: string[]
 ) {
   try {
-    const names = await getPlayerNames(
-      accessToken,
-      entitlementsToken,
-      Array.from(new Set(friendIds)),
-      region
-    );
+    // Loại bỏ các ID trùng lặp
+    const seenFriendIds = new Set<string>();
+    const uniqueFriendIds: string[] = [];
+    for (const value of friendIds) {
+      const friendId = normalizeFriendId(value);
+      if (friendId && !seenFriendIds.has(friendId)) {
+        seenFriendIds.add(friendId);
+        uniqueFriendIds.push(friendId);
+      }
+    }
 
+    // Chia thành các chunk 50 người
+    const chunks: string[][] = [];
+    for (let index = 0; index < uniqueFriendIds.length; index += 50) {
+      chunks.push(uniqueFriendIds.slice(index, index + 50));
+    }
+    const nameChunks = await Promise.all(
+      chunks.map((chunk) =>
+        getPlayerNames(
+          accessToken,
+          entitlementsToken,
+          chunk,
+          region
+        )
+      )
+    );
+    const names = nameChunks.flat();
+
+    // Cập nhật tên bạn bè trong store
     useChatStore.getState().updateFriendNames(
       names.map((name) => ({
-        id: name.Subject,
+        id: normalizeFriendId(name.Subject),
         gameName: name.GameName || "Unknown",
         tagLine: name.TagLine || "",
       }))
     );
+    return names.length > 0;
   } catch (error) {
+    rosterNameResolveKey = null;
     if (__DEV__) {
       console.log("[XMPP] Failed to resolve roster names", error);
     }
+    return false;
   }
 }
 
+/**
+ * Public API: Gửi tin nhắn chat đến một bạn bè.
+ * @param toId - ID của người nhận
+ * @param message - Nội dung tin nhắn
+ * @throws Error nếu chat chưa kết nối
+ */
 export function sendChatMessage(toId: string, message: string) {
-  if (xmppClientInstance) {
-    const friend = useChatStore.getState().friends[toId];
-    xmppClientInstance.sendMessage(friend?.jid || toId, message);
-    useChatStore.getState().addMessage(toId, {
-      id: Math.random().toString(36).substring(7),
-      from: "me",
-      to: toId,
-      body: message,
-      timestamp: Date.now(),
-    });
+  const friendId = normalizeFriendId(toId);
+  const friend = useChatStore.getState().friends[friendId];
+
+  if (
+    !xmppClientInstance ||
+    useChatStore.getState().status !== "authenticated"
+  ) {
+    throw new Error("Riot chat is not connected yet");
   }
+
+  const sent = xmppClientInstance.sendMessage(friend?.jid || friendId, message);
+  if (!sent) {
+    throw new Error("Could not write the message to Riot chat");
+  }
+
+  useChatStore.getState().addMessage(friendId, {
+    id: sent.id,
+    from: "me",
+    to: friendId,
+    body: message,
+    timestamp: sent.timestamp,
+  });
 }
 
+/**
+ * Public API: Yêu cầu lịch sử chat với một bạn bè.
+ * @param toId - ID của bạn bè
+ * @returns boolean - true nếu request được gửi thành công
+ */
+export function requestChatHistory(toId: string) {
+  const friendId = normalizeFriendId(toId);
+  const friend = useChatStore.getState().friends[friendId];
+
+  if (
+    !xmppClientInstance ||
+    useChatStore.getState().status !== "authenticated"
+  ) {
+    return false;
+  }
+
+  return xmppClientInstance.requestMessageHistory(friend?.jid || friendId);
+}
+
+/**
+ * Public API: Tham gia phòng chat party (XMPP MUC).
+ * Lấy MUC token, chờ xác thực, và join room.
+ * @param params - Object chứa accessToken, entitlementsToken, region, partyId, userId, roomName
+ * @returns Promise<string> - Tên phòng đã join
+ */
 export async function joinPartyXmppChat({
   accessToken,
   entitlementsToken,
@@ -283,15 +601,22 @@ export async function joinPartyXmppChat({
   userId: string;
   roomName?: string | null;
 }) {
-  currentPartyUserId = userId;
-  await ensureChatService(accessToken, entitlementsToken, region);
+  currentUserId = normalizeFriendId(userId);
+  await ensureChatService(accessToken, entitlementsToken, region, userId);
 
-  const mucToken = await getPartyMucToken(
-    accessToken,
-    entitlementsToken,
-    region,
-    partyId
-  );
+  if (__DEV__) {
+    console.log("[XMPP] Joining party chat", {
+      partyId,
+      region,
+      roomName,
+    });
+  }
+
+  // Lấy MUC token và chờ xác thực song song
+  const [mucToken] = await Promise.all([
+    getPartyMucToken(accessToken, entitlementsToken, region, partyId),
+    waitForChatAuthentication(),
+  ]);
   const room = mucToken?.Room || roomName;
   if (!mucToken?.Token) {
     throw new Error(`Could not get party chat token for party ${partyId}`);
@@ -310,26 +635,51 @@ export async function joinPartyXmppChat({
   return room;
 }
 
+/**
+ * Public API: Gửi tin nhắn đến party chat (XMPP MUC).
+ * @param message - Nội dung tin nhắn
+ * @throws Error nếu phòng chat chưa kết nối
+ */
 export function sendPartyXmppMessage(message: string) {
-  const room = useChatStore.getState().partyChatRoom;
-  if (!xmppClientInstance || !room) {
+  const chatState = useChatStore.getState();
+  const room = chatState.partyChatRoom;
+  const body = message.trim();
+  if (!body) return;
+  if (!xmppClientInstance || !room || chatState.status !== "authenticated") {
     throw new Error("Party chat room is not connected");
   }
 
-  xmppClientInstance.sendGroupMessage(room, message);
+  const sent = xmppClientInstance.sendGroupMessage(room, body);
+  if (!sent) {
+    throw new Error("Could not send message to party chat");
+  }
+
   useChatStore.getState().addPartyMessage(room, {
     id: `${room}:me:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     from: "me",
     to: room,
-    body: message,
+    body,
     timestamp: Date.now(),
   });
 }
 
+/**
+ * Public API: Ngắt kết nối dịch vụ chat hoàn toàn.
+ * Xoá tất cả timer, ngắt kết nối XMPP, reset store.
+ */
 export function disconnectChatService() {
+  clearReconnectTimer();
+  reconnectAttempt = 0;
+  if (rosterNameRetryTimer) {
+    clearTimeout(rosterNameRetryTimer);
+    rosterNameRetryTimer = null;
+  }
   if (xmppClientInstance) {
     xmppClientInstance.disconnect();
     xmppClientInstance = null;
-    activeConnectionKey = null;
   }
+  activeConnectionKey = null;
+  rosterNameResolveKey = null;
+  currentUserId = null;
+  useChatStore.getState().resetChatSession();
 }

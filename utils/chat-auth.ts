@@ -1,6 +1,14 @@
+// Import axios để gọi HTTP request
 import axios from "axios";
+// Import jwtDecode để decode JWT token
 import { jwtDecode } from "jwt-decode";
 
+/**
+ * Public API: Lấy PAS (Platform Authentication Service) Token cho chat.
+ * PAS Token là JWT dùng để xác thực với dịch vụ chat của Riot.
+ * @param accessToken - Access token của user
+ * @returns Promise<string> - Chuỗi JWT chứa PAS Token
+ */
 export async function getPASToken(accessToken: string): Promise<string> {
   const res = await axios.request({
     url: "https://riot-geo.pas.si.riotgames.com/pas/v1/service/chat",
@@ -13,6 +21,14 @@ export async function getPASToken(accessToken: string): Promise<string> {
   return res.data;
 }
 
+/**
+ * Public API: Lấy chat affinity (khu vực chat) cho Valorant.
+ * Gọi API Riot PAS, decode JWT trả về để lấy thông tin affinity.
+ * Nếu thất bại, fallback về "us1".
+ * @param accessToken - Access token của user
+ * @param idToken - ID token của user
+ * @returns Promise<string> - Chat affinity (VD: "us1", "eu", "kr1",...)
+ */
 export async function getChatAffinity(accessToken: string, idToken: string): Promise<string> {
   try {
     const res = await axios.request({
@@ -31,7 +47,7 @@ export async function getChatAffinity(accessToken: string, idToken: string): Pro
     const decoded = jwtDecode<any>(res.data);
     return decoded?.affinities?.chat || "us1";
   } catch (error) {
-    console.error("Lỗi khi lấy Chat Affinity, fallback về us1", error);
+    if (__DEV__) console.error("Lỗi khi lấy Chat Affinity, fallback về us1", error);
     return "us1";
   }
 }

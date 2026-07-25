@@ -137,7 +137,9 @@
   "shop_cards": {
     "saved": "Đã lưu",
     "store_skin": "Skin cửa hàng",
-    "bundle_skin": "Skin trong bộ"
+    "bundle_skin": "Skin trong bộ",
+    "accessory": "Phụ kiện",
+    "bundle_accessory": "Phụ kiện trong bộ"
   },
   "shop_page": {
     "agent_fallback": "Đặc vụ",
@@ -168,6 +170,7 @@
     "included_count": "{{count}} skin",
     "hero_badge": "Bộ sưu tập nổi bật",
     "hero_eyebrow": "Collection drop",
+    "view_items": "Xem skin trong bộ",
     "toggle_show": "Hiện skin trong bộ",
     "toggle_hide": "Ẩn skin trong bộ"
   },
@@ -284,7 +287,13 @@
     },
     "identity": {
       "card_fallback": "Thẻ người chơi",
+      "card_picker_title": "Chọn ảnh đại diện",
       "title_fallback": "Chưa chọn danh hiệu",
+      "title_picker_title": "Chọn khẩu hiệu",
+      "motto": "Khẩu hiệu",
+      "search_placeholder": "Tìm kiếm",
+      "no_cards": "Không tìm thấy thẻ người chơi.",
+      "no_titles": "Không tìm thấy khẩu hiệu.",
       "account_level": "Cấp tài khoản: {{level}}",
       "level_hidden": "Đang ẩn cấp tài khoản"
     },
@@ -294,6 +303,16 @@
     "missing_auth": "Đăng nhập để xem trang bị hiện tại của bạn.",
     "unknown_skin": "Skin không xác định",
     "spray_slot_label": "Vị trí {{slot}}",
+    "expressions": {
+      "equipped_title": "Graffiti & Flex đã trang bị",
+      "picker_title": "Chọn Graffiti hoặc Flex",
+      "graffiti": "Graffiti",
+      "flex": "Flex",
+      "slot": "Vị trí {{slot}}",
+      "no_flex": "Không tìm thấy Flex đã sở hữu.",
+      "no_graffiti": "Không tìm thấy Graffiti đã sở hữu.",
+      "equipped": "Đang trang bị"
+    },
     "spray_slots": {
       "spray1": "Spray 1",
       "spray2": "Spray 2",
@@ -327,6 +346,102 @@
     "vs": "VS",
     "performance_title": "Hiệu suất trận đấu",
     "rank_after": "RR sau trận"
+  },
+  "match_ui": {
+    "history_title": "Lịch sử đấu",
+    "player_fallback": "Người chơi",
+    "actions": {
+      "back": "Quay lại",
+      "refresh": "Làm mới",
+      "retry": "Thử lại",
+      "close_details": "Đóng chi tiết trận đấu",
+      "share": "Chia sẻ",
+      "share_match": "Chia sẻ trận đấu"
+    },
+    "tabs": {
+      "overview": "Tổng quan",
+      "matches": "Trận đấu",
+      "performance": "Hiệu suất",
+      "agents": "Đặc vụ",
+      "scoreboard": "Bảng điểm"
+    },
+    "metrics": {
+      "kda": "K / D / A",
+      "kd": "K/D",
+      "hs": "HS%",
+      "adr": "ADR",
+      "acs": "ACS",
+      "trs": "TRS"
+    },
+    "result": {
+      "win": "Thắng",
+      "loss": "Thua",
+      "draw": "Hòa"
+    },
+    "states": {
+      "empty_title": "Không tìm thấy trận đấu",
+      "empty_body": "Các trận xếp hạng gần đây sẽ xuất hiện tại đây.",
+      "error_title": "Không thể tải dữ liệu trận đấu",
+      "error_body": "Hãy kiểm tra kết nối và thử lại.",
+      "partial": "Dữ liệu này chưa có",
+      "partial_body": "Trận đấu đã tải nhưng Riot không trả về chỉ số này."
+    },
+    "teams": {
+      "team_a": "Đội A",
+      "team_b": "Đội B"
+    },
+    "economy": {
+      "title": "Kinh tế",
+      "difference": "Chênh lệch kinh tế",
+      "total": "Tổng",
+      "loadout": "Giá trị trang bị",
+      "spent": "Tín dụng đã dùng",
+      "tap_hint": "Chạm một mốc để xem dữ liệu round."
+    },
+    "round": {
+      "label": "Round {{number}}",
+      "winner": "Đội thắng",
+      "timeline": "Diễn biến round",
+      "count": "{{count}} round",
+      "selected_detail": "Kinh tế và sự kiện của round đang chọn",
+      "outcome": "Kết quả",
+      "side": "Phe",
+      "duration": "Thời lượng"
+    },
+    "outcomes": {
+      "elimination": "Hạ toàn đội",
+      "spike_detonated": "Spike phát nổ",
+      "spike_defused": "Gỡ Spike",
+      "time_expired": "Hết giờ",
+      "surrender": "Đầu hàng",
+      "unknown": "Không rõ"
+    },
+    "sides": {
+      "attack": "Tấn công",
+      "defense": "Phòng thủ"
+    },
+    "performance": {
+      "avg_score": "Điểm trung bình",
+      "all_rounds": "Tất cả round",
+      "round_hint": "Chạm một round phía trên để xem chi tiết",
+      "damage_dealt": "Sát thương gây ra",
+      "damage_taken": "Sát thương nhận",
+      "opponents": "Đối đầu đối thủ",
+      "opponent": "Đối thủ",
+      "weapons": "Thống kê vũ khí",
+      "weapon": "Vũ khí",
+      "damage": "Sát thương"
+    },
+    "scoreboard": {
+      "player": "Người chơi",
+      "kills": "Hạ gục",
+      "deaths": "Bị hạ",
+      "assists": "Hỗ trợ",
+      "rank": "Hạng",
+      "team_a_stats": "Chỉ số đội A",
+      "team_b_stats": "Chỉ số đội B",
+      "sort_by": "Sắp xếp theo"
+    }
   },
   "crosshair_page": {
     "copied": "Đã sao chép",

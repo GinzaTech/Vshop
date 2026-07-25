@@ -1,3 +1,7 @@
+// 📄 app/(authenticated)/accessories.tsx — Cửa hàng phụ kiện (Accessory Shop)
+// Hiển thị danh sách các accessories (phụ kiện) có sẵn trong shop của người dùng,
+// kèm thanh tìm kiếm, số dư KC và bộ đếm thời gian còn lại.
+
 import React from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
@@ -12,13 +16,34 @@ import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
 import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 
+/**
+ * AccessoryShop — Component hiển thị cửa hàng phụ kiện.
+ *
+ * State:
+ * - user (từ useUserStore): Thông tin user (balances, shops.accessory, shops.remainingSecs).
+ * - query (state, string): Từ khóa tìm kiếm.
+ * - timestamp (number): Thời điểm shop refresh (hiện tại + remaining seconds).
+ * - items (useMemo): Danh sách accessory đã lọc theo query.
+ *
+ * useMemo items: Lọc user.shops.accessory theo query (so sánh không phân biệt hoa/thường).
+ *
+ * Layout:
+ * - Thanh tìm kiếm (search bar) với icon kính lúp.
+ * - Hàng metrics: số dư KC + countdown đến lần refresh tiếp theo.
+ * - Danh sách items trong TwoColumnGrid (2 cột) hoặc EmptyStateCard nếu không có.
+ *
+ * @returns {JSX.Element} Màn hình cửa hàng phụ kiện.
+ */
 function AccessoryShop() {
   const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
-  const [query, setQuery] = React.useState("");
+  const [query, setQuery] = React.useState(""); // Input tìm kiếm
+
+  // Thời gian refresh shop = bây giờ + số giây còn lại
   const timestamp =
     new Date().getTime() + user.shops.remainingSecs.accessory * 1000;
 
+  // Lọc accessories theo query
   const items = React.useMemo(() => {
     return user.shops.accessory.filter((item) =>
       item.displayName.toLowerCase().includes(query.trim().toLowerCase())
@@ -31,7 +56,7 @@ function AccessoryShop() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-
+      {/* ── Thanh tìm kiếm ── */}
       <View style={styles.searchBar}>
         <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
         <TextInput
@@ -43,6 +68,7 @@ function AccessoryShop() {
         />
       </View>
 
+      {/* ── Metrics: KC + Countdown ── */}
       <View style={styles.metricRow}>
         <InfoPill style={[styles.metricPill, styles.kcMetricPill]}>
           <CurrencyIcon icon="kc" style={styles.metricIcon} />
@@ -58,6 +84,7 @@ function AccessoryShop() {
         </InfoPill>
       </View>
 
+      {/* ── Danh sách items hoặc empty state ── */}
       {items.length === 0 ? (
         <EmptyStateCard
           title={t("accessories_page.empty_title")}
@@ -74,6 +101,7 @@ function AccessoryShop() {
   );
 }
 
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -105,11 +133,11 @@ const styles = StyleSheet.create({
   },
   metricRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 12,            // Khoảng cách giữa 2 pill
     marginBottom: 20,
   },
   metricPill: {
-    flex: 1,
+    flex: 1,            // Mỗi pill chiếm 1/2 chiều rộng
   },
   kcMetricPill: {
     backgroundColor: COLORS.VALORANT_DARK_BLUE,

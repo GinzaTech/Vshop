@@ -151,6 +151,11 @@ interface PlayerLoadoutResponse {
     SprayID: string;
     SprayLevelID: string | null;
   }[];
+  ActiveExpressions?: {
+    TypeID: string;
+    AssetID: string;
+  }[];
+  DynamicOptions?: Record<string, unknown>;
   Identity: {
     PlayerCardID: string;
     PlayerTitleID: string;
@@ -243,7 +248,7 @@ type MatchHistoryResponse = {
   Total: number;
   History: {
     MatchID: string;
-    GameStartTime: string;
+    GameStartTime: number;
     QueueID: string;
   }[];
 };

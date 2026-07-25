@@ -1,3 +1,7 @@
+// 📄 app/(authenticated)/_layout.tsx — Layout cho nhóm màn hình đã xác thực
+// Sử dụng Tab Navigator (expo-router Tabs) với FloatingTabBar tùy chỉnh.
+// Bao gồm AppWarmup (khởi tạo dữ liệu nền) và MediaPopup (popup media toàn app).
+
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -7,17 +11,26 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import Reanimated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup from "~/components/popups/MediaPopup";
 import { COLORS, GLOBAL_STYLES } from "~/constants/DesignSystem";
 import { useUserStore } from "~/hooks/useUserStore";
+import { flowTracer } from "~/utils/flow-tracer";
 
+/**
+ * PRIMARY_ROUTES — Định nghĩa các tab chính hiển thị trên thanh điều hướng.
+ * Key: tên route, value: { icon (tên MaterialCommunityIcons), label (text hiển thị) }.
+ */
 const PRIMARY_ROUTES: Record<
   string,
   { icon: ComponentProps<typeof Icon>["name"]; label: string }
@@ -29,6 +42,9 @@ const PRIMARY_ROUTES: Record<
   settings: { icon: "dots-grid", label: "More" },
 };
 
+/**
+ * PRIMARY_ROUTE_ORDER — Thứ tự hiển thị các tab trên thanh điều hướng.
+ */
 const PRIMARY_ROUTE_ORDER = [
   "bundles",
   "shop",
@@ -37,16 +53,57 @@ const PRIMARY_ROUTE_ORDER = [
   "settings",
 ] as const;
 
+/**
+ * FloatingTabBar — Thanh tab nổi (floating) tùy chỉnh.
+ *
+ * Props: nhận state, descriptors, navigation từ Tabs render prop.
+ *
+ * State:
+ * - insets (từ useSafeAreaInsets): Safe area bottom để padding.
+ * - hasNightMarketItems (từ useUserStore): Có items trong night market?
+ * - collapsed (state, boolean): Thanh tab đang thu gọn (chỉ hiện nút "More")?
+ * - collapseProgress (Animated.Value): Giá trị animation mở/thu gọn (0 → 1).
+ * - moreLongPressHandledRef (useRef): Đánh dấu long press đã được xử lý.
+ * - activeRoute: Route hiện tại đang active.
+ *
+ * Animation:
+ * - Khi collapsed = true: thanh thu gọn thành một nút tròn nhỏ.
+ * - Khi collapsed = false: thanh mở rộng hiển thị tất cả tab.
+ * - Sử dụng Animated.timing với Easing.out(cubic), duration 190ms.
+ *
+ * Logic:
+ * - Tab "night_market" chỉ hiện nếu hasNightMarketItems === true.
+ * - Tab "settings" có long press → thu gọn thanh.
+ * - Khi thanh đã thu gọn, nhấn vào nút "More" để mở rộng lại.
+ *
+ * @returns {JSX.Element | null} Thanh tab hoặc null nếu route không phải primary.
+ */
 function FloatingTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const hasNightMarketItems = useUserStore(
     ({ user }) => user.shops.nightMarket.length > 0
   );
   const [collapsed, setCollapsed] = useState(false);
-  const collapseProgress = useRef(new Animated.Value(1)).current;
+  const collapseProgress = useRef(new Animated.Value(1)).current; // 1 = mở, 0 = thu gọn
   const moreLongPressHandledRef = useRef(false);
   const activeRoute = state.routes[state.index];
+  const [barWidth, setBarWidth] = useState(0);
 
+  // Track khi tab bar chuyển từ hidden → visible (Back từ sub-screen)
+  // Khi visible lại → indicator JUMP trực tiếp, không animate
+  const isPrimaryRoute = activeRoute?.name in PRIMARY_ROUTES;
+  const wasHiddenRef = useRef(false);
+  const shouldJump = useSharedValue(true); // true lần đầu mount
+
+  useEffect(() => {
+    if (isPrimaryRoute && wasHiddenRef.current) {
+      // Vừa quay lại từ sub-screen → jump, không slide
+      shouldJump.value = true;
+    }
+    wasHiddenRef.current = !isPrimaryRoute;
+  }, [isPrimaryRoute]);
+
+  // Animation khi thay đổi trạng thái collapsed
   useEffect(() => {
     Animated.timing(collapseProgress, {
       toValue: collapsed ? 0 : 1,
@@ -56,10 +113,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
     }).start();
   }, [collapseProgress, collapsed]);
 
-  if (!(activeRoute?.name in PRIMARY_ROUTES)) {
-    return null;
-  }
-
+  // Lọc và sắp xếp các route primary (tính trước để dùng cho sliding indicator)
   const visibleRoutes = state.routes
     .filter(
       (route: any) =>
@@ -72,6 +126,47 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
         PRIMARY_ROUTE_ORDER.indexOf(right.name as (typeof PRIMARY_ROUTE_ORDER)[number])
     );
 
+  // ── Sliding tab indicator ──
+  // Mỗi tab dùng flex: 1 nên chia đều content width; indicator dịch chuyển theo index.
+  const TAB_PADDING_H = 18; // = paddingHorizontal của styles.tabBar
+  const INDICATOR_SIZE = 50; // khớp với tabIconWrap (50x50)
+  const activeVisibleIndex = Math.max(
+    0,
+    visibleRoutes.findIndex((route: any) => route.key === activeRoute?.key)
+  );
+  const tabButtonWidth =
+    visibleRoutes.length > 0 && barWidth > 0
+      ? (barWidth - TAB_PADDING_H * 2) / visibleRoutes.length
+      : INDICATOR_SIZE;
+  const indicatorAnimatedStyle = useAnimatedStyle(() => {
+    // Ẩn indicator khi chưa đo barWidth hoặc đang collapsed
+    if (barWidth === 0) return { opacity: 0 };
+
+    const targetX =
+      activeVisibleIndex * tabButtonWidth +
+      (tabButtonWidth - INDICATOR_SIZE) / 2;
+
+    // Jump trực tiếp (Back navigation hoặc first mount) — KHÔNG animate
+    if (shouldJump.value) {
+      shouldJump.value = false;
+      return {
+        opacity: collapsed ? 0 : 1,
+        transform: [{ translateX: targetX }],
+      };
+    }
+
+    // User chủ động đổi tab → animate slide
+    return {
+      opacity: withTiming(collapsed ? 0 : 1, { duration: 120 }),
+      transform: [{ translateX: withTiming(targetX, { duration: 200 }) }],
+    };
+  });
+
+  // Nếu route hiện tại không phải primary → ẩn tab bar
+  if (!(activeRoute?.name in PRIMARY_ROUTES)) {
+    return null;
+  }
+
   return (
     <View
       style={[
@@ -81,6 +176,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
       ]}
     >
       {collapsed ? (
+        // ── Trạng thái thu gọn: chỉ hiện nút "More" ──
         <Animated.View
           style={[
             styles.collapsedTabBar,
@@ -118,7 +214,9 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
           </Pressable>
         </Animated.View>
       ) : (
+        // ── Trạng thái mở rộng: hiển thị tất cả tab ──
         <Animated.View
+          onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
           style={[
             styles.tabBar,
             !hasNightMarketItems && styles.tabBarWithoutMarket,
@@ -136,12 +234,20 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
             },
           ]}
         >
+          {/* Sliding indicator phía sau tab đang active */}
+          <Reanimated.View
+            pointerEvents="none"
+            style={[
+              styles.tabIndicator,
+              indicatorAnimatedStyle,
+            ]}
+          />
           {visibleRoutes.map((route: any) => {
             const routeIndex = state.routes.findIndex(
               (item: any) => item.key === route.key
             );
             const focused = state.index === routeIndex;
-            const { icon, label } = PRIMARY_ROUTES[route.name];
+            const { icon } = PRIMARY_ROUTES[route.name];
             const options = descriptors[route.key]?.options ?? {};
             const isMoreRoute = route.name === "settings";
 
@@ -150,7 +256,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                 key={route.key}
                 accessibilityRole="button"
                 accessibilityLabel={options.tabBarAccessibilityLabel}
-                delayLongPress={isMoreRoute ? 1000 : undefined}
+                delayLongPress={isMoreRoute ? 1000 : undefined} // Long press 1s cho "settings"
                 onLongPress={
                   isMoreRoute
                     ? () => {
@@ -172,6 +278,28 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                   });
 
                   if (!focused && !event.defaultPrevented) {
+                    flowTracer.startTrace(`Vshop Tab Navigation: ${activeRoute.name} to ${route.name}`);
+                    flowTracer.track({
+                      type: "UI_EVENT",
+                      label: `User presses ${route.name} tab`,
+                      source: {
+                        file: "app/(authenticated)/_layout.tsx",
+                        componentName: "FloatingTabBar",
+                        functionName: "onPress",
+                      },
+                      input: { from: activeRoute.name, to: route.name },
+                      tool: "Manual",
+                    });
+                    flowTracer.track({
+                      type: "NAVIGATION",
+                      label: `navigation.navigate('${route.name}')`,
+                      source: {
+                        file: "app/(authenticated)/_layout.tsx",
+                        functionName: "navigation.navigate",
+                      },
+                      input: { from: activeRoute.name, to: route.name },
+                      tool: "React Navigation",
+                    });
                     navigation.navigate(route.name);
                   }
                 }}
@@ -201,15 +329,6 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                         }
                       />
                     </View>
-                    <Text
-                      style={[
-                        styles.tabLabel,
-                        focused && styles.tabLabelActive,
-                        pressed && !focused && styles.tabLabelPressed,
-                      ]}
-                    >
-                      {label}
-                    </Text>
                   </>
                 )}
               </Pressable>
@@ -221,6 +340,26 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
   );
 }
 
+/**
+ * Layout — Component chính của authenticated group.
+ *
+ * Sử dụng Tabs (expo-router) với:
+ * - initialRouteName: "profile"
+ * - backBehavior: "history"
+ * - tabBar: FloatingTabBar tùy chỉnh
+ * - headerShown: false, tabBarShowLabel: false
+ *
+ * Các tab chính: bundles, shop, night_market, profile, settings.
+ * Các tab phụ (href: null, không hiện trên tab bar):
+ * accessories, agent, combat, combat_session, crosshair, equip,
+ * gallery, history, contracts, leaderboard, item_upgrades, friends, about.
+ *
+ * Bao gồm:
+ * - AppWarmup: Khởi tạo dữ liệu nền (assets, v.v.).
+ * - MediaPopup: Popup media toàn cục.
+ *
+ * @returns {JSX.Element} Authenticated tab layout.
+ */
 function Layout() {
   const { t } = useTranslation();
 
@@ -236,36 +375,14 @@ function Layout() {
           tabBarShowLabel: false,
         }}
       >
-        <Tabs.Screen
-          name="bundles"
-          options={{
-            title: t("bundles"),
-          }}
-        />
-        <Tabs.Screen
-          name="shop"
-          options={{
-            title: t("shop"),
-          }}
-        />
-        <Tabs.Screen
-          name="night_market"
-          options={{
-            title: t("nightmarket"),
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: t("profile"),
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: t("settings"),
-          }}
-        />
+        {/* ── Tab chính ── */}
+        <Tabs.Screen name="bundles" options={{ title: t("bundles") }} />
+        <Tabs.Screen name="shop" options={{ title: t("shop") }} />
+        <Tabs.Screen name="night_market" options={{ title: t("nightmarket") }} />
+        <Tabs.Screen name="profile" options={{ title: t("profile") }} />
+        <Tabs.Screen name="settings" options={{ title: t("settings") }} />
+
+        {/* ── Tab phụ (href: null → ẩn khỏi tab bar) ── */}
         <Tabs.Screen
           name="accessories"
           options={{
@@ -347,11 +464,8 @@ function Layout() {
           name="history"
           options={{
             href: null,
-            headerShown: true,
+            headerShown: false,
             title: t("history") || "History",
-            headerStyle: styles.secondaryHeader,
-            headerTintColor: COLORS.TEXT_PRIMARY,
-            headerShadowVisible: false,
           }}
         />
         <Tabs.Screen
@@ -415,19 +529,20 @@ function Layout() {
   );
 }
 
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   secondaryHeader: {
     backgroundColor: COLORS.BACKGROUND,
   },
   tabBarWrap: {
-    position: "absolute",
+    position: "absolute", // Nổi phía trên nội dung
     left: 0,
     right: 0,
     bottom: 0,
     alignItems: "center",
   },
   tabBarWrapWeb: {
-    pointerEvents: "none",
+    pointerEvents: "none", // Web: không chặn click bên dưới
   } as any,
   tabBar: {
     flexDirection: "row",
@@ -443,7 +558,7 @@ const styles = StyleSheet.create({
     ...GLOBAL_STYLES.shadow,
   },
   tabBarWithoutMarket: {
-    width: "78%",
+    width: "78%", // Hẹp hơn khi không có night market tab
   },
   tabBarWeb: {
     pointerEvents: "auto",
@@ -477,7 +592,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
     borderRadius: 24,
     paddingVertical: 1,
   },
@@ -496,18 +610,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.86)",
   },
   tabIconWrapActive: {
-    backgroundColor: COLORS.PURE_WHITE,
+    backgroundColor: COLORS.PURE_WHITE, // Nền trắng cho tab đang active
   },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.64)",
-  },
-  tabLabelPressed: {
-    color: "rgba(255,255,255,0.92)",
-  },
-  tabLabelActive: {
-    color: COLORS.PURE_WHITE,
+  tabIndicator: {
+    position: "absolute",
+    top: 15, // căn theo tabIconWrap (paddingVertical 14 + tabButton padding 1)
+    left: 18, // = paddingHorizontal, căn lề với content box
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255,255,255,0.14)",
   },
 });
 

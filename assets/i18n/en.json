@@ -130,7 +130,9 @@
   "shop_cards": {
     "saved": "Saved",
     "store_skin": "Store skin",
-    "bundle_skin": "Bundle skin"
+    "bundle_skin": "Bundle skin",
+    "accessory": "Accessory",
+    "bundle_accessory": "Bundle accessory"
   },
   "shop_page": {
     "agent_fallback": "Agent",
@@ -161,6 +163,7 @@
     "included_count": "{{count}} skins",
     "hero_badge": "Featured bundle",
     "hero_eyebrow": "Collection drop",
+    "view_items": "View included skins",
     "toggle_show": "Show included skins",
     "toggle_hide": "Hide included skins"
   },
@@ -262,6 +265,102 @@
     "performance_title": "Match performance",
     "rank_after": "RR after"
   },
+  "match_ui": {
+    "history_title": "Match history",
+    "player_fallback": "Player",
+    "actions": {
+      "back": "Back",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "close_details": "Close match details",
+      "share": "Share",
+      "share_match": "Share match"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "matches": "Matches",
+      "performance": "Performance",
+      "agents": "Agents",
+      "scoreboard": "Scoreboard"
+    },
+    "metrics": {
+      "kda": "K / D / A",
+      "kd": "K/D",
+      "hs": "HS%",
+      "adr": "ADR",
+      "acs": "ACS",
+      "trs": "TRS"
+    },
+    "result": {
+      "win": "Win",
+      "loss": "Loss",
+      "draw": "Draw"
+    },
+    "states": {
+      "empty_title": "No matches found",
+      "empty_body": "Your recent competitive matches will appear here.",
+      "error_title": "Could not load match data",
+      "error_body": "Please check your connection and try again.",
+      "partial": "This data is not available",
+      "partial_body": "The match loaded, but this statistic was not returned by Riot."
+    },
+    "teams": {
+      "team_a": "Team A",
+      "team_b": "Team B"
+    },
+    "economy": {
+      "title": "Economy",
+      "difference": "Economy difference",
+      "total": "Total",
+      "loadout": "Loadout value",
+      "spent": "Credits spent",
+      "tap_hint": "Tap a marker to inspect that round."
+    },
+    "round": {
+      "label": "Round {{number}}",
+      "winner": "Winner",
+      "timeline": "Round timeline",
+      "count": "{{count}} rounds",
+      "selected_detail": "Economy and event detail for the selected round",
+      "outcome": "Outcome",
+      "side": "Side",
+      "duration": "Duration"
+    },
+    "outcomes": {
+      "elimination": "Elimination",
+      "spike_detonated": "Spike detonated",
+      "spike_defused": "Spike defused",
+      "time_expired": "Time expired",
+      "surrender": "Surrender",
+      "unknown": "Unknown"
+    },
+    "sides": {
+      "attack": "Attack",
+      "defense": "Defense"
+    },
+    "performance": {
+      "avg_score": "Avg. Score",
+      "all_rounds": "All Rounds",
+      "round_hint": "Tap a round above to view its details",
+      "damage_dealt": "Dmg Dealt",
+      "damage_taken": "Dmg Taken",
+      "opponents": "Opponent breakdown",
+      "opponent": "Opponent",
+      "weapons": "Weapon stats",
+      "weapon": "Weapon",
+      "damage": "Damage"
+    },
+    "scoreboard": {
+      "player": "Player",
+      "kills": "Kills",
+      "deaths": "Deaths",
+      "assists": "Assists",
+      "rank": "Rank",
+      "team_a_stats": "Team A statistics",
+      "team_b_stats": "Team B statistics",
+      "sort_by": "Sort by"
+    }
+  },
   "equip_page": {
     "tabs": {
       "loadout": "Loadout",
@@ -297,7 +396,13 @@
     },
     "identity": {
       "card_fallback": "Player card",
+      "card_picker_title": "Choose avatar",
       "title_fallback": "No title equipped",
+      "title_picker_title": "Choose motto",
+      "motto": "Motto",
+      "search_placeholder": "Search",
+      "no_cards": "No player cards found.",
+      "no_titles": "No mottos found.",
       "account_level": "Account level: {{level}}",
       "level_hidden": "Account level hidden"
     },
@@ -307,6 +412,16 @@
     "missing_auth": "Sign in to see your current equipment.",
     "unknown_skin": "Unknown skin",
     "spray_slot_label": "{{slot}} spray",
+    "expressions": {
+      "equipped_title": "Equipped Graffiti & Flex",
+      "picker_title": "Choose Graffiti or Flex",
+      "graffiti": "Graffiti",
+      "flex": "Flex",
+      "slot": "Slot {{slot}}",
+      "no_flex": "No owned Flex found.",
+      "no_graffiti": "No owned Graffiti found.",
+      "equipped": "Equipped"
+    },
     "spray_slots": {
       "spray1": "Spray 1",
       "spray2": "Spray 2",

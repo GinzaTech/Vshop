@@ -1,3 +1,7 @@
+// 📦 LoginWebView.tsx – Component WebView đăng nhập Riot Games
+// Cho phép người dùng đăng nhập tài khoản Riot qua trình duyệt embedded (OAuth2),
+// xử lý callback URL để lấy access token và id token
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -14,13 +18,25 @@ import { buildAuthenticatedUser } from "~/utils/auth-session";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { fetchProfileWarmCache } from "~/utils/profile-cache";
+
+// URL đăng nhập Riot OAuth2
 const LOGIN_URL =
   "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid";
+// Thời gian timeout tối đa cho preload profile
 const PROFILE_PRELOAD_TIMEOUT_MS = 4500;
 
+/**
+ * isAuthCallbackUrl – Kiểm tra URL có phải là callback xác thực không (chứa access_token hoặc id_token)
+ * @param url – URL cần kiểm tra
+ * @returns true nếu là callback xác thực
+ */
 const isAuthCallbackUrl = (url?: string) =>
   Boolean(url && (url.includes("access_token=") || url.includes("id_token=")));
 
+/**
+ * wait – Tạo promise resolve sau ms mili giây
+ * @param ms – Số mili giây chờ
+ */
 const wait = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -31,20 +47,41 @@ interface LoginWebViewProps {
   style?: StyleProp<ViewStyle>;
 }
 
+/**
+ * LoginWebView – Component WebView login
+ * Hiển thị trang đăng nhập Riot, lắng nghe navigation change để bắt callback,
+ * xử lý token, tạo authenticated user, preload matches & profile, chuyển hướng
+ */
 export default function LoginWebView({
   minHeight,
   style,
 }: LoginWebViewProps) {
   const router = useRouter();
-  const { setUser } = useUserStore();
+  // Hàm setUser từ store (lưu thông tin user sau đăng nhập)
+  const setUser = useUserStore((state) => state.setUser);
+
+  // State: thông báo loading (hiển thị progress message)
   const [loading, setLoading] = useState<string | null>(null);
+  // State: lỗi WebView (nếu có)
   const [webIssue, setWebIssue] = useState<string | null>(null);
+  // Ref: ngăn xử lý auth nhiều lần đồng thời
   const authInFlightRef = useRef(false);
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
+  // Chiều cao tối thiểu của WebView (tự động tính hoặc nhận từ props)
   const resolvedMinHeight =
     minHeight ?? Math.max(500, Math.min(height * 0.74, 720));
 
+  /**
+   * handleWebViewChange – Xử lý sự kiện navigation change của WebView
+   * Khi phát hiện callback URL chứa token:
+   * 1. Trích xuất access token và id token
+   * 2. Xây dựng authenticated user
+   * 3. Lưu region
+   * 4. Preload matches và profile
+   * 5. Chuyển đến màn hình profile
+   * @param newNavState – Trạng thái navigation mới (url, loading, ...)
+   */
   const handleWebViewChange = async (newNavState: {
     url?: string;
     title?: string;
@@ -55,6 +92,7 @@ export default function LoginWebView({
     if (!newNavState.url) return;
 
     if (isAuthCallbackUrl(newNavState.url)) {
+      // Nếu đang xử lý auth request trước đó thì bỏ qua
       if (authInFlightRef.current) {
         return;
       }
@@ -65,10 +103,12 @@ export default function LoginWebView({
       const idToken = getIdTokenFromUri(newNavState.url);
       const loginStart = Date.now();
       try {
+        // Lấy region từ AsyncStorage hoặc dùng mặc định
         const region =
           (await AsyncStorage.getItem("region")) || defaultUser.region;
 
         setLoading(t("fetching.storefront"));
+        // Xây dựng authenticated user từ token
         const authenticatedUser = await buildAuthenticatedUser(
           accessToken,
           region,
@@ -76,20 +116,24 @@ export default function LoginWebView({
           idToken
         );
 
+        // Lưu region nếu khác
         if (authenticatedUser.region && authenticatedUser.region !== region) {
           await AsyncStorage.setItem("region", authenticatedUser.region);
         }
 
+        // Lưu user vào store
         setUser(authenticatedUser);
 
         setLoading(t("fetching.progress"));
 
+        // Preload matches (không await để không chặn luồng)
         void useMatchStore.getState().fetchMatches(authenticatedUser).catch((preloadErr) => {
           if (__DEV__) {
             console.log("Match preload failed, falling back", preloadErr);
           }
         });
 
+        // Preload profile cache với timeout
         const profileWarmupPromise = fetchProfileWarmCache(authenticatedUser)
           .then((cache) => {
             if (cache) {
@@ -102,6 +146,7 @@ export default function LoginWebView({
             }
           });
 
+        // Đảm bảo tối thiểu 2s loading trước khi chuyển màn hình
         const remainingDelay = Math.max(0, 2000 - (Date.now() - loginStart));
         await Promise.allSettled([
           remainingDelay > 0 ? wait(remainingDelay) : Promise.resolve(),
@@ -110,17 +155,19 @@ export default function LoginWebView({
 
         router.replace("/profile");
       } catch (e) {
-        console.log(e);
+        if (__DEV__) console.log(e);
         authInFlightRef.current = false;
 
+        // Trong production: xóa cookies và chuyển về setup để không bị kẹt
         if (!__DEV__) {
           await clearAllCookies(true);
-          router.replace("/setup"); // Fallback to setup, so user doesn't get stuck
+          router.replace("/setup");
         }
       }
     }
   };
 
+  // Hiển thị màn hình loading với message trong quá trình xử lý đăng nhập
   if (loading) {
     return <Loading msg={loading} />;
   }
@@ -136,8 +183,10 @@ export default function LoginWebView({
       ]}
       renderToHardwareTextureAndroid
     >
+      {/* WebView đăng nhập Riot */}
       <WebView
         style={styles.webView}
+        // User agent giả Android Chrome để tránh bị chặn
         userAgent="Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Mobile Safari/537.36"
         originWhitelist={["*"]}
         javaScriptEnabled
@@ -149,6 +198,7 @@ export default function LoginWebView({
         source={{
           uri: LOGIN_URL,
         }}
+        // Theo dõi navigation để bắt callback auth
         onNavigationStateChange={(state) => {
           void handleWebViewChange(state);
         }}
@@ -156,6 +206,7 @@ export default function LoginWebView({
           setWebIssue(null);
         }}
         onLoadEnd={() => setWebIssue(null)}
+        // Xử lý lỗi native
         onError={(event) => {
           if (isAuthCallbackUrl(event.nativeEvent.url)) {
             setWebIssue(null);
@@ -171,6 +222,7 @@ export default function LoginWebView({
             });
           }
         }}
+        // Xử lý lỗi HTTP
         onHttpError={(event) => {
           if (isAuthCallbackUrl(event.nativeEvent.url)) {
             setWebIssue(null);
@@ -186,6 +238,7 @@ export default function LoginWebView({
             });
           }
         }}
+        // Inject JavaScript để ẩn cookie banner Osano
         injectedJavaScriptBeforeContentLoaded={`(function() {
               const deleteCookieBanner = () => {
                 if (document.getElementsByClassName('osano-cm-window').length > 0) document.getElementsByClassName('osano-cm-window')[0].style = "display:none;";
@@ -194,12 +247,17 @@ export default function LoginWebView({
               deleteCookieBanner();
             })();`}
       />
+      {/* Hiển thị lỗi WebView nếu có */}
       {webIssue ? <Text style={styles.issueText}>{webIssue}</Text> : null}
     </View>
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// StyleSheet – Định nghĩa styles cho LoginWebView
+// ═══════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
+  // container – View bọc WebView, bo góc, nền SURFACE
   container: {
     flex: 1,
     alignSelf: "stretch",
@@ -207,10 +265,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: COLORS.SURFACE,
   },
+  // webView – WebView chiếm toàn bộ không gian
   webView: {
     flex: 1,
     backgroundColor: COLORS.SURFACE,
   },
+  // issueText – Text hiển thị lỗi WebView (phía dưới cùng)
   issueText: {
     paddingHorizontal: 14,
     paddingVertical: 10,

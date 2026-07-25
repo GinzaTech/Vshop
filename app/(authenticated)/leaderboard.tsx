@@ -1,3 +1,6 @@
+// 📦 leaderboard.tsx – Màn hình Bảng xếp hạng (Leaderboard) game Valorant
+// Hiển thị danh sách người chơi theo thứ hạng cạnh tranh, theo mùa giải
+
 import React from "react";
 import {
   FlatList,
@@ -8,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
-import { Image } from "expo-image";
+import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
@@ -17,7 +20,12 @@ import { getLeaderboard, getContent } from "~/utils/valorant-api";
 import { fetchCompetitiveTiers, getAssets } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import {
+  COMPETITIVE_TIER_IDS,
+  TIER_COLORS,
+} from "~/constants/LeaderboardData";
 
+// Kiểu: thông tin một tier cạnh tranh (tên, icon các loại)
 type CompetitiveTierInfo = {
   tier: number;
   tierName?: string;
@@ -26,69 +34,16 @@ type CompetitiveTierInfo = {
   rankTriangleDownIcon?: string | null;
 };
 
+// Kiểu: một tập hợp các tier
 type CompetitiveTierSet = {
   tiers?: CompetitiveTierInfo[];
 };
 
-const COMPETITIVE_TIER_IDS: Record<number, string> = {
-  0: "Unused",
-  1: "Unused1",
-  2: "Unused2",
-  3: "Iron 1",
-  4: "Iron 2",
-  5: "Iron 3",
-  6: "Bronze 1",
-  7: "Bronze 2",
-  8: "Bronze 3",
-  9: "Silver 1",
-  10: "Silver 2",
-  11: "Silver 3",
-  12: "Gold 1",
-  13: "Gold 2",
-  14: "Gold 3",
-  15: "Platinum 1",
-  16: "Platinum 2",
-  17: "Platinum 3",
-  18: "Diamond 1",
-  19: "Diamond 2",
-  20: "Diamond 3",
-  21: "Ascendant 1",
-  22: "Ascendant 2",
-  23: "Ascendant 3",
-  24: "Immortal 1",
-  25: "Immortal 2",
-  26: "Immortal 3",
-  27: "Radiant",
-};
-
-const TIER_COLORS: Record<number, string> = {
-  3: "#7a7a7a",
-  4: "#7a7a7a",
-  5: "#7a7a7a",
-  6: "#a0692b",
-  7: "#a0692b",
-  8: "#a0692b",
-  9: "#c0c0c0",
-  10: "#c0c0c0",
-  11: "#c0c0c0",
-  12: "#ffd700",
-  13: "#ffd700",
-  14: "#ffd700",
-  15: "#00bfff",
-  16: "#00bfff",
-  17: "#00bfff",
-  18: "#ff00ff",
-  19: "#ff00ff",
-  20: "#ff00ff",
-  21: "#ff4444",
-  22: "#ff4444",
-  23: "#ff4444",
-  24: "#9b59b6",
-  25: "#9b59b6",
-  26: "#9b59b6",
-  27: "#f39c12",
-};
-
+/**
+ * buildTierLookup – Xây dựng Map<number, CompetitiveTierInfo> để tra cứu nhanh
+ * @param tierSets – Mảng các CompetitiveTierSet từ API
+ * @returns Map ánh xạ số tier → thông tin chi tiết
+ */
 function buildTierLookup(tierSets: CompetitiveTierSet[] = []) {
   const lookup = new Map<number, CompetitiveTierInfo>();
 
@@ -103,24 +58,45 @@ function buildTierLookup(tierSets: CompetitiveTierSet[] = []) {
   return lookup;
 }
 
+/**
+ * getTierIcon – Lấy URL icon đầu tiên khả dụng cho một tier
+ * @param tier – Đối tượng CompetitiveTierInfo (hoặc undefined)
+ * @returns URL icon hoặc null
+ */
 function getTierIcon(tier?: CompetitiveTierInfo) {
   return tier?.smallIcon || tier?.largeIcon || tier?.rankTriangleDownIcon || null;
 }
 
+/**
+ * LeaderboardScreen – Component hiển thị bảng xếp hạng người chơi theo mùa giải
+ * Cho phép chọn mùa, tìm kiếm người chơi, xem thứ hạng và rank
+ */
 export default function LeaderboardScreen() {
   const { t } = useTranslation();
+  // Thông tin user từ store
   const user = useUserStore((state) => state.user);
 
+  // State: danh sách người chơi từ API
   const [players, setPlayers] = React.useState<LeaderboardResponse["Players"]>([]);
+  // State: trạng thái đang tải
   const [loading, setLoading] = React.useState(true);
+  // State: từ khóa tìm kiếm
   const [searchQuery, setSearchQuery] = React.useState("");
+  // State: tổng số người chơi trên leaderboard
   const [totalPlayers, setTotalPlayers] = React.useState(0);
+  // State: danh sách mùa giải có sẵn
   const [seasons, setSeasons] = React.useState<{ id: string; name: string }[]>([]);
+  // State: ID mùa giải đang được chọn
   const [selectedSeason, setSelectedSeason] = React.useState<string | null>(null);
+  // State: Map tra cứu thông tin tier (khởi tạo từ assets có sẵn)
   const [tierLookup, setTierLookup] = React.useState(() =>
     buildTierLookup(getAssets().competitiveTiers as CompetitiveTierSet[])
   );
 
+  /**
+   * fetchLeaderboard – Gọi API lấy dữ liệu bảng xếp hạng theo seasonId
+   * @param seasonId – ID của mùa giải cần lấy
+   */
   const fetchLeaderboard = React.useCallback(
     async (seasonId: string) => {
       if (!user.accessToken || !user.entitlementsToken || !user.region) return;
@@ -141,7 +117,7 @@ export default function LeaderboardScreen() {
           setTotalPlayers(0);
         }
       } catch (err) {
-        console.error("Failed to fetch leaderboard:", err);
+        if (__DEV__) console.error("Failed to fetch leaderboard:", err);
         setPlayers([]);
         setTotalPlayers(0);
       } finally {
@@ -151,6 +127,7 @@ export default function LeaderboardScreen() {
     [user]
   );
 
+  // Effect: Lấy danh sách mùa giải (season) và tải leaderboard mặc định
   React.useEffect(() => {
     const init = async () => {
       if (!user.accessToken || !user.entitlementsToken || !user.region) return;
@@ -161,6 +138,7 @@ export default function LeaderboardScreen() {
           user.region
         );
         if (content) {
+          // Lọc các season đang active, loại "act"
           const acts = content.Seasons.filter((s) => s.Type === "act" && s.IsActive);
           const seasonList = acts.map((a) => ({ id: a.ID, name: a.Name }));
           setSeasons(seasonList);
@@ -174,13 +152,14 @@ export default function LeaderboardScreen() {
           setLoading(false);
         }
       } catch (err) {
-        console.error("Failed to fetch content:", err);
+        if (__DEV__) console.error("Failed to fetch content:", err);
         setLoading(false);
       }
     };
     init();
   }, [user, fetchLeaderboard]);
 
+  // Effect: Nếu chưa có tierLookup, fetch competitive tiers từ API
   React.useEffect(() => {
     if (tierLookup.size > 0) return;
 
@@ -193,7 +172,7 @@ export default function LeaderboardScreen() {
         }
       })
       .catch((err) => {
-        console.error("Failed to fetch competitive tiers:", err);
+        if (__DEV__) console.error("Failed to fetch competitive tiers:", err);
       });
 
     return () => {
@@ -201,6 +180,10 @@ export default function LeaderboardScreen() {
     };
   }, [tierLookup.size]);
 
+  /**
+   * filteredPlayers – Danh sách người chơi đã lọc theo từ khóa tìm kiếm
+   * So khớp với gameName hoặc tagLine
+   */
   const filteredPlayers = React.useMemo(() => {
     if (!searchQuery.trim()) return players;
     const q = searchQuery.toLowerCase();
@@ -211,11 +194,19 @@ export default function LeaderboardScreen() {
     );
   }, [players, searchQuery]);
 
+  /**
+   * handleSeasonChange – Xử lý khi người dùng chọn mùa giải khác
+   * @param seasonId – ID mùa giải mới
+   */
   const handleSeasonChange = (seasonId: string) => {
     setSelectedSeason(seasonId);
     fetchLeaderboard(seasonId);
   };
 
+  /**
+   * renderPlayerRow – Render một hàng người chơi trong danh sách
+   * Hiển thị: số thứ hạng, tên, tag, rank icon, RR, số trận thắng
+   */
   const renderPlayerRow = ({
     item,
     index,
@@ -223,6 +214,7 @@ export default function LeaderboardScreen() {
     item: LeaderboardResponse["Players"][0];
     index: number;
   }) => {
+    // Màu sắc và thông tin tier
     const tierColor = TIER_COLORS[item.competitiveTier] || COLORS.TEXT_SECONDARY;
     const tierInfo = tierLookup.get(item.competitiveTier);
     const tierIcon = getTierIcon(tierInfo);
@@ -235,19 +227,26 @@ export default function LeaderboardScreen() {
 
     return (
       <View style={styles.playerRow}>
+        {/* Số thứ hạng */}
         <Text style={styles.rankText}>
           #{item.leaderboardRank}
         </Text>
+        {/* Thông tin người chơi */}
         <View style={styles.playerInfo}>
           <Text style={styles.playerName} numberOfLines={1}>
             {playerName}{playerTag}
           </Text>
+          {/* Hàng hiển thị rank */}
           <View style={styles.tierRow}>
             {tierIcon ? (
               <Image
+                cacheId={`rank:${item.competitiveTier}:icon`}
                 source={{ uri: tierIcon }}
                 style={styles.tierIcon}
                 contentFit="contain"
+                cachePolicy="memory-disk"
+                priority="low"
+                recyclingKey={tierIcon}
               />
             ) : (
               <View style={[styles.tierDot, { backgroundColor: tierColor }]} />
@@ -257,6 +256,7 @@ export default function LeaderboardScreen() {
             </Text>
           </View>
         </View>
+        {/* Thống kê bên phải: RR và số trận thắng */}
         <View style={styles.statsRight}>
           <Text style={styles.rrText}>{item.rankedRating}</Text>
           <Text style={styles.winsText}>
@@ -267,6 +267,7 @@ export default function LeaderboardScreen() {
     );
   };
 
+  // Hiển thị loading khi chưa có dữ liệu
   if (loading && players.length === 0) {
     return (
       <View style={styles.centered}>
@@ -278,11 +279,12 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* Header: tiêu đề */}
       <View style={styles.headerContent}>
         <Text style={styles.title}>{t("leaderboard_page.title")}</Text>
-        <Text style={styles.subtitle}>{t("leaderboard_page.subtitle")}</Text>
       </View>
 
+      {/* Dải chọn mùa giải (season chips) */}
       {seasons.length > 0 && (
         <View style={styles.seasonRow}>
           <Icon name="calendar-range" size={16} color={COLORS.TEXT_SECONDARY} />
@@ -308,6 +310,7 @@ export default function LeaderboardScreen() {
         </View>
       )}
 
+      {/* Thanh tìm kiếm người chơi */}
       <View style={styles.searchBar}>
         <Icon name="magnify" size={18} color={COLORS.TEXT_SECONDARY} />
         <TextInput
@@ -324,12 +327,14 @@ export default function LeaderboardScreen() {
         ) : null}
       </View>
 
+      {/* Tổng số người chơi */}
       {totalPlayers > 0 && (
         <Text style={styles.totalText}>
           {totalPlayers} {t("leaderboard_page.player").toLowerCase()}s
         </Text>
       )}
 
+      {/* Danh sách người chơi hoặc empty state */}
       {filteredPlayers.length === 0 && !loading ? (
         <GlassCard style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>
@@ -339,7 +344,7 @@ export default function LeaderboardScreen() {
       ) : (
         <FlatList
           data={filteredPlayers}
-          keyExtractor={(item) => item.puuid}
+          keyExtractor={(item, index) => item.puuid || `player-${index}`}
           renderItem={renderPlayerRow}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -351,38 +356,48 @@ export default function LeaderboardScreen() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// StyleSheet – Định nghĩa tất cả styles cho màn hình Leaderboard
+// ═══════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
+  // screen – Container chính full màn hình
   screen: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
+  // centered – Trung tâm màn hình khi loading
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.BACKGROUND,
   },
+  // loadingText – Chữ loading bên dưới spinner
   loadingText: {
     marginTop: 12,
     color: COLORS.TEXT_SECONDARY,
     fontSize: 14,
   },
+  // headerContent – Padding cho header
   headerContent: {
     paddingHorizontal: 20,
     paddingTop: 6,
     paddingBottom: 12,
   },
+  // title – Tiêu đề màn hình
   title: {
     fontSize: 28,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
+  // subtitle – Phụ đề
   subtitle: {
     marginTop: 6,
     fontSize: 15,
     lineHeight: 22,
     color: COLORS.TEXT_SECONDARY,
   },
+  // seasonRow – Hàng chứa các chip chọn mùa
   seasonRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -390,6 +405,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
+  // seasonChip – Chip chọn mùa (mặc định)
   seasonChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -398,18 +414,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.BORDER,
   },
+  // seasonChipActive – Chip mùa đang được chọn (màu accent)
   seasonChipActive: {
     backgroundColor: COLORS.ACCENT,
     borderColor: COLORS.ACCENT,
   },
+  // seasonChipText – Text chip mặc định
   seasonChipText: {
     fontSize: 12,
     fontWeight: "600",
     color: COLORS.TEXT_SECONDARY,
   },
+  // seasonChipTextActive – Text chip đang active
   seasonChipTextActive: {
     color: COLORS.PURE_BLACK,
   },
+  // searchBar – Thanh tìm kiếm người chơi
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -423,22 +443,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.BORDER,
   },
+  // searchInput – Input tìm kiếm
   searchInput: {
     flex: 1,
     fontSize: 15,
     color: COLORS.TEXT_PRIMARY,
     padding: 0,
   },
+  // totalText – Text tổng số người chơi
   totalText: {
     paddingHorizontal: 20,
     fontSize: 12,
     color: COLORS.TEXT_SECONDARY,
     marginBottom: 8,
   },
+  // listContent – Content container cho FlatList
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 140,
   },
+  // playerRow – Một hàng người chơi
   playerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -447,57 +471,69 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.BORDER,
   },
+  // rankText – Số thứ hạng (#1, #2, ...)
   rankText: {
     width: 44,
     fontSize: 14,
     fontWeight: "800",
     color: COLORS.TEXT_PRIMARY,
   },
+  // playerInfo – Vùng thông tin người chơi
   playerInfo: {
     flex: 1,
   },
+  // playerName – Tên người chơi
   playerName: {
     fontSize: 14,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
+  // tierRow – Hàng hiển thị rank (icon + tên tier)
   tierRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     marginTop: 2,
   },
+  // tierDot – Chấm tròn màu rank (khi không có icon)
   tierDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
+  // tierIcon – Icon rank
   tierIcon: {
     width: 20,
     height: 20,
   },
+  // tierText – Tên rank
   tierText: {
     fontSize: 12,
     fontWeight: "600",
   },
+  // statsRight – Vùng thống kê bên phải (RR + wins)
   statsRight: {
     alignItems: "flex-end",
   },
+  // rrText – Số RR (ranked rating)
   rrText: {
     fontSize: 16,
     fontWeight: "800",
     color: COLORS.TEXT_PRIMARY,
   },
+  // winsText – Số trận thắng
   winsText: {
     fontSize: 11,
     color: COLORS.TEXT_SECONDARY,
     marginTop: 1,
   },
+  // emptyCard – Card empty state
   emptyCard: {
     marginHorizontal: 20,
     padding: 24,
     alignItems: "center",
   },
+  // emptyTitle – Tiêu đề empty state
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",

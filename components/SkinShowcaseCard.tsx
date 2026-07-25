@@ -1,15 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Easing,
-  LayoutChangeEvent,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 
 import CurrencyIcon from "./CurrencyIcon";
@@ -21,53 +20,126 @@ import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { WEAPON_NAME_ORDER } from "~/components/GalleryProfile";
 
+// ─── SkinShowcaseCardProps ─────────────────────────────────────────────────────
+//   - item: đối tượng SkinShopItem chứa thông tin skin
+//   - variant: "store" | "bundle" – ảnh hưởng đến text hiển thị loại vũ khí
+
 interface SkinShowcaseCardProps {
   item: SkinShopItem;
   variant?: "store" | "bundle";
 }
+
+// ─── SkinShowcaseCard ──────────────────────────────────────────────────────────
+// Component thẻ hiển thị skin trong shop hoặc bundle.
+// Được bọc trong React.memo để tránh re-render không cần thiết.
+//
+// State & Hook:
+//   - t (useTranslation): hàm dịch đa ngôn ngữ
+//   - showMediaPopup (useMediaPopupStore): hàm mở popup xem media (video/ảnh)
+//   - skinIds (useWishlistStore): mảng chứa UUID các skin đã yêu thích
+//   - toggleSkin (useWishlistStore): hàm thêm/xoá skin khỏi wishlist
+//   - screenshotModeEnabled (useFeatureStore): bool chế độ chụp màn hình
+
+// useRef:
+//   - previewTimeoutRef: lưu timeout để phân biệt click đơn vs click đôi
+//     (double-tap để toggle wishlist, single-tap sau 220ms để preview)
 
 const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   item,
   variant = "store",
 }: SkinShowcaseCardProps) {
   const { t } = useTranslation();
-  const { showMediaPopup } = useMediaPopupStore();
+  const showMediaPopup = useMediaPopupStore((state) => state.showMediaPopup);
   const skinIds = useWishlistStore((state) => state.skinIds);
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
-  const { screenshotModeEnabled } = useFeatureStore();
+  const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [cardWidth, setCardWidth] = useState(0);
-  const sweepTranslateX = useRef(new Animated.Value(-160)).current;
-  const sweepOpacity = useRef(new Animated.Value(0)).current;
 
+  const scale = useSharedValue(1);
+  const badgeScale = useSharedValue(0);
+  const cardAnimatedStyle = useAnimatedStyle(
+    () => ({ transform: [{ scale: scale.value }] }),
+    [],
+  );
+  const badgeAnimatedStyle = useAnimatedStyle(
+    () => ({ transform: [{ scale: badgeScale.value }] }),
+    [],
+  );
+
+  // useCallback: handlePreviewPress
+  //   - Tập hợp danh sách media từ levels (video/icon) và chromas (video/render)
+  //   - Lọc bỏ entry không có URI
+  //   - Gọi showMediaPopup để mở popup xem media
+  //   - Phụ thuộc: [item.chromas, item.displayName, item.levels, showMediaPopup]
   const handlePreviewPress = useCallback(() => {
     const media = [
-      ...(item.levels ?? []).map((level) => level.streamedVideo || level.displayIcon || ""),
-      ...(item.chromas ?? []).map((chroma) => chroma.streamedVideo || chroma.fullRender || ""),
-    ].filter(Boolean);
+      ...(item.levels ?? []).map((level) => ({
+        cacheId: `skin-level:${level.uuid}:media`,
+        uri: level.streamedVideo || level.displayIcon || "",
+      })),
+      ...(item.chromas ?? []).map((chroma) => ({
+        cacheId: `skin-chroma:${chroma.uuid}:media`,
+        uri: chroma.streamedVideo || chroma.fullRender || "",
+      })),
+    ].filter((entry) => Boolean(entry.uri));
 
     if (media.length > 0) {
-      showMediaPopup(media, item.displayName);
+      showMediaPopup(
+        media.map((entry) => entry.uri),
+        item.displayName,
+        media.map((entry) => entry.cacheId)
+      );
     }
   }, [item.chromas, item.displayName, item.levels, showMediaPopup]);
 
+  // useMemo: isFavorited
+  //   - Kiểm tra xem level đầu tiên của skin có nằm trong danh sách yêu thích không
+  //   - Phụ thuộc: [item.levels, skinIds]
   const isFavorited = useMemo(
     () => (item.levels?.length ? skinIds.includes(item.levels[0].uuid) : false),
     [item.levels, skinIds]
   );
+
+  useEffect(() => {
+    if (isFavorited) {
+      badgeScale.value = withSequence(
+        withSpring(1.3, { damping: 8 }),
+        withSpring(1, { damping: 14 }),
+      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      badgeScale.value = withTiming(0);
+    }
+  }, [isFavorited]);
+
+  // useMemo: tier
+  //   - Lấy thông tin hiển thị của content tier (màu sắc, nhãn, ...)
+  //   - Dùng getContentTierVisual(item.contentTierUuid)
+  //   - Phụ thuộc: [item.contentTierUuid]
   const tier = useMemo(
     () => getContentTierVisual(item.contentTierUuid),
     [item.contentTierUuid]
   );
+
+  // useMemo: imageSource
+  //   - Tính URI ảnh hiển thị (dùng getDisplayIconUri)
+  //   - Nếu có URI và không ở chế độ screenshot => trả về { uri }
+  //   - Nếu không => ảnh mặc định noimage.png
+  //   - Phụ thuộc: [item, screenshotModeEnabled]
   const imageSource = useMemo(() => {
     const uri = getDisplayIconUri(item);
 
     if (uri && !screenshotModeEnabled) {
-      return { uri, cacheKey: uri };
+      return { uri };
     }
 
     return require("~/assets/images/noimage.png");
   }, [item, screenshotModeEnabled]);
+
+  // useMemo: weaponType
+  //   - Xác định loại vũ khí bằng cách so sánh tên skin với WEAPON_NAME_ORDER
+  //   - Nếu không tìm thấy, dùng text động theo variant (store/bundle)
+  //   - Phụ thuộc: [item.displayName, t, variant]
   const weaponType = useMemo(() => {
     const lowerName = item.displayName.toLowerCase();
     return (
@@ -81,37 +153,18 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       )
     );
   }, [item.displayName, t, variant]);
+
+  // useCallback: handleCardPress
+  //   - Xử lý sự kiện nhấn vào card
+  //   - Double-tap: nếu timeout đã tồn tại (click trước đó trong 220ms) =>
+  //     clear timeout và toggle wishlist
+  //   - Single-tap: set timeout 220ms, sau đó gọi handlePreviewPress
+  //   - Phụ thuộc: [handlePreviewPress, item.levels, item.uuid, toggleSkin]
   const handleCardPress = useCallback(() => {
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
       previewTimeoutRef.current = null;
       toggleSkin(item.levels?.[0]?.uuid ?? item.uuid);
-      const startX = -Math.max(cardWidth * 0.7, 120);
-
-      sweepTranslateX.stopAnimation();
-      sweepOpacity.stopAnimation();
-      sweepTranslateX.setValue(startX);
-      sweepOpacity.setValue(0);
-
-      Animated.sequence([
-        Animated.timing(sweepOpacity, {
-          toValue: 0.95,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(sweepOpacity, {
-          toValue: 0,
-          duration: 360,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      Animated.timing(sweepTranslateX, {
-        toValue: cardWidth + 120,
-        duration: 520,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
       return;
     }
 
@@ -119,11 +172,10 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       previewTimeoutRef.current = null;
       handlePreviewPress();
     }, 220);
-  }, [cardWidth, handlePreviewPress, item.levels, item.uuid, sweepOpacity, sweepTranslateX, toggleSkin]);
-  const handleCardLayout = useCallback((event: LayoutChangeEvent) => {
-    setCardWidth(event.nativeEvent.layout.width);
-  }, []);
+  }, [handlePreviewPress, item.levels, item.uuid, toggleSkin]);
 
+  // useEffect: cleanup timeout khi component unmount
+  //   - Tránh memory leak nếu người dùng rời đi trước khi timeout chạy
   useEffect(() => {
     return () => {
       if (previewTimeoutRef.current) {
@@ -133,229 +185,208 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   }, []);
 
   return (
-    <Pressable
-      onPress={handleCardPress}
-      onLayout={handleCardLayout}
-      style={({ pressed }) => [
-        styles.card,
-        pressed && styles.cardPressed,
-        {
-          backgroundColor: COLORS.SURFACE,
-          borderColor: tier.border,
-          shadowColor: COLORS.PURE_BLACK,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.04,
-          shadowRadius: 12,
-          elevation: 2,
-        },
-      ]}
-    >
-      <Animated.View
-        pointerEvents="none"
+    <Animated.View style={cardAnimatedStyle}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={item.displayName}
+        onPress={handleCardPress}
+        onPressIn={() => {
+          scale.value = withSpring(0.97, { damping: 15, stiffness: 150 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 15, stiffness: 150 });
+        }}
         style={[
-          styles.sweepOverlay,
+          styles.card,
           {
-            opacity: sweepOpacity,
-            transform: [{ translateX: sweepTranslateX }, { rotate: "14deg" }],
+            borderColor: tier.border, // border theo tier
           },
         ]}
       >
-        <BlurView intensity={55} tint="light" style={styles.sweepBlur}>
-          <View style={styles.sweepTint} />
-        </BlurView>
-      </Animated.View>
+      {/*
+        ── imageFrame ───────────────────────────────────────────────────────────
+        Khung hình trên: nền theo tier, border dưới theo tier
+        Chứa: tierBadge (cấp độ skin), savedBadge (nếu đã yêu thích), ảnh
+        */}
+      <View
+        style={[
+          styles.imageFrame,
+          {
+            backgroundColor: tier.cardBackground,
+            borderBottomColor: tier.border,
+          },
+        ]}
+      >
+        <View style={[styles.tierBadge, { backgroundColor: tier.badgeBackground }]}>
+          <Text style={[styles.tierText, { color: tier.text }]} numberOfLines={1}>
+            {tier.label.toUpperCase()}
+          </Text>
+        </View>
+        {isFavorited ? (
+          <Animated.View style={[styles.savedBadge, badgeAnimatedStyle]}>
+            <Text style={styles.savedBadgeText}>
+              {t("shop_cards.saved")}
+            </Text>
+          </Animated.View>
+        ) : null}
+        <Image
+          cacheId={`skin:${item.uuid}:display`}
+          style={styles.image}
+          source={imageSource}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          priority="low"
+          transition={120}
+          recyclingKey={item.uuid}
+        />
+      </View>
 
-      <View style={styles.cardHeader}>
-        <Text style={styles.eyebrow} numberOfLines={1}>
+      {/*
+        ── content ──────────────────────────────────────────────────────────────
+        Phần nội dung dưới: loại vũ khí, tên skin, giá (kèm icon VP)
+        */}
+      <View style={styles.content}>
+        <Text style={styles.weaponTypeText} numberOfLines={1}>
           {weaponType}
         </Text>
-        {isFavorited ? (
+        <Text style={styles.title} numberOfLines={2}>
+          {item.displayName}
+        </Text>
+
+        <View style={styles.priceRow}>
           <View
             style={[
-              styles.savedBadge,
+              styles.priceWrapper,
               {
                 backgroundColor: tier.badgeBackground,
                 borderColor: tier.border,
               },
             ]}
           >
-            <Text style={[styles.savedBadgeText, { color: tier.text }]}>
-              {t("shop_cards.saved")}
+            <CurrencyIcon
+              icon="vp"
+              style={[styles.currencyIcon, { tintColor: tier.text }]}
+            />
+            <Text style={[styles.priceText, { color: tier.text }]}>
+              {item.price}
             </Text>
           </View>
-        ) : null}
-      </View>
-
-      <Text style={styles.title} numberOfLines={1}>
-        {item.displayName}
-      </Text>
-
-      <View
-        style={[
-          styles.visualFrame,
-          {
-            backgroundColor: tier.cardBackground, // Nền nhạt theo độ hiếm làm nổi bật hình ảnh súng
-            borderColor: tier.border,
-          },
-        ]}
-      >
-        <Image
-          style={styles.image}
-          source={imageSource}
-          contentFit="contain"
-          cachePolicy="memory-disk"
-          priority="high"
-          transition={120}
-          recyclingKey={item.uuid}
-        />
-      </View>
-
-      <View style={styles.metaRow}>
-        <View
-          style={[
-            styles.metaBadge,
-            {
-              backgroundColor: tier.badgeBackground,
-              borderColor: tier.border,
-            },
-          ]}
-        >
-          <View style={[styles.rarityDot, { backgroundColor: tier.accent }]} />
-          <Text style={[styles.metaBadgeText, { color: tier.text }]} numberOfLines={1}>
-            {tier.label}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.metaBadge,
-            styles.priceBadge,
-            {
-              backgroundColor: tier.badgeBackground,
-              borderColor: tier.border,
-            },
-          ]}
-        >
-          <CurrencyIcon icon="vp" style={styles.currencyIcon} />
-          <Text style={[styles.metaBadgeText, { color: tier.text }]}>
-            {item.price}
-          </Text>
         </View>
       </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 });
 
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  // card: thẻ chính, flex 1, nền SURFACE, bo góc 8, border 1px, overflow hidden
   card: {
-    position: "relative",
     flex: 1,
-    minHeight: 238,
-    borderRadius: RADIUS.card,
+    backgroundColor: COLORS.SURFACE,
+    borderRadius: 8,
     borderWidth: 1,
-    padding: 14,
     overflow: "hidden",
   },
+  // cardPressed: hiệu ứng khi nhấn - giảm opacity
   cardPressed: {
-    opacity: 0.92,
+    opacity: 0.86,
   },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  eyebrow: {
-    flex: 1,
-    marginRight: 10,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  savedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: RADIUS.chip,
-    borderWidth: 1,
-  },
-  savedBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  sweepOverlay: {
-    position: "absolute",
-    top: -16,
-    bottom: -16,
-    left: 0,
-    width: 92,
-    borderRadius: 30,
-    overflow: "hidden",
-  },
-  sweepBlur: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  sweepTint: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.14)",
-  },
-  visualFrame: {
-    width: "100%",
-    height: 112,
-    borderRadius: 18,
-    borderWidth: 1,
+  // content: padding ngang/dọc cho vùng nội dung
+  content: {
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingTop: 9,
+    paddingBottom: 10,
+  },
+  // currencyIcon: icon VP, 13x13
+  currencyIcon: {
+    width: 13,
+    height: 13,
+    marginRight: 4,
+  },
+  // savedBadge: badge "SAVED" góc trên phải, nền đen, absolute
+  savedBadge: {
+    backgroundColor: COLORS.PURE_BLACK,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    position: "absolute",
+    right: 8,
+    top: 8,
+    zIndex: 1,
+  },
+  // savedBadgeText: text trong saved badge, trắng, size 10, bold 900
+  savedBadgeText: {
+    color: COLORS.PURE_WHITE,
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  // imageFrame: khung ảnh tỷ lệ 1.45, border dưới 1px, padding 12, relative
+  imageFrame: {
+    aspectRatio: 1.45,
+    borderBottomWidth: 1,
+    padding: 12,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
+  // image: ảnh chiếm toàn bộ khung
   image: {
     width: "100%",
     height: "100%",
   },
+  // title: tên skin, primary, 13px, bold 800, lineHeight 17, minHeight 34
   title: {
-    marginTop: 2,
-    marginBottom: 10,
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 16,
-    fontWeight: "700",
-    lineHeight: 22,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
+    minHeight: 34,
+    marginBottom: 8,
   },
-  metaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 10,
-  },
-  metaBadge: {
+  // priceRow: hàng ngang chứa giá, flex row, space-between, gap 6
+  priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  // priceWrapper: badge giá dạng chip, flex row, bo góc chip, border 1px
+  priceWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: RADIUS.chip,
     borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
-  priceBadge: {
-    minWidth: 82,
+  // priceText: text giá, 14px, bold 900 (màu lấy từ tier)
+  priceText: {
+    fontSize: 14,
+    fontWeight: "900",
   },
-  metaBadgeText: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: 6,
-  },
-  rarityDot: {
-    width: 8,
-    height: 8,
+  // tierBadge: badge cấp độ skin, absolute góc trên trái, bo góc 4, zIndex 1
+  tierBadge: {
     borderRadius: 4,
-    marginRight: 6,
+    left: 8,
+    maxWidth: "56%",
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    position: "absolute",
+    top: 8,
+    zIndex: 1,
   },
-  currencyIcon: {
-    width: 13,
-    height: 13,
+  // tierText: text trong tier badge, 9px, bold 900 (màu lấy từ tier)
+  tierText: {
+    fontSize: 9,
+    fontWeight: "900",
+  },
+  // weaponTypeText: text loại vũ khí, secondary, 10px, bold 600
+  weaponTypeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: COLORS.TEXT_SECONDARY,
+    marginBottom: 3,
   },
 });
 

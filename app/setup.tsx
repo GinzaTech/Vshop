@@ -1,3 +1,9 @@
+// 📄 app/setup.tsx — Màn hình thiết lập lần đầu (onboarding)
+// Gồm 2-3 trang cuộn ngang:
+//   1. Giới thiệu (hero image + welcome)
+//   2. Chọn khu vực (region)
+//   3. Đăng nhập (sign-in) – chỉ hiện nếu đã chọn region
+
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
@@ -8,7 +14,7 @@ import {
   Title,
   useTheme,
 } from "react-native-paper";
-import { Image } from "expo-image";
+import { CachedImage as Image } from "~/components/CachedImage";
 import { regions } from "~/utils/misc";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUserStore } from "~/hooks/useUserStore";
@@ -17,17 +23,38 @@ import GlassCard from "~/components/ui/GlassCard";
 import { COLORS } from "~/constants/DesignSystem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const FOOTER_HEIGHT = 92;
-const HORIZONTAL_PADDING = 20;
+// ─── Hằng số layout ───────────────────────────────────────────────────────────
+const FOOTER_HEIGHT = 92;         // Chiều cao vùng footer (chứa Back / Next)
+const HORIZONTAL_PADDING = 20;    // Padding ngang cho các trang
 
+/**
+ * Setup — Component onboarding chính.
+ *
+ * State:
+ * - scrollViewRef (useRef<ScrollView>): Tham chiếu đến ScrollView paging để
+ *   điều khiển cuộn trang bằng code.
+ * - offsetX (state, number): Vị trí cuộn ngang hiện tại (px).
+ * - user (từ useUserStore): Đối tượng user chứa region, accessToken, ...
+ * - setUser (từ useUserStore): Hàm cập nhật user store.
+ *
+ * Giá trị tính toán:
+ * - pageHeight: Chiều cao mỗi trang = max(560, window - safe - footer).
+ * - heroImageHeight: Chiều cao ảnh hero = min(34% window, 300).
+ * - loginHeight: Chiều cao tối thiểu cho webview đăng nhập.
+ *
+ * @returns {JSX.Element} Màn hình onboarding.
+ */
 function Setup() {
   const scrollViewRef = useRef<ScrollView>(null);
-  const [offsetX, setOffsetX] = useState(0);
+  const [offsetX, setOffsetX] = useState(0);            // Vị trí cuộn ngang (px)
   const { t } = useTranslation();
-  const { user, setUser } = useUserStore();
+  const user = useUserStore((state) => state.user);
+  const setUser = useUserStore((state) => state.setUser);
   const { colors } = useTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+
+  // Chiều cao mỗi slide, đảm bảo tối thiểu 560px
   const pageHeight = useMemo(
     () =>
       Math.max(
@@ -36,11 +63,15 @@ function Setup() {
       ),
     [insets.bottom, insets.top, windowHeight]
   );
+
+  // Chiều cao ảnh hero (không vượt quá 300px)
   const heroImageHeight = Math.min(windowHeight * 0.34, 300);
+  // Chiều cao tối thiểu cho LoginWebView
   const loginHeight = Math.max(430, pageHeight - 144);
 
   return (
     <View style={styles.root}>
+      {/* ScrollView paging ngang – mỗi slide là một "trang" */}
       <ScrollView
         style={styles.pager}
         horizontal
@@ -52,6 +83,7 @@ function Setup() {
           setOffsetX(event.nativeEvent.contentOffset.x)
         }
       >
+        {/* ── Slide 1: Giới thiệu ── */}
         <View
           style={{
             justifyContent: "space-evenly",
@@ -90,6 +122,8 @@ function Setup() {
             </View>
           </GlassCard>
         </View>
+
+        {/* ── Slide 2: Chọn khu vực ── */}
         <View
           style={{
             width: windowWidth,
@@ -111,7 +145,7 @@ function Setup() {
             <RadioButton.Group
               onValueChange={(value) => {
                 setUser({ ...user, region: value });
-                AsyncStorage.setItem("region", value);
+                AsyncStorage.setItem("region", value); // Lưu region vào bộ nhớ
               }}
               value={user.region}
             >
@@ -128,6 +162,8 @@ function Setup() {
             </RadioButton.Group>
           </GlassCard>
         </View>
+
+        {/* ── Slide 3: Đăng nhập — chỉ hiện nếu đã chọn region ── */}
         {user.region.length > 0 && (
           <View
             style={{
@@ -158,6 +194,8 @@ function Setup() {
           </View>
         )}
       </ScrollView>
+
+      {/* ── Footer: Back / Next ── */}
       <View
         style={{
           paddingHorizontal: HORIZONTAL_PADDING,
@@ -166,13 +204,11 @@ function Setup() {
       >
         <GlassCard>
           <View style={{ flexDirection: "row" }}>
+            {/* Nút Back – disabled ở trang đầu tiên */}
             <Button
               onPress={() => {
                 const x = offsetX - windowWidth;
-                scrollViewRef.current?.scrollTo({
-                  x,
-                  animated: true,
-                });
+                scrollViewRef.current?.scrollTo({ x, animated: true });
                 setOffsetX(x);
               }}
               style={{ width: "50%" }}
@@ -181,13 +217,12 @@ function Setup() {
             >
               {t("back")}
             </Button>
+            {/* Nút Next – disabled nếu chưa chọn region ở trang 2,
+                hoặc đang ở trang cuối (trang 3 / index 2) */}
             <Button
               onPress={() => {
                 const x = offsetX + windowWidth;
-                scrollViewRef.current?.scrollTo({
-                  x,
-                  animated: true,
-                });
+                scrollViewRef.current?.scrollTo({ x, animated: true });
                 setOffsetX(x);
               }}
               style={{ width: "50%" }}
@@ -203,6 +238,8 @@ function Setup() {
           </View>
         </GlassCard>
       </View>
+
+      {/* SafeAreaView phía dưới cùng để đảm bảo không bị notch che */}
       <SafeAreaView style={{ backgroundColor: colors.background }} />
     </View>
   );
@@ -210,12 +247,13 @@ function Setup() {
 
 export default Setup;
 
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
   pager: {
-    flex: 1,
+    flex: 1,     // ScrollView chiếm phần còn lại sau footer
   },
 });

@@ -1,54 +1,83 @@
 {
   "expo": {
+    // Tên hiển thị của ứng dụng
     "name": "VShop",
+    // Slug (định danh) cho Expo
     "slug": "vshop",
+    // Phiên bản ứng dụng (theo semantic versioning)
     "version": "4.0.3",
+    // Chính sách runtime version: đồng bộ với app version
     "runtimeVersion": {
       "policy": "appVersion"
     },
+    // Hướng màn hình: portrait (dọc)
     "orientation": "portrait",
+    // Đường dẫn icon ứng dụng
     "icon": "./assets/images/icon.png",
+    // URL scheme để mở app từ trình duyệt (vd: vshop://)
     "scheme": "vshop",
+    // Giao diện người dùng: tự động (light/dark mode theo hệ thống)
     "userInterfaceStyle": "automatic",
+    // Cấu hình cập nhật OTA (over-the-air) qua Expo Updates
     "updates": {
+      // URL dự án trên EAS Update
       "url": "https://u.expo.dev/90bdf4e2-2472-4cd1-a168-4a5ee4e62218",
+      // Kiểm tra update khi có lỗi (ON_ERROR_RECOVERY)
       "checkAutomatically": "ON_ERROR_RECOVERY"
     },
+    // Cấu hình màn hình splash (khởi động)
     "splash": {
+      // Hình ảnh splash
       "image": "./assets/images/splash.png",
+      // Chế độ resize: contain (giữ tỉ lệ)
       "resizeMode": "contain",
-    "backgroundColor": "#2f343b"
+      // Màu nền splash
+      "backgroundColor": "#2f343b"
     },
+    // Cấu hình riêng cho iOS
     "ios": {
-      "bundleIdentifier": "dev.vasc.vshop",
-      "buildNumber": "29",
-      "supportsTablet": true
+      "bundleIdentifier": "dev.vasc.vshop",  // Bundle ID trên App Store
+      "buildNumber": "29",                    // Số bản build iOS
+      "supportsTablet": true                  // Hỗ trợ máy tính bảng
     },
+    // Cấu hình riêng cho Android
     "android": {
+      // Chế độ bàn phím: pan (di chuyển toàn bộ layout khi bàn phím hiện)
+      "softwareKeyboardLayoutMode": "pan",
+      // Icon thích ứng (adaptive icon) cho Android 8+
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#2f343b"
       },
+      // Các quyền Android yêu cầu
       "permissions": [
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
+      // Package name trên Google Play
       "package": "com.android.vshop",
+      // Version code Android (số nguyên, tăng dần mỗi bản build)
       "versionCode": 75
     },
+    // Cấu hình cho nền tảng web
     "web": {
+      // Bundler sử dụng: Metro (bundler mặc định của React Native)
       "bundler": "metro",
+      // Định dạng đầu ra: static (trang tĩnh)
       "output": "static"
     },
+    // Danh sách plugin Expo sử dụng
     "plugins": [
-      "expo-router",
-      "expo-localization",
-      "expo-updates",
+      "expo-router",                      // Điều hướng dựa trên file system
+      "expo-localization",                // Đa ngôn ngữ và định dạng địa phương
+      "expo-updates",                     // Cập nhật OTA
+      // Plugin dev launcher: chế độ launch mặc định là "most-recent"
       [
         "expo-dev-launcher",
         {
           "launchMode": "most-recent"
         }
       ],
+      // Plugin thông báo: icon và màu sắc
       [
         "expo-notifications",
         {
@@ -56,19 +85,24 @@
           "color": "#7b838f"
         }
       ],
-      "react-native-background-fetch"
+      "react-native-background-fetch"     // Tác vụ nền định kỳ
     ],
+    // Các thử nghiệm (experiments) đang bật
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true  // Hỗ trợ typed routes cho expo-router
     },
+    // Cấu hình mở rộng (extra)
     "extra": {
+      // Cấu hình EAS (Expo Application Services)
       "eas": {
         "projectId": "90bdf4e2-2472-4cd1-a168-4a5ee4e62218"
       },
+      // Cấu hình router: tắt origin (không dùng origin trong link)
       "router": {
         "origin": false
       }
     },
+    // Chủ sở hữu dự án trên Expo
     "owner": "hyeon004"
   }
 }

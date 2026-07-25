@@ -1,3 +1,7 @@
+// 📄 app/(authenticated)/about.tsx — Màn hình About / Debug
+// Hiển thị thông tin tài khoản Riot, season hiện tại,
+// và danh sách feature toggle từ Riot Client (có thể override local).
+
 import React from "react";
 import {
   Alert,
@@ -23,11 +27,36 @@ import { getStoredItem, setStoredItem, removeStoredItem } from "~/utils/storage"
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
+// ─── Types ─────────────────────────────────────────────────────────────────────
+/** ToggleOverrides: Key-value ghi đè feature flag (lưu local). */
 type ToggleOverrides = Record<string, boolean>;
 
 const STORAGE_KEY_TOGGLES = "about:feature_toggle_overrides";
 
-// ─── Component chính ──────────────────────────────────────────────────────────
+/**
+ * AboutScreen — Component hiển thị thông tin debug.
+ *
+ * State:
+ * - playerInfo (state, PlayerInfoResponse | null): Thông tin người chơi từ Riot.
+ * - riotConfig (state, RiotClientConfigResponse | null): Config client Riot.
+ * - content (state, ContentResponse | null): Nội dung season, act, v.v.
+ * - loading (state, boolean): Đang tải dữ liệu?
+ * - toggleOverrides (state, ToggleOverrides): Các ghi đè feature flag.
+ * - toggleOverrideKeys (useMemo, Set<string>): Set các key đang override.
+ *
+ * useEffect: Gọi đồng thời 4 API:
+ *   - getPlayerInfo: Thông tin tài khoản.
+ *   - getRiotClientConfig: Feature flag từ Riot.
+ *   - getContent: Season/Act hiện tại.
+ *   - getStoredItem: Đọc override đã lưu từ storage.
+ *
+ * Hàm helper:
+ * - getToggleValue: Lấy giá trị toggle (override hoặc default).
+ * - handleToggleChange: Thay đổi override và lưu vào storage.
+ * - handleResetToggles: Xóa toàn bộ override.
+ *
+ * @returns {JSX.Element} Màn hình About.
+ */
 export default function AboutScreen() {
   const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
@@ -66,13 +95,13 @@ export default function AboutScreen() {
           try { setToggleOverrides(JSON.parse(toggleRaw)); } catch {}
         }
       } catch (err) {
-        console.error("[about] fetch error:", err);
+        if (__DEV__) console.error("[about] fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchAll();
-  }, [user]);
+  }, [user.accessToken, user.entitlementsToken, user.region]);
 
   // ── Toggle helpers ───────────────────────────────────────────────────────
   const getToggleValue = (key: string, riotDefault: boolean): boolean =>
@@ -81,8 +110,7 @@ export default function AboutScreen() {
   const handleToggleChange = async (key: string, riotDefault: boolean, newVal: boolean) => {
     const next: ToggleOverrides = { ...toggleOverrides };
     if (newVal === riotDefault) {
-      // Nếu trả về mặc định → xóa override
-      delete next[key];
+      delete next[key]; // Nếu trả về mặc định → xóa override
     } else {
       next[key] = newVal;
     }
@@ -90,7 +118,7 @@ export default function AboutScreen() {
     try {
       await setStoredItem(STORAGE_KEY_TOGGLES, JSON.stringify(next));
     } catch (err) {
-      console.error("[about] Failed to save toggle overrides:", err);
+      if (__DEV__) console.error("[about] Failed to save toggle overrides:", err);
     }
   };
 
@@ -164,7 +192,7 @@ export default function AboutScreen() {
   const boolEntries = riotConfig
     ? (Object.entries(riotConfig) as [string, unknown][]).filter(
         ([, v]) => typeof v === "boolean"
-      ).slice(0, 30)
+      ).slice(0, 30) // Giới hạn 30 toggle để tránh quá tải UI
     : [];
 
   return (
@@ -272,9 +300,12 @@ export default function AboutScreen() {
   );
 }
 
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.BACKGROUND },
   content: { padding: 20, paddingBottom: 140 },
+
+  // Loading
   centered: {
     flex: 1,
     justifyContent: "center",
@@ -283,6 +314,7 @@ const styles = StyleSheet.create({
   },
   loadingText: { marginTop: 12, color: COLORS.TEXT_SECONDARY, fontSize: 14 },
 
+  // Hero
   hero: {
     flexDirection: "row",
     alignItems: "center",
@@ -302,6 +334,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "800", color: COLORS.TEXT_PRIMARY },
   subtitle: { marginTop: 6, fontSize: 15, lineHeight: 22, color: COLORS.TEXT_SECONDARY },
 
+  // Section header
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -318,6 +351,7 @@ const styles = StyleSheet.create({
   },
   rowActions: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
 
+  // Nút danger (reset)
   btnDanger: {
     flexDirection: "row",
     alignItems: "center",
@@ -331,6 +365,7 @@ const styles = StyleSheet.create({
   },
   btnDangerText: { fontSize: 13, fontWeight: "600", color: COLORS.WARNING },
 
+  // Banner thông báo override
   overrideBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -345,7 +380,7 @@ const styles = StyleSheet.create({
 
   card: { padding: 14, marginBottom: 12 },
 
-  // ── Read-only info row ──
+  // Row info (read-only)
   row: {
     paddingVertical: 9,
     borderBottomWidth: 1,
@@ -364,7 +399,7 @@ const styles = StyleSheet.create({
   },
   overrideBadgeText: { fontSize: 10, fontWeight: "700", color: COLORS.ACCENT },
 
-  // ── Toggle row ──
+  // Row toggle (interactive)
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",

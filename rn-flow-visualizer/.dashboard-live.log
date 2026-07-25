@@ -1,0 +1,114 @@
+
+> rn-flow-visualizer@0.1.0 dev:live
+> node server/dev-live.mjs
+
+[trace-server] listening on ws://0.0.0.0:8787
+[trace-server] Android emulator URL: ws://10.0.2.2:8787
+[2m5:54:21 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because lockfile has changed
+
+  [32m[1mVITE[22m v6.4.3[39m  [2mready in [0m[1m872[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5173[22m/[39m
+[2m5:55:54 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m5:56:01 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/Header.tsx[22m
+[2m5:56:10 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/Sidebar.tsx[22m
+[2m5:56:14 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/Sidebar.tsx[22m
+[2m5:56:20 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m5:56:29 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/Timeline.tsx[22m
+[2m5:56:35 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/EventInspector.tsx[22m
+[2m5:58:40 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/globals.css[22m
+[trace-server] client connected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[2m5:59:43 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m5:59:50 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/globals.css[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[2m6:00:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/globals.css[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[2m6:04:36 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m6:04:46 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/globals.css[22m
+[2m6:05:49 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m6:05:55 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/Header.tsx[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[2m6:08:09 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m6:08:16 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[2m6:14:28 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m6:14:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m6:15:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[2m6:15:21 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/globals.css[22m
+[2m6:16:20 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[2m6:18:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[2m6:26:17 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m6:26:28 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[2m6:30:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[2m6:30:36 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[2m6:32:27 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/FlowCanvas.tsx, /src/components/FlowCanvas.tsx?t=layoutcheck[22m
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[trace-server] client disconnected from 127.0.0.1
+[trace-server] client connected from 127.0.0.1
+[2m7:08:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/Header.tsx[22m

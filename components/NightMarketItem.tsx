@@ -1,269 +1,319 @@
+// ===== NightMarketItem.tsx =====
+// Component hiển thị một item trong Night Market (chợ đêm) - nơi bán skin giảm giá.
+// Hiển thị: ảnh, tên, loại vũ khí, badge tier, % giảm giá, giá gốc và giá đã giảm.
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Image } from "expo-image";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { CachedImage as Image } from "~/components/CachedImage";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
-import { getDisplayIconUri } from "~/utils/misc";
-import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getContentTierVisual } from "~/utils/content-tier";
+import { getDisplayIconUri } from "~/utils/misc";
 
-interface props {
+// Props cho NightMarketItem
+// item: đối tượng NightMarketItem (chứa thông tin skin, giá, discount)
+// width: chiều rộng cố định của card (được tính từ bên ngoài)
+interface NightMarketItemProps {
   item: NightMarketItem;
+  width: number;
 }
 
-export default function NightMarketItem(props: React.PropsWithChildren<props>) {
+export default function NightMarketItem({ item, width }: NightMarketItemProps) {
+  // Hook dịch thuật i18n
   const { t } = useTranslation();
-  const { showMediaPopup } = useMediaPopupStore();
-  const { screenshotModeEnabled } = useFeatureStore();
-  const tier = getContentTierVisual(props.item.contentTierUuid);
+  // showMediaPopup: hàm từ MediaPopup store để mở popup xem media
+  const showMediaPopup = useMediaPopupStore((state) => state.showMediaPopup);
+  // screenshotModeEnabled: flag chế độ screenshot từ FeatureStore
+  const screenshotModeEnabled = useFeatureStore(
+    (state) => state.screenshotModeEnabled
+  );
+  // tier: thông tin visual của content tier (màu sắc, nhãn)
+  const tier = getContentTierVisual(item.contentTierUuid);
 
+  // imageSource: useMemo tính toán nguồn ảnh skin
+  // Dùng getDisplayIconUri, fallback về noimage nếu không có hoặc đang screenshot mode
   const imageSource = React.useMemo(() => {
-    const uri = getDisplayIconUri(props.item);
+    const uri = getDisplayIconUri(item);
 
     if (uri && !screenshotModeEnabled) {
-      return { uri, cacheKey: uri };
+      return { uri };
     }
 
     return require("~/assets/images/noimage.png");
-  }, [props.item, screenshotModeEnabled]);
+  }, [item, screenshotModeEnabled]);
 
+  // mediaEntries: useMemo tính toán danh sách media entries từ levels của item
+  // Mỗi level: lấy streamedVideo hoặc displayIcon, lọc bỏ entry rỗng
+  // Dùng để mở preview popup khi nhấn vào card
+  const mediaEntries = React.useMemo(
+    () =>
+      item.levels
+        .map((level) => ({
+          cacheId: `skin-level:${level.uuid}:media`,
+          uri: level.streamedVideo || level.displayIcon,
+        }))
+        .filter(
+          (entry): entry is { cacheId: string; uri: string } =>
+            Boolean(entry.uri)
+        ),
+    [item.levels]
+  );
+
+  // weaponType: useMemo xác định loại vũ khí dựa vào tên displayName
+  // Dùng danh sách weaponTypes để match, sau đó phân loại vào nhóm category
+  // Trả về: tên category đã dịch (VD: "Melee Weapons", "Sidearm", "SMG", ...)
   const weaponType = React.useMemo(() => {
-    const lowerName = props.item.displayName.toLowerCase();
-    const WEAPON_TYPES = [
-      "Knife", "Melee", "Classic", "Shorty", "Frenzy", "Ghost", "Sheriff", 
-      "Stinger", "Spectre", "Bucky", "Judge", "Bulldog", "Guardian", 
-      "Phantom", "Vandal", "Marshal", "Outlaw", "Operator", "Ares", "Odin"
+    const lowerName = item.displayName.toLowerCase();
+    const weaponTypes = [
+      "Knife",
+      "Melee",
+      "Classic",
+      "Shorty",
+      "Frenzy",
+      "Ghost",
+      "Sheriff",
+      "Stinger",
+      "Spectre",
+      "Bucky",
+      "Judge",
+      "Bulldog",
+      "Guardian",
+      "Phantom",
+      "Vandal",
+      "Marshal",
+      "Outlaw",
+      "Operator",
+      "Ares",
+      "Odin",
     ];
-    const match = WEAPON_TYPES.find((w) => lowerName.includes(w.toLowerCase()));
-    if (match) {
-      if (match === "Knife" || match === "Melee") return t("equip_page.categories.Melee Weapons");
-      if (["Classic", "Shorty", "Frenzy", "Ghost", "Sheriff"].includes(match)) return t("equip_page.categories.Sidearm");
-      if (["Stinger", "Spectre"].includes(match)) return t("equip_page.categories.SMG");
-      if (["Bucky", "Judge"].includes(match)) return t("equip_page.categories.Shotgun");
-      if (["Bulldog", "Guardian", "Phantom", "Vandal"].includes(match)) return t("equip_page.categories.Rifle");
-      if (["Marshal", "Outlaw", "Operator"].includes(match)) return t("equip_page.categories.Sniper");
-      if (["Ares", "Odin"].includes(match)) return t("equip_page.categories.Heavy");
-    }
-    return t("equip_page.categories.Other");
-  }, [props.item.displayName, t]);
+    const match = weaponTypes.find((name) =>
+      lowerName.includes(name.toLowerCase())
+    );
 
-  const specialBadge = React.useMemo(() => {
-    if (tier.label === "Premium" || tier.label === "Ultra" || tier.label === "Exclusive") {
-      return t("night_market_page.limited_badge");
+    // Phân loại dựa vào tên vũ khí tìm được
+    if (match === "Knife" || match === "Melee") {
+      return t("equip_page.categories.Melee Weapons");
     }
-    return t("night_market_page.special_offer_badge");
-  }, [tier.label, t]);
+    if (["Classic", "Shorty", "Frenzy", "Ghost", "Sheriff"].includes(match ?? "")) {
+      return t("equip_page.categories.Sidearm");
+    }
+    if (["Stinger", "Spectre"].includes(match ?? "")) {
+      return t("equip_page.categories.SMG");
+    }
+    if (["Bucky", "Judge"].includes(match ?? "")) {
+      return t("equip_page.categories.Shotgun");
+    }
+    if (["Bulldog", "Guardian", "Phantom", "Vandal"].includes(match ?? "")) {
+      return t("equip_page.categories.Rifle");
+    }
+    if (["Marshal", "Outlaw", "Operator"].includes(match ?? "")) {
+      return t("equip_page.categories.Sniper");
+    }
+    if (["Ares", "Odin"].includes(match ?? "")) {
+      return t("equip_page.categories.Heavy");
+    }
+
+    return t("equip_page.categories.Other");
+  }, [item.displayName, t]);
+
+  // handlePress: Callback mở popup preview media khi nhấn vào card
+  // Nếu có mediaEntries, gọi showMediaPopup với danh sách URI, tên item, và cacheId
+  const handlePress = React.useCallback(() => {
+    if (mediaEntries.length > 0) {
+      showMediaPopup(
+        mediaEntries.map((entry) => entry.uri),
+        item.displayName,
+        mediaEntries.map((entry) => entry.cacheId)
+      );
+    }
+  }, [item.displayName, mediaEntries, showMediaPopup]);
 
   return (
-    <View
-      style={[
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={item.displayName}
+      // Disable nếu không có media để preview
+      disabled={mediaEntries.length === 0}
+      onPress={handlePress}
+      style={({ pressed }) => [
         styles.card,
-        {
-          borderColor: tier.border,
-        },
+        { borderColor: tier.border, width },
+        pressed && styles.cardPressed,
       ]}
     >
-      <View style={styles.mainRow}>
-        <View style={styles.content}>
-          
-          {/* Header Row: Rarity + Weapon Type + Special Badge */}
-          <View style={styles.headerInfo}>
-            <View style={styles.rarityLabelWrapper}>
-              <Text style={[styles.rarityText, { color: tier.text }]}>
-                {tier.label.toUpperCase()}
-              </Text>
-              <Text style={styles.weaponTypeText}>
-                {"  •  "}{weaponType}
-              </Text>
-            </View>
-            <View style={styles.specialBadge}>
-              <Text style={styles.specialBadgeText}>{specialBadge}</Text>
-            </View>
-          </View>
-
-          {/* Weapon Name */}
-          <Text style={styles.title} numberOfLines={1}>
-            {props.item.displayName}
+      {/* Khung ảnh: chứa badge tier, badge giảm giá, và ảnh skin */}
+      <View
+        style={[
+          styles.imageFrame,
+          {
+            backgroundColor: tier.cardBackground,
+            borderBottomColor: tier.border,
+          },
+        ]}
+      >
+        {/* Badge tier (VD: "DELUXE", "PREMIUM") ở góc trên bên trái */}
+        <View style={[styles.tierBadge, { backgroundColor: tier.badgeBackground }]}>
+          <Text style={[styles.tierText, { color: tier.text }]} numberOfLines={1}>
+            {tier.label.toUpperCase()}
           </Text>
-
-          {/* Pricing & Discount Row */}
-          <View style={styles.priceRow}>
-            {/* Discount Badge */}
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>-{props.item.discountPercent}% {t("night_market_page.off_label")}</Text>
-            </View>
-
-            {/* Original Price */}
-            <Text style={styles.originalPrice}>
-              {props.item.price}
-            </Text>
-
-            {/* Discounted Price */}
-            <View style={styles.salePriceWrapper}>
-              <View style={styles.vpIconWrapper}>
-                <Text style={styles.vpIconText}>Ⓢ</Text>
-              </View>
-              <Text style={styles.salePrice}>
-                {props.item.discountedPrice}
-              </Text>
-            </View>
-          </View>
         </View>
-
-        {/* Right Weapon Image Frame */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() =>
-            showMediaPopup(
-              props.item.levels.map(
-                (level) => level.streamedVideo || level.displayIcon || ""
-              ),
-              props.item.displayName
-            )
-          }
-          style={[
-            styles.imageFrame,
-            {
-              backgroundColor: tier.cardBackground,
-              borderColor: tier.border,
-            },
-          ]}
-        >
-          <Image
-            style={styles.image}
-            source={imageSource}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            priority="high"
-            transition={120}
-            recyclingKey={props.item.uuid}
-          />
-        </TouchableOpacity>
+        {/* Badge giảm giá (VD: "-35%") ở góc trên bên phải */}
+        <View style={styles.discountBadge}>
+          <Text style={styles.discountText}>-{item.discountPercent}%</Text>
+        </View>
+        {/* Ảnh skin */}
+        <Image
+          cacheId={`skin:${item.uuid}:display`}
+          style={styles.image}
+          source={imageSource}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          priority="normal"
+          transition={120}
+          recyclingKey={item.uuid}
+        />
       </View>
-    </View>
+
+      {/* Nội dung: loại vũ khí, tên skin, hàng giá */}
+      <View style={styles.content}>
+        {/* Loại vũ khí */}
+        <Text style={styles.weaponTypeText} numberOfLines={1}>
+          {weaponType}
+        </Text>
+        {/* Tên skin (tối đa 2 dòng) */}
+        <Text style={styles.title} numberOfLines={2}>
+          {item.displayName}
+        </Text>
+
+        {/* Hàng giá: giá đã giảm + icon VP + giá gốc (gạch ngang) */}
+        <View style={styles.priceRow}>
+          {/* Badge giá sale: icon VP + số tiền giảm */}
+          <View
+            style={[
+              styles.salePriceWrapper,
+              {
+                backgroundColor: tier.badgeBackground,
+                borderColor: tier.border,
+              },
+            ]}
+          >
+            <CurrencyIcon
+              icon="vp"
+              style={[styles.currencyIcon, { tintColor: tier.text }]}
+            />
+            <Text style={[styles.salePrice, { color: tier.text }]}>
+              {item.discountedPrice}
+            </Text>
+          </View>
+          {/* Giá gốc (gạch ngang) */}
+          <Text style={styles.originalPrice}>{item.price}</Text>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
+// StyleSheet: Định nghĩa các style cho NightMarketItem
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.SURFACE,
-    marginBottom: 16,
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
-    padding: 16,
-    shadowColor: COLORS.PURE_BLACK,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
+    overflow: "hidden",              // Giữ bo góc cho nội dung bên trong
   },
-  mainRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  cardPressed: {
+    opacity: 0.86,                   // Giảm độ mờ khi nhấn
   },
   content: {
-    flex: 1,
-    paddingRight: 16,
-    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingTop: 9,
+    paddingBottom: 10,
   },
-  headerInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 6,
+  currencyIcon: {
+    width: 13,
+    height: 13,
+    marginRight: 4,                  // Khoảng cách giữa icon và giá
   },
-  rarityLabelWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  rarityText: {
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 0.5,
-  },
-  weaponTypeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.TEXT_SECONDARY,
-  },
-  specialBadge: {
-    backgroundColor: COLORS.PURE_BLACK,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+  discountBadge: {
+    backgroundColor: COLORS.PURE_BLACK, // Nền đen
     borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    position: "absolute",            // Định vị góc trên bên phải
+    right: 8,
+    top: 8,
+    zIndex: 1,                       // Trên layer ảnh
   },
-  specialBadgeText: {
-    color: COLORS.PURE_WHITE,
-    fontSize: 9,
+  discountText: {
+    color: COLORS.PURE_WHITE,        // Chữ trắng
+    fontSize: 10,
     fontWeight: "900",
-    letterSpacing: 0.2,
   },
-  title: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 12,
+  image: {
+    width: "100%",
+    height: "100%",                  // Fill khung imageFrame
+  },
+  imageFrame: {
+    aspectRatio: 1.45,               // Tỷ lệ khung ảnh
+    borderBottomWidth: 1,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",            // Để badge absolute định vị
+  },
+  originalPrice: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 10,
+    fontWeight: "600",
+    textDecorationLine: "line-through", // Gạch ngang giá gốc
   },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "space-between", // Giá sale trái, giá gốc phải
+    gap: 6,
   },
-  discountBadge: {
-    backgroundColor: COLORS.PURE_BLACK,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  discountText: {
-    color: COLORS.PURE_WHITE,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  originalPrice: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
-    fontWeight: "600",
-    textDecorationLine: "line-through",
+  salePrice: {
+    fontSize: 14,
+    fontWeight: "900",               // Siêu đậm cho giá khuyến mãi
   },
   salePriceWrapper: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  vpIconWrapper: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: COLORS.PURE_BLACK,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 4,
-  },
-  vpIconText: {
-    fontSize: 10,
-    fontWeight: "900",
-    color: COLORS.PURE_WHITE,
-  },
-  salePrice: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.TEXT_PRIMARY,
-  },
-  imageFrame: {
-    width: 96,
-    height: 96,
-    borderRadius: 14,
+    borderRadius: RADIUS.chip,
     borderWidth: 1,
-    padding: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
-  image: {
-    width: "100%",
-    height: "100%",
+  tierBadge: {
+    borderRadius: 4,
+    left: 8,                         // Góc trên bên trái
+    maxWidth: "56%",
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    position: "absolute",
+    top: 8,
+    zIndex: 1,
+  },
+  tierText: {
+    fontSize: 9,
+    fontWeight: "900",
+  },
+  title: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
+    minHeight: 34,                   // Tối thiểu 2 dòng
+    marginBottom: 8,
+  },
+  weaponTypeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: COLORS.TEXT_SECONDARY,
+    marginBottom: 3,
   },
 });

@@ -1,6 +1,9 @@
+// Import jwtDecode để decode JWT token
 import { jwtDecode } from "jwt-decode";
 
+// Import hàm tải assets và agents của Valorant
 import { loadAgent, loadAssets } from "./valorant-assets";
+// Import các hàm API Valorant: user mặc định, lấy balance, entitlements, progress, shop, v.v.
 import {
   defaultUser,
   getBalances,
@@ -12,17 +15,33 @@ import {
   getUsername,
   parseShop,
 } from "./valorant-api";
+// Import helper chuẩn hóa shard (máy chủ) Valorant
 import { normalizeValorantShard } from "./misc";
 
+// Số giây đệm trước khi token hết hạn (90 giây) để tránh dùng token sắp hết hạn
 const ACCESS_TOKEN_BUFFER_SECONDS = 90;
 
+// Type định nghĩa payload của access token (chỉ lấy trường exp)
 type AccessTokenPayload = {
-  exp?: number;
+  exp?: number; // Thời điểm hết hạn (Unix timestamp)
 };
 
+/**
+ * Chuẩn hóa tên region dùng normalizeValorantShard.
+ * @param region - Tên region cần chuẩn hóa
+ * @returns string - Region đã chuẩn hóa
+ */
 const normalizeRegion = (region?: string | null) =>
   normalizeValorantShard(region);
 
+/**
+ * Xác định region "live" thực tế dựa trên thông tin địa lý từ Riot.
+ * Nếu không có idToken, dùng fallbackRegion.
+ * @param accessToken - Access token của user
+ * @param idToken - ID token của user
+ * @param fallbackRegion - Region dự phòng
+ * @returns Promise<string> - Region live
+ */
 async function resolveLiveRegion(
   accessToken: string,
   idToken: string,
@@ -38,6 +57,11 @@ async function resolveLiveRegion(
   return liveRegion || normalizeRegion(fallbackRegion);
 }
 
+/**
+ * Public API: Kiểm tra xem access token có thể tái sử dụng không (còn hạn và còn buffer).
+ * @param accessToken - Access token cần kiểm tra
+ * @returns boolean - true nếu token còn dùng được
+ */
 export const hasReusableAccessToken = (accessToken?: string) => {
   if (!accessToken) {
     return false;
@@ -56,6 +80,13 @@ export const hasReusableAccessToken = (accessToken?: string) => {
   }
 };
 
+/**
+ * Public API: Kiểm tra xem có thể tiếp tục session của user không.
+ * Điều kiện: có region (hoặc regionOverride), có accessToken và token còn hạn.
+ * @param user - Đối tượng user (kiểu defaultUser)
+ * @param regionOverride - Region ghi đè (tuỳ chọn)
+ * @returns boolean - true nếu có thể tiếp tục session
+ */
 export const canResumeUserSession = (
   user: typeof defaultUser,
   regionOverride?: string | null
@@ -66,27 +97,69 @@ export const canResumeUserSession = (
       hasReusableAccessToken(user.accessToken)
   );
 
+/**
+ * getTimeUntilTokenExpiry — Trả về số ms còn lại trước khi token hết hạn.
+ * @param accessToken - Access token cần kiểm tra
+ * @returns number - ms còn lại, hoặc 0 nếu không parse được
+ */
+export const getTimeUntilTokenExpiry = (accessToken?: string): number => {
+  if (!accessToken) return 0;
+  try {
+    const payload = jwtDecode<AccessTokenPayload>(accessToken);
+    if (!payload.exp) return 0;
+    return Math.max(0, payload.exp * 1000 - Date.now());
+  } catch {
+    return 0;
+  }
+};
+
+/**
+ * shouldProactivelyRefreshToken — Kiểm tra xem token sắp hết hạn chưa (trong 5 phút).
+ * Dùng để trigger proactive reAuth trước khi token die.
+ * @param accessToken - Access token cần kiểm tra
+ * @returns boolean - true nếu token sẽ hết hạn trong 5 phút tới
+ */
+export const shouldProactivelyRefreshToken = (accessToken?: string): boolean => {
+  const remaining = getTimeUntilTokenExpiry(accessToken);
+  return remaining > 0 && remaining <= 5 * 60 * 1000;
+};
+
+/**
+ * Public API: Xây dựng đối tượng user đã được xác thực đầy đủ.
+ * Lấy entitlements, region live, username, shop, progress, balances.
+ * @param accessToken - Access token của user
+ * @param region - Region mặc định
+ * @param seedUser - User seed để merge dữ liệu cũ (tuỳ chọn)
+ * @param idToken - ID token (mặc định từ seedUser)
+ * @returns Promise<object> - Đối tượng user đầy đủ
+ */
 export async function buildAuthenticatedUser(
   accessToken: string,
   region: string,
   seedUser?: typeof defaultUser,
   idToken = seedUser?.idToken ?? ""
 ) {
-  await Promise.all([loadAssets(), loadAgent()]);
-
-  const entitlementsToken = await getEntitlementsToken(accessToken);
+  // Tải assets và agents song song
+  const assetsPromise = loadAssets();
+  const agentsPromise = loadAgent();
   const userId = getUserId(accessToken);
-  const liveRegion = await resolveLiveRegion(accessToken, idToken, region);
+  // Lấy entitlements token và region live song song
+  const [entitlementsToken, liveRegion] = await Promise.all([
+    getEntitlementsToken(accessToken),
+    resolveLiveRegion(accessToken, idToken, region),
+  ]);
 
-  const [username, shop, progress, balances] =
-    await Promise.all([
-      getUsername(accessToken, entitlementsToken, userId, liveRegion),
-      getShop(accessToken, entitlementsToken, liveRegion, userId),
-      getProgress(accessToken, entitlementsToken, liveRegion, userId),
-      getBalances(accessToken, entitlementsToken, liveRegion, userId),
-    ]);
-
-  const shops = await parseShop(shop);
+  // Lấy thông tin user, shop, progress, balances song song
+  const [username, shop, progress, balances] = await Promise.all([
+    getUsername(accessToken, entitlementsToken, userId, liveRegion),
+    getShop(accessToken, entitlementsToken, liveRegion, userId),
+    getProgress(accessToken, entitlementsToken, liveRegion, userId),
+    getBalances(accessToken, entitlementsToken, liveRegion, userId),
+    assetsPromise,
+    agentsPromise,
+  ]);
+  // Parse dữ liệu shop, giữ lại bundle cũ từ seedUser
+  const shops = await parseShop(shop, seedUser?.shops.bundles);
 
   return {
     ...defaultUser,
