@@ -52,6 +52,7 @@ import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import LoadingScreen from "~/components/LoadingScreen";
 import { syncAllData } from "~/utils/data-sync";
+import { lockScreenOrientation } from "~/utils/screen-orientation";
 
 /**
  * CombinedAppTheme — Theme tổng hợp từ react-native-paper và @react-navigation/native.
@@ -147,6 +148,16 @@ function RootLayout() {
     __DEV__ &&
     (demoValue === "1" || demoValue === "true") &&
     (pathname === "/history" || pathname.startsWith("/match_details/"));
+  const isCombatSessionRoute =
+    pathname === "/combat_session" || pathname.endsWith("/combat_session");
+
+  // Every screen stays portrait. The combat session owns its landscape lock
+  // while focused, then restores portrait when it closes.
+  useEffect(() => {
+    if (!isCombatSessionRoute) {
+      void lockScreenOrientation("portrait");
+    }
+  }, [isCombatSessionRoute]);
 
   // ── Effect 1: Khởi tạo flow-tracer ──
   useEffect(() => {

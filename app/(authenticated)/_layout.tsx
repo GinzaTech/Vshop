@@ -420,7 +420,7 @@ function Layout() {
           name="combat_session"
           options={{
             href: null,
-            headerShown: true,
+            headerShown: false,
             title: t("combat_session_page.title") || "Session",
             headerStyle: styles.secondaryHeader,
             headerTintColor: COLORS.TEXT_PRIMARY,

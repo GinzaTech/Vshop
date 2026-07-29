@@ -102,6 +102,9 @@ const optionalNumber = (value: unknown): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+const normalizeAssetId = (value: unknown): string =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
 const addToMap = (map: Map<string, number>, key: string, value: number) => {
   if (!key || value === 0) return;
   map.set(key, (map.get(key) ?? 0) + value);
@@ -203,7 +206,9 @@ export function createMatchAssetCatalog(): MatchAssetCatalog {
         .map((map) => [map.mapUrl, map])
     ),
     tiersByNumber,
-    weaponsById: new Map(weaponAssets.map((weapon) => [weapon.uuid, weapon])),
+    weaponsById: new Map(
+      weaponAssets.map((weapon) => [normalizeAssetId(weapon.uuid), weapon])
+    ),
   };
 }
 
@@ -262,7 +267,7 @@ function buildAggregates(
       if (killerAggregate) {
         addToMap(killerAggregate.killsAgainst, kill.victim, 1);
         if (killIndex === 0) killerAggregate.firstKills += 1;
-        const weaponId = kill.finishingDamage.damageItem;
+        const weaponId = normalizeAssetId(kill.finishingDamage.damageItem);
         if (weaponId) {
           const weapon = killerAggregate.weapons.get(weaponId) ?? {
             kills: 0,
@@ -314,7 +319,7 @@ function buildAggregates(
         return total + amount;
       }, 0);
 
-      const economyWeaponId = playerStats.economy?.weapon ?? "";
+      const economyWeaponId = normalizeAssetId(playerStats.economy?.weapon);
       if (economyWeaponId && roundDamage > 0) {
         const weapon = aggregate.weapons.get(economyWeaponId) ?? {
           kills: 0,
@@ -329,16 +334,46 @@ function buildAggregates(
   return aggregates;
 }
 
-function buildRoundEvents(round: RawRound): RoundEvent[] {
-  const events: RoundEvent[] = getRoundKills(round).map((kill, index) => ({
-    id: `round-${round.roundNum + 1}-kill-${index}`,
-    timestampSeconds: toSeconds(kill.roundTime),
-    type: "kill",
-    actorPlayerId: kill.killer,
-    targetPlayerId: kill.victim,
-    assistantPlayerIds: kill.assistants,
-    weaponId: kill.finishingDamage.damageItem || undefined,
-  }));
+function buildRoundEvents(
+  round: RawRound,
+  catalog: MatchAssetCatalog
+): RoundEvent[] {
+  const events: RoundEvent[] = getRoundKills(round).map((kill, index) => {
+    const weaponId = kill.finishingDamage.damageItem || undefined;
+    const weapon = weaponId
+      ? catalog.weaponsById.get(normalizeAssetId(weaponId))
+      : undefined;
+    const weaponImageUrl =
+      weapon?.displayIcon ||
+      (weaponId && /^[0-9a-f-]{36}$/i.test(weaponId)
+        ? `https://media.valorant-api.com/weapons/${weaponId}/displayicon.png`
+        : undefined);
+    const killerLocation = kill.playerLocations.find(
+      (playerLocation) => playerLocation.subject === kill.killer
+    )?.location;
+    const rawDistance =
+      killerLocation && kill.victimLocation
+        ? Math.hypot(
+            killerLocation.x - kill.victimLocation.x,
+            killerLocation.y - kill.victimLocation.y
+          ) / 100
+        : Number.NaN;
+
+    return {
+      id: `round-${round.roundNum + 1}-kill-${index}`,
+      timestampSeconds: toSeconds(kill.roundTime),
+      type: "kill",
+      actorPlayerId: kill.killer,
+      targetPlayerId: kill.victim,
+      assistantPlayerIds: kill.assistants,
+      weaponId,
+      weaponName: weapon?.displayName,
+      weaponImageUrl,
+      distanceMeters: Number.isFinite(rawDistance)
+        ? Math.max(0, Math.round(rawDistance))
+        : undefined,
+    };
+  });
 
   if (round.bombPlanter) {
     events.push({
@@ -375,11 +410,32 @@ function buildRoundEvents(round: RawRound): RoundEvent[] {
 
 function buildRounds(
   rounds: readonly RawRound[],
-  economy: readonly EconomyPoint[]
+  economy: readonly EconomyPoint[],
+  teamByPlayer: ReadonlyMap<string, MatchTeam>,
+  catalog: MatchAssetCatalog
 ): RoundDetail[] {
   return rounds.map((round, index) => {
-    const events = buildRoundEvents(round);
+    const events = buildRoundEvents(round, catalog);
     const economyPoint = economy[index];
+    const teamEconomy = round.playerStats.reduce(
+      (summary, playerStats) => {
+        const team = teamByPlayer.get(playerStats.subject) ?? "A";
+        const values = summary[team];
+        values.players += 1;
+        values.loadout += numberOrZero(playerStats.economy?.loadoutValue);
+        values.credits += numberOrZero(playerStats.economy?.remaining);
+        return summary;
+      },
+      {
+        A: { players: 0, loadout: 0, credits: 0 },
+        B: { players: 0, loadout: 0, credits: 0 },
+      }
+    );
+    const average = (
+      value: number,
+      players: number,
+      fallback = 0
+    ) => (players > 0 ? Math.round(value / players) : fallback);
 
     return {
       roundNumber: round.roundNum + 1,
@@ -392,6 +448,24 @@ function buildRounds(
       ),
       teamAEconomy: economyPoint?.teamAEconomy ?? 0,
       teamBEconomy: economyPoint?.teamBEconomy ?? 0,
+      teamAAverageLoadout: average(
+        teamEconomy.A.loadout,
+        teamEconomy.A.players,
+        economyPoint?.teamAEconomy ?? 0
+      ),
+      teamBAverageLoadout: average(
+        teamEconomy.B.loadout,
+        teamEconomy.B.players,
+        economyPoint?.teamBEconomy ?? 0
+      ),
+      teamAAverageCredits: average(
+        teamEconomy.A.credits,
+        teamEconomy.A.players
+      ),
+      teamBAverageCredits: average(
+        teamEconomy.B.credits,
+        teamEconomy.B.players
+      ),
       events,
     };
   });
@@ -481,17 +555,18 @@ function buildWeaponPerformance(
   catalog: MatchAssetCatalog
 ): WeaponPerformance[] {
   return Array.from(aggregate.weapons.entries())
-    .map(([weaponId, values]) => {
-      const weapon = catalog.weaponsById.get(weaponId);
-      return {
+    .flatMap(([weaponId, values]) => {
+      const weapon = catalog.weaponsById.get(normalizeAssetId(weaponId));
+      if (!weapon || (values.kills <= 0 && values.damage <= 0)) return [];
+      const performance: WeaponPerformance = {
         weaponId,
-        weaponName: weapon?.displayName || "Weapon",
-        weaponImageUrl: weapon?.displayIcon,
+        weaponName: weapon.displayName,
+        weaponImageUrl: weapon.displayIcon,
         kills: values.kills,
         damage: values.damage,
       };
+      return [performance];
     })
-    .filter((weapon) => weapon.kills > 0 || weapon.damage > 0)
     .sort((left, right) => right.kills - left.kills || right.damage - left.damage);
 }
 
@@ -661,7 +736,7 @@ export function buildMatchDetailViewModel(
     })),
     currentPlayerId: resolvedCurrentPlayerId,
     economy,
-    rounds: buildRounds(rounds, economy),
+    rounds: buildRounds(rounds, economy, teamByPlayer, catalog),
     playerPerformance,
   };
 }
