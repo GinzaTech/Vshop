@@ -39,15 +39,26 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 # English
 
+## Release 4.0.4 highlights
+
+- **Profile player information mode:** the loadout header now transitions into Act performance cards with type/delete text motion and a split-card animation.
+- **Accurate Act records:** wins come from Riot's placement-inclusive MMR total, win rate includes every competitive game, and HS/K/D/KAST values use consistent one-decimal truncation.
+- **Collection image export:** the Collection tab can generate and save a shareable image containing Rare-or-higher weapon skins, sorted by weapon and rarity without blocking the rest of the UI.
+- **Expanded match details:** landscape-only match sessions now include a redesigned scoreboard, round timeline, combat events, weapon statistics, opponent matchups, spike artwork, and current/peak rank corrections.
+- **Combat and social reliability:** agent select includes silent leave-party behavior, while XMPP connection handling and direct-message delivery are more resilient.
+- **Orientation policy:** only the Match Session screen can rotate to landscape; every other screen remains portrait.
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation details.
+
 ## Features
 
 | Category | Features |
 |---|---|
 | **Store** | Daily shop (4 skins), Night Market, Bundles, Accessory shop, Item upgrades |
-| **Profile** | Loadout editor (skins, sprays, cards, titles), Collection browser, Competitive rank |
-| **Match History** | 30 matches cached, daily summaries (K/D, ADR, ACS), match details with scoreboard + economy chart + round timeline |
-| **Combat** | Live session info (pregame/live), party management, agent select, real-time match board |
-| **Social** | Friends list with presence, 1:1 DM via Riot XMPP, party chat |
+| **Profile** | Loadout editor, Collection browser, Rare+ collection image export, animated Act record and player-performance cards |
+| **Match History** | Cached history, season metrics, daily summaries, landscape scoreboard, economy, weapon statistics, opponent matchups and round timeline |
+| **Combat** | Live pregame/session information, party management, silent leave-party action, agent select and real-time match board |
+| **Social** | Friends list with presence, resilient 1:1 Riot XMPP messaging and party chat |
 | **Reference** | Skin gallery, equipment browser, agent database, crosshair codes, leaderboard |
 | **Performance** | Offline-first MMKV cache, delta sync, gzip compression, adaptive TTL on 4G |
 | **UX** | Animated loading screen, skeleton shimmer, press-scale cards, sliding tab indicator, screen transitions |
@@ -181,7 +192,7 @@ eas build --profile development --platform android
 
 ### Production Build
 ```bash
-eas build --platform android
+eas build --profile production --platform android
 ```
 
 Install via QR code or APK from the Expo dashboard.
@@ -197,15 +208,26 @@ Install via QR code or APK from the Expo dashboard.
 
 # Tiếng Việt
 
+## Điểm nổi bật bản 4.0.4
+
+- **Chế độ Thông tin trong Profile:** phần hồ sơ trang bị chuyển thành thống kê Act với hiệu ứng thu chữ, xẻ đôi thẻ rank và chạy chữ khi hiện dữ liệu mới.
+- **Thống kê Act chính xác hơn:** số trận thắng lấy từ MMR có placement, tỉ lệ thắng tính trên toàn bộ trận competitive; HS, K/D và KAST được cắt ở một chữ số thập phân.
+- **Xuất ảnh bộ sưu tập:** nút tải ảnh tạo ảnh chia sẻ chỉ gồm skin súng từ bậc Hiếm trở lên, sắp xếp theo loại súng và độ hiếm mà không khóa thao tác trên màn hình.
+- **Chi tiết trận đấu mở rộng:** Phiên đấu hiển thị ngang với scoreboard mới, diễn biến round, sự kiện giao tranh, thống kê vũ khí, bảng đối đầu, ảnh Spike và rank hiện tại/peak đã sửa.
+- **Combat và bạn bè ổn định hơn:** màn chọn agent có nút rời party không hiện thông báo; kết nối XMPP và gửi tin nhắn trực tiếp được gia cố.
+- **Quy tắc xoay màn hình:** chỉ màn Phiên đấu được phép xoay ngang, các màn còn lại luôn giữ dọc.
+
+Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHANGELOG.md).
+
 ## Tính năng
 
 | Danh mục | Tính năng |
 |---|---|
 | **Cửa hàng** | Shop hàng ngày (4 skin), Night Market, Bundle, Shop phụ kiện, Nâng cấp skin |
-| **Profile** | Chỉnh loadout (skin, spray, card, title), Bộ sưu tập, Rank competitive |
-| **Lịch sử đấu** | Cache 30 trận, tóm tắt theo ngày (K/D, ADR, ACS), chi tiết trận (bảng điểm, biểu đồ kinh tế, timeline) |
-| **Combat** | Thông tin phiên realtime (pregame/live), quản lý party, chọn agent, bảng trận đấu trực tiếp |
-| **Xã hội** | Danh sách bạn bè, nhắn tin 1-1 qua XMPP, chat party |
+| **Profile** | Chỉnh loadout, xem bộ sưu tập, xuất ảnh skin Hiếm+, thống kê Act và thông tin người chơi có animation |
+| **Lịch sử đấu** | Cache lịch sử, thống kê mùa, tóm tắt theo ngày, scoreboard ngang, kinh tế, vũ khí, đối đầu và timeline round |
+| **Combat** | Thông tin pregame/live, quản lý party, rời party im lặng, chọn agent và bảng trận đấu trực tiếp |
+| **Xã hội** | Danh sách bạn bè, nhắn tin Riot XMPP ổn định hơn và chat party |
 | **Tham khảo** | Thư viện skin, trình duyệt trang bị, database agent, mã crosshair, bảng xếp hạng |
 | **Hiệu năng** | Cache MMKV offline-first, delta sync, nén gzip, TTL thích ứng trên 4G |
 | **Trải nghiệm** | Màn hình loading animation, skeleton shimmer, hiệu ứng bấm card, thanh tab trượt, chuyển màn hình mượt |
@@ -339,7 +361,7 @@ eas build --profile development --platform android
 
 ### Build Production
 ```bash
-eas build --platform android
+eas build --profile production --platform android
 ```
 
 Cài qua QR code hoặc file APK từ dashboard Expo.
