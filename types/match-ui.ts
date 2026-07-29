@@ -70,6 +70,32 @@ export type MatchHistoryRecord = {
   stats?: MatchHistoryStats | null;
 };
 
+export type SeasonPerformanceStats = {
+  calculationVersion: number;
+  seasonId: string;
+  seasonName: string;
+  matchCount: number;
+  wins: number;
+  losses: number;
+  kills: number;
+  deaths: number;
+  score: number;
+  damage: number;
+  roundsPlayed: number;
+  kastRounds: number;
+  kastRoundsPlayed: number;
+  headshots: number;
+  bodyshots: number;
+  legshots: number;
+  headshotPercent: number | null;
+  kd: number | null;
+  acs: number | null;
+  adr: number | null;
+  kast: number | null;
+  winRate: number | null;
+  updatedAt: number;
+};
+
 export type MatchHistoryItem = {
   id: string;
   startedAt: string;
@@ -185,6 +211,9 @@ export type RoundEvent = {
   targetPlayerId?: string;
   assistantPlayerIds?: string[];
   weaponId?: string;
+  weaponName?: string;
+  weaponImageUrl?: string;
+  distanceMeters?: number;
   headshot?: boolean;
 };
 
@@ -204,6 +233,10 @@ export type RoundDetail = {
   durationSeconds: number;
   teamAEconomy: number;
   teamBEconomy: number;
+  teamAAverageLoadout?: number;
+  teamBAverageLoadout?: number;
+  teamAAverageCredits?: number;
+  teamBAverageCredits?: number;
   events: RoundEvent[];
 };
 

@@ -24,6 +24,7 @@ import {
 } from "react-native";
 import Animated, {
   interpolate,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -34,9 +35,21 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import Toast from "react-native-toast-message";
 
 import CurrencyIcon from "~/components/CurrencyIcon";
+import RankSplitGroup, {
+  type RankSplitContentMode,
+  type RankSplitStat,
+} from "~/components/profile/RankSplitGroup";
+import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
+import {
+  CollectionCheckerExport,
+  CollectionCheckerExportProvider,
+  type CollectionCheckerProfile,
+} from "~/components/profile/CollectionCheckerExport";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
+import { useMatchStore } from "~/hooks/useMatchStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import {
   extractOwnedItemIds,
@@ -80,6 +93,17 @@ import { COLORS, RADIUS, GLOBAL_STYLES } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { VItemTypes } from "~/utils/misc";
 
+const EMPTY_PROFILE_LIST_DATA: never[] = [];
+const renderEmptyProfileListItem = () => null;
+const RANK_TEXT_RETRACT_DURATION_MS = 520;
+const RANK_SPLIT_DURATION_MS = 420;
+const truncateToOneDecimal = (value: number) =>
+    Math.trunc(value * 10) / 10;
+const formatOneDecimal = (value: number) =>
+    truncateToOneDecimal(value).toFixed(1);
+const formatPercentage = (value: number) =>
+    `${formatOneDecimal(value)}%`;
+
 /**
  * normalizeProfileWeaponCategory — Chuẩn hóa tên category của vũ khí.
  * Dùng để nhóm vũ khí theo loại (Sidearm, SMG, Shotgun, Sniper, Rifle, Heavy, Melee, Other).
@@ -109,7 +133,7 @@ const normalizeProfileWeaponCategory = (category?: string) => {
 
 /**
  * formatUpgradeLevel — Format chuỗi hiển thị cấp độ nâng cấp skin.
- * VD: "3/5" (cấp hiện tại / tối đa) hoặc "3" (nếu max === 1).
+ * VD: "3/5" (cấp hiện tại / tối đa). Skin chỉ có một cấp sẽ không hiện badge.
  *
  * @param {EquippedWeapon} weapon - Vũ khí có upgradeLevel.
  * @returns {string | null} Chuỗi hiển thị hoặc null nếu không có level.
@@ -117,7 +141,7 @@ const normalizeProfileWeaponCategory = (category?: string) => {
 const formatUpgradeLevel = (
     weapon: EquippedWeapon
 ) => {
-  if (!weapon.upgradeLevel) {
+  if (!weapon.upgradeLevel || weapon.maxUpgradeLevel === 1) {
     return null;
   }
 
@@ -576,6 +600,9 @@ function Profile() {
   const { width: viewportWidth } = useWindowDimensions();
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
+  const matchAuthKey = useMatchStore((state) => state.authKey);
+  const seasonPerformanceStats = useMatchStore((state) => state.seasonStats);
+  const fetchSeasonStats = useMatchStore((state) => state.fetchSeasonStats);
   const setProfileCache = useProfileCacheStore((state) => state.setProfileCache);
   const profileGridColumns = viewportWidth >= 700 ? 4 : viewportWidth < 350 ? 2 : 3;
   const profileGridCardWidth = Math.floor(
@@ -593,6 +620,10 @@ function Profile() {
       user.id
   );
   const authKey = React.useMemo(() => getSessionAuthKey(user), [user]);
+  React.useEffect(() => {
+    if (!hasAuth) return;
+    void fetchSeasonStats(user);
+  }, [fetchSeasonStats, hasAuth, user]);
   const cachedProfile = useProfileCacheStore(
       (state) => state.cacheByAuth[authKey] ?? null
   );
@@ -689,30 +720,139 @@ function Profile() {
   );
   const regionLabel = user.region ? user.region.toUpperCase() : "VAL";
 
-  // ─── Double-tap collapse cho stats (VP/RAD/KC) ──────────────────────────
-  const [statsExpanded, setStatsExpanded] = React.useState(true);
-  const statsAnim = useSharedValue(1);
+  // ─── Chuyển đổi giữa hồ sơ trang bị và thông tin người chơi ─────────────
+  const [isPlayerInfoMode, setIsPlayerInfoMode] = React.useState(false);
+  const [rankSplitContentMode, setRankSplitContentMode] =
+      React.useState<RankSplitContentMode>("rank");
+  const heroModeProgress = useSharedValue(0);
+  const rankSplitProgress = useSharedValue(0);
+  const statsVisibilityProgress = useSharedValue(1);
+  const statsExpandedRef = React.useRef(true);
   const lastRegionTapRef = React.useRef(0);
+  const rankTransitionTimersRef = React.useRef<
+      ReturnType<typeof setTimeout>[]
+  >([]);
 
-  const statsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: statsAnim.value,
-    maxHeight: interpolate(statsAnim.value, [0, 1], [0, 130]),
-    overflow: "hidden" as const,
-    marginTop: interpolate(statsAnim.value, [0, 1], [0, 12]),
+  const heroModeToggleAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+        heroModeProgress.value,
+        [0, 1],
+        ["rgba(48, 164, 108, 0.18)", "rgba(255, 70, 85, 0.22)"]
+    ),
   }));
 
-  const toggleStats = React.useCallback(() => {
+  const heroModeThumbAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX: interpolate(heroModeProgress.value, [0, 1], [0, 86]),
+      },
+    ],
+  }));
+
+  const heroModeLabelAnimatedStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+        heroModeProgress.value,
+        [0, 1],
+        ["#30a46c", "#ff4655"]
+    ),
+    transform: [
+      {
+        translateX: interpolate(heroModeProgress.value, [0, 1], [7, -7]),
+      },
+    ],
+  }));
+
+  const balanceStatsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(heroModeProgress.value, [0, 0.46, 1], [1, 0, 0]),
+    transform: [
+      {
+        translateX: interpolate(heroModeProgress.value, [0, 1], [0, -5]),
+      },
+    ],
+  }));
+
+  const playerStatsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(heroModeProgress.value, [0, 0.54, 1], [0, 0, 1]),
+    transform: [
+      {
+        translateX: interpolate(heroModeProgress.value, [0, 1], [5, 0]),
+      },
+    ],
+  }));
+
+  const heroStatCardAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+        heroModeProgress.value,
+        [0, 1],
+        ["rgba(255,255,255,0.06)", "rgba(255,70,85,0.08)"]
+    ),
+    borderColor: interpolateColor(
+        heroModeProgress.value,
+        [0, 1],
+        ["rgba(255,255,255,0)", "rgba(255,70,85,0.16)"]
+    ),
+  }));
+
+  const statsVisibilityAnimatedStyle = useAnimatedStyle(() => ({
+    height: interpolate(statsVisibilityProgress.value, [0, 1], [0, 64]),
+    marginTop: interpolate(statsVisibilityProgress.value, [0, 1], [0, 12]),
+    opacity: statsVisibilityProgress.value,
+    overflow: "hidden" as const,
+  }));
+
+  const handleRegionPress = React.useCallback(() => {
     const now = Date.now();
-    if (now - lastRegionTapRef.current < 400) {
-      const toValue = statsExpanded ? 0 : 1;
-      setStatsExpanded(!statsExpanded);
-      statsAnim.value = withTiming(toValue, {
-        duration: toValue === 1 ? 520 : 350,
-        easing: Easing.out(Easing.cubic),
-      });
+    const isDoubleTap =
+        lastRegionTapRef.current > 0 && now - lastRegionTapRef.current < 500;
+
+    if (!isDoubleTap) {
+      lastRegionTapRef.current = now;
+      return;
     }
-    lastRegionTapRef.current = now;
-  }, [statsAnim, statsExpanded]);
+
+    lastRegionTapRef.current = 0;
+    statsExpandedRef.current = !statsExpandedRef.current;
+    statsVisibilityProgress.value = withTiming(
+        statsExpandedRef.current ? 1 : 0,
+        {
+          duration: statsExpandedRef.current ? 420 : 300,
+          easing: Easing.out(Easing.cubic),
+        }
+    );
+  }, [statsVisibilityProgress]);
+
+  const startRankSplitTransition = React.useCallback(
+      (showActStats: boolean) => {
+        rankTransitionTimersRef.current.forEach(clearTimeout);
+        rankTransitionTimersRef.current = [];
+        setRankSplitContentMode("blank");
+
+        const splitTimer = setTimeout(() => {
+          rankSplitProgress.value = withTiming(showActStats ? 1 : 0, {
+            duration: RANK_SPLIT_DURATION_MS,
+            easing: Easing.inOut(Easing.cubic),
+          });
+        }, RANK_TEXT_RETRACT_DURATION_MS);
+
+        const revealTimer = setTimeout(() => {
+          setRankSplitContentMode(showActStats ? "act" : "rank");
+          rankTransitionTimersRef.current = [];
+        }, RANK_TEXT_RETRACT_DURATION_MS + RANK_SPLIT_DURATION_MS);
+
+        rankTransitionTimersRef.current = [splitTimer, revealTimer];
+      },
+      [rankSplitProgress]
+  );
+
+  const toggleHeroMode = React.useCallback(() => {
+    const nextMode = !isPlayerInfoMode;
+    setIsPlayerInfoMode(nextMode);
+    startRankSplitTransition(nextMode);
+    heroModeProgress.value = withTiming(nextMode ? 1 : 0, {
+      duration: 380,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [heroModeProgress, isPlayerInfoMode, startRankSplitTransition]);
 
   // ─── profileStats: các thông số hiển thị trong hero card ─────────────────
   const profileStats = React.useMemo(
@@ -723,6 +863,112 @@ function Profile() {
       ],
       [t, user.balances.kc, user.balances.rad, user.balances.vp]
   );
+
+  const playerPerformanceStats = React.useMemo(() => {
+    const seasonStats =
+        matchAuthKey === authKey ? seasonPerformanceStats : null;
+
+    if (!seasonStats || seasonStats.matchCount === 0) {
+      return [
+        { key: "hs", label: "HS TB", value: "--", icon: "target-account" as const },
+        { key: "kd", label: "K/D TB", value: "--", icon: "sword-cross" as const },
+        { key: "acs", label: "ACS TB", value: "--", icon: "speedometer" as const },
+      ];
+    }
+
+    const averageHeadshot =
+        seasonStats.headshotPercent !== null
+            ? formatPercentage(seasonStats.headshotPercent)
+            : "--";
+    const averageKd =
+        seasonStats.kd !== null
+            ? formatOneDecimal(seasonStats.kd)
+            : "--";
+    const averageAcs =
+        seasonStats.acs !== null ? Math.round(seasonStats.acs).toString() : "--";
+
+    return [
+      {
+        key: "hs",
+        label: "HS TB",
+        value: averageHeadshot,
+        icon: "target-account" as const,
+      },
+      {
+        key: "kd",
+        label: "K/D TB",
+        value: averageKd,
+        icon: "sword-cross" as const,
+      },
+      {
+        key: "acs",
+        label: "ACS TB",
+        value: averageAcs,
+        icon: "speedometer" as const,
+      },
+    ];
+  }, [authKey, matchAuthKey, seasonPerformanceStats]);
+
+  const actRankSummaryStats = React.useMemo(() => {
+    const seasonStats =
+        matchAuthKey === authKey ? seasonPerformanceStats : null;
+    const hasPerformanceStats = Boolean(
+        seasonStats &&
+        seasonStats.calculationVersion >= 6 &&
+        seasonStats.matchCount > 0
+    );
+    const hasActRecord = Boolean(
+        competitiveRank?.actWins !== null &&
+        competitiveRank?.actWins !== undefined &&
+        competitiveRank?.actLosses !== null &&
+        competitiveRank?.actLosses !== undefined &&
+        competitiveRank?.actGames
+    );
+    const actWinRate =
+        hasActRecord && competitiveRank?.actGames
+        ? ((competitiveRank?.actWins ?? 0) /
+            competitiveRank.actGames) *
+          100
+        : null;
+    const left: [RankSplitStat, RankSplitStat] = [
+      {
+        key: "wins",
+        label: t("profile_page.act_wins", { defaultValue: "Thắng" }),
+        value: hasActRecord ? String(competitiveRank?.actWins ?? 0) : "--",
+        icon: "trophy-outline",
+      },
+      {
+        key: "losses",
+        label: t("profile_page.act_losses", { defaultValue: "Thua" }),
+        value: hasActRecord ? String(competitiveRank?.actLosses ?? 0) : "--",
+        icon: "close-octagon-outline",
+      },
+    ];
+    const right: [RankSplitStat, RankSplitStat] = [
+      {
+        key: "kast",
+        label: "KAST",
+        value:
+            hasPerformanceStats && seasonStats?.kast !== null
+                ? formatPercentage(seasonStats?.kast ?? 0)
+                : "--",
+        icon: "shield-check-outline",
+      },
+      {
+        key: "win-rate",
+        label: t("profile_page.act_win_rate", {
+          defaultValue: "Tỉ lệ thắng",
+        }),
+        value:
+            actWinRate !== null
+                ? formatPercentage(actWinRate)
+                : "--",
+        icon: "percent-outline",
+      },
+    ];
+
+    return { left, right };
+  }, [authKey, competitiveRank, matchAuthKey, seasonPerformanceStats, t]);
 
   // ─── tabItems: các tab cho segmented control ──────────────────────────────
   const tabItems = React.useMemo(
@@ -822,9 +1068,10 @@ function Profile() {
    * loadout đã chỉnh sửa thay vì loadout từ server.
    *
    * @param {boolean} [showSpinner=true] - Hiển thị spinner loading?
+   * @param {boolean} [forceRefresh=false] - Bỏ qua cache kết quả đã resolve?
    */
   const fetchLoadoutData = React.useCallback(
-      async (showSpinner = true) => {
+      async (showSpinner = true, forceRefresh = false) => {
         if (!hasAuth) return;
         if (fetchLoadoutInFlightRef.current) return;
 
@@ -841,7 +1088,8 @@ function Profile() {
               user.accessToken,
               user.entitlementsToken,
               user.region,
-              user.id
+              user.id,
+              { force: forceRefresh }
           );
 
           if (!response) {
@@ -933,7 +1181,7 @@ function Profile() {
                   VItemTypes.PlayerTitle
               ),
             ]),
-            fetchCompetitiveRankSummary(user).catch((err) => {
+            fetchCompetitiveRankSummary(user, { force: forceRefresh }).catch((err) => {
               if (__DEV__) {
                 console.warn("[profile] competitive rank unavailable", err);
               }
@@ -1088,6 +1336,8 @@ function Profile() {
           clearTimeout(initialFetchTimeoutRef.current);
           initialFetchTimeoutRef.current = null;
         }
+        rankTransitionTimersRef.current.forEach(clearTimeout);
+        rankTransitionTimersRef.current = [];
       },
       []
   );
@@ -1363,6 +1613,38 @@ function Profile() {
       hideLevel: identity.HideAccountLevel,
     };
   }, [identity, user.progress.level]);
+
+  const collectionCheckerProfile = React.useMemo<CollectionCheckerProfile>(
+      () => ({
+        gameName: user.name,
+        tagLine: user.TagLine,
+        region: regionLabel,
+        level: identityDetails?.level ?? user.progress.level,
+        avatarUri: identityDetails?.cardArt,
+        avatarCacheId: identityDetails?.cardId
+            ? `player-card:${identityDetails.cardId}:avatar`
+            : undefined,
+        rank: competitiveRank,
+        balances: {
+          vp: user.balances.vp,
+          rad: user.balances.rad,
+          kc: user.balances.kc,
+        },
+      }),
+      [
+        competitiveRank,
+        identityDetails?.cardArt,
+        identityDetails?.cardId,
+        identityDetails?.level,
+        regionLabel,
+        user.TagLine,
+        user.balances.kc,
+        user.balances.rad,
+        user.balances.vp,
+        user.name,
+        user.progress.level,
+      ]
+  );
 
   // ─── ownedSkinIdSet/Spray/Flex/Card/Title: Set từ danh sách ID sở hữu ──
   // Dùng để kiểm tra nhanh "có sở hữu item này không?" (O(1)).
@@ -1869,7 +2151,7 @@ function Profile() {
     if (!hasAuth) return;
 
     setRefreshing(true);
-    await fetchLoadoutData(false);
+    await fetchLoadoutData(false, true);
     setRefreshing(false);
   }, [fetchLoadoutData, hasAuth]);
 
@@ -1877,10 +2159,6 @@ function Profile() {
    * handleDismissPicker — Đóng picker modal và reset state liên quan.
    */
   const handleDismissPicker = React.useCallback(() => {
-    if (updatingLoadout) {
-      return;
-    }
-
     pickerTaskRef.current?.cancel();
     pickerTaskRef.current = null;
     setPickerLoading(false);
@@ -1888,7 +2166,22 @@ function Profile() {
     setPickerState(null);
     setIdentityPickerQuery("");
     setPickerError(null);
-  }, [updatingLoadout]);
+  }, []);
+
+  const showLoadoutUpdateError = React.useCallback(() => {
+    Toast.show({
+      type: "error",
+      text1: t("equip_page.error_loading"),
+    });
+  }, [t]);
+
+  const handleTabChange = React.useCallback(
+      (tab: TabKey) => {
+        handleDismissPicker();
+        setActiveTab(tab);
+      },
+      [handleDismissPicker]
+  );
 
   /**
    * handleOpenWeaponPicker — Mở picker chọn skin cho vũ khí.
@@ -1900,13 +2193,6 @@ function Profile() {
         setPickerError(null);
         setPickerLoading(true);
         setActiveWeaponChroma(null);
-        React.startTransition(() => {
-          setPickerState({
-            type: "weapon",
-            weapon,
-            options: [],
-          });
-        });
 
         pickerTaskRef.current = InteractionManager.runAfterInteractions(() => {
           const options = buildOwnedSkinOptions(weapon);
@@ -1929,13 +2215,6 @@ function Profile() {
         pickerTaskRef.current?.cancel();
         setPickerError(null);
         setPickerLoading(true);
-        React.startTransition(() => {
-          setPickerState({
-            type: "spray",
-            spray,
-            options: [],
-          });
-        });
 
         pickerTaskRef.current = InteractionManager.runAfterInteractions(() => {
           const options = buildOwnedSprayOptions(spray);
@@ -1958,14 +2237,6 @@ function Profile() {
         pickerTaskRef.current?.cancel();
         setPickerError(null);
         setPickerLoading(true);
-        React.startTransition(() => {
-          setPickerState({
-            type: "expression",
-            expression,
-            mode,
-            options: [],
-          });
-        });
 
         pickerTaskRef.current = InteractionManager.runAfterInteractions(() => {
           const options = buildOwnedExpressionOptions(expression, mode);
@@ -1986,10 +2257,6 @@ function Profile() {
 
   const handleOpenIdentityPicker = React.useCallback(
       (type: "player-card" | "player-title") => {
-        if (updatingLoadout) {
-          return;
-        }
-
         pickerTaskRef.current?.cancel();
         pickerTaskRef.current = null;
         setPickerLoading(false);
@@ -2002,7 +2269,7 @@ function Profile() {
                 : { type: "player-title", options: ownedPlayerTitleOptions }
         );
       },
-      [ownedPlayerCardOptions, ownedPlayerTitleOptions, updatingLoadout]
+      [ownedPlayerCardOptions, ownedPlayerTitleOptions]
   );
 
   const persistLoadoutCache = React.useCallback(
@@ -2149,6 +2416,7 @@ function Profile() {
         const pendingUpdate = applyOptimisticLoadout(nextLoadout);
         setUpdatingLoadout(true);
         setPickerError(null);
+        handleDismissPicker();
 
         try {
           if (__DEV__) {
@@ -2179,9 +2447,6 @@ function Profile() {
             syncLoadoutState(putResponse);
             persistLoadoutCache(putResponse);
           }
-          setPickerState(null);
-          setIdentityPickerQuery("");
-
           void confirmLoadoutUpdate(
               putResponse,
               pendingUpdate,
@@ -2193,7 +2458,7 @@ function Profile() {
             console.error("[profile] equip identity failed", err);
           }
           rollbackOptimisticLoadout(currentLoadout, pendingUpdate);
-          setPickerError(t("equip_page.error_loading"));
+          showLoadoutUpdateError();
         } finally {
           setUpdatingLoadout(false);
         }
@@ -2201,12 +2466,13 @@ function Profile() {
       [
         applyOptimisticLoadout,
         confirmLoadoutUpdate,
+        handleDismissPicker,
         hasAuth,
         loadoutSnapshot,
         persistLoadoutCache,
         rollbackOptimisticLoadout,
+        showLoadoutUpdateError,
         syncLoadoutState,
-        t,
         updatingLoadout,
         user.accessToken,
         user.entitlementsToken,
@@ -2250,6 +2516,7 @@ function Profile() {
         const pendingUpdate = applyOptimisticLoadout(nextLoadout);
         setUpdatingLoadout(true);
         setPickerError(null);
+        handleDismissPicker();
 
         try {
           if (__DEV__) {
@@ -2304,9 +2571,6 @@ function Profile() {
             syncLoadoutState(putResponse);
             persistLoadoutCache(putResponse);
           }
-          setPickerState(null);
-          setActiveWeaponChroma(null);
-
           void confirmLoadoutUpdate(
               putResponse,
               pendingUpdate,
@@ -2326,7 +2590,7 @@ function Profile() {
         } catch (err) {
           if (__DEV__) console.error(err);
           rollbackOptimisticLoadout(currentLoadout, pendingUpdate);
-          setPickerError(t("equip_page.error_loading"));
+          showLoadoutUpdateError();
         } finally {
           setUpdatingLoadout(false);
         }
@@ -2334,30 +2598,33 @@ function Profile() {
       [
         applyOptimisticLoadout,
         confirmLoadoutUpdate,
+        handleDismissPicker,
         hasAuth,
         loadoutSnapshot,
         persistLoadoutCache,
         rollbackOptimisticLoadout,
+        showLoadoutUpdateError,
         syncLoadoutState,
+        t,
         updatingLoadout,
         user.accessToken,
         user.entitlementsToken,
         user.id,
         user.region,
-        t,
       ]
   );
 
   const handleEquipCollectionSkin = React.useCallback(
       (item: OwnedWeaponCollectionItem) => {
-        if (updatingLoadout) {
-          return;
-        }
-
         const equippedWeapon = loadoutDetails.find(
             (weapon) => weapon.weaponId === item.weaponId
         );
         if (!equippedWeapon) {
+          return;
+        }
+
+        if (updatingLoadout) {
+          handleOpenWeaponPicker(equippedWeapon);
           return;
         }
 
@@ -2412,6 +2679,7 @@ function Profile() {
         const pendingUpdate = applyOptimisticLoadout(nextLoadout);
         setUpdatingLoadout(true);
         setPickerError(null);
+        handleDismissPicker();
 
         try {
           if (__DEV__) {
@@ -2466,8 +2734,6 @@ function Profile() {
             syncLoadoutState(putResponse);
             persistLoadoutCache(putResponse);
           }
-          setPickerState(null);
-
           void confirmLoadoutUpdate(
               putResponse,
               pendingUpdate,
@@ -2482,7 +2748,7 @@ function Profile() {
         } catch (err) {
           if (__DEV__) console.error(err);
           rollbackOptimisticLoadout(currentLoadout, pendingUpdate);
-          setPickerError(t("equip_page.error_loading"));
+          showLoadoutUpdateError();
         } finally {
           setUpdatingLoadout(false);
         }
@@ -2490,17 +2756,18 @@ function Profile() {
       [
         applyOptimisticLoadout,
         confirmLoadoutUpdate,
+        handleDismissPicker,
         hasAuth,
         loadoutSnapshot,
         persistLoadoutCache,
         rollbackOptimisticLoadout,
+        showLoadoutUpdateError,
         syncLoadoutState,
         updatingLoadout,
         user.accessToken,
         user.entitlementsToken,
         user.id,
         user.region,
-        t,
       ]
   );
 
@@ -2533,6 +2800,7 @@ function Profile() {
         const pendingUpdate = applyOptimisticLoadout(nextLoadout);
         setUpdatingLoadout(true);
         setPickerError(null);
+        handleDismissPicker();
 
         try {
           if (__DEV__) {
@@ -2569,8 +2837,6 @@ function Profile() {
             syncLoadoutState(putResponse);
             persistLoadoutCache(putResponse);
           }
-          setPickerState(null);
-
           void confirmLoadoutUpdate(
               putResponse,
               pendingUpdate,
@@ -2588,7 +2854,7 @@ function Profile() {
         } catch (err) {
           if (__DEV__) console.error(err);
           rollbackOptimisticLoadout(currentLoadout, pendingUpdate);
-          setPickerError(t("equip_page.error_loading"));
+          showLoadoutUpdateError();
         } finally {
           setUpdatingLoadout(false);
         }
@@ -2596,10 +2862,12 @@ function Profile() {
       [
         applyOptimisticLoadout,
         confirmLoadoutUpdate,
+        handleDismissPicker,
         hasAuth,
         loadoutSnapshot,
         persistLoadoutCache,
         rollbackOptimisticLoadout,
+        showLoadoutUpdateError,
         syncLoadoutState,
         t,
         updatingLoadout,
@@ -2622,7 +2890,7 @@ function Profile() {
           return (
               <TouchableOpacity
                   key={tab.value}
-                  onPress={() => setActiveTab(tab.value)}
+                  onPress={() => handleTabChange(tab.value)}
                   activeOpacity={0.85}
                   style={[
                     styles.segmentButton,
@@ -2653,15 +2921,64 @@ function Profile() {
   const renderProfileHero = () => (
       <View style={[styles.heroCard, { backgroundColor: "#1a1d24" }]}>
         <View style={styles.heroTopRow}>
-          <View style={[styles.heroBadge, { backgroundColor: "rgba(48, 164, 108, 0.15)" }]}>
-            <Icon name="shield-account-outline" size={14} color="#30a46c" />
-            <Text style={[styles.heroBadgeText, { color: "#30a46c" }]}>{t("profile_page.hero_badge")}</Text>
-          </View>
+          <Animated.View
+              style={[styles.heroModeToggle, heroModeToggleAnimatedStyle]}
+          >
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isPlayerInfoMode
+                      ? t("profile_page.hero_badge")
+                      : t("profile_page.player_info", {
+                        defaultValue: "Thông tin người chơi",
+                      })
+                }
+                accessibilityHint={t("profile_page.switch_info_hint", {
+                  defaultValue: "Chuyển nhóm chỉ số đang hiển thị",
+                })}
+                accessibilityState={{ selected: isPlayerInfoMode }}
+                onPress={toggleHeroMode}
+                style={({ pressed }) => [
+                  styles.heroModePressTarget,
+                  pressed && styles.heroModePressed,
+                ]}
+            >
+              <Animated.View
+                  pointerEvents="none"
+                  style={[styles.heroModeThumb, heroModeThumbAnimatedStyle]}
+              >
+                <Icon
+                    name={
+                      isPlayerInfoMode
+                          ? "chart-box-outline"
+                          : "shield-account-outline"
+                    }
+                    size={14}
+                    color={COLORS.PURE_WHITE}
+                />
+              </Animated.View>
+              <View pointerEvents="none" style={styles.heroModeLabelViewport}>
+                <TypewriterSwapText
+                    text={
+                      isPlayerInfoMode
+                          ? t("profile_page.player_info", {
+                            defaultValue: "Thông tin",
+                          })
+                          : t("profile_page.hero_badge")
+                    }
+                    style={[styles.heroModeLabel, heroModeLabelAnimatedStyle]}
+                />
+              </View>
+            </Pressable>
+          </Animated.View>
           <Pressable
-              onPress={toggleStats}
+              accessibilityRole="button"
+              accessibilityLabel={regionLabel}
+              onPress={handleRegionPress}
               style={({ pressed }) => [
                 styles.heroRegionPill,
-                { backgroundColor: "rgba(255,255,255,0.1)", opacity: pressed ? 0.7 : 1 },
+                { backgroundColor: "rgba(255,255,255,0.1)" },
+                pressed && styles.heroModePressed,
               ]}
           >
             <Icon name="web" size={13} color={COLORS.PURE_WHITE} />
@@ -2704,78 +3021,101 @@ function Profile() {
           </View>
         </View>
 
-        <Animated.View style={[styles.heroStatsRow, statsAnimatedStyle]}>
-          {profileStats.map((stat) => (
-              <View key={stat.key} style={[styles.heroStatCard, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
-                <View style={styles.heroStatLabelRow}>
-                  <CurrencyIcon icon={stat.icon} style={styles.heroStatIcon} />
-                  <Text style={styles.heroStatLabel}>{stat.label}</Text>
-                </View>
-                <Text style={styles.heroStatValue}>{stat.value}</Text>
-              </View>
-          ))}
+        <Animated.View
+            style={[styles.heroStatsViewport, statsVisibilityAnimatedStyle]}
+        >
+          <View style={styles.heroStatsRow}>
+            {profileStats.map((balanceStat, index) => {
+              const playerStat = playerPerformanceStats[index];
+              const visibleStat =
+                  isPlayerInfoMode && playerStat ? playerStat : balanceStat;
+
+              return (
+                <Animated.View
+                    key={balanceStat.key}
+                    style={[styles.heroStatCard, heroStatCardAnimatedStyle]}
+                >
+                  <View style={styles.heroStatLabelRow}>
+                    <View style={styles.heroStatIconViewport}>
+                      <Animated.View
+                          style={[
+                            styles.heroStatIconLayer,
+                            balanceStatsAnimatedStyle,
+                          ]}
+                      >
+                        <CurrencyIcon
+                            icon={balanceStat.icon}
+                            style={styles.heroStatIcon}
+                        />
+                      </Animated.View>
+                      <Animated.View
+                          style={[
+                            styles.heroStatIconLayer,
+                            playerStatsAnimatedStyle,
+                          ]}
+                      >
+                        <Icon
+                            name={playerStat?.icon ?? "chart-box-outline"}
+                            size={15}
+                            color="#ff4655"
+                        />
+                      </Animated.View>
+                    </View>
+                    <TypewriterSwapText
+                        text={visibleStat.label}
+                        showCursor={false}
+                        typingSpeed={36}
+                        deletingSpeed={22}
+                        initialDelay={60}
+                        style={[
+                          styles.heroStatLabel,
+                          isPlayerInfoMode && styles.playerStatLabel,
+                        ]}
+                    />
+                  </View>
+                  <TypewriterSwapText
+                      text={String(visibleStat.value)}
+                      showCursor={false}
+                      typingSpeed={34}
+                      deletingSpeed={20}
+                      initialDelay={60}
+                      style={styles.heroStatValue}
+                  />
+                </Animated.View>
+              );
+            })}
+          </View>
         </Animated.View>
 
         <View style={styles.heroRankRow}>
-          <View style={[styles.heroRankCard, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
-            <Text style={styles.heroRankLabel}>{t("profile_page.current_rank")}</Text>
-            <View style={styles.heroRankValueRow}>
-              {competitiveRank?.currentIcon ? (
-                  <Image
-                      cacheId={
-                        competitiveRank.currentTier
-                            ? `rank:${competitiveRank.currentTier}:icon`
-                            : undefined
-                      }
-                      source={{ uri: competitiveRank.currentIcon }}
-                      style={styles.heroRankIcon}
-                      contentFit="contain"
-                      cachePolicy="memory-disk"
-                      priority="normal"
-                      recyclingKey={competitiveRank.currentIcon}
-                  />
-              ) : (
-                  <Icon
-                      name="shield-outline"
-                      size={18}
-                      color="rgba(255,255,255,0.6)"
-                  />
-              )}
-              <Text style={styles.heroRankValue}>
-                {competitiveRank?.currentName || t("profile_page.unrated")}
-              </Text>
-            </View>
-          </View>
-
-          <View style={[styles.heroRankCard, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
-            <Text style={styles.heroRankLabel}>{t("profile_page.peak_rank")}</Text>
-            <View style={styles.heroRankValueRow}>
-              {competitiveRank?.peakIcon ? (
-                  <Image
-                      cacheId={
-                        competitiveRank.peakTier
-                            ? `rank:${competitiveRank.peakTier}:icon`
-                            : undefined
-                      }
-                      source={{ uri: competitiveRank.peakIcon }}
-                      style={styles.heroRankIcon}
-                      contentFit="contain"
-                      cachePolicy="memory-disk"
-                      priority="normal"
-                      recyclingKey={competitiveRank.peakIcon}
-                  />
-              ) : (
-                  <Icon
-                      name="shield-half-full"
-                      size={18}
-                      color="rgba(255,255,255,0.6)"
-                  />
-              )}
-              <Text style={styles.heroRankValue}>
-                {competitiveRank?.peakName || t("profile_page.unrated")}
-              </Text>
-            </View>
-          </View>
+          <RankSplitGroup
+              splitProgress={rankSplitProgress}
+              contentMode={rankSplitContentMode}
+              rankLabel={t("profile_page.current_rank")}
+              rankValue={
+                competitiveRank?.currentName || t("profile_page.unrated")
+              }
+              rankIconUrl={competitiveRank?.currentIcon}
+              rankIconCacheId={
+                competitiveRank?.currentTier
+                    ? `rank:${competitiveRank.currentTier}:icon`
+                    : undefined
+              }
+              stats={actRankSummaryStats.left}
+          />
+          <RankSplitGroup
+              splitProgress={rankSplitProgress}
+              contentMode={rankSplitContentMode}
+              rankLabel={t("profile_page.peak_rank")}
+              rankValue={competitiveRank?.peakName || t("profile_page.unrated")}
+              rankIconUrl={competitiveRank?.peakIcon}
+              rankIconCacheId={
+                competitiveRank?.peakTier
+                    ? `rank:${competitiveRank.peakTier}:icon`
+                    : undefined
+              }
+              stats={actRankSummaryStats.right}
+          />
         </View>
       </View>
   );
@@ -2798,7 +3138,6 @@ function Profile() {
                   defaultValue: "Ch\u1ecdn \u1ea3nh \u0111\u1ea1i di\u1ec7n",
                 })}
                 activeOpacity={0.86}
-                disabled={updatingLoadout}
                 onPress={() => handleOpenIdentityPicker("player-card")}
                 style={styles.identityImageFrame}
             >
@@ -2829,7 +3168,6 @@ function Profile() {
               <TouchableOpacity
                   accessibilityRole="button"
                   activeOpacity={0.75}
-                  disabled={updatingLoadout}
                   onPress={() => handleOpenIdentityPicker("player-card")}
                   style={styles.identityCardNameRow}
               >
@@ -2845,7 +3183,6 @@ function Profile() {
               <TouchableOpacity
                   accessibilityRole="button"
                   activeOpacity={0.75}
-                  disabled={updatingLoadout}
                   onPress={() => handleOpenIdentityPicker("player-title")}
                   style={styles.identityTitleAction}
               >
@@ -2894,16 +3231,13 @@ function Profile() {
                     <TouchableOpacity
                         key={`${expression.slotIndex}-${expression.kind}-${expression.id}`}
                         activeOpacity={0.9}
-                        disabled={updatingLoadout}
                         onPress={() => handleOpenExpressionPicker(expression)}
                         style={[
                           styles.sprayCard,
                           GLOBAL_STYLES.shadow,
                           {
-                            backgroundColor: "#ffffff",
                             borderColor: COLORS.BORDER,
                             borderWidth: 1,
-                            opacity: updatingLoadout ? 0.72 : 1,
                           },
                         ]}
                     >
@@ -2943,16 +3277,13 @@ function Profile() {
                     <TouchableOpacity
                         key={`${spray.slot}-${spray.id}`}
                         activeOpacity={0.9}
-                        disabled={updatingLoadout}
                         onPress={() => handleOpenSprayPicker(spray)}
                         style={[
                           styles.sprayCard,
                           GLOBAL_STYLES.shadow,
                           {
-                            backgroundColor: "#ffffff",
                             borderColor: COLORS.BORDER,
                             borderWidth: 1,
-                            opacity: updatingLoadout ? 0.72 : 1,
                           },
                         ]}
                     >
@@ -2990,11 +3321,10 @@ function Profile() {
               key={weapon.weaponId}
               weapon={weapon}
               width={profileSkinRowCardWidth}
-              disabled={updatingLoadout}
               onPress={() => handleOpenWeaponPicker(weapon)}
           />
       ),
-      [handleOpenWeaponPicker, profileSkinRowCardWidth, updatingLoadout]
+      [handleOpenWeaponPicker, profileSkinRowCardWidth]
   );
 
   const renderPageHeader = () => (
@@ -3006,7 +3336,7 @@ function Profile() {
                 defaultValue: "Ch\u1ecdn \u1ea3nh \u0111\u1ea1i di\u1ec7n",
               })}
               activeOpacity={0.82}
-              disabled={!identityDetails || updatingLoadout}
+              disabled={!identityDetails}
               onPress={() => handleOpenIdentityPicker("player-card")}
               style={styles.topAvatarButton}
           >
@@ -3048,8 +3378,12 @@ function Profile() {
       contentStyle: StyleProp<ViewStyle> = styles.pageScrollContent,
       bodyStyle: StyleProp<ViewStyle> = styles.pageBody
   ) => (
-      <ScrollView
+      <FlatList
+          key={`profile-content-${profileGridColumns}`}
           style={styles.pageScroll}
+          data={EMPTY_PROFILE_LIST_DATA}
+          renderItem={renderEmptyProfileListItem}
+          numColumns={profileGridColumns}
           contentContainerStyle={contentStyle}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -3060,10 +3394,13 @@ function Profile() {
                 colors={[palette.accent]}
             />
           }
-      >
-        {renderPageHeader()}
-        <View style={bodyStyle}>{children}</View>
-      </ScrollView>
+          ListHeaderComponent={
+            <>
+              {renderPageHeader()}
+              <View style={bodyStyle}>{children}</View>
+            </>
+          }
+      />
   );
 
   const renderSkinsTab = () =>
@@ -3095,17 +3432,20 @@ function Profile() {
   const renderCollectionHeader = () => (
       <>
         {renderPageHeader()}
-        <Searchbar
-            placeholder={t("equip_page.search_placeholder")}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={[
-              styles.searchBar,
-              { backgroundColor: palette.card, borderColor: palette.cardBorder },
-            ]}
-            inputStyle={{ color: palette.textPrimary }}
-            iconColor={palette.textSecondary}
-        />
+        <View style={styles.collectionSearchRow}>
+          <Searchbar
+              placeholder={t("equip_page.search_placeholder")}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={[
+                styles.searchBar,
+                { backgroundColor: palette.card, borderColor: palette.cardBorder },
+              ]}
+              inputStyle={{ color: palette.textPrimary }}
+              iconColor={palette.textSecondary}
+          />
+          <CollectionCheckerExport />
+        </View>
         <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -3145,11 +3485,10 @@ function Profile() {
           <CompactProfileSkinCard
               weapon={item}
               width={profileGridCardWidth}
-              disabled={updatingLoadout}
               onPress={() => handleEquipCollectionSkin(item)}
           />
       ),
-      [handleEquipCollectionSkin, profileGridCardWidth, updatingLoadout]
+      [handleEquipCollectionSkin, profileGridCardWidth]
   );
 
   const renderCollectionEmpty = React.useCallback(
@@ -3163,17 +3502,23 @@ function Profile() {
 
   const renderCollectionTab = () => (
       <FlatList
-          key={`collection-${profileGridColumns}`}
+          key={`profile-content-${profileGridColumns}`}
           style={styles.collectionContainer}
           data={filteredCollection}
           keyExtractor={(item) => item.collectionId}
           numColumns={profileGridColumns}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
+          refreshControl={
+            <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={palette.accent}
+                colors={[palette.accent]}
+            />
+          }
           contentContainerStyle={styles.collectionList}
           columnWrapperStyle={styles.collectionRow}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderCollectionHeader}
+          ListHeaderComponent={renderCollectionHeader()}
           ListEmptyComponent={renderCollectionEmpty}
           renderItem={renderCollectionItem}
           removeClippedSubviews
@@ -3282,21 +3627,20 @@ function Profile() {
                 </View>
                 {pickerBusy ? (
                     <ActivityIndicator animating color={palette.accent} />
-                ) : (
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={handleDismissPicker}
-                        style={[
-                          styles.pickerCloseButton,
-                          {
-                            backgroundColor: palette.chipBackground,
-                            borderColor: palette.cardBorder,
-                          },
-                        ]}
-                    >
-                      <Icon name="close" size={18} color={palette.textPrimary} />
-                    </TouchableOpacity>
-                )}
+                ) : null}
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleDismissPicker}
+                    style={[
+                      styles.pickerCloseButton,
+                      {
+                        backgroundColor: palette.chipBackground,
+                        borderColor: palette.cardBorder,
+                      },
+                    ]}
+                >
+                  <Icon name="close" size={18} color={palette.textPrimary} />
+                </TouchableOpacity>
               </View>
 
               {pickerError ? (
@@ -3528,7 +3872,6 @@ function Profile() {
                             <TouchableOpacity
                                 key={mode}
                                 activeOpacity={0.85}
-                                disabled={pickerBusy}
                                 onPress={() =>
                                     handleOpenExpressionPicker(
                                         pickerState.expression,
@@ -3617,7 +3960,7 @@ function Profile() {
                                 style={[
                                   styles.pickerOptionCard,
                                   {
-                                    backgroundColor: palette.background,
+                                    backgroundColor: COLORS.SURFACE_MUTED,
                                     borderColor: option.selected
                                         ? palette.accent
                                         : palette.cardBorder,
@@ -3845,7 +4188,7 @@ function Profile() {
                               style={[
                                 styles.pickerOptionCard,
                                 {
-                                  backgroundColor: palette.background,
+                                  backgroundColor: COLORS.SURFACE_MUTED,
                                   borderColor: option.selected
                                       ? palette.accent
                                       : palette.cardBorder,
@@ -4047,10 +4390,16 @@ function Profile() {
   }
 
   return (
+    <CollectionCheckerExportProvider
+        items={ownedCollection}
+        profile={collectionCheckerProfile}
+        disabled={refreshing}
+    >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {content}
         {renderPickerModal()}
       </View>
+    </CollectionCheckerExportProvider>
   );
 }
 
@@ -4138,19 +4487,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  heroBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+  heroModeToggle: {
+    width: 120,
+    height: 32,
     borderRadius: RADIUS.chip,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    overflow: "hidden",
   },
-  heroBadgeText: {
-    marginLeft: 8,
+  heroModePressTarget: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  heroModePressed: {
+    opacity: 0.76,
+  },
+  heroModeThumb: {
+    position: "absolute",
+    left: 5,
+    top: 4,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.24)",
+  },
+  heroModeLabelViewport: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  heroModeLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: COLORS.PURE_WHITE,
+    textAlign: "center",
   },
   heroRegionPill: {
     flexDirection: "row",
@@ -4217,9 +4587,15 @@ const styles = StyleSheet.create({
     color: COLORS.PURE_WHITE,
   },
   heroStatsRow: {
+    flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 8,
+  },
+  heroStatsViewport: {
+    position: "relative",
+    height: 64,
+    marginTop: 12,
   },
   heroStatCard: {
     flex: 1,
@@ -4227,11 +4603,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 18,
+    borderWidth: 1,
     backgroundColor: "rgba(255,255,255,0.12)",
   },
   heroStatLabelRow: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  heroStatIconViewport: {
+    position: "relative",
+    width: 15,
+    height: 15,
+  },
+  heroStatIconLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
   heroStatIcon: {
     width: 14,
@@ -4242,6 +4629,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "rgba(255,255,255,0.72)",
+  },
+  playerStatLabel: {
+    color: "rgba(255,255,255,0.78)",
   },
   heroStatValue: {
     marginTop: 8,
@@ -4254,36 +4644,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
     marginTop: 10,
-  },
-  heroRankCard: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  heroRankLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.72)",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  heroRankValueRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  heroRankIcon: {
-    width: 22,
-    height: 22,
-    marginRight: 6,
-  },
-  heroRankValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.PURE_WHITE,
-    flexShrink: 1,
+    height: 64,
   },
   pageScroll: {
     flex: 1,
@@ -4747,6 +5108,7 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: "center",
     borderWidth: 1,
+    backgroundColor: COLORS.SURFACE,
   },
   sprayImage: {
     width: 77,
@@ -4922,11 +5284,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchBar: {
-    margin: 16,
-    marginBottom: 8,
+    flex: 1,
     borderRadius: 20,
     elevation: 0,
     borderWidth: 1,
+  },
+  collectionSearchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
   },
   collectionList: {
     paddingBottom: 140,
