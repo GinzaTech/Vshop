@@ -326,7 +326,12 @@
     }
   },
   "profile_page": {
+    "act_wins": "Wygrane",
+    "act_losses": "Przegrane",
+    "act_win_rate": "Współczynnik zwycięstw",
     "hero_badge": "Loadout Profile",
+    "player_info": "Informacje",
+    "switch_info_hint": "Zmień wyświetlane statystyki",
     "agent_fallback": "Agent",
     "hero_subtitle": "Riot account connected",
     "level": "Level {{level}}",
@@ -425,7 +430,19 @@
       "ready": "Set Ready",
       "unready": "Unset Ready"
     },
-    "enemy_team": "Enemy team"
+    "enemy_team": "Drużyna przeciwna",
+    "player_details": "Szczegóły gracza",
+    "you": "TY",
+    "rotate_device": "Obróć urządzenie poziomo, aby zobaczyć informacje o meczu.",
+    "rotate_hint": "Tablica meczu dla 10 graczy jest zoptymalizowana dla ekranu poziomego.",
+    "matches": "WYGRANE",
+    "private_profile": "Szczegółowe dane rankingowe są prywatne lub niedostępne.",
+    "loading_player_data": "Wczytywanie danych rankingowych gracza…",
+    "players": "GRACZE",
+    "rank_data": "DANE RANKINGOWE",
+    "peak_short": "Najwyższa",
+    "stats_competitive_short": "RANK",
+    "stats_match_short": "MECZ"
   },
   "session_labels": {
     "queue": {

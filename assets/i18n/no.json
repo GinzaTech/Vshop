@@ -328,7 +328,12 @@
     }
   },
   "profile_page": {
+    "act_wins": "Seire",
+    "act_losses": "Tap",
+    "act_win_rate": "Seiersrate",
     "hero_badge": "Loadout Profile",
+    "player_info": "Info",
+    "switch_info_hint": "Bytt statistikken som vises",
     "agent_fallback": "Agent",
     "hero_subtitle": "Riot account connected",
     "level": "Level {{level}}",
@@ -427,7 +432,19 @@
       "ready": "Set Ready",
       "unready": "Unset Ready"
     },
-    "enemy_team": "Enemy team"
+    "enemy_team": "Motstanderlag",
+    "player_details": "Spillerdetaljer",
+    "you": "DEG",
+    "rotate_device": "Roter enheten til liggende retning for å se kampinformasjonen.",
+    "rotate_hint": "Kamptavlen for 10 spillere er optimalisert for en horisontal skjerm.",
+    "matches": "SEIRE",
+    "private_profile": "Detaljerte konkurransedata er private eller utilgjengelige.",
+    "loading_player_data": "Laster spillerens rangdata…",
+    "players": "SPILLERE",
+    "rank_data": "RANGDATA",
+    "peak_short": "Topp",
+    "stats_competitive_short": "RANK",
+    "stats_match_short": "KAMP"
   },
   "session_labels": {
     "queue": {

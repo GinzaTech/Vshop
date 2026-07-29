@@ -395,6 +395,8 @@
       "difference": "Chênh lệch kinh tế",
       "total": "Tổng",
       "loadout": "Giá trị trang bị",
+      "average_loadout": "Trang bị TB",
+      "average_credits": "Credit TB",
       "spent": "Tín dụng đã dùng",
       "tap_hint": "Chạm một mốc để xem dữ liệu round."
     },
@@ -406,7 +408,9 @@
       "selected_detail": "Kinh tế và sự kiện của round đang chọn",
       "outcome": "Kết quả",
       "side": "Phe",
-      "duration": "Thời lượng"
+      "duration": "Thời lượng",
+      "plant_spike": "Đặt spike",
+      "defuse_spike": "Gỡ spike"
     },
     "outcomes": {
       "elimination": "Hạ toàn đội",
@@ -454,7 +458,12 @@
     }
   },
   "profile_page": {
+    "act_wins": "Thắng",
+    "act_losses": "Thua",
+    "act_win_rate": "Tỉ lệ thắng",
     "hero_badge": "Hồ sơ trang bị",
+    "player_info": "Thông tin",
+    "switch_info_hint": "Chuyển nhóm chỉ số đang hiển thị",
     "agent_fallback": "Đặc vụ",
     "hero_subtitle": "Tài khoản Riot đã kết nối",
     "level": "Cấp {{level}}",
@@ -546,7 +555,19 @@
       "ready": "Đặt sẵn sàng",
       "unready": "Bỏ sẵn sàng"
     },
-    "enemy_team": "Đội địch"
+    "enemy_team": "Đội địch",
+    "player_details": "Chi tiết người chơi",
+    "you": "BẠN",
+    "rotate_device": "Vui lòng xoay ngang thiết bị để xem thông tin trận đấu.",
+    "rotate_hint": "Bảng trận đấu 10 người được tối ưu cho màn hình ngang.",
+    "matches": "TRẬN THẮNG",
+    "private_profile": "Dữ liệu xếp hạng chi tiết đang riêng tư hoặc không khả dụng.",
+    "loading_player_data": "Đang tải dữ liệu xếp hạng…",
+    "players": "NGƯỜI CHƠI",
+    "rank_data": "DỮ LIỆU HẠNG",
+    "peak_short": "Cao nhất",
+    "stats_competitive_short": "COMP",
+    "stats_match_short": "TRẬN"
   },
   "contracts_page": {
     "title": "Hợp đồng",

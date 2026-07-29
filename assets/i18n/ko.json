@@ -330,7 +330,12 @@
     }
   },
   "profile_page": {
+    "act_wins": "승리",
+    "act_losses": "패배",
+    "act_win_rate": "승률",
     "hero_badge": "Loadout Profile",
+    "player_info": "정보",
+    "switch_info_hint": "표시할 통계 전환",
     "agent_fallback": "Agent",
     "hero_subtitle": "Riot account connected",
     "level": "Level {{level}}",
@@ -429,7 +434,19 @@
       "ready": "Set Ready",
       "unready": "Unset Ready"
     },
-    "enemy_team": "Enemy team"
+    "enemy_team": "상대 팀",
+    "player_details": "플레이어 상세 정보",
+    "you": "나",
+    "rotate_device": "경기 정보를 보려면 기기를 가로 방향으로 돌려 주세요.",
+    "rotate_hint": "10인 경기 보드는 가로 화면에 최적화되어 있습니다.",
+    "matches": "승리",
+    "private_profile": "상세 경쟁전 데이터가 비공개이거나 사용할 수 없습니다.",
+    "loading_player_data": "플레이어 랭크 데이터를 불러오는 중…",
+    "players": "플레이어",
+    "rank_data": "랭크 데이터",
+    "peak_short": "최고",
+    "stats_competitive_short": "경쟁전",
+    "stats_match_short": "매치"
   },
   "session_labels": {
     "queue": {

@@ -313,6 +313,8 @@
       "difference": "Economy difference",
       "total": "Total",
       "loadout": "Loadout value",
+      "average_loadout": "Avg. loadout",
+      "average_credits": "Avg. credits",
       "spent": "Credits spent",
       "tap_hint": "Tap a marker to inspect that round."
     },
@@ -324,7 +326,9 @@
       "selected_detail": "Economy and event detail for the selected round",
       "outcome": "Outcome",
       "side": "Side",
-      "duration": "Duration"
+      "duration": "Duration",
+      "plant_spike": "Plant spike",
+      "defuse_spike": "Defuse spike"
     },
     "outcomes": {
       "elimination": "Elimination",
@@ -447,7 +451,12 @@
     }
   },
   "profile_page": {
+    "act_wins": "Wins",
+    "act_losses": "Losses",
+    "act_win_rate": "Win rate",
     "hero_badge": "Loadout Profile",
+    "player_info": "Info",
+    "switch_info_hint": "Switch the displayed statistics",
     "agent_fallback": "Agent",
     "hero_subtitle": "Riot account connected",
     "level": "Level {{level}}",
@@ -553,7 +562,19 @@
       "ready": "Set Ready",
       "unready": "Unset Ready"
     },
-    "enemy_team": "Enemy team"
+    "enemy_team": "Enemy team",
+    "player_details": "Player details",
+    "you": "YOU",
+    "rotate_device": "Please rotate your device to landscape to view match information.",
+    "rotate_hint": "The 10-player match board is optimized for a horizontal screen.",
+    "matches": "WINS",
+    "private_profile": "Detailed competitive data is private or unavailable.",
+    "loading_player_data": "Loading player rank data…",
+    "players": "PLAYERS",
+    "rank_data": "RANK DATA",
+    "peak_short": "Peak",
+    "stats_competitive_short": "COMP",
+    "stats_match_short": "MATCH"
   },
   "contracts_page": {
     "title": "Contracts",
