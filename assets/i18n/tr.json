@@ -330,7 +330,12 @@
     }
   },
   "profile_page": {
+    "act_wins": "Galibiyet",
+    "act_losses": "Mağlubiyet",
+    "act_win_rate": "Kazanma oranı",
     "hero_badge": "Loadout Profile",
+    "player_info": "Bilgi",
+    "switch_info_hint": "Gösterilen istatistikleri değiştir",
     "agent_fallback": "Agent",
     "hero_subtitle": "Riot account connected",
     "level": "Level {{level}}",
@@ -429,7 +434,19 @@
       "ready": "Set Ready",
       "unready": "Unset Ready"
     },
-    "enemy_team": "Enemy team"
+    "enemy_team": "Rakip takım",
+    "player_details": "Oyuncu ayrıntıları",
+    "you": "SEN",
+    "rotate_device": "Maç bilgilerini görmek için cihazınızı yatay konuma çevirin.",
+    "rotate_hint": "10 oyunculu maç panosu yatay ekran için optimize edilmiştir.",
+    "matches": "GALİBİYET",
+    "private_profile": "Ayrıntılı rekabet verileri gizli veya kullanılamıyor.",
+    "loading_player_data": "Oyuncu rütbe verileri yükleniyor…",
+    "players": "OYUNCULAR",
+    "rank_data": "RÜTBE VERİSİ",
+    "peak_short": "En yüksek",
+    "stats_competitive_short": "DERECE",
+    "stats_match_short": "MAÇ"
   },
   "session_labels": {
     "queue": {

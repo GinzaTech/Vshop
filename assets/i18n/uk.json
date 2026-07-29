@@ -332,7 +332,12 @@
     }
   },
   "profile_page": {
+    "act_wins": "Перемоги",
+    "act_losses": "Поразки",
+    "act_win_rate": "Відсоток перемог",
     "hero_badge": "Loadout Profile",
+    "player_info": "Інформація",
+    "switch_info_hint": "Перемкнути відображувану статистику",
     "agent_fallback": "Agent",
     "hero_subtitle": "Riot account connected",
     "level": "Level {{level}}",
@@ -431,7 +436,19 @@
       "ready": "Set Ready",
       "unready": "Unset Ready"
     },
-    "enemy_team": "Enemy team"
+    "enemy_team": "Команда суперника",
+    "player_details": "Дані гравця",
+    "you": "ВИ",
+    "rotate_device": "Поверніть пристрій горизонтально, щоб переглянути інформацію про матч.",
+    "rotate_hint": "Таблицю матчу для 10 гравців оптимізовано для горизонтального екрана.",
+    "matches": "ПЕРЕМОГИ",
+    "private_profile": "Детальні рейтингові дані приватні або недоступні.",
+    "loading_player_data": "Завантаження рейтингових даних гравця…",
+    "players": "ГРАВЦІ",
+    "rank_data": "ДАНІ РАНГУ",
+    "peak_short": "Найвищий",
+    "stats_competitive_short": "РАНГ",
+    "stats_match_short": "МАТЧ"
   },
   "session_labels": {
     "queue": {

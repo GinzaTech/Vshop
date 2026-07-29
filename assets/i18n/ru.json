@@ -326,7 +326,12 @@
     }
   },
   "profile_page": {
+    "act_wins": "Победы",
+    "act_losses": "Поражения",
+    "act_win_rate": "Процент побед",
     "hero_badge": "Loadout Profile",
+    "player_info": "Информация",
+    "switch_info_hint": "Переключить отображаемую статистику",
     "agent_fallback": "Agent",
     "hero_subtitle": "Riot account connected",
     "level": "Level {{level}}",
@@ -425,7 +430,19 @@
       "ready": "Set Ready",
       "unready": "Unset Ready"
     },
-    "enemy_team": "Enemy team"
+    "enemy_team": "Команда противника",
+    "player_details": "Данные игрока",
+    "you": "ВЫ",
+    "rotate_device": "Поверните устройство горизонтально, чтобы увидеть информацию о матче.",
+    "rotate_hint": "Таблица матча для 10 игроков оптимизирована для горизонтального экрана.",
+    "matches": "ПОБЕДЫ",
+    "private_profile": "Подробные соревновательные данные скрыты или недоступны.",
+    "loading_player_data": "Загрузка рейтинговых данных игрока…",
+    "players": "ИГРОКИ",
+    "rank_data": "ДАННЫЕ РАНГА",
+    "peak_short": "Максимум",
+    "stats_competitive_short": "РАНГ",
+    "stats_match_short": "МАТЧ"
   },
   "session_labels": {
     "queue": {
