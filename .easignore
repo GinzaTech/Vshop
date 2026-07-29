@@ -1,0 +1,33 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+expo-dev.log
+expo-dev.err.log
+
+# Environment and local native output
+.env*
+*.env
+out/
+android/
+ios/
+expo-env.d.ts
+
+# Local Codex indexes, logs, temporary files, and backups
+.codegraph/
+.codex/
+.codex-logs/
+.codex-tmp/
+backup/
+%ProgramData%/
+*.bak
+
+# OS metadata
+.DS_Store
