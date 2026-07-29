@@ -9,6 +9,7 @@ import {
   ownedItems,
   playerLoadout,
   PlayerLoadoutResponse,
+  type RiotPlayerRequestOptions,
 } from "./valorant-api";
 // Import hàm lấy assets từ valorant-assets
 import { getAssets } from "./valorant-assets";
@@ -29,6 +30,10 @@ export type CompetitiveRankSummary = {
   peakTier: number | null;
   peakName: string;
   peakIcon: string | null;
+  actSeasonId: string | null;
+  actWins: number | null;
+  actLosses: number | null;
+  actGames: number | null;
 };
 
 /**
@@ -64,11 +69,12 @@ export const PROFILE_WARM_CACHE_TTL = 5 * 60 * 1000;
 // Phiên bản cache loadout hiện tại
 export const PROFILE_LOADOUT_CACHE_VERSION = 5;
 // Phiên bản cache thứ hạng hiện tại
-export const PROFILE_RANK_CACHE_VERSION = 9;
+export const PROFILE_RANK_CACHE_VERSION = 11;
 
 // Map lưu các Promise đang thực hiện fetch profile warm cache theo authKey
 // Giúp tránh gọi API đồng thời cho cùng một user
 const profileWarmupInFlight = new Map<string, Promise<ProfileWarmCache | null>>();
+const profileWarmupCache = new Map<string, ProfileWarmCache>();
 
 /**
  * FALLBACK_COMPETITIVE_TIER_NAMES - Bảng tên thứ hạng dự phòng khi không lấy được từ API
@@ -329,6 +335,10 @@ const buildCompetitiveRankSummaryFromTiers = (
     peakTier,
     peakName: formatCompetitiveTierName(resolveTierName(peakTier, peakTierInfo)),
     peakIcon: peakTierInfo?.icon || null,
+    actSeasonId: null,
+    actWins: null,
+    actLosses: null,
+    actGames: null,
   };
 };
 
@@ -379,8 +389,63 @@ export function buildCompetitiveRankSummary(
     Number.isFinite(latestPeakRaw) ? latestPeakRaw : 0
   );
   const peakTier = peakTierCandidate > 0 ? peakTierCandidate : null;
+  const rankSummary = buildCompetitiveRankSummaryFromTiers(
+    currentTier,
+    peakTier
+  );
+  const actSeasonId =
+      typeof latestCompetitiveUpdate?.SeasonID === "string"
+          ? latestCompetitiveUpdate.SeasonID
+          : null;
+  const currentSeason = actSeasonId ? seasonalInfo[actSeasonId] : null;
+  const rawWins = Number(currentSeason?.NumberOfWins);
+  const rawWinsWithPlacements = Number(
+      currentSeason?.NumberOfWinsWithPlacements
+  );
+  const winsFromTiers = Object.values(
+      currentSeason?.WinsByTier ?? {}
+  ).reduce<number>((total, wins) => {
+    const numericWins = Number(wins);
+    return total + (Number.isFinite(numericWins) ? numericWins : 0);
+  }, 0);
+  const actWins = Number.isFinite(rawWinsWithPlacements)
+      ? Math.max(0, rawWinsWithPlacements)
+      : winsFromTiers > 0
+          ? winsFromTiers
+          : Number.isFinite(rawWins)
+              ? Math.max(0, rawWins)
+              : null;
+  const rawGames = Number(currentSeason?.NumberOfGames);
+  const actGames = Number.isFinite(rawGames) ? Math.max(0, rawGames) : null;
+  const rawLosses = Number(currentSeason?.NumberOfLosses);
+  const rawDraws = Number(currentSeason?.NumberOfDraws);
+  // Một số payload mới trả thẳng loss/draw. Với payload cũ, phần chênh
+  // giữa hai bộ đếm win là offset placement; phải loại nó khỏi non-win
+  // nếu không các trận placement sẽ bị tính lặp thành trận thua.
+  const placementWinOffset =
+      Number.isFinite(rawWinsWithPlacements) && Number.isFinite(rawWins)
+          ? Math.max(0, rawWinsWithPlacements - rawWins)
+          : 0;
+  const actLosses = Number.isFinite(rawLosses)
+      ? Math.max(0, rawLosses)
+      : actWins !== null && actGames !== null
+          ? Math.max(
+              0,
+              actGames -
+              actWins -
+              (Number.isFinite(rawDraws)
+                  ? Math.max(0, rawDraws)
+                  : placementWinOffset)
+          )
+          : null;
 
-  return buildCompetitiveRankSummaryFromTiers(currentTier, peakTier);
+  return {
+    ...rankSummary,
+    actSeasonId,
+    actWins,
+    actLosses,
+    actGames,
+  };
 }
 
 /**
@@ -388,13 +453,17 @@ export function buildCompetitiveRankSummary(
  * @param {typeof defaultUser} user - Đối tượng user
  * @returns {Promise<CompetitiveRankSummary | null>} Promise trả về thông tin thứ hạng hoặc null
  */
-export async function fetchCompetitiveRankSummary(user: typeof defaultUser) {
+export async function fetchCompetitiveRankSummary(
+  user: typeof defaultUser,
+  options: RiotPlayerRequestOptions = {}
+) {
   // Gọi API MMR
   const mmrResult = await getCompetitiveMMR(
     user.accessToken,
     user.entitlementsToken,
     user.region,
-    user.id
+    user.id,
+    options
   ).catch(() => null);
 
   // Xây dựng tóm tắt thứ hạng từ kết quả MMR
@@ -490,11 +559,19 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
  * @param {typeof defaultUser} user - Đối tượng user
  * @returns {Promise<ProfileWarmCache | null>} Promise trả về ProfileWarmCache hoặc null
  */
-export async function fetchProfileWarmCache(user: typeof defaultUser) {
+export async function fetchProfileWarmCache(
+  user: typeof defaultUser,
+  options: RiotPlayerRequestOptions = {}
+) {
   const authKey = getSessionAuthKey(user);
   // Nếu là guest (chưa đăng nhập), trả về null
   if (authKey === "guest") {
     return null;
+  }
+
+  const cached = profileWarmupCache.get(authKey);
+  if (!options.force && isProfileCacheFresh(cached)) {
+    return cached;
   }
 
   // Kiểm tra nếu đã có Promise đang chạy cho authKey này
@@ -504,9 +581,16 @@ export async function fetchProfileWarmCache(user: typeof defaultUser) {
   }
 
   // Tạo request mới và lưu vào Map
-  const request = fetchProfileWarmCacheInternal(user).finally(() => {
-    profileWarmupInFlight.delete(authKey);
-  });
+  const request = fetchProfileWarmCacheInternal(user)
+    .then((cache) => {
+      if (cache) {
+        profileWarmupCache.set(authKey, cache);
+      }
+      return cache;
+    })
+    .finally(() => {
+      profileWarmupInFlight.delete(authKey);
+    });
 
   profileWarmupInFlight.set(authKey, request);
   return request;

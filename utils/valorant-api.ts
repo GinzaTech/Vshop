@@ -61,6 +61,17 @@ const logValorantApiDebug = (
   }
 };
 
+const logValorantApiResponse = (label: string, payload: unknown) => {
+  if (
+    __DEV__ &&
+    process.env.EXPO_PUBLIC_LOG_VALORANT_RESPONSES === "1"
+  ) {
+    console.log(
+      `[valorant-api-response] ${label}\n${JSON.stringify(payload, null, 2)}`
+    );
+  }
+};
+
 // Kiểu dữ liệu cho tên người chơi: Subject (UUID), GameName, TagLine
 type PlayerName = { Subject: string; GameName: string; TagLine: string };
 // Thời gian sống (TTL) của cache tên người chơi: 1 giờ (tính bằng milliseconds)
@@ -72,8 +83,9 @@ const playerNameCache = new Map<
   string,
   { value: PlayerName; expiresAt: number; lastAccessed: number }
 >();
-// Map lưu các Promise đang thực thi để lấy tên người chơi (deduplicate request trùng lặp)
-const playerNameRequests = new Map<string, Promise<PlayerName[]>>();
+// Promise theo từng subject giúp các consumer dùng chung cả cache và request
+// đang chạy, kể cả khi danh sách subject của chúng chỉ trùng một phần.
+const playerNameRequests = new Map<string, Promise<void>>();
 
 
 // Export interface phản hồi loadout (trang bị) của người chơi từ API Riot
@@ -118,6 +130,34 @@ export interface PlayerLoadoutExpression {
 type PlayerLoadoutV3Response = Omit<PlayerLoadoutResponse, "Sprays"> & {
   ActiveExpressions: PlayerLoadoutExpression[];
   DynamicOptions: Record<string, unknown>;
+};
+
+export type RiotPlayerRequestOptions = {
+  force?: boolean;
+};
+
+const PLAYER_LOADOUT_CACHE_TTL_MS = 30 * 1000;
+const playerLoadoutCache = new Map<
+  string,
+  { value: PlayerLoadoutResponse; expiresAt: number }
+>();
+const playerLoadoutRequests = new Map<
+  string,
+  Promise<PlayerLoadoutResponse | null>
+>();
+
+const getPlayerResourceKey = (region: string, userId: string) =>
+  `${region.toLowerCase()}|${userId.toLowerCase()}`;
+
+const cachePlayerLoadout = (
+  region: string,
+  userId: string,
+  value: PlayerLoadoutResponse
+) => {
+  playerLoadoutCache.set(getPlayerResourceKey(region, userId), {
+    value,
+    expiresAt: Date.now() + PLAYER_LOADOUT_CACHE_TTL_MS,
+  });
 };
 
 // Hàm kiểm tra dữ liệu có phải là PlayerLoadoutV3Response hợp lệ không (type guard)
@@ -173,6 +213,11 @@ export interface CompetitiveMMRResponse {
           Rank?: number;
           CompetitiveTier?: number;
           RankedRating?: number;         // Điểm Ranked Rating (RR)
+          NumberOfWins?: number;
+          NumberOfWinsWithPlacements?: number;
+          NumberOfGames?: number;
+          NumberOfLosses?: number;
+          NumberOfDraws?: number;
           WinsByTier?: Record<string, number> | null; // Số trận thắng theo tier
           SeasonHighestCompetitiveTier?: number;
         }
@@ -400,21 +445,16 @@ export async function getUsername(
   userId: string,
   region: string
 ) {
-  const res = await axios.request<NameServiceResponse>({
-    url: getUrl({ name: "name", region: region }),
-    method: "PUT",
-    headers: {
-      ...extraHeaders(),
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      "X-Riot-Entitlements-JWT": entitlementsToken,
-    },
-    data: [userId],
-  });
+  const [player] = await getPlayerNames(
+    accessToken,
+    entitlementsToken,
+    [userId],
+    region
+  );
 
   return {
-    GameName: res.data[0].GameName || "?",
-    TagLine: res.data[0].TagLine || "?",
+    GameName: player?.GameName || "?",
+    TagLine: player?.TagLine || "?",
   };
 }
 
@@ -865,6 +905,46 @@ export async function playerLoadout(
   accesstoken: string,
   entitlementsToken: string,
   region: string,
+  userId: string,
+  options: RiotPlayerRequestOptions = {}
+): Promise<PlayerLoadoutResponse | null> {
+  const cacheKey = getPlayerResourceKey(region, userId);
+  const cached = playerLoadoutCache.get(cacheKey);
+
+  if (!options.force && cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
+  // A forced refresh bypasses resolved data but still joins an active request.
+  const existingRequest = playerLoadoutRequests.get(cacheKey);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = requestPlayerLoadout(
+    accesstoken,
+    entitlementsToken,
+    region,
+    userId
+  )
+    .then((response) => {
+      if (response) {
+        cachePlayerLoadout(region, userId, response);
+      }
+      return response;
+    })
+    .finally(() => {
+      playerLoadoutRequests.delete(cacheKey);
+    });
+
+  playerLoadoutRequests.set(cacheKey, request);
+  return request;
+}
+
+async function requestPlayerLoadout(
+  accesstoken: string,
+  entitlementsToken: string,
+  region: string,
   userId: string
 ): Promise<PlayerLoadoutResponse | null> {
   const headers = {
@@ -967,13 +1047,16 @@ export async function updatePlayerLoadout(
     },
   });
 
-  return {
+  const updatedLoadout: PlayerLoadoutResponse = {
     ...loadout,
     ...res.data,
     SourceApiVersion: "v2",
     ActiveExpressions: loadout.ActiveExpressions ?? [],
     DynamicOptions: loadout.DynamicOptions ?? {},
   };
+
+  cachePlayerLoadout(region, userId, updatedLoadout);
+  return updatedLoadout;
 }
 
 // Export hàm cập nhật loadout người chơi (API v3)
@@ -1013,7 +1096,7 @@ export async function updatePlayerLoadoutV3(
     throw new Error(`Player loadout v3 update failed with ${res.status}`);
   }
 
-  return {
+  const updatedLoadout = {
     ...loadout,
     ...res.data,
     SourceApiVersion: "v3",
@@ -1022,6 +1105,9 @@ export async function updatePlayerLoadoutV3(
       res.data.ActiveExpressions ?? loadout.ActiveExpressions ?? [],
     DynamicOptions: res.data.DynamicOptions ?? loadout.DynamicOptions ?? {},
   } as PlayerLoadoutResponse;
+
+  cachePlayerLoadout(region, userId, updatedLoadout);
+  return updatedLoadout;
 }
 
 // Export hàm cập nhật loadout, ưu tiên v3 nếu loadout hiện tại là v3
@@ -1098,6 +1184,11 @@ export async function playerMatchHistory(
   userId: string,
   params?: { startIndex?: number; endIndex?: number; queue?: string }
 ): Promise<MatchHistoryResponse> {
+  logValorantApiDebug("MatchHistory request", {
+    region,
+    userId: maskSecretForLog(userId),
+    params,
+  });
   const res = await axios.request<MatchHistoryResponse>({
     url: getUrl({ name: "match-history", region: region, userId: userId }),
     method: "GET",
@@ -1108,6 +1199,15 @@ export async function playerMatchHistory(
     },
     params,
   });
+  logValorantApiDebug("MatchHistory response", {
+    status: res.status,
+    params,
+    beginIndex: res.data.BeginIndex,
+    endIndex: res.data.EndIndex,
+    total: res.data.Total,
+    matchCount: res.data.History?.length ?? 0,
+  });
+  logValorantApiResponse("MatchHistory", res.data);
   return res.data;
 }
 
@@ -1166,12 +1266,68 @@ export async function hydrateRiotClientVersionFromSession(
 // Parameters:
 //   - accessToken, entitlementsToken, region, userId: thông tin xác thực
 // Returns: Promise<CompetitiveMMRResponse | {}>
+type CompetitiveMMRResult =
+  | CompetitiveMMRResponse
+  | Record<string, never>;
+
+const COMPETITIVE_MMR_CACHE_TTL_MS = 5 * 60 * 1000;
+const competitiveMmrCache = new Map<
+  string,
+  { value: CompetitiveMMRResponse; expiresAt: number }
+>();
+const competitiveMmrRequests = new Map<
+  string,
+  Promise<CompetitiveMMRResult>
+>();
+
 export async function getCompetitiveMMR(
   accessToken: string,
   entitlementsToken: string,
   region: string,
+  userId: string,
+  options: RiotPlayerRequestOptions = {}
+): Promise<CompetitiveMMRResult> {
+  const cacheKey = getPlayerResourceKey(region, userId);
+  const cached = competitiveMmrCache.get(cacheKey);
+
+  if (!options.force && cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
+  const existingRequest = competitiveMmrRequests.get(cacheKey);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = requestCompetitiveMMR(
+    accessToken,
+    entitlementsToken,
+    region,
+    userId
+  )
+    .then((response) => {
+      if (Object.keys(response).length > 0) {
+        competitiveMmrCache.set(cacheKey, {
+          value: response as CompetitiveMMRResponse,
+          expiresAt: Date.now() + COMPETITIVE_MMR_CACHE_TTL_MS,
+        });
+      }
+      return response;
+    })
+    .finally(() => {
+      competitiveMmrRequests.delete(cacheKey);
+    });
+
+  competitiveMmrRequests.set(cacheKey, request);
+  return request;
+}
+
+async function requestCompetitiveMMR(
+  accessToken: string,
+  entitlementsToken: string,
+  region: string,
   userId: string
-) {
+): Promise<CompetitiveMMRResult> {
   // Hàm nội bộ thực hiện request MMR
   const requestMmr = () => axios.request<CompetitiveMMRResponse>({
     url: getUrl({ name: "mmr", region: region, userId: userId }),
@@ -1236,6 +1392,10 @@ export async function matchDetails(
   region: string,
   matchId: string
 ): Promise<MatchDetailsResponse> {
+  logValorantApiDebug("MatchDetails request", {
+    region,
+    matchId,
+  });
   const res = await axios.request<MatchDetailsResponse>({
     url: getUrl({ name: "match-details", region: region, matchId: matchId }),
     method: "GET",
@@ -1245,6 +1405,15 @@ export async function matchDetails(
       Authorization: `Bearer ${accessToken}`,
     },
   });
+  logValorantApiDebug("MatchDetails response", {
+    status: res.status,
+    matchId,
+    queueId: res.data.matchInfo?.queueID,
+    seasonId: res.data.matchInfo?.seasonId,
+    playerCount: res.data.players?.length ?? 0,
+    roundCount: res.data.roundResults?.length ?? 0,
+  });
+  logValorantApiResponse(`MatchDetails ${matchId}`, res.data);
   return res.data;
 }
 
@@ -1369,8 +1538,11 @@ export async function getCompetitiveUpdates(
   logValorantApiDebug("MMR_FetchCompetitiveUpdates response", {
     status: res.status,
     statusText: res.statusText,
-    data: res.data,
+    matchCount: res.data?.Matches?.length ?? 0,
+    startIndex: params?.startIndex,
+    endIndex: params?.endIndex,
   });
+  logValorantApiResponse("CompetitiveUpdates", res.data);
   return res.status === 200 ? res.data : null;
 }
 
@@ -1403,13 +1575,18 @@ export async function getPlayerNames(
   });
 
   if (missingSubjects.length > 0) {
-    // Tạo key duy nhất cho request để deduplicate
-    const requestKey = `${region}|${[...missingSubjects].sort().join(",")}`;
-    let request = playerNameRequests.get(requestKey);
+    const pendingRequests = new Set<Promise<void>>();
+    const subjectsToFetch = missingSubjects.filter((subject) => {
+      const pending = playerNameRequests.get(`${region}|${subject}`);
+      if (pending) {
+        pendingRequests.add(pending);
+        return false;
+      }
+      return true;
+    });
 
-    if (!request) {
-      // Chưa có request nào đang chạy -> tạo mới
-      request = axios
+    if (subjectsToFetch.length > 0) {
+      const request = axios
         .request<PlayerName[]>({
           url: getUrl({ name: "name", region }),
           method: "PUT",
@@ -1419,7 +1596,7 @@ export async function getPlayerNames(
             Authorization: `Bearer ${accessToken}`,
             "X-Riot-Entitlements-JWT": entitlementsToken,
           },
-          data: missingSubjects,
+          data: subjectsToFetch,
           validateStatus: () => true,
         })
         .then((res) => {
@@ -1429,30 +1606,34 @@ export async function getPlayerNames(
             );
           }
 
-          return res.data;
+          res.data.forEach((entry) => {
+            const cacheKey = `${region}|${entry.Subject.toLowerCase()}`;
+            if (playerNameCache.size >= PLAYER_NAME_CACHE_MAX_SIZE) {
+              const oldestKey = [...playerNameCache.entries()].sort(
+                (a, b) => a[1].lastAccessed - b[1].lastAccessed
+              )[0]?.[0];
+              if (oldestKey) playerNameCache.delete(oldestKey);
+            }
+            playerNameCache.set(cacheKey, {
+              value: entry,
+              expiresAt: Date.now() + PLAYER_NAME_CACHE_TTL_MS,
+              lastAccessed: Date.now(),
+            });
+          });
         })
         .finally(() => {
-          playerNameRequests.delete(requestKey);
+          subjectsToFetch.forEach((subject) => {
+            playerNameRequests.delete(`${region}|${subject}`);
+          });
         });
-      playerNameRequests.set(requestKey, request);
+
+      subjectsToFetch.forEach((subject) => {
+        playerNameRequests.set(`${region}|${subject}`, request);
+      });
+      pendingRequests.add(request);
     }
 
-    // Chờ request hoàn thành, cập nhật cache
-    const fetchedNames = await request;
-    fetchedNames.forEach((entry) => {
-      const cacheKey = `${region}|${entry.Subject.toLowerCase()}`;
-      if (playerNameCache.size >= PLAYER_NAME_CACHE_MAX_SIZE) {
-        const oldestKey = [...playerNameCache.entries()].sort(
-          (a, b) => a[1].lastAccessed - b[1].lastAccessed
-        )[0]?.[0];
-        if (oldestKey) playerNameCache.delete(oldestKey);
-      }
-      playerNameCache.set(cacheKey, {
-        value: entry,
-        expiresAt: Date.now() + PLAYER_NAME_CACHE_TTL_MS,
-        lastAccessed: Date.now(),
-      });
-    });
+    await Promise.all(pendingRequests);
   }
 
   // Trả về kết quả từ cache
@@ -1916,6 +2097,7 @@ export async function getContent(
   entitlementsToken: string,
   region: string
 ): Promise<ContentResponse | null> {
+  logValorantApiDebug("Content request", { region });
   const res = await axios.request<ContentResponse>({
     url: getUrl({ name: "content", region }),
     method: "GET",
@@ -1926,6 +2108,12 @@ export async function getContent(
       Authorization: `Bearer ${accessToken}`,
     },
   });
+  logValorantApiDebug("Content response", {
+    status: res.status,
+    seasonCount: res.data?.Seasons?.length ?? 0,
+    eventCount: res.data?.Events?.length ?? 0,
+  });
+  logValorantApiResponse("Content", res.data);
   return res.status === 200 ? res.data : null;
 }
 
@@ -2194,7 +2382,7 @@ export async function removeFromParty(
   region: string,
   userId: string
 ): Promise<void> {
-  await axios.request({
+  const res = await axios.request({
     url: getUrl({ name: "party-remove", region, userId }),
     method: "DELETE",
     validateStatus: () => true,
@@ -2204,6 +2392,10 @@ export async function removeFromParty(
       Authorization: `Bearer ${accessToken}`,
     },
   });
+
+  if (res.status < 200 || res.status >= 300) {
+    throw new Error(`Could not leave party (HTTP ${res.status})`);
+  }
 }
 
 // ---------------------------------------------------------------------------
