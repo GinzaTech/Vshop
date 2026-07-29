@@ -5,13 +5,13 @@
     // Slug (─æß╗ïnh danh) cho Expo
     "slug": "vshop",
     // Phi├¬n bß║ún ß╗⌐ng dß╗Ñng (theo semantic versioning)
-    "version": "4.0.3",
+    "version": "4.0.4",
     // Ch├¡nh s├ích runtime version: ─æß╗ông bß╗Ö vß╗¢i app version
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    // H╞░ß╗¢ng m├án h├¼nh: portrait (dß╗ìc)
-    "orientation": "portrait",
+    // Native hỗ trợ cả hai hướng; runtime chỉ cho Phiên đấu xoay ngang.
+    "orientation": "default",
     // ─É╞░ß╗¥ng dß║½n icon ß╗⌐ng dß╗Ñng
     "icon": "./assets/images/icon.png",
     // URL scheme ─æß╗â mß╗ƒ app tß╗½ tr├¼nh duyß╗çt (vd: vshop://)
@@ -37,7 +37,7 @@
     // Cß║Ñu h├¼nh ri├¬ng cho iOS
     "ios": {
       "bundleIdentifier": "dev.vasc.vshop",  // Bundle ID tr├¬n App Store
-      "buildNumber": "29",                    // Sß╗æ bß║ún build iOS
+      "buildNumber": "30",                    // Sß╗æ bß║ún build iOS
       "supportsTablet": true                  // Hß╗ù trß╗ú m├íy t├¡nh bß║úng
     },
     // Cß║Ñu h├¼nh ri├¬ng cho Android
@@ -56,7 +56,7 @@
       // Package name tr├¬n Google Play
       "package": "com.android.vshop",
       // Version code Android (sß╗æ nguy├¬n, t─âng dß║ºn mß╗ùi bß║ún build)
-      "versionCode": 75
+      "versionCode": 76
     },
     // Cß║Ñu h├¼nh cho nß╗ün tß║úng web
     "web": {
@@ -70,6 +70,13 @@
       "expo-router",                      // ─Éiß╗üu h╞░ß╗¢ng dß╗▒a tr├¬n file system
       "expo-localization",                // ─Éa ng├┤n ngß╗» v├á ─æß╗ïnh dß║íng ─æß╗ïa ph╞░╞íng
       "expo-updates",                     // Cß║¡p nhß║¡t OTA
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Cho phép VShop truy cập thư viện ảnh.",
+          "savePhotosPermission": "Cho phép VShop lưu ảnh bộ sưu tập vào thư viện."
+        }
+      ],
       // Plugin dev launcher: chß║┐ ─æß╗Ö launch mß║╖c ─æß╗ïnh l├á "most-recent"
       [
         "expo-dev-launcher",
