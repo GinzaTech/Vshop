@@ -37,6 +37,7 @@ import {
   disablePartyInviteCode,
   generatePartyInviteCode,
   joinPartyByCode,
+  removeFromParty,
 } from "~/utils/valorant-api";
 import {
   joinPartyXmppChat,
@@ -468,6 +469,7 @@ export default function Combat() {
   const [joinCode, setJoinCode] = React.useState("");                          // Mã mời đang nhập
   const [activePanelIndex, setActivePanelIndex] = React.useState(0);           // Panel đang active (0: agents, 1: party-chat)
   const [partyCodeLoading, setPartyCodeLoading] = React.useState(false);        // Đang xử lý party code
+  const [quitPartyLoading, setQuitPartyLoading] = React.useState(false);        // Đang rời party
   const [partyReadyLoading, setPartyReadyLoading] = React.useState(false);      // Đang xử lý ready state
   const [copied, setCopied] = React.useState(false);                            // Đã copy code (hiện badge)
   const partyReadyRequestRef = React.useRef(false);                             // Ref chống gửi request ready trùng lặp
@@ -618,6 +620,43 @@ export default function Combat() {
     }
   }, [joinCode, loadSessionSnapshot, user.accessToken, user.entitlementsToken, user.region]);
 
+  // Thực hiện rời party hiện tại rồi tải lại snapshot.
+  const quitCurrentParty = React.useCallback(async () => {
+    if (!sessionSnapshot.partyId || quitPartyLoading) return;
+
+    setQuitPartyLoading(true);
+    try {
+      await removeFromParty(
+        user.accessToken,
+        user.entitlementsToken,
+        user.region,
+        user.id
+      );
+      setJoinCode("");
+      await loadSessionSnapshot();
+    } catch (error) {
+      if (__DEV__) console.warn("[combat] Failed to leave party", error);
+      Alert.alert("Quit party", "Could not leave the current party.");
+    } finally {
+      setQuitPartyLoading(false);
+    }
+  }, [
+    loadSessionSnapshot,
+    quitPartyLoading,
+    sessionSnapshot.partyId,
+    user.accessToken,
+    user.entitlementsToken,
+    user.id,
+    user.region,
+  ]);
+
+  // Rời party ngay khi nhấn; trạng thái loading của nút ngăn gửi lặp request.
+  const handleQuitParty = React.useCallback(() => {
+    if (!sessionSnapshot.partyId || quitPartyLoading) return;
+
+    void quitCurrentParty();
+  }, [quitCurrentParty, quitPartyLoading, sessionSnapshot.partyId]);
+
   // handleCopyCode: copy mã mời party vào clipboard
   const handleCopyCode = React.useCallback(async () => {
     const code = sessionSnapshot.party?.InviteCode;
@@ -759,7 +798,7 @@ export default function Combat() {
           </View>
 
           {/* Hàng hiển thị mã hiện tại + input join code */}
-          <View style={styles.joinCodeRow}>
+          <View style={styles.partyCodeBody}>
             <View style={styles.currentCodeRow}>
               <Text style={styles.currentCodeText} numberOfLines={1}>
                 {sessionSnapshot.party?.InviteCode || "No active code"}
@@ -789,21 +828,46 @@ export default function Combat() {
                 </>
               ) : null}
             </View>
-            <TextInput
-              value={joinCode} onChangeText={setJoinCode}
-              placeholder="Enter invite code" placeholderTextColor={COLORS.TEXT_SECONDARY}
-              autoCapitalize="characters" autoCorrect={false}
-              returnKeyType="join" onSubmitEditing={handleJoinByCode}
-              style={styles.joinCodeInput}
-            />
-            <TouchableOpacity
-              activeOpacity={0.75}
-              disabled={!joinCode.trim() || partyCodeLoading}
-              onPress={handleJoinByCode}
-              style={[styles.joinCodeButton, (!joinCode.trim() || partyCodeLoading) ? styles.joinCodeButtonDisabled : null]}
-            >
-              <Text style={styles.joinCodeButtonText}>Join</Text>
-            </TouchableOpacity>
+            <View style={styles.joinCodeRow}>
+              <TextInput
+                value={joinCode} onChangeText={setJoinCode}
+                placeholder="Enter invite code" placeholderTextColor={COLORS.TEXT_SECONDARY}
+                autoCapitalize="characters" autoCorrect={false}
+                returnKeyType="join" onSubmitEditing={handleJoinByCode}
+                style={styles.joinCodeInput}
+              />
+              <TouchableOpacity
+                activeOpacity={0.75}
+                disabled={!joinCode.trim() || partyCodeLoading}
+                onPress={handleJoinByCode}
+                style={[styles.joinCodeButton, (!joinCode.trim() || partyCodeLoading) ? styles.joinCodeButtonDisabled : null]}
+              >
+                <Text style={styles.joinCodeButtonText}>Join</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Quit party"
+                accessibilityState={{
+                  busy: quitPartyLoading,
+                  disabled: !sessionSnapshot.partyId || quitPartyLoading,
+                }}
+                activeOpacity={0.75}
+                disabled={!sessionSnapshot.partyId || quitPartyLoading}
+                onPress={handleQuitParty}
+                style={[
+                  styles.quitPartyButton,
+                  (!sessionSnapshot.partyId || quitPartyLoading) &&
+                    styles.quitPartyButtonDisabled,
+                ]}
+              >
+                {quitPartyLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.WARNING} />
+                ) : (
+                  <Icon name="logout-variant" size={15} color={COLORS.WARNING} />
+                )}
+                <Text style={styles.quitPartyButtonText}>Quit party</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </GlassCard>
 
@@ -929,7 +993,7 @@ const styles = StyleSheet.create({
   partyCodeHeaderButtonText: { color: COLORS.TEXT_PRIMARY, fontSize: 12, fontWeight: "800" },
   partyCodeHeaderButtonTextDisabled: { color: COLORS.TEXT_SECONDARY },
   // Hàng hiển thị code hiện tại
-  currentCodeRow: { flex: 1, minWidth: 110, flexDirection: "row", alignItems: "center", gap: 6 },
+  currentCodeRow: { width: "100%", flexDirection: "row", alignItems: "center", gap: 6 },
   // Text box code hiện tại
   currentCodeText: { flex: 1, minHeight: 38, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9, color: COLORS.TEXT_PRIMARY, backgroundColor: COLORS.SURFACE_MUTED, borderWidth: 1, borderColor: COLORS.BORDER, fontSize: 12, fontWeight: "800" },
   // Nút icon nhỏ (copy/disable)
@@ -940,14 +1004,20 @@ const styles = StyleSheet.create({
   copiedBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: "rgba(48, 164, 108, 0.15)", position: "absolute", top: -20, right: 0, zIndex: 10 },
   // Text trong badge "Copied!"
   copiedText: { color: COLORS.SUCCESS, fontSize: 11, fontWeight: "700" },
-  // Hàng join code: input + nút Join
-  joinCodeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
+  // Khối party code: mã hiện tại ở trên, input và các nút thao tác ở dưới
+  partyCodeBody: { gap: 8, marginTop: 10 },
+  // Hàng join code: input + nút Join + Quit party
+  joinCodeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   // Input join code
   joinCodeInput: { flex: 0.95, minWidth: 96, minHeight: 38, borderRadius: 12, paddingHorizontal: 10, color: COLORS.TEXT_PRIMARY, backgroundColor: COLORS.SURFACE_MUTED, borderWidth: 1, borderColor: COLORS.BORDER, fontSize: 12, fontWeight: "700" },
   // Nút Join
   joinCodeButton: { minHeight: 38, minWidth: 58, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.ACCENT },
   joinCodeButtonDisabled: { opacity: 0.45 },
   joinCodeButtonText: { color: COLORS.PURE_WHITE, fontSize: 12, fontWeight: "800" },
+  // Nút rời party: viền đỏ để phân biệt hành động phá hủy
+  quitPartyButton: { minHeight: 38, minWidth: 92, paddingHorizontal: 10, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: "rgba(229, 72, 77, 0.10)", borderWidth: 1, borderColor: COLORS.WARNING },
+  quitPartyButtonDisabled: { opacity: 0.45 },
+  quitPartyButtonText: { color: COLORS.WARNING, fontSize: 11, fontWeight: "800" },
   // Module chứa agent panel + party chat panel
   agentModule: { flex: 1, minHeight: 0, borderRadius: 24, padding: 10, backgroundColor: COLORS.SURFACE, borderWidth: 1, borderColor: COLORS.BORDER, marginBottom: 12 },
   // Hàng nhãn panel (Agents > Party chat)

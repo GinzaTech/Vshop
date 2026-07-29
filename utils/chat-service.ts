@@ -42,6 +42,8 @@ let rosterNameRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 // Số lần đã thử kết nối lại
 let reconnectAttempt = 0;
+// Các connection key đang được khởi tạo, tránh tạo hai socket XMPP cùng lúc.
+const initializingConnectionKeys = new Set<string>();
 
 /**
  * Chuẩn hóa friend ID từ JID (Jabber ID) hoặc PUUID.
@@ -225,45 +227,49 @@ export async function initChatService(
     return;
   }
 
-  clearReconnectTimer();
-  if (connectionChanged) reconnectAttempt = 0;
-
-  if (rosterNameRetryTimer) {
-    clearTimeout(rosterNameRetryTimer);
-    rosterNameRetryTimer = null;
-  }
-  rosterNameResolveKey = null;
-
-  // Ngắt kết nối client cũ nếu có
-  const previousClient = xmppClientInstance;
-  xmppClientInstance = null;
-  activeConnectionKey = connectionKey;
-  previousClient?.disconnect();
+  if (initializingConnectionKeys.has(connectionKey)) return;
+  initializingConnectionKeys.add(connectionKey);
 
   try {
-    useChatStore.getState().setStatus("connecting");
-    const pasToken = await getPASToken(accessToken);
+    clearReconnectTimer();
+    if (connectionChanged) reconnectAttempt = 0;
 
-    if (!pasToken) {
-      throw new Error("Could not get PAS token for chat");
+    if (rosterNameRetryTimer) {
+      clearTimeout(rosterNameRetryTimer);
+      rosterNameRetryTimer = null;
     }
+    rosterNameResolveKey = null;
 
-    const { host, xmppRegion } = await resolveChatHost(
-      accessToken,
-      entitlementsToken,
-      pasToken
-    );
+    // Ngắt kết nối client cũ nếu có
+    const previousClient = xmppClientInstance;
+    xmppClientInstance = null;
+    activeConnectionKey = connectionKey;
+    previousClient?.disconnect();
 
-    if (activeConnectionKey !== connectionKey) return;
+    try {
+      useChatStore.getState().setStatus("connecting");
+      const pasToken = await getPASToken(accessToken);
 
-    const client = new XMPPClient({
-      rsoToken: accessToken,
-      pasToken,
-      entitlementsToken,
-      host,
-      xmppRegion,
-    });
-    xmppClientInstance = client;
+      if (!pasToken) {
+        throw new Error("Could not get PAS token for chat");
+      }
+
+      const { host, xmppRegion } = await resolveChatHost(
+        accessToken,
+        entitlementsToken,
+        pasToken
+      );
+
+      if (activeConnectionKey !== connectionKey) return;
+
+      const client = new XMPPClient({
+        rsoToken: accessToken,
+        pasToken,
+        entitlementsToken,
+        host,
+        xmppRegion,
+      });
+      xmppClientInstance = client;
     // Hàm kiểm tra client hiện tại còn là active không
     const isActiveClient = () =>
       xmppClientInstance === client && activeConnectionKey === connectionKey;
@@ -392,18 +398,21 @@ export async function initChatService(
       });
     };
 
-    client.connect();
-  } catch (error) {
-    if (__DEV__) console.error("Failed to initialize chat service:", error);
-    activeConnectionKey = connectionKey;
-    useChatStore.getState().setStatus("error");
-    scheduleReconnect(
-      connectionKey,
-      accessToken,
-      entitlementsToken,
-      region,
-      userId
-    );
+      client.connect();
+    } catch (error) {
+      if (__DEV__) console.error("Failed to initialize chat service:", error);
+      activeConnectionKey = connectionKey;
+      useChatStore.getState().setStatus("error");
+      scheduleReconnect(
+        connectionKey,
+        accessToken,
+        entitlementsToken,
+        region,
+        userId
+      );
+    }
+  } finally {
+    initializingConnectionKeys.delete(connectionKey);
   }
 }
 
@@ -495,22 +504,15 @@ async function resolveRosterNames(
       }
     }
 
-    // Chia thành các chunk 50 người
-    const chunks: string[][] = [];
-    for (let index = 0; index < uniqueFriendIds.length; index += 50) {
-      chunks.push(uniqueFriendIds.slice(index, index + 50));
-    }
-    const nameChunks = await Promise.all(
-      chunks.map((chunk) =>
-        getPlayerNames(
-          accessToken,
-          entitlementsToken,
-          chunk,
-          region
-        )
-      )
+    // Name Service hỗ trợ nhiều PUUID trong cùng request. Gửi toàn bộ roster
+    // qua resolver dùng chung để chỉ tạo một request và tái sử dụng cache cho
+    // match details/combat session/chat.
+    const names = await getPlayerNames(
+      accessToken,
+      entitlementsToken,
+      uniqueFriendIds,
+      region
     );
-    const names = nameChunks.flat();
 
     // Cập nhật tên bạn bè trong store
     useChatStore.getState().updateFriendNames(

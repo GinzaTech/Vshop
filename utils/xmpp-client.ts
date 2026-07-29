@@ -133,7 +133,9 @@ export class XMPPClient {
     }
 
     // Xử lý dữ liệu đến: gộp vào buffer và xử lý
-    this.client.on("data", (data: any) => {
+    const socket = this.client;
+
+    socket.on("data", (data: any) => {
       const text = data.toString();
       if (XMPP_VERBOSE_LOGGING) {
         console.log("[XMPP] RX", this.redact(text));   // Log dữ liệu nhận được (đã che token)
@@ -143,15 +145,16 @@ export class XMPPClient {
     });
 
     // Xử lý lỗi socket
-    this.client.on("error", (error: any) => {
-      if (__DEV__) console.error("[XMPP] Error", error);
-      this.stopKeepAlive();
-      this.setState("error");
+    socket.on("error", (error: any) => {
+      this.markSocketFailed(socket, error);
     });
 
     // Xử lý khi kết nối đóng
-    this.client.on("close", () => {
+    socket.on("close", () => {
       if (__DEV__) console.log("[XMPP] Connection closed");
+      if (this.client === socket) {
+        this.client = null;
+      }
       this.stopKeepAlive();
       this.setState(this.intentionallyDisconnected ? "disconnected" : "error");
     });
@@ -162,10 +165,28 @@ export class XMPPClient {
   public disconnect() {
     this.intentionallyDisconnected = true;
     this.stopKeepAlive();
-    if (this.client) {
-      this.client.write("</stream:stream>");  // Gửi thông báo đóng stream
-      this.client.destroy();                    // Hủy socket
-      this.client = null;
+    const socket = this.client;
+    this.client = null;
+    if (!socket) return;
+
+    try {
+      if (!socket.destroyed) {
+        socket.write("</stream:stream>");  // Gửi thông báo đóng stream
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.log("[XMPP] Could not close stream cleanly", error);
+      }
+    }
+
+    try {
+      if (!socket.destroyed) {
+        socket.destroy();                    // Hủy socket
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.log("[XMPP] Could not destroy socket cleanly", error);
+      }
     }
   }
 
@@ -309,8 +330,11 @@ export class XMPPClient {
   // Xử lý theo thứ tự: stream features -> SASL auth -> bind -> session -> roster/messages/presence
   private processBuffer() {
     // Bước 1: Nếu chưa SASL auth và nhận được stream:features -> gửi authenticate
-    if (!this.saslAuthenticated && this.buffer.includes("<stream:features")) {
-      this.dropThrough("</stream:features>");
+    if (
+      !this.saslAuthenticated &&
+      this.buffer.includes("<stream:features") &&
+      this.dropThrough("</stream:features>")
+    ) {
       this.authenticate();
     }
 
@@ -329,8 +353,11 @@ export class XMPPClient {
     }
 
     // Bước 3: Nếu đã SASL auth và có stream:features -> bind resource
-    if (this.saslAuthenticated && this.buffer.includes("<stream:features")) {
-      this.dropThrough("</stream:features>");
+    if (
+      this.saslAuthenticated &&
+      this.buffer.includes("<stream:features") &&
+      this.dropThrough("</stream:features>")
+    ) {
       this.bindResource();
     }
 
@@ -487,9 +514,10 @@ export class XMPPClient {
   //   - token: chuỗi token để cắt đến
   private dropThrough(token: string) {
     const index = this.buffer.indexOf(token);
-    if (index >= 0) {
-      this.buffer = this.buffer.slice(index + token.length);
-    }
+    if (index < 0) return false;
+
+    this.buffer = this.buffer.slice(index + token.length);
+    return true;
   }
 
   // Phương thức private: thực hiện tất cả các yêu cầu join phòng đang chờ
@@ -559,13 +587,46 @@ export class XMPPClient {
     if (XMPP_VERBOSE_LOGGING) {
       console.log("[XMPP] TX", this.redact(xml));   // Log dữ liệu gửi đi (đã che token)
     }
-    if (!this.client) return false;
-    this.client.write(xml);
-    return true;
+    const socket = this.client;
+    if (!socket || socket.destroyed) return false;
+
+    try {
+      socket.write(xml, "utf8", (error?: Error) => {
+        if (error) {
+          this.markSocketFailed(socket, error);
+        }
+      });
+      return true;
+    } catch (error) {
+      this.markSocketFailed(socket, error);
+      return false;
+    }
+  }
+
+  private markSocketFailed(socket: any, error: unknown) {
+    if (this.client !== socket) return;
+
+    if (__DEV__) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log("[XMPP] Socket closed; reconnecting", message);
+    }
+    this.client = null;
+    this.stopKeepAlive();
+
+    try {
+      if (!socket.destroyed) {
+        socket.destroy();
+      }
+    } catch {
+      // Socket đã đóng; reconnect vẫn phải tiếp tục.
+    }
+
+    this.setState("error");
   }
 
   // Phương thức private: cập nhật trạng thái kết nối và gọi callback
   private setState(newState: ConnectionState) {
+    if (this.state === newState) return;
     this.state = newState;
     this.onStateChange?.(newState);
   }

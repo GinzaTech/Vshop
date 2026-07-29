@@ -14,6 +14,7 @@ import { buildAuthenticatedUser } from "./auth-session";
 import { fetchProfileWarmCache } from "./profile-cache";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
+import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { markSynced } from "./app-sync";
 import { getRiotClientConfig } from "./valorant-api";
 
@@ -95,7 +96,7 @@ export async function syncAllData(
   }
 
   // --- Bước 3: WAVE 2 — Fetch toàn bộ data chính (song song) ---
-  const [authUserResult, matchesResult, profileResult] = await Promise.allSettled([
+  const [authUserResult, , profileResult] = await Promise.allSettled([
     buildAuthenticatedUser(user.accessToken, region, user),
     useMatchStore.getState().fetchMatches(user),
     fetchProfileWarmCache(user),
@@ -107,6 +108,13 @@ export async function syncAllData(
   }
 
   const authUser = authUserResult.value;
+
+  // Profile warmup is part of the startup sync. Persist its result before
+  // navigating to Profile so that screen can render immediately from cache
+  // instead of repeating loadout, ownership and MMR requests.
+  if (profileResult.status === "fulfilled" && profileResult.value) {
+    useProfileCacheStore.getState().setProfileCache(profileResult.value);
+  }
 
   // --- Bước 3: Diff dữ liệu mới vs cache ---
   const shopsChanged =
