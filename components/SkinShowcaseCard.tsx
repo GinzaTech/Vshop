@@ -110,7 +110,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     } else {
       badgeScale.value = withTiming(0);
     }
-  }, [isFavorited]);
+  }, [badgeScale, isFavorited]);
 
   // useMemo: tier
   //   - Lấy thông tin hiển thị của content tier (màu sắc, nhãn, ...)
@@ -185,7 +185,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   }, []);
 
   return (
-    <Animated.View style={cardAnimatedStyle}>
+    <Animated.View style={[styles.container, cardAnimatedStyle]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={item.displayName}
@@ -249,7 +249,10 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         <Text style={styles.weaponTypeText} numberOfLines={1}>
           {weaponType}
         </Text>
-        <Text style={styles.title} numberOfLines={2}>
+        <Text
+          style={styles.title}
+          numberOfLines={variant === "bundle" ? undefined : 2}
+        >
           {item.displayName}
         </Text>
 
@@ -280,6 +283,9 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   // card: thẻ chính, flex 1, nền SURFACE, bo góc 8, border 1px, overflow hidden
   card: {
     flex: 1,
