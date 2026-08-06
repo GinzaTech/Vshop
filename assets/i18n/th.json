@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "ปิด"
+  },
   "account": "เเอ๊คเค้าต์",
   "balances": "ยอดที่เหลือ",
   "bundles": "เเพ็ค",
@@ -284,7 +287,6 @@
   "bundles_page.hero_badge": "Featured bundle",
   "bundles_page.hero_eyebrow": "Collection drop",
   "bundles_page.included_count": "{{count}} skins",
-  "bundles_page.included_title": "Included items",
   "bundles_page.items_count": "{{count}} items",
   "bundles_page.subtitle": "Explore the current collection and preview every included skin.",
   "bundles_page.title": "Featured bundles",
