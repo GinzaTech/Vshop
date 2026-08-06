@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "닫기"
+  },
   "account": "계정",
   "amount": "후원",
   "back": "돌아가기",
@@ -155,7 +158,6 @@
     "empty_title": "No bundles available",
     "empty_subtitle": "The featured collection is empty right now. Check back later.",
     "items_count": "{{count}} items",
-    "included_title": "Included items",
     "included_count": "{{count}} skins",
     "hero_badge": "Featured bundle",
     "hero_eyebrow": "Collection drop",
