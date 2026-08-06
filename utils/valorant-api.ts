@@ -15,6 +15,11 @@ import {
   logAxiosError,
   initApiLogger,
 } from "./api-logger";
+import {
+  getRequestUrl,
+  isRiotAuthenticationError,
+  notifySessionAuthFailure,
+} from "./session-events";
 
 // Thiết lập timeout mặc định cho axios: 10 giây (giảm từ 15s để fail-fast trên 4G)
 axios.defaults.timeout = 10_000;
@@ -22,10 +27,17 @@ axios.defaults.timeout = 10_000;
 // Khởi tạo API logger (async, không await để tránh chặn)
 void initApiLogger();
 
+// Large Riot request/response logs can block the JS thread in Expo dev.
+// Keep them opt-in so normal development stays responsive.
+const API_DEBUG_LOGGING =
+  __DEV__ && process.env.EXPO_PUBLIC_API_DEBUG_LOGGING === "1";
+
 // Interceptor cho request: log URL, ghi lại thời gian bắt đầu
 axios.interceptors.request.use(
   function (config) {
-    if (__DEV__) console.log(`${config.method?.toUpperCase()} ${config.url}`);
+    if (API_DEBUG_LOGGING) {
+      console.log(`${config.method?.toUpperCase()} ${config.url}`);
+    }
     (config as any).metadata = { startTime: Date.now() };
     return logAxiosRequest(config);
   },
@@ -34,8 +46,33 @@ axios.interceptors.request.use(
   }
 );
 
-// Interceptor cho response: log response/error
-axios.interceptors.response.use(logAxiosResponse, logAxiosError);
+// Interceptor cho response: log response/error và báo cho lifecycle manager
+// khi Riot xác nhận session không còn hợp lệ. Cả nhánh fulfilled lẫn rejected
+// đều được kiểm tra vì một số API dùng validateStatus để tự xử lý status code.
+axios.interceptors.response.use(
+  function (response) {
+    const errorLike = {
+      config: response.config,
+      response,
+    };
+    if (isRiotAuthenticationError(errorLike)) {
+      notifySessionAuthFailure({
+        status: response.status,
+        url: getRequestUrl(errorLike),
+      });
+    }
+    return logAxiosResponse(response);
+  },
+  function (error) {
+    if (isRiotAuthenticationError(error)) {
+      notifySessionAuthFailure({
+        status: Number(error.response?.status) || 401,
+        url: getRequestUrl(error),
+      });
+    }
+    return logAxiosError(error);
+  }
+);
 
 // Hàm che giấu thông tin bí mật (token, secret) khi log
 // Chỉ hiện 8 ký tự đầu và 6 ký tự cuối nếu chuỗi dài > 16, nếu không thì hiện "***"
@@ -56,7 +93,7 @@ const logValorantApiDebug = (
   label: string,
   payload: Record<string, unknown>
 ) => {
-  if (__DEV__) {
+  if (API_DEBUG_LOGGING) {
     console.log(`[valorant-api] ${label}`, payload);
   }
 };
@@ -487,6 +524,82 @@ export async function getShop(
   return res.data;
 }
 
+const BUNDLE_ASSET_FALLBACKS: Record<
+  string,
+  { displayName: string; displayIcon?: string }
+> = {
+  // Patch 13.02 reached Riot's storefront before valorant-api.com. These
+  // entries are only used while the upstream metadata endpoint returns 404.
+  "4d368017-4f98-1e89-dbec-31abd2533eb9": {
+    displayName: "Neo Frontier",
+    displayIcon: "https://i.ytimg.com/vi/iYfYrsd09lo/maxresdefault.jpg",
+  },
+  "8d29f5fe-402a-94ee-2d67-e29b97dda6f4": {
+    displayName: "Neo Frontier",
+    displayIcon: "https://i.ytimg.com/vi/iYfYrsd09lo/maxresdefault.jpg",
+  },
+};
+
+const BUNDLE_ITEM_NAME_FALLBACKS: Record<string, string> = {
+  "a5e0e761-472c-8287-2514-26a1c88f4d08": "Neo Frontier Lasso",
+  "349bd9e2-479f-49a9-b70b-38aca900e11a": "Neo Frontier Weapon #1",
+  "af1619fa-42c0-31e3-cfaf-edaed2b1a055": "Neo Frontier Weapon #2",
+  "5e5a435f-4a0d-0320-39c9-3fbe8ff65ae2": "Neo Frontier Player Card #1",
+  "e9a3d874-4893-b17a-00ca-0b88017f7919": "Neo Frontier Player Card #2",
+  "5d3cde59-4d50-e54b-9126-d7bfac8d18bc": "Neo Frontier Spray",
+};
+
+const getFallbackBundleItemName = (
+  itemId: string,
+  typeId: string,
+  itemIndex: number
+) => {
+  const configuredName = BUNDLE_ITEM_NAME_FALLBACKS[itemId];
+  if (configuredName) return configuredName;
+
+  const position = itemIndex + 1;
+
+  if (typeId === VItemTypes.SkinLevel || typeId === VItemTypes.SkinChroma) {
+    return `Skin #${position}`;
+  }
+  if (typeId === VItemTypes.Spray) return `Spray #${position}`;
+  if (typeId === VItemTypes.Flex) return `Flex #${position}`;
+  if (typeId === VItemTypes.PlayerCard) return `Player Card #${position}`;
+  if (typeId === VItemTypes.PlayerTitle) return `Player Title #${position}`;
+  if (typeId === VItemTypes.Buddy) return `Gun Buddy #${position}`;
+
+  return `Bundle Item #${position}`;
+};
+
+const createFallbackBundleAsset = (
+  bundle: BundleSchema,
+  items: (SkinShopItem | AccessoryShopItem)[],
+  bundleIndex: number
+): ValorantBundle => {
+  const configuredFallback = BUNDLE_ASSET_FALLBACKS[bundle.DataAssetID];
+  const firstNamedItem = items.find(
+    (item) =>
+      item.displayName &&
+      !/^(Skin|Spray|Flex|Player Card|Player Title|Gun Buddy|Bundle Item) #\d+$/.test(
+        item.displayName
+      )
+  );
+  const firstItemImage = items.find((item) => item.displayIcon)?.displayIcon;
+
+  return {
+    uuid: bundle.DataAssetID || bundle.ID,
+    displayName:
+      configuredFallback?.displayName ||
+      firstNamedItem?.displayName ||
+      `Bundle #${bundleIndex + 1}`,
+    description: "",
+    useAdditionalContext: false,
+    displayIcon: configuredFallback?.displayIcon || firstItemImage || "",
+    displayIcon2: configuredFallback?.displayIcon || firstItemImage || "",
+    assetPath: "",
+  };
+};
+
 // Export hàm parse dữ liệu shop từ StorefrontResponse thành cấu trúc có tổ chức
 // Chia shop thành: main (4 skin chính), bundles, night market, accessory (phụ kiện)
 // Parameters:
@@ -538,26 +651,29 @@ export async function parseShop(
     cachedBundles.map((bundle) => [bundle.uuid, bundle])
   );
 
-  // Fetch thông tin chi tiết từng bundle (từ cache hoặc API)
+  // Luôn thử API trước. Cache persisted chỉ là fallback để metadata tạm thời
+  // vẫn có thể được thay thế ngay khi valorant-api.com cập nhật patch mới.
   const bundleResults = await Promise.all(
     featuredBundles.map(async (bundle) => {
       const bundleAsset =
+        (await fetchBundle(bundle.DataAssetID)) ||
         cachedBundleById.get(bundle.DataAssetID) ||
-        (await fetchBundle(bundle.DataAssetID));
+        null;
       return { bundle, bundleAsset };
     })
   );
 
   // Parse từng bundle: xác định loại item, lấy thông tin hiển thị
-  for (const { bundle, bundleAsset } of bundleResults) {
-    if (bundleAsset == null) continue;
-
+  for (let bundleIndex = 0; bundleIndex < bundleResults.length; bundleIndex++) {
+    const { bundle, bundleAsset } = bundleResults[bundleIndex];
     const allItems: (SkinShopItem | AccessoryShopItem)[] = [];
 
-    for (const item of bundle.Items) {
+    for (let itemIndex = 0; itemIndex < bundle.Items.length; itemIndex++) {
+      const item = bundle.Items[itemIndex];
       const uuid = item.Item.ItemID;
       const typeId = item.Item.ItemTypeID;
       const price = item.BasePrice;
+      const fallbackItemName = getFallbackBundleItemName(uuid, typeId, itemIndex);
 
       // Skin level hoặc chroma
       if (typeId === VItemTypes.SkinLevel || typeId === VItemTypes.SkinChroma) {
@@ -567,7 +683,7 @@ export async function parseShop(
         } else {
           allItems.push({
             uuid,
-            displayName: "",
+            displayName: fallbackItemName,
             themeUuid: "",
             assetPath: "",
             chromas: [],
@@ -585,6 +701,8 @@ export async function parseShop(
             displayIcon: spray.displayIcon || spray.fullTransparentIcon,
             price,
           });
+        } else {
+          allItems.push({ uuid, displayName: fallbackItemName, price });
         }
       // Flex
       } else if (typeId === VItemTypes.Flex) {
@@ -605,6 +723,8 @@ export async function parseShop(
             displayIcon: card.displayIcon || card.largeArt,
             price,
           });
+        } else {
+          allItems.push({ uuid, displayName: fallbackItemName, price });
         }
       // Player title
       } else if (typeId === VItemTypes.PlayerTitle) {
@@ -615,6 +735,8 @@ export async function parseShop(
             displayName: title.displayName,
             price,
           });
+        } else {
+          allItems.push({ uuid, displayName: fallbackItemName, price });
         }
       // Buddy
       } else if (typeId === VItemTypes.Buddy) {
@@ -626,17 +748,25 @@ export async function parseShop(
             displayIcon: buddy.levels?.[0]?.displayIcon || buddy.displayIcon,
             price,
           });
+        } else {
+          allItems.push({ uuid, displayName: fallbackItemName, price });
         }
+      } else {
+        allItems.push({ uuid, displayName: fallbackItemName, price });
       }
     }
 
-    // Tính tổng giá bundle (từ các item discounted price)
+    const resolvedBundleAsset =
+      bundleAsset ||
+      createFallbackBundleAsset(bundle, allItems, bundleIndex);
+    const discountedPrice =
+      bundle.TotalDiscountedCost?.[VCurrencies.VP] ??
+      bundle.Items.reduce((total, item) => total + item.DiscountedPrice, 0);
+
+    // Ưu tiên tổng giá chính thức từ Storefront, fallback sang tổng từng item.
     bundles.push({
-      ...bundleAsset,
-      price: bundle.Items.map((item) => item.DiscountedPrice).reduce(
-        (a, b) => a + b,
-        0
-      ),
+      ...resolvedBundleAsset,
+      price: discountedPrice,
       items: allItems,
     });
   }
@@ -968,7 +1098,7 @@ async function requestPlayerLoadout(
     currentResponse?.status === 200 &&
     isUsablePlayerLoadoutV3(currentResponse.data)
   ) {
-    if (__DEV__) {
+    if (API_DEBUG_LOGGING) {
       console.log("Player Loadout status:", {
         v3: currentResponse.status,
         v2: "skipped",
@@ -997,7 +1127,7 @@ async function requestPlayerLoadout(
   const legacy =
     legacyResponse?.status === 200 ? legacyResponse.data : null;
 
-  if (__DEV__) {
+  if (API_DEBUG_LOGGING) {
     console.log("Player Loadout status:", {
       v3: currentResponse?.status ?? null,
       v2: legacyResponse?.status ?? null,
@@ -1797,7 +1927,7 @@ export async function getPartyPlayer(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  if (__DEV__) {
+  if (API_DEBUG_LOGGING) {
     console.log("[party-player] response", {
       status: res.status,
       url,
@@ -1831,7 +1961,7 @@ export async function getParty(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  if (__DEV__) {
+  if (API_DEBUG_LOGGING) {
     console.log("[party] response", {
       status: res.status,
       url,
@@ -1876,7 +2006,7 @@ export async function getPartyMucToken(
           Token: responseData.Token ? "[redacted]" : responseData.Token,
         }
       : responseData;
-  if (__DEV__) console.log("[party-muc-token] response", {
+  if (API_DEBUG_LOGGING) console.log("[party-muc-token] response", {
     status: res.status,
     url,
     partyId,
@@ -2019,7 +2149,7 @@ export async function getContracts(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  if (__DEV__) console.log("[contracts] response", {
+  if (API_DEBUG_LOGGING) console.log("[contracts] response", {
     status: res.status,
     data: res.data,
   });
@@ -2052,7 +2182,7 @@ export async function activateContract(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  if (__DEV__) console.log("[activate-contract] response", {
+  if (API_DEBUG_LOGGING) console.log("[activate-contract] response", {
     status: res.status,
     contractId,
     data: res.data,
