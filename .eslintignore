@@ -1,0 +1,9 @@
+node_modules/
+backup/
+.codex-tmp/
+rn-flow-visualizer/
+valorant-api-docs/
+test/
+dist/
+*.bak
+**/*.bak
