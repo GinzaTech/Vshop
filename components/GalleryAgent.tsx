@@ -317,7 +317,6 @@ const styles = StyleSheet.create({
     roleIcon: {
         width: 40,
         height: 40,
-        resizeMode: "contain",         // Giữ tỷ lệ ảnh
     },
     roleText: {
         color: COLORS.TEXT_PRIMARY,
@@ -351,7 +350,6 @@ const styles = StyleSheet.create({
     icon: {
         width: "80%",
         height: "80%",
-        resizeMode: "contain",
     },
 
     modalContainer: {
@@ -376,7 +374,6 @@ const styles = StyleSheet.create({
     agentImage: {
         width: 200,
         height: 200,
-        resizeMode: "contain",
         marginBottom: 10,
     },
     agentDescription: {
@@ -404,7 +401,6 @@ const styles = StyleSheet.create({
     abilityIcon: {
         width: 40,
         height: 40,
-        resizeMode: "contain",
     },
 
     abilityDescriptionContainer: {
