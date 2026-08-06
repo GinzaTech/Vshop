@@ -900,7 +900,7 @@ export default function Combat() {
                           style={[styles.roleBtn, selectedRole === role.id && styles.roleBtnSelected]}
                           onPress={() => filterByRole(role.id)}
                         >
-                          <Image source={role.icon} style={styles.roleIcon} />
+                          <Image source={role.icon} style={styles.roleIcon} contentFit="contain" />
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
   roleSelectorWrap: { backgroundColor: "#000000", borderRadius: 18, flexDirection: "row", justifyContent: "space-around", minHeight: 82, paddingVertical: 9, marginBottom: 10 },
   roleBtn: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: 4 },
   roleBtnSelected: { borderBottomWidth: 2, borderBottomColor: "#ffffff" },
-  roleIcon: { width: 42, height: 42, resizeMode: "contain" },
+  roleIcon: { width: 42, height: 42 },
   // Panel party chat: bo góc, nền SURFACE, viền BORDER
   partyChatPanel: { flex: 1, borderRadius: 16, borderWidth: 1, borderColor: COLORS.BORDER, backgroundColor: COLORS.SURFACE, overflow: "hidden" },
   // Header party chat: tối thiểu 58, hàng ngang, có borderBottom
