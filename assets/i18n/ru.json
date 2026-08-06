@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Закрыть"
+  },
   "account": "Аккаунт",
   "amount": "Количество",
   "back": "назад",
@@ -151,7 +154,6 @@
     "empty_title": "No bundles available",
     "empty_subtitle": "The featured collection is empty right now. Check back later.",
     "items_count": "{{count}} items",
-    "included_title": "Included items",
     "included_count": "{{count}} skins",
     "hero_badge": "Featured bundle",
     "hero_eyebrow": "Collection drop",
