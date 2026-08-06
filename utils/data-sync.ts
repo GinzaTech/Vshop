@@ -21,9 +21,23 @@ import { getRiotClientConfig } from "./valorant-api";
 // ===== Types =====
 
 type ShopSummary = { uuid: string };
+type BundleSummary = {
+  uuid: string;
+  displayName: string;
+  displayIcon?: string;
+  displayIcon2?: string;
+  price: number;
+  items: readonly {
+    uuid: string;
+    displayName: string;
+    displayIcon?: string;
+    price: number;
+  }[];
+};
 type BalancesData = { vp: number; rad: number; kc: number };
 type SyncReport = {
   userChanged: boolean;
+  credentialsChanged: boolean;
   shopsChanged: boolean;
   balancesChanged: boolean;
   nameChanged: boolean;
@@ -48,13 +62,37 @@ function balancesEqual(old: BalancesData, fresh: BalancesData): boolean {
   return old.vp === fresh.vp && old.rad === fresh.rad && old.kc === fresh.kc;
 }
 
-/** So sánh bundles — check UUID + remainingSecs */
+/** So sánh bundles — gồm cả metadata để thay fallback khi API cập nhật */
 function bundlesEqual(
-  old: readonly { uuid: string; remainingSecs?: number }[],
-  fresh: readonly { uuid: string; remainingSecs?: number }[]
+  old: readonly BundleSummary[],
+  fresh: readonly BundleSummary[]
 ): boolean {
   if (old.length !== fresh.length) return false;
-  return old.every((b, i) => b.uuid === fresh[i]?.uuid);
+  return old.every((bundle, index) => {
+    const next = fresh[index];
+    if (
+      !next ||
+      bundle.uuid !== next.uuid ||
+      bundle.displayName !== next.displayName ||
+      bundle.displayIcon !== next.displayIcon ||
+      bundle.displayIcon2 !== next.displayIcon2 ||
+      bundle.price !== next.price ||
+      bundle.items.length !== next.items.length
+    ) {
+      return false;
+    }
+
+    return bundle.items.every((item, itemIndex) => {
+      const nextItem = next.items[itemIndex];
+      return (
+        Boolean(nextItem) &&
+        item.uuid === nextItem.uuid &&
+        item.displayName === nextItem.displayName &&
+        item.displayIcon === nextItem.displayIcon &&
+        item.price === nextItem.price
+      );
+    });
+  });
 }
 
 /** So sánh match IDs — true nếu danh sách match không đổi */
@@ -86,28 +124,26 @@ export async function syncAllData(
   const cachedUser = useUserStore.getState().user;
   const cachedMatches = useMatchStore.getState().matches;
 
-  // --- Bước 2: WAVE 1 — RiotClientConfig (load đầu tiên, cần cho chat/features) ---
-  let clientConfigLoaded = false;
-  try {
-    const config = await getRiotClientConfig(user.accessToken, user.entitlementsToken);
-    clientConfigLoaded = config !== null;
-  } catch {
-    // Non-fatal — tiếp tục sync các data khác
-  }
+  // --- Bước 2: Làm mới entitlement/session trước mọi request phụ thuộc auth ---
+  // buildAuthenticatedUser dùng access token còn hạn để xin entitlement mới.
+  // Credential mới phải được persist ngay cả khi shop/balance không thay đổi.
+  const authUser = await buildAuthenticatedUser(user.accessToken, region, user);
+  useUserStore.getState().setUser(authUser);
 
-  // --- Bước 3: WAVE 2 — Fetch toàn bộ data chính (song song) ---
-  const [authUserResult, , profileResult] = await Promise.allSettled([
-    buildAuthenticatedUser(user.accessToken, region, user),
-    useMatchStore.getState().fetchMatches(user),
-    fetchProfileWarmCache(user),
-  ]);
+  // --- Bước 3: Fetch các nguồn còn lại bằng credentials vừa được làm mới ---
+  const [clientConfigResult, matchResult, profileResult] =
+    await Promise.allSettled([
+      getRiotClientConfig(
+        authUser.accessToken,
+        authUser.entitlementsToken
+      ),
+      useMatchStore.getState().fetchMatches(authUser),
+      fetchProfileWarmCache(authUser),
+    ]);
 
-  // Nếu auth thất bại → không thể sync
-  if (authUserResult.status !== "fulfilled") {
-    throw authUserResult.reason;
-  }
-
-  const authUser = authUserResult.value;
+  const clientConfigLoaded =
+    clientConfigResult.status === "fulfilled" &&
+    clientConfigResult.value !== null;
 
   // Profile warmup is part of the startup sync. Persist its result before
   // navigating to Profile so that screen can render immediately from cache
@@ -134,7 +170,18 @@ export async function syncAllData(
   const progressChanged =
     cachedUser.progress?.level !== authUser.progress?.level;
 
-  const userChanged = shopsChanged || balancesChanged || nameChanged || progressChanged;
+  const credentialsChanged =
+    cachedUser.accessToken !== authUser.accessToken ||
+    cachedUser.idToken !== authUser.idToken ||
+    cachedUser.entitlementsToken !== authUser.entitlementsToken ||
+    cachedUser.region !== authUser.region;
+
+  const userChanged =
+    credentialsChanged ||
+    shopsChanged ||
+    balancesChanged ||
+    nameChanged ||
+    progressChanged;
 
   // Matches: store tự quản lý diff, chỉ check xem có data mới không
   const freshMatches = useMatchStore.getState().matches;
@@ -143,24 +190,17 @@ export async function syncAllData(
     freshMatches.map((m) => ({ MatchID: m.MatchID }))
   );
 
-  // --- Bước 4: Chỉ update store khi có thay đổi ---
-  if (userChanged) {
-    // Merge thông minh: giữ nguyên token nếu API không trả token mới
-    const mergedUser = {
-      ...authUser,
-      // Giữ nguyên token từ cache nếu authUser không có (tránh mất token)
-      accessToken: authUser.accessToken || cachedUser.accessToken,
-      idToken: authUser.idToken || cachedUser.idToken,
-      entitlementsToken: authUser.entitlementsToken || cachedUser.entitlementsToken,
-    };
-    useUserStore.getState().setUser(mergedUser);
-  }
-
-  // Đánh dấu đã sync
-  markSynced(["shop", "balances", "matches"]);
+  // buildAuthenticatedUser đã đồng bộ shop/balances. Chỉ đánh dấu matches khi
+  // request match thực sự hoàn tất để reconnect có thể retry nếu nó thất bại.
+  markSynced(
+    matchResult.status === "fulfilled"
+      ? ["shop", "balances", "matches"]
+      : ["shop", "balances"]
+  );
 
   const report: SyncReport = {
     userChanged,
+    credentialsChanged,
     shopsChanged,
     balancesChanged,
     nameChanged,
