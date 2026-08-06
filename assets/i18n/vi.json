@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Đóng"
+  },
   "account": "Tài khoản",
   "amount": "Số lượng",
   "accessories": "Cửa hàng phụ kiện",
@@ -166,7 +169,6 @@
     "empty_title": "Hiện chưa có bộ sưu tập",
     "empty_subtitle": "Bộ sưu tập nổi bật đang trống. Hãy quay lại sau.",
     "items_count": "{{count}} món",
-    "included_title": "Vật phẩm bao gồm",
     "included_count": "{{count}} skin",
     "hero_badge": "Bộ sưu tập nổi bật",
     "hero_eyebrow": "Collection drop",
