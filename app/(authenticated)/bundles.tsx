@@ -1,6 +1,8 @@
 // ===== Import các thư viện =====
 import React from "react";
 import {
+  Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,8 +10,10 @@ import {
   View,
 } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
-import { Modal, Portal } from "react-native-paper";
+import { Modal, Portal, useTheme } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import BundleImage from "~/components/BundleImage";
 import BundleItem from "~/components/BundleItem";
@@ -19,7 +23,6 @@ import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
 import PageIntro from "~/components/ui/PageIntro";
-import SectionHeader from "~/components/ui/SectionHeader";
 import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 
 // Component Bundles: hiển thị danh sách các bundle (gói hàng) trong shop
@@ -27,6 +30,17 @@ import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 function Bundles() {
   // Hook dịch thuật đa ngôn ngữ
   const { t } = useTranslation();
+  const paperTheme = useTheme();
+  const transparentModalTheme = React.useMemo(
+    () => ({
+      ...paperTheme,
+      colors: {
+        ...paperTheme.colors,
+        backdrop: "transparent",
+      },
+    }),
+    [paperTheme],
+  );
   // Lấy thông tin user từ store (bao gồm shops.bundles, balances.vp, ...)
   const user = useUserStore(({ user }) => user);
   // State: bundle đang được chọn để xem chi tiết (null = không có modal)
@@ -95,66 +109,86 @@ function Bundles() {
         <Modal
           visible={Boolean(selectedBundle)}
           onDismiss={dismissBundle}
+          overlayAccessibilityLabel={t("common.close")}
+          style={styles.modalRoot}
           contentContainerStyle={styles.modalContainer}
+          theme={transparentModalTheme}
         >
           {selectedBundle ? (
-            // Sheet modal: chứa thông tin bundle
-            <View style={styles.modalSheet}>
-              {/* Header modal: tên bundle + nút đóng */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderText}>
-                  <Text style={styles.modalEyebrow} numberOfLines={1}>
-                    {t("bundles_page.hero_badge")}
-                  </Text>
-                  <Text style={styles.modalTitle} numberOfLines={2}>
-                    {selectedBundle.displayName}
-                  </Text>
-                </View>
-                {/* Nút đóng modal */}
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel={t("common.close", {
-                    defaultValue: "Đóng",
-                  })}
-                  activeOpacity={0.8}
-                  onPress={dismissBundle}
-                  style={styles.modalCloseButton}
-                >
-                  <Icon name="close" size={20} color={COLORS.TEXT_PRIMARY} />
-                </TouchableOpacity>
-              </View>
-
-              {/* SectionHeader: tiêu đề "Items included" + số lượng */}
-              <SectionHeader
-                title={t("bundles_page.included_title")}
-                meta={t("bundles_page.items_count", {
-                  count: selectedBundle.items.length,
-                })}
-                style={styles.modalSectionHeader}
+            <>
+              <BlurView
+                pointerEvents="none"
+                intensity={72}
+                tint="dark"
+                experimentalBlurMethod="dimezisBlurView"
+                style={StyleSheet.absoluteFill}
+              />
+              <View pointerEvents="none" style={styles.modalDim} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("common.close")}
+                onPress={dismissBundle}
+                style={StyleSheet.absoluteFill}
               />
 
-              {/* ScrollView chứa danh sách item trong bundle (dạng lưới 2 cột) */}
-              <ScrollView
-                style={styles.modalScroll}
-                contentContainerStyle={styles.modalScrollContent}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled
-              >
-                <TwoColumnGrid
-                  items={selectedBundle.items}
-                  keyExtractor={(item) =>
-                    `${selectedBundle.uuid}-${item.uuid}`
-                  }
-                  renderItem={(item) => <BundleItem item={item} />}
-                />
-              </ScrollView>
-            </View>
+              <SafeAreaView style={styles.modalContent} edges={["top", "bottom"]}>
+                <View style={styles.modalToolbar}>
+                  <View style={styles.modalCountBadge}>
+                    <Text style={styles.modalCountText}>
+                      {t("bundles_page.items_count", {
+                        count: selectedBundle.items.length,
+                      })}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t("common.close")}
+                    activeOpacity={0.8}
+                    onPress={dismissBundle}
+                    style={styles.modalCloseButton}
+                  >
+                    <Icon name="close" size={22} color={COLORS.PURE_WHITE} />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView
+                  style={styles.modalScroll}
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled
+                >
+                  <TwoColumnGrid
+                    items={selectedBundle.items}
+                    keyExtractor={(item) =>
+                      `${selectedBundle.uuid}-${item.uuid}`
+                    }
+                    renderItem={(item) => (
+                      <View style={styles.modalCard}>
+                        <BundleItem item={item} />
+                      </View>
+                    )}
+                  />
+                </ScrollView>
+              </SafeAreaView>
+            </>
           ) : null}
         </Modal>
       </Portal>
     </>
   );
 }
+
+const modalCardShadow =
+  Platform.OS === "web"
+    ? ({ boxShadow: "0px 10px 16px rgba(0, 0, 0, 0.34)" } as any)
+    : {
+        shadowColor: COLORS.PURE_BLACK,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.34,
+        shadowRadius: 16,
+        elevation: 12,
+      };
 
 // ===== StyleSheet định nghĩa giao diện =====
 const styles = StyleSheet.create({
@@ -196,72 +230,64 @@ const styles = StyleSheet.create({
   bundleBlock: {
     marginBottom: 8,
   },
-  // Container modal: canh giữa theo chiều dọc, padding ngang 16, trên/dưới 40
+  // Modal phủ toàn màn hình, nền trong suốt để BlurView xử lý phần phía sau.
+  modalRoot: {
+    marginTop: 0,
+    marginBottom: 0,
+  },
   modalContainer: {
-    justifyContent: "center",
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  modalDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(7, 12, 20, 0.42)",
+  },
+  modalContent: {
+    flex: 1,
     paddingHorizontal: 16,
-    paddingVertical: 40,
   },
-  // Sheet modal: full width, max 88% chiều cao, bo góc, nền SURFACE, viền BORDER
-  modalSheet: {
-    width: "100%",
-    maxHeight: "88%",
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    backgroundColor: COLORS.SURFACE,
-  },
-  // Header modal: dạng hàng ngang, căn trên
-  modalHeader: {
+  modalToolbar: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
     marginBottom: 16,
   },
-  // Phần text trong header modal: co giãn, không tràn
-  modalHeaderText: {
-    flex: 1,
-    minWidth: 0,
-    paddingRight: 12,
+  modalCountBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(8,13,22,0.62)",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
-  // Eyebrow (nhãn phụ): chữ nhỏ, màu phụ, đậm
-  modalEyebrow: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 10,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  // Tiêu đề bundle: cỡ 20, đậm, lineHeight 25
-  modalTitle: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 20,
-    lineHeight: 25,
+  modalCountText: {
+    color: COLORS.PURE_WHITE,
+    fontSize: 12,
     fontWeight: "800",
   },
-  // Nút đóng modal: hình tròn 40x40, viền, nền mờ
   modalCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    backgroundColor: COLORS.SURFACE_MUTED,
+    borderColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "rgba(8,13,22,0.68)",
   },
-  // Section header trong modal: marginBottom 14
-  modalSectionHeader: {
-    marginBottom: 14,
-  },
-  // ScrollView trong modal: không co giãn (flexGrow 0)
   modalScroll: {
-    flexGrow: 0,
+    flex: 1,
   },
-  // Nội dung ScrollView trong modal: paddingBottom 4
   modalScrollContent: {
-    paddingBottom: 4,
+    paddingBottom: 24,
+  },
+  modalCard: {
+    flex: 1,
+    borderRadius: 8,
+    backgroundColor: COLORS.SURFACE,
+    ...modalCardShadow,
   },
 });
 
