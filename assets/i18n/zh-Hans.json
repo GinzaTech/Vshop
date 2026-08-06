@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "关闭"
+  },
   "account": "账户",
   "back": "返回",
   "balances": "余额",
@@ -119,7 +122,6 @@
   "bundles_page.empty_title": "No bundles available",
   "bundles_page.empty_subtitle": "The featured collection is empty right now. Check back later.",
   "bundles_page.items_count": "{{count}} items",
-  "bundles_page.included_title": "Included items",
   "bundles_page.included_count": "{{count}} skins",
   "bundles_page.hero_badge": "Featured bundle",
   "bundles_page.hero_eyebrow": "Collection drop",
