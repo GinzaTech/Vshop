@@ -84,24 +84,169 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 
 ## Architecture
 
-```
-App Launch
-  |
-  +-> Loading Screen (animated)
-  |     |
-  |     +-> Wave 1: RiotClientConfig (feature flags, chat config)
-  |     +-> Wave 2 (parallel):
-  |           +-> buildAuthenticatedUser (entitlements, shop, balances, progress)
-  |           +-> fetchMatches (30 matches + hydrate details)
-  |           +-> fetchProfileWarmCache (loadout, owned items, rank)
-  |     |
-  |     +-> Diff vs cache -> update only changed data -> Enter app
-  |
-  +-> UI reads from Zustand stores (persisted via MMKV)
-  +-> Background: delta sync (only fetch NEW matches, TTL-gated)
+VShop is a client-side, offline-first React Native application. Screens do not
+own Riot sessions or long-lived network state: routes compose domain stores,
+domain stores call the service layer, and the service layer normalizes Riot
+responses before they reach the UI.
+
+### Runtime layers
+
+| Layer | Primary responsibility | Main locations |
+|---|---|---|
+| **Application shell** | Providers, splash lifecycle, bootstrap, initial route, global error boundary and portrait policy | `app/_layout.tsx` |
+| **Navigation** | Public authentication/setup stack, authenticated tabs, hidden secondary routes and landscape match session | `app/`, `app/(authenticated)/` |
+| **Screens and components** | Route orchestration, user interaction and presentation; no persistent transport ownership | `app/`, `components/` |
+| **Domain state** | User session, match history, profile warm cache, combat snapshot, wishlist and feature state | `hooks/`, `utils/chat-store.ts` |
+| **Services** | Riot HTTP calls, RSO session construction, XMPP, synchronization, asset loading and image prefetch | `utils/` |
+| **Persistence** | Zustand persistence over MMKV on native, AsyncStorage fallback, and `localStorage` on web | `utils/storage.ts` |
+| **Contracts and assets** | Riot DTOs, normalized match UI types, design tokens, images and 18 translation bundles | `types/`, `constants/`, `assets/` |
+
+### Startup and authentication
+
+```mermaid
+flowchart TD
+  A["Expo Router mounts RootLayout"] --> B["Rehydrate user-session from appStorage"]
+  B --> C{"Region configured?"}
+  C -- "No" --> D["/setup"]
+  C -- "Yes" --> E{"Reusable RSO token?"}
+  E -- "No" --> F["/reauth"]
+  E -- "Yes" --> G["LoadingScreen + 20 s bootstrap budget"]
+  G --> H["Wave 1: RiotClientConfig"]
+  H --> I["Wave 2: authenticated user, matches and profile cache in parallel"]
+  I --> J["Diff and persist changed domain data"]
+  J --> K["/profile"]
+  G -- "Timeout" --> K
+  G -- "Authentication failure" --> F
+  K --> L["AppWarmup starts delayed background work"]
 ```
 
-**Data flow:** API -> diff -> cache (MMKV) -> UI reads from cache
+1. `useUserStore` rehydrates the persisted `user-session`; routing does not
+   begin until its `hydrated` flag is set.
+2. `RootLayout` resolves the region from AsyncStorage and the persisted user.
+   A missing region enters setup; a missing or near-expiry token enters RSO
+   reauthentication.
+3. A resumable session calls `syncAllData` with a 20-second UI budget. Client
+   configuration is loaded first because feature and chat affinity data depend
+   on it.
+4. The second wave runs `buildAuthenticatedUser`, initial match synchronization
+   and profile warmup concurrently. Authentication is the only fatal branch;
+   match/profile failures can fall back to their caches.
+5. A timeout opens the cached Profile instead of blocking startup; it does not
+   cancel the sync already in flight, so a late result may still refresh the
+   stores. A real authentication failure clears the invalid session while
+   preserving the selected region and routes to `/reauth`.
+
+The authenticated shell mounts `AppWarmup`, which deliberately staggers work:
+shop/balance refresh after 3 seconds, match refresh after 5.2 seconds on Wi-Fi
+or 7.8 seconds on cellular, and XMPP startup after 250/900 ms respectively. It
+also checks token expiry every two minutes and refreshes a session when fewer
+than five minutes remain.
+
+### State, cache and consistency model
+
+| Domain | Persistence and lifetime | Consistency rules |
+|---|---|---|
+| **User/session** | Persisted as `user-session` | Region + user ID identify the session; JWT expiry is checked with a safety buffer before reuse |
+| **Profile** | `profile-warm-cache`, 5-minute TTL, newest 3 accounts | Loadout and rank have explicit schema versions; requests are deduplicated by `region\|userId` |
+| **Match history** | `match-history-cache`, 30-minute TTL | Persists summaries and season metrics; detail payloads stay in a 10-entry in-memory LRU |
+| **Season metrics** | Persisted with a calculation version, 2-hour TTL | Active-Act competitive update IDs are the source of truth; incomplete detail sets are rejected rather than producing partial statistics |
+| **Combat** | Memory-only snapshot | Party, pregame and live endpoints are resolved together; stale responses are discarded and live sessions poll every 10 seconds |
+| **Chat** | Memory-only Zustand store | One XMPP client per credential/region key; messages and presence are normalized by Riot PUUID and deduplicated |
+| **Assets** | File-system cache, 24-hour TTL, plus memory lookup maps | Public metadata is language-aware; in-flight loads and bundle requests are shared |
+
+Persisted Profile and Match results carry an `authKey`. Their async actions
+compare that key again before committing a response, so a slow request from a
+previous account cannot overwrite the current account. In-flight Promise
+registries deduplicate identical user, profile, match-detail, bundle and
+player-name requests.
+
+### Domain data pipelines
+
+**Profile**
+
+```text
+RSO session
+  -> loadout + six ownership categories + competitive MMR (parallel)
+  -> normalize skin/spray/flex/card/title IDs and current/peak rank
+  -> versioned profile cache keyed by region|userId
+  -> Profile tabs render immediately, then refresh stale sections
+```
+
+**Match history and current-Act statistics**
+
+```text
+Match history pages + competitive updates
+  -> create lightweight 30-match records
+  -> choose request concurrency from network profile
+  -> hydrate 15 records on cellular or 30 on Wi-Fi
+  -> normalize players, teams, rounds, economy, weapons and rank changes
+  -> persist summaries; keep full detail payloads in memory
+
+Active Act from Riot content
+  -> page through every competitive update for that Act
+  -> fetch each unique match detail with bounded retries
+  -> calculate wins/losses, K/D, HS, ACS, ADR, KAST and weapon aggregates
+  -> publish only when the complete detail set is available
+```
+
+When a populated match cache expires, the normal refresh checks only the newest
+five records and appends unknown match IDs. Full pagination and hydration are
+reserved for an empty cache, a forced refresh, or the user requesting more
+history.
+
+**Combat**
+
+```text
+Party player + pregame player + current-game player (parallel)
+  -> fetch available party/pregame/live payloads
+  -> batch-resolve Riot subjects to GameName#TagLine
+  -> build one snapshot with priority pregame > live > idle
+  -> combat and combat_session screens subscribe to the same Zustand state
+```
+
+**Friends and party chat**
+
+```text
+RSO token -> PAS token + chat affinity
+  -> TLS socket :5223
+  -> SASL X-Riot-RSO-PAS
+  -> resource bind + XMPP session + entitlements
+  -> roster, presence, direct messages and party MUC
+  -> normalized chat store -> Friends / direct chat / party chat UI
+```
+
+The XMPP service is a singleton guarded against duplicate initialization.
+Unexpected socket closure schedules exponential reconnects from 2.5 seconds up
+to 30 seconds. Successful writes are inserted into local state immediately and
+incoming echoes are deduplicated. Native TCP is required, so Riot chat is not
+available in Expo Go or web builds.
+
+### Navigation, orientation and platform boundaries
+
+- The root Stack owns `setup`, `reauth`, language modal, direct chat and the
+  authenticated route group.
+- The authenticated group uses a custom floating tab bar for primary routes;
+  detail, history, combat, friends and reference screens are registered as
+  hidden secondary routes.
+- `RootLayout` enforces portrait globally. `combat_session` temporarily acquires
+  landscape while focused and restores portrait during cleanup. The optional
+  native-module wrapper avoids crashing an older development client.
+- Native/web variations use `.native.ts`, `.web.ts` and provider shims for
+  cookies, background fetch and Stripe.
+
+### Failure and performance boundaries
+
+- `ErrorBoundary` protects the complete provider/navigation tree.
+- Bootstrap distinguishes timeout from invalid authentication, allowing cached
+  data to remain usable during slow networks.
+- HTTP requests use bounded timeouts, redacted development logging and
+  non-fatal fallbacks where partial domains can still render.
+- `getNetworkProfile` caches connectivity for 15 seconds and limits work to two
+  concurrent requests on cellular or four on Wi-Fi/web.
+- Image prefetch uses the same network profile, bounded batches and URL
+  deduplication; screens consume `expo-image` memory/disk caching.
+- Zustand persistence stores compact records only. Volatile loading flags,
+  sockets and heavy match details never cross an application restart.
 
 ## Prerequisites
 
@@ -253,24 +398,163 @@ Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHA
 
 ## Kiến trúc
 
-```
-Mở app
-  |
-  +-> Màn hình Loading (animation)
-  |     |
-  |     +-> Wave 1: RiotClientConfig (feature flags, chat config)
-  |     +-> Wave 2 (song song):
-  |           +-> buildAuthenticatedUser (entitlements, shop, balances, progress)
-  |           +-> fetchMatches (30 trận + hydrate chi tiết)
-  |           +-> fetchProfileWarmCache (loadout, item sở hữu, rank)
-  |     |
-  |     +-> So sánh (diff) với cache -> chỉ update dữ liệu thay đổi -> Vào app
-  |
-  +-> UI đọc từ Zustand stores (lưu bằng MMKV)
-  +-> Nền: delta sync (chỉ lấy trận mới, theo TTL)
+VShop là ứng dụng React Native chạy phía client theo hướng offline-first. Màn
+hình không tự giữ Riot session hoặc kết nối mạng dài hạn: route ghép các domain
+store, store gọi lớp service, còn service chuẩn hóa response Riot trước khi đưa
+dữ liệu tới UI.
+
+### Các lớp runtime
+
+| Lớp | Trách nhiệm chính | Vị trí |
+|---|---|---|
+| **Application shell** | Provider, splash lifecycle, bootstrap, route đầu tiên, error boundary toàn cục và quy tắc màn hình dọc | `app/_layout.tsx` |
+| **Điều hướng** | Stack setup/đăng nhập, tab đã xác thực, route phụ ẩn và phiên đấu ngang | `app/`, `app/(authenticated)/` |
+| **Màn hình và component** | Điều phối route, tương tác và hiển thị; không sở hữu transport lâu dài | `app/`, `components/` |
+| **Domain state** | Session người dùng, lịch sử đấu, profile warm cache, combat snapshot, wishlist và feature state | `hooks/`, `utils/chat-store.ts` |
+| **Service** | Riot HTTP, dựng RSO session, XMPP, đồng bộ, tải asset và preload ảnh | `utils/` |
+| **Lưu trữ** | Zustand persist qua MMKV trên native, fallback AsyncStorage và `localStorage` trên web | `utils/storage.ts` |
+| **Contract và asset** | Riot DTO, kiểu match UI đã chuẩn hóa, design token, hình ảnh và 18 bộ ngôn ngữ | `types/`, `constants/`, `assets/` |
+
+### Khởi động và xác thực
+
+```mermaid
+flowchart TD
+  A["Expo Router mount RootLayout"] --> B["Khôi phục user-session từ appStorage"]
+  B --> C{"Đã có region?"}
+  C -- "Chưa" --> D["/setup"]
+  C -- "Có" --> E{"RSO token còn dùng được?"}
+  E -- "Không" --> F["/reauth"]
+  E -- "Có" --> G["LoadingScreen + ngân sách bootstrap 20 giây"]
+  G --> H["Wave 1: RiotClientConfig"]
+  H --> I["Wave 2: user, trận đấu và profile cache chạy song song"]
+  I --> J["Diff và persist domain có thay đổi"]
+  J --> K["/profile"]
+  G -- "Timeout" --> K
+  G -- "Lỗi xác thực" --> F
+  K --> L["AppWarmup khởi động tác vụ nền có delay"]
 ```
 
-**Luồng dữ liệu:** API -> diff -> cache (MMKV) -> UI đọc từ cache
+1. `useUserStore` khôi phục `user-session`; hệ thống chưa quyết định route cho
+   tới khi cờ `hydrated` được bật.
+2. `RootLayout` lấy region từ AsyncStorage và user đã lưu. Thiếu region thì vào
+   setup; thiếu token hoặc token gần hết hạn thì vào luồng RSO reauthentication.
+3. Session có thể dùng lại sẽ chạy `syncAllData` với giới hạn chờ UI 20 giây.
+   Client config được tải trước vì feature và chat affinity phụ thuộc dữ liệu này.
+4. Wave thứ hai chạy song song `buildAuthenticatedUser`, đồng bộ trận ban đầu và
+   warmup Profile. Chỉ lỗi xác thực là lỗi chặn; Profile hoặc Match có thể dùng
+   cache cũ nếu API riêng lẻ thất bại.
+5. Nếu quá 20 giây, app mở Profile từ cache thay vì giữ màn hình loading; tiến
+   trình sync đang chạy không bị hủy nên response tới muộn vẫn có thể refresh
+   store. Nếu xác thực thực sự sai, session bị reset nhưng region vẫn được giữ
+   để chuyển sang `/reauth`.
+
+Sau khi đăng nhập, `AppWarmup` chủ động giãn các tác vụ: refresh shop/số dư sau
+3 giây, refresh match sau 5,2 giây trên Wi-Fi hoặc 7,8 giây trên mạng di động,
+và mở XMPP sau 250/900 ms tương ứng. Token được kiểm tra mỗi hai phút và dựng
+lại session khi thời gian còn lại dưới năm phút.
+
+### Mô hình state, cache và tính nhất quán
+
+| Domain | Cách lưu và thời hạn | Quy tắc nhất quán |
+|---|---|---|
+| **User/session** | Persist bằng key `user-session` | Region + user ID định danh session; JWT được kiểm tra với khoảng an toàn trước khi dùng lại |
+| **Profile** | `profile-warm-cache`, TTL 5 phút, giữ 3 tài khoản gần nhất | Loadout/rank có version cache riêng; request chống trùng theo `region\|userId` |
+| **Lịch sử đấu** | `match-history-cache`, TTL 30 phút | Persist bản tóm tắt và thống kê mùa; detail đầy đủ chỉ ở LRU RAM tối đa 10 trận |
+| **Thống kê mùa** | Persist kèm calculation version, TTL 2 giờ | Danh sách competitive update của Act là nguồn chuẩn; thiếu detail thì hủy kết quả thay vì tính số liệu thiếu |
+| **Combat** | Snapshot chỉ nằm trong RAM | Party, pregame và live được ghép chung; response cũ bị bỏ và trận live poll mỗi 10 giây |
+| **Chat** | Zustand store chỉ trong RAM | Một XMPP client cho mỗi bộ credential/region; message và presence chuẩn hóa theo Riot PUUID |
+| **Asset** | File cache 24 giờ và lookup map trong RAM | Metadata công khai theo ngôn ngữ; các lần load và request bundle dùng chung Promise |
+
+Kết quả Profile và Match được persist đều mang `authKey`. Trước khi ghi
+response, async action của hai domain này kiểm tra lại key để request chậm của
+tài khoản trước không thể ghi đè tài khoản đang dùng. Các registry Promise đang
+chạy chống gọi trùng cho user, Profile, match detail, bundle và tên người chơi.
+
+### Pipeline dữ liệu theo domain
+
+**Profile**
+
+```text
+RSO session
+  -> loadout + 6 nhóm vật phẩm sở hữu + competitive MMR (song song)
+  -> chuẩn hóa ID skin/spray/flex/card/title và current/peak rank
+  -> cache có version theo region|userId
+  -> các tab Profile render ngay từ cache rồi refresh phần đã stale
+```
+
+**Lịch sử đấu và thống kê Act hiện tại**
+
+```text
+Các trang match history + competitive updates
+  -> tạo record nhẹ cho 30 trận
+  -> chọn concurrency theo loại mạng
+  -> hydrate 15 trận trên mạng di động hoặc 30 trận trên Wi-Fi
+  -> chuẩn hóa player, team, round, economy, vũ khí và thay đổi rank
+  -> persist summary; giữ detail nặng trong RAM
+
+Act hiện tại từ Riot content
+  -> phân trang toàn bộ competitive update thuộc Act
+  -> lấy từng match detail duy nhất với retry có giới hạn
+  -> tính win/loss, K/D, HS, ACS, ADR, KAST và thống kê vũ khí
+  -> chỉ publish khi có đủ toàn bộ detail
+```
+
+Khi match cache đã có dữ liệu nhưng hết TTL, refresh thông thường chỉ kiểm tra
+năm trận mới nhất rồi thêm các Match ID chưa biết. Full pagination và hydrate
+chỉ chạy khi cache rỗng, người dùng force refresh hoặc yêu cầu tải thêm lịch sử.
+
+**Combat**
+
+```text
+Party player + pregame player + current-game player (song song)
+  -> lấy payload party/pregame/live đang tồn tại
+  -> batch resolve Riot subject thành GameName#TagLine
+  -> tạo một snapshot theo ưu tiên pregame > live > idle
+  -> combat và combat_session cùng subscribe một Zustand state
+```
+
+**Bạn bè và party chat**
+
+```text
+RSO token -> PAS token + chat affinity
+  -> TLS socket :5223
+  -> SASL X-Riot-RSO-PAS
+  -> bind resource + XMPP session + entitlements
+  -> roster, presence, tin nhắn riêng và party MUC
+  -> chat store đã chuẩn hóa -> UI Bạn bè / chat riêng / party chat
+```
+
+XMPP service là singleton và có khóa chống khởi tạo socket trùng. Khi socket
+đóng ngoài ý muốn, service reconnect theo exponential backoff từ 2,5 giây tới
+tối đa 30 giây. Tin nhắn ghi socket thành công được thêm vào local state ngay;
+echo nhận lại sẽ bị loại trùng. Riot chat cần native TCP nên không hoạt động
+trong Expo Go hoặc bản web.
+
+### Điều hướng, orientation và ranh giới nền tảng
+
+- Root Stack sở hữu `setup`, `reauth`, modal ngôn ngữ, chat riêng và group route
+  đã xác thực.
+- Group đã xác thực dùng floating tab bar tùy chỉnh cho route chính; các màn
+  detail, history, combat, friends và tham khảo được đăng ký làm route phụ ẩn.
+- `RootLayout` giữ toàn app ở portrait. `combat_session` tạm sở hữu landscape
+  khi focus và trả lại portrait lúc cleanup. Wrapper native optional giúp dev
+  client cũ không crash nếu chưa build module orientation.
+- Khác biệt native/web được tách bằng `.native.ts`, `.web.ts` và provider shim
+  cho cookie, background fetch và Stripe.
+
+### Ranh giới lỗi và hiệu năng
+
+- `ErrorBoundary` bọc toàn bộ cây provider và điều hướng.
+- Bootstrap phân biệt timeout với sai xác thực để cache vẫn dùng được khi mạng
+  chậm.
+- HTTP có timeout giới hạn, log dev che thông tin nhạy cảm và fallback không
+  chặn khi một domain riêng vẫn có thể hiển thị.
+- `getNetworkProfile` cache trạng thái mạng 15 giây, giới hạn hai request song
+  song trên mạng di động hoặc bốn request trên Wi-Fi/web.
+- Preload ảnh dùng cùng network profile, batch có giới hạn và chống URL trùng;
+  màn hình dùng cache memory/disk của `expo-image`.
+- Zustand chỉ persist record gọn. Loading flag, socket và match detail nặng
+  không được ghi qua lần khởi động tiếp theo.
 
 ## Yêu cầu hệ thống
 
