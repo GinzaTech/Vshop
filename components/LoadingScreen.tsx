@@ -3,7 +3,7 @@
  * Hiển thị: logo + spinner + text trạng thái.
  */
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { MotiView } from "moti";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { COLORS } from "~/constants/DesignSystem";
@@ -70,8 +70,6 @@ function LoadingText({ text }: { text: string }) {
     </MotiView>
   );
 }
-
-import { Text } from "react-native";
 
 function StyledText({ children }: { children: React.ReactNode }) {
   return <Text style={styles.text}>{children}</Text>;
