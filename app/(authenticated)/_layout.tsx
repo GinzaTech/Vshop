@@ -6,16 +6,17 @@ import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
-  Animated,
-  Easing,
   Platform,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Reanimated, {
+  Easing,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -60,34 +61,39 @@ const PRIMARY_ROUTE_ORDER = [
  *
  * State:
  * - insets (từ useSafeAreaInsets): Safe area bottom để padding.
+ * - viewportWidth (từ useWindowDimensions): Chiều rộng màn hình để tính width thanh tab.
  * - hasNightMarketItems (từ useUserStore): Có items trong night market?
- * - collapsed (state, boolean): Thanh tab đang thu gọn (chỉ hiện nút "More")?
- * - collapseProgress (Animated.Value): Giá trị animation mở/thu gọn (0 → 1).
+ * - collapsed (state, boolean): Thanh tab đang thu gọn (chỉ hiện nút tròn)?
+ * - collapseProgress (SharedValue<number>): Giá trị Reanimated animation mở/thu gọn (1 = mở, 0 = thu).
  * - moreLongPressHandledRef (useRef): Đánh dấu long press đã được xử lý.
+ * - wasHiddenRef (useRef): Đánh dấu tab bar vừa ẩn (đang ở sub-screen).
+ * - shouldJump (SharedValue<boolean>): true → indicator nhảy thẳng (không animate) khi lần đầu mount hoặc Back từ sub-screen.
  * - activeRoute: Route hiện tại đang active.
  *
- * Animation:
- * - Khi collapsed = true: thanh thu gọn thành một nút tròn nhỏ.
- * - Khi collapsed = false: thanh mở rộng hiển thị tất cả tab.
- * - Sử dụng Animated.timing với Easing.out(cubic), duration 190ms.
+ * Animation (Reanimated, chạy trên UI thread):
+ * - Khi collapsed = true: thanh thu gọn thành nút tròn nhỏ (74×74), dịch chuyển sang phải.
+ * - Khi collapsed = false: thanh mở rộng full width với tất cả tab.
+ * - Sliding indicator theo tab active bằng interpolate + withTiming.
+ * - collapseProgress dùng Easing.inOut(cubic), duration 340ms (collapse) / 420ms (expand).
  *
  * Logic:
  * - Tab "night_market" chỉ hiện nếu hasNightMarketItems === true.
- * - Tab "settings" có long press → thu gọn thanh.
- * - Khi thanh đã thu gọn, nhấn vào nút "More" để mở rộng lại.
+ * - Tab "settings" long press ≥ 1s → thu gọn thanh.
+ * - Khi thanh thu gọn, nhấn/long press vào nút "More" để mở rộng lại.
+ * - Back từ sub-screen → indicator jump thẳng (không slide) nhờ shouldJump.
  *
  * @returns {JSX.Element | null} Thanh tab hoặc null nếu route không phải primary.
  */
 function FloatingTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { width: viewportWidth } = useWindowDimensions();
   const hasNightMarketItems = useUserStore(
     ({ user }) => user.shops.nightMarket.length > 0
   );
   const [collapsed, setCollapsed] = useState(false);
-  const collapseProgress = useRef(new Animated.Value(1)).current; // 1 = mở, 0 = thu gọn
+  const collapseProgress = useSharedValue(1); // 1 = mở, 0 = thu gọn
   const moreLongPressHandledRef = useRef(false);
   const activeRoute = state.routes[state.index];
-  const [barWidth, setBarWidth] = useState(0);
 
   // Track khi tab bar chuyển từ hidden → visible (Back từ sub-screen)
   // Khi visible lại → indicator JUMP trực tiếp, không animate
@@ -101,17 +107,16 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
       shouldJump.value = true;
     }
     wasHiddenRef.current = !isPrimaryRoute;
-  }, [isPrimaryRoute]);
+  }, [isPrimaryRoute, shouldJump]);
 
   // Animation khi thay đổi trạng thái collapsed
   useEffect(() => {
-    Animated.timing(collapseProgress, {
-      toValue: collapsed ? 0 : 1,
-      duration: 190,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    collapseProgress.value = withTiming(collapsed ? 0 : 1, {
+      duration: collapsed ? 340 : 420,
+      easing: Easing.inOut(Easing.cubic),
+    });
   }, [collapseProgress, collapsed]);
+
 
   // Lọc và sắp xếp các route primary (tính trước để dùng cho sliding indicator)
   const visibleRoutes = state.routes
@@ -128,36 +133,79 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
 
   // ── Sliding tab indicator ──
   // Mỗi tab dùng flex: 1 nên chia đều content width; indicator dịch chuyển theo index.
-  const TAB_PADDING_H = 18; // = paddingHorizontal của styles.tabBar
+  const TAB_PADDING_H = 18; // = paddingHorizontal của expandedTabContent
   const INDICATOR_SIZE = 50; // khớp với tabIconWrap (50x50)
+  const COLLAPSED_BAR_SIZE = 74;
+  const EXPANDED_BAR_HEIGHT = 82;
+  const expandedBarWidth = Math.round(
+    viewportWidth * (hasNightMarketItems ? 0.88 : 0.78)
+  );
+  const collapsedTranslateX = Math.max(
+    0,
+    viewportWidth / 2 - 22 - COLLAPSED_BAR_SIZE / 2
+  );
   const activeVisibleIndex = Math.max(
     0,
     visibleRoutes.findIndex((route: any) => route.key === activeRoute?.key)
   );
   const tabButtonWidth =
-    visibleRoutes.length > 0 && barWidth > 0
-      ? (barWidth - TAB_PADDING_H * 2) / visibleRoutes.length
+    visibleRoutes.length > 0
+      ? (expandedBarWidth - TAB_PADDING_H * 2) / visibleRoutes.length
       : INDICATOR_SIZE;
+  const tabBarAnimatedStyle = useAnimatedStyle(() => ({
+    width: interpolate(
+      collapseProgress.value,
+      [0, 1],
+      [COLLAPSED_BAR_SIZE, expandedBarWidth]
+    ),
+    height: interpolate(
+      collapseProgress.value,
+      [0, 1],
+      [COLLAPSED_BAR_SIZE, EXPANDED_BAR_HEIGHT]
+    ),
+    borderRadius: interpolate(collapseProgress.value, [0, 1], [37, 32]),
+    transform: [
+      {
+        translateX: interpolate(
+          collapseProgress.value,
+          [0, 1],
+          [collapsedTranslateX, 0]
+        ),
+      },
+    ],
+  }));
+  const expandedContentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(collapseProgress.value, [0, 0.35, 1], [0, 0, 1]),
+    transform: [
+      {
+        scale: interpolate(collapseProgress.value, [0, 1], [0.94, 1]),
+      },
+    ],
+  }));
+  const collapsedContentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(collapseProgress.value, [0, 0.45, 1], [1, 0, 0]),
+    transform: [
+      {
+        scale: interpolate(collapseProgress.value, [0, 1], [1, 0.84]),
+      },
+    ],
+  }));
   const indicatorAnimatedStyle = useAnimatedStyle(() => {
-    // Ẩn indicator khi chưa đo barWidth hoặc đang collapsed
-    if (barWidth === 0) return { opacity: 0 };
-
     const targetX =
       activeVisibleIndex * tabButtonWidth +
       (tabButtonWidth - INDICATOR_SIZE) / 2;
 
     // Jump trực tiếp (Back navigation hoặc first mount) — KHÔNG animate
     if (shouldJump.value) {
-      shouldJump.value = false;
       return {
-        opacity: collapsed ? 0 : 1,
+        opacity: collapseProgress.value,
         transform: [{ translateX: targetX }],
       };
     }
 
     // User chủ động đổi tab → animate slide
     return {
-      opacity: withTiming(collapsed ? 0 : 1, { duration: 120 }),
+      opacity: collapseProgress.value,
       transform: [{ translateX: withTiming(targetX, { duration: 200 }) }],
     };
   });
@@ -175,141 +223,95 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
         { paddingBottom: Math.max(insets.bottom, 12) },
       ]}
     >
-      {collapsed ? (
-        // ── Trạng thái thu gọn: chỉ hiện nút "More" ──
-        <Animated.View
-          style={[
-            styles.collapsedTabBar,
-            styles.collapsedTabBarDocked,
-            Platform.OS === "web" && styles.tabBarWeb,
-            {
-              opacity: collapseProgress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 0],
-              }),
-              transform: [
-                {
-                  scale: collapseProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 0.82],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Expand navigation"
-            onPress={() => {
-              moreLongPressHandledRef.current = false;
-              setCollapsed(false);
-            }}
-            style={({ pressed }) => [
-              styles.collapsedTabButton,
-              pressed && styles.collapsedTabButtonPressed,
+      <Reanimated.View
+        style={[
+          styles.tabBarFrame,
+          Platform.OS === "web" && styles.tabBarWeb,
+          tabBarAnimatedStyle,
+        ]}
+      >
+        <View style={styles.tabBarClip}>
+          <Reanimated.View
+            pointerEvents={collapsed ? "none" : "auto"}
+            style={[
+              styles.expandedTabContent,
+              expandedContentAnimatedStyle,
             ]}
           >
-            <Icon name="dots-grid" size={26} color={COLORS.PURE_BLACK} />
-          </Pressable>
-        </Animated.View>
-      ) : (
-        // ── Trạng thái mở rộng: hiển thị tất cả tab ──
-        <Animated.View
-          onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
-          style={[
-            styles.tabBar,
-            !hasNightMarketItems && styles.tabBarWithoutMarket,
-            Platform.OS === "web" && styles.tabBarWeb,
-            {
-              opacity: collapseProgress,
-              transform: [
-                {
-                  scale: collapseProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.92, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          {/* Sliding indicator phía sau tab đang active */}
-          <Reanimated.View
-            pointerEvents="none"
-            style={[
-              styles.tabIndicator,
-              indicatorAnimatedStyle,
-            ]}
-          />
-          {visibleRoutes.map((route: any) => {
-            const routeIndex = state.routes.findIndex(
-              (item: any) => item.key === route.key
-            );
-            const focused = state.index === routeIndex;
-            const { icon } = PRIMARY_ROUTES[route.name];
-            const options = descriptors[route.key]?.options ?? {};
-            const isMoreRoute = route.name === "settings";
+            {/* Sliding indicator phía sau tab đang active */}
+            <Reanimated.View
+              pointerEvents="none"
+              style={[styles.tabIndicator, indicatorAnimatedStyle]}
+            />
+            {visibleRoutes.map((route: any) => {
+              const routeIndex = state.routes.findIndex(
+                (item: any) => item.key === route.key
+              );
+              const focused = state.index === routeIndex;
+              const { icon } = PRIMARY_ROUTES[route.name];
+              const options = descriptors[route.key]?.options ?? {};
+              const isMoreRoute = route.name === "settings";
 
-            return (
-              <Pressable
-                key={route.key}
-                accessibilityRole="button"
-                accessibilityLabel={options.tabBarAccessibilityLabel}
-                delayLongPress={isMoreRoute ? 1000 : undefined} // Long press 1s cho "settings"
-                onLongPress={
-                  isMoreRoute
-                    ? () => {
-                        moreLongPressHandledRef.current = true;
-                        setCollapsed(true);
-                      }
-                    : undefined
-                }
-                onPress={() => {
-                  if (moreLongPressHandledRef.current) {
-                    moreLongPressHandledRef.current = false;
-                    return;
+              return (
+                <Pressable
+                  key={route.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={options.tabBarAccessibilityLabel}
+                  delayLongPress={isMoreRoute ? 1000 : undefined}
+                  onLongPress={
+                    isMoreRoute
+                      ? () => {
+                          moreLongPressHandledRef.current = true;
+                          setCollapsed(true);
+                        }
+                      : undefined
                   }
+                  onPress={() => {
+                    if (moreLongPressHandledRef.current) {
+                      moreLongPressHandledRef.current = false;
+                      return;
+                    }
 
-                  const event = navigation.emit({
-                    type: "tabPress",
-                    target: route.key,
-                    canPreventDefault: true,
-                  });
+                    const event = navigation.emit({
+                      type: "tabPress",
+                      target: route.key,
+                      canPreventDefault: true,
+                    });
 
-                  if (!focused && !event.defaultPrevented) {
-                    flowTracer.startTrace(`Vshop Tab Navigation: ${activeRoute.name} to ${route.name}`);
-                    flowTracer.track({
-                      type: "UI_EVENT",
-                      label: `User presses ${route.name} tab`,
-                      source: {
-                        file: "app/(authenticated)/_layout.tsx",
-                        componentName: "FloatingTabBar",
-                        functionName: "onPress",
-                      },
-                      input: { from: activeRoute.name, to: route.name },
-                      tool: "Manual",
-                    });
-                    flowTracer.track({
-                      type: "NAVIGATION",
-                      label: `navigation.navigate('${route.name}')`,
-                      source: {
-                        file: "app/(authenticated)/_layout.tsx",
-                        functionName: "navigation.navigate",
-                      },
-                      input: { from: activeRoute.name, to: route.name },
-                      tool: "React Navigation",
-                    });
-                    navigation.navigate(route.name);
-                  }
-                }}
-                style={({ pressed }) => [
-                  styles.tabButton,
-                  pressed && styles.tabButtonPressed,
-                ]}
-              >
-                {({ pressed }) => (
-                  <>
+                    if (!focused && !event.defaultPrevented) {
+                      flowTracer.startTrace(
+                        `Vshop Tab Navigation: ${activeRoute.name} to ${route.name}`
+                      );
+                      flowTracer.track({
+                        type: "UI_EVENT",
+                        label: `User presses ${route.name} tab`,
+                        source: {
+                          file: "app/(authenticated)/_layout.tsx",
+                          componentName: "FloatingTabBar",
+                          functionName: "onPress",
+                        },
+                        input: { from: activeRoute.name, to: route.name },
+                        tool: "Manual",
+                      });
+                      flowTracer.track({
+                        type: "NAVIGATION",
+                        label: `navigation.navigate('${route.name}')`,
+                        source: {
+                          file: "app/(authenticated)/_layout.tsx",
+                          functionName: "navigation.navigate",
+                        },
+                        input: { from: activeRoute.name, to: route.name },
+                        tool: "React Navigation",
+                      });
+                      navigation.navigate(route.name);
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.tabButton,
+                    pressed && styles.tabButtonPressed,
+                  ]}
+                >
+                  {({ pressed }) => (
                     <View
                       style={[
                         styles.tabIconWrap,
@@ -329,13 +331,38 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                         }
                       />
                     </View>
-                  </>
-                )}
-              </Pressable>
-            );
-          })}
-        </Animated.View>
-      )}
+                  )}
+                </Pressable>
+              );
+            })}
+          </Reanimated.View>
+
+          <Reanimated.View
+            pointerEvents={collapsed ? "auto" : "none"}
+            style={[
+              styles.collapsedTabContent,
+              collapsedContentAnimatedStyle,
+            ]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Expand navigation"
+              delayLongPress={600}
+              onLongPress={() => setCollapsed(false)}
+              onPress={() => {
+                moreLongPressHandledRef.current = false;
+                setCollapsed(false);
+              }}
+              style={({ pressed }) => [
+                styles.collapsedTabButton,
+                pressed && styles.collapsedTabButtonPressed,
+              ]}
+            >
+              <Icon name="dots-grid" size={26} color={COLORS.PURE_BLACK} />
+            </Pressable>
+          </Reanimated.View>
+        </View>
+      </Reanimated.View>
     </View>
   );
 }
@@ -544,39 +571,34 @@ const styles = StyleSheet.create({
   tabBarWrapWeb: {
     pointerEvents: "none", // Web: không chặn click bên dưới
   } as any,
-  tabBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "88%",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+  tabBarFrame: {
     borderRadius: 32,
     backgroundColor: COLORS.PURE_BLACK,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
     ...GLOBAL_STYLES.shadow,
   },
-  tabBarWithoutMarket: {
-    width: "78%", // Hẹp hơn khi không có night market tab
+  tabBarClip: {
+    flex: 1,
+    width: "100%",
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  expandedTabContent: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+  },
+  collapsedTabContent: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabBarWeb: {
     pointerEvents: "auto",
   } as any,
-  collapsedTabBar: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 7,
-    borderRadius: 999,
-    backgroundColor: COLORS.PURE_BLACK,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    ...GLOBAL_STYLES.shadow,
-  },
-  collapsedTabBarDocked: {
-    alignSelf: "flex-end",
-    marginRight: 22,
-  },
   collapsedTabButton: {
     width: 58,
     height: 58,
