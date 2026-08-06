@@ -3,7 +3,14 @@
 // fetch matches, với độ trễ tùy theo loại mạng (WiFi/Cellular)
 
 import React from "react";
-import { InteractionManager, NativeModules, Platform } from "react-native";
+import { useRouter } from "expo-router";
+import {
+  AppState,
+  type AppStateStatus,
+  InteractionManager,
+  NativeModules,
+  Platform,
+} from "react-native";
 
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useUserStore } from "~/hooks/useUserStore";
@@ -13,8 +20,22 @@ import {
 } from "~/utils/chat-service";
 import { useChatStore } from "~/utils/chat-store";
 import { getNetworkProfile } from "~/utils/network";
-import { shouldProactivelyRefreshToken, buildAuthenticatedUser } from "~/utils/auth-session";
-import { fullBackgroundSync, refreshShopAndBalances, isStale } from "~/utils/app-sync";
+import {
+  hasReusableAccessToken,
+  isReauthenticationRequiredError,
+  renewAuthenticatedSession,
+  shouldProactivelyRefreshToken,
+} from "~/utils/auth-session";
+import { fullBackgroundSync, refreshShopAndBalances } from "~/utils/app-sync";
+import { getEntitlementsToken } from "~/utils/valorant-api";
+import {
+  isRiotAuthenticationError,
+  isTransientNetworkError,
+  subscribeSessionAuthFailures,
+} from "~/utils/session-events";
+
+const NETWORK_RECOVERY_POLL_MS = 15_000;
+const AUTH_FAILURE_RECOVERY_COOLDOWN_MS = 5_000;
 
 /**
  * createWarmupScheduler – Tạo scheduler cho phép lên lịch các tác vụ warmup
@@ -64,6 +85,7 @@ function createWarmupScheduler() {
  * Các độ trễ phụ thuộc vào loại mạng (Cellular chậm hơn WiFi)
  */
 export default function AppWarmup() {
+  const router = useRouter();
   // Thông tin user từ store
   const user = useUserStore((state) => state.user);
   // Ref: lưu user hiện tại để dùng trong callback async (tránh stale closure)
@@ -186,27 +208,189 @@ export default function AppWarmup() {
     return () => clearTimeout(timer);
   }, [user.accessToken, user.entitlementsToken, user.region, user.id]);
 
-  // Effect 4: Proactive token refresh — kiểm tra mỗi 2 phút
-  // Nếu token sắp hết hạn (≤5 phút), rebuild session
+  // Effect 4: Session recovery coordinator.
+  // - App quay lại foreground: kiểm tra mạng, làm mới credentials rồi force sync.
+  // - Mạng trở lại khi app đang active: chạy lại cùng flow recovery.
+  // - Riot trả 401: thử silent re-auth bằng cookie; nếu cookie hết hạn mới mở /reauth.
   React.useEffect(() => {
-    if (!user.accessToken || !user.region) return;
+    let cancelled = false;
+    let currentAppState: AppStateStatus = AppState.currentState;
+    let lastConnected: boolean | null = null;
+    let recoveryInFlight: Promise<void> | null = null;
+    let lastSuccessfulRecoveryAt = 0;
+    let reauthRequested = false;
 
-    const interval = setInterval(() => {
-      if (shouldProactivelyRefreshToken(user.accessToken)) {
-        if (__DEV__) console.warn("[warmup] Token sắp hết hạn, thực hiện reAuth");
+    const navigateToReauth = () => {
+      if (cancelled || reauthRequested) return;
+      reauthRequested = true;
+      disconnectChatService();
+      router.replace("/reauth");
+    };
+
+    const recoverSession = async (
+      reason: string,
+      forceAccessTokenRenewal = false
+    ): Promise<void> => {
+      if (recoveryInFlight) return recoveryInFlight;
+
+      const recoveryTask = (async () => {
+        const wasConnected = lastConnected;
+        const network = await getNetworkProfile({ force: true });
+        lastConnected = network.isConnected;
+        if (!network.isConnected || cancelled) return;
+
         const store = useUserStore.getState();
-        if (store.user.accessToken && store.user.region) {
-          buildAuthenticatedUser(store.user.accessToken, store.user.region, store.user)
-            .then((newUser) => store.setUser(newUser))
-            .catch((err) => {
-              if (__DEV__) console.warn("[warmup] Proactive reAuth failed", err);
-            });
+        const currentUser = store.user;
+        if (!currentUser.accessToken || !currentUser.region || !currentUser.id) {
+          return;
+        }
+
+        try {
+          const mustRenewAccessToken =
+            forceAccessTokenRenewal ||
+            !hasReusableAccessToken(currentUser.accessToken) ||
+            shouldProactivelyRefreshToken(currentUser.accessToken);
+
+          let recoveredUser = currentUser;
+          if (mustRenewAccessToken) {
+            recoveredUser = await renewAuthenticatedSession(currentUser);
+          } else {
+            try {
+              const entitlementsToken = await getEntitlementsToken(
+                currentUser.accessToken
+              );
+              recoveredUser = { ...currentUser, entitlementsToken };
+            } catch (error) {
+              // Access token có thể bị Riot thu hồi trước thời điểm exp trong JWT.
+              if (!isRiotAuthenticationError(error)) throw error;
+              recoveredUser = await renewAuthenticatedSession(currentUser);
+            }
+          }
+
+          if (cancelled) return;
+
+          // Giữ dữ liệu UI mới nhất nếu một screen vừa cập nhật store trong lúc
+          // recovery đang chạy, nhưng luôn ghi đè toàn bộ credentials vừa lấy.
+          const latestUser = useUserStore.getState().user;
+          const nextUser =
+            latestUser.id === currentUser.id
+              ? {
+                  ...latestUser,
+                  id: recoveredUser.id,
+                  region: recoveredUser.region,
+                  accessToken: recoveredUser.accessToken,
+                  idToken: recoveredUser.idToken,
+                  entitlementsToken: recoveredUser.entitlementsToken,
+                }
+              : recoveredUser;
+
+          store.setUser(nextUser);
+          await fullBackgroundSync(
+            mustRenewAccessToken ||
+              wasConnected === false ||
+              reason !== "foreground"
+          );
+          lastSuccessfulRecoveryAt = Date.now();
+
+          if (__DEV__) {
+            console.log("[warmup] Session recovered", { reason });
+          }
+        } catch (error) {
+          if (cancelled) return;
+
+          // Mạng rớt giữa recovery: giữ nguyên session/cache và chờ lần poll sau.
+          if (isTransientNetworkError(error)) {
+            lastConnected = false;
+            if (__DEV__) {
+              console.warn("[warmup] Session recovery deferred while offline", {
+                reason,
+              });
+            }
+            return;
+          }
+
+          const latestToken = useUserStore.getState().user.accessToken;
+          const requiresInteractiveLogin =
+            isReauthenticationRequiredError(error) ||
+            isRiotAuthenticationError(error) ||
+            !hasReusableAccessToken(latestToken);
+
+          if (requiresInteractiveLogin) {
+            navigateToReauth();
+            return;
+          }
+
+          if (__DEV__) {
+            console.warn("[warmup] Session recovery failed", { reason, error });
+          }
+        }
+      })();
+
+      recoveryInFlight = recoveryTask;
+      try {
+        await recoveryTask;
+      } finally {
+        if (recoveryInFlight === recoveryTask) {
+          recoveryInFlight = null;
         }
       }
-    }, 2 * 60 * 1000);
+    };
 
-    return () => clearInterval(interval);
-  }, [user.accessToken, user.region]);
+    const inspectConnection = async () => {
+      if (currentAppState !== "active" || cancelled) return;
+
+      const network = await getNetworkProfile({ force: true });
+      const wasConnected = lastConnected;
+      lastConnected = network.isConnected;
+
+      if (!network.isConnected) return;
+
+      const currentToken = useUserStore.getState().user.accessToken;
+      const tokenNeedsRenewal = shouldProactivelyRefreshToken(currentToken);
+      if (wasConnected === false || tokenNeedsRenewal) {
+        await recoverSession(
+          wasConnected === false ? "network-restored" : "token-expiring",
+          tokenNeedsRenewal
+        );
+      }
+    };
+
+    const appStateSubscription = AppState.addEventListener(
+      "change",
+      (nextState) => {
+        const wasInBackground = currentAppState !== "active";
+        currentAppState = nextState;
+        if (nextState === "active" && wasInBackground) {
+          void recoverSession("foreground");
+        }
+      }
+    );
+
+    const unsubscribeAuthFailures = subscribeSessionAuthFailures(() => {
+      if (
+        currentAppState === "active" &&
+        Date.now() - lastSuccessfulRecoveryAt >=
+          AUTH_FAILURE_RECOVERY_COOLDOWN_MS
+      ) {
+        void recoverSession("api-auth-failure", true);
+      }
+    });
+
+    const networkPoll = setInterval(() => {
+      void inspectConnection();
+    }, NETWORK_RECOVERY_POLL_MS);
+
+    // Ghi nhận trạng thái ban đầu; nếu app được mount trong lúc offline thì
+    // lần poll đầu tiên sau khi có mạng sẽ tự động chạy recovery.
+    void inspectConnection();
+
+    return () => {
+      cancelled = true;
+      appStateSubscription.remove();
+      unsubscribeAuthFailures();
+      clearInterval(networkPoll);
+    };
+  }, [router]);
 
   // Component không render UI
   return null;
