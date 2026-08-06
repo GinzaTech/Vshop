@@ -10,21 +10,23 @@ import React from "react";
 import {
   FlatList,
   InteractionManager,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  PanResponder,
   Pressable,
   RefreshControl,
   ScrollView,
-  StyleProp,
   Text,
-  TextStyle,
   TouchableOpacity,
   View,
-  ViewStyle,
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
 import Animated, {
   interpolate,
   interpolateColor,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -42,6 +44,10 @@ import RankSplitGroup, {
   type RankSplitContentMode,
   type RankSplitStat,
 } from "~/components/profile/RankSplitGroup";
+import PlayerStatsDashboard, {
+  type StatsDashboardTab,
+} from "~/components/profile/PlayerStatsDashboard";
+import PixelRevealBackground from "~/components/profile/PixelRevealBackground";
 import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
 import {
   CollectionCheckerExport,
@@ -93,10 +99,43 @@ import { COLORS, RADIUS, GLOBAL_STYLES } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { VItemTypes } from "~/utils/misc";
 
-const EMPTY_PROFILE_LIST_DATA: never[] = [];
-const renderEmptyProfileListItem = () => null;
+const PROFILE_TAB_KEYS: TabKey[] = ["loadout", "skins", "collection"];
+
+type ProfileListRow =
+    | { key: "identity"; kind: "identity" }
+    | { key: "expressions"; kind: "expressions" }
+    | { key: string; kind: "skin-category"; category: string }
+    | {
+      key: string;
+      kind: "collection-row";
+      items: OwnedWeaponCollectionItem[];
+    }
+    | { key: string; kind: "loading" }
+    | {
+      key: string;
+      kind: "message";
+      message: string;
+      tone: "error" | "empty";
+    };
+
 const RANK_TEXT_RETRACT_DURATION_MS = 520;
 const RANK_SPLIT_DURATION_MS = 420;
+const HERO_SUBTITLE_TYPING_SPEED_MS = 36;
+const HERO_SUBTITLE_DELETING_SPEED_MS = 22;
+const HERO_SUBTITLE_INITIAL_DELAY_MS = 60;
+const HERO_SUBTITLE_COLLAPSE_DURATION_MS = 180;
+const HERO_SUBTITLE_EXPAND_DURATION_MS = 240;
+const PROFILE_BODY_FADE_DURATION_MS = 260;
+const PROFILE_BODY_SWAP_GAP_MS = 32;
+const PROFILE_NAV_RETRACT_DURATION_MS = 420;
+const PROFILE_SEGMENT_LAYOUT_DURATION_MS = 340;
+const PROFILE_DASHBOARD_GROW_DURATION_MS = 720;
+const PROFILE_BACKGROUND_DURATION_MS = 800;
+const PROFILE_STATS_FETCH_DELAY_MS =
+    PROFILE_BODY_FADE_DURATION_MS +
+    PROFILE_BODY_SWAP_GAP_MS +
+    PROFILE_DASHBOARD_GROW_DURATION_MS;
+type ProfileNavContentMode = "profile" | "blank" | "stats";
 const truncateToOneDecimal = (value: number) =>
     Math.trunc(value * 10) / 10;
 const formatOneDecimal = (value: number) =>
@@ -601,7 +640,12 @@ function Profile() {
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
   const matchAuthKey = useMatchStore((state) => state.authKey);
+  const recentMatches = useMatchStore((state) => state.matches);
+  const totalMatches = useMatchStore((state) => state.totalMatches);
+  const matchHistoryLoading = useMatchStore((state) => state.loading);
+  const seasonStatsLoading = useMatchStore((state) => state.seasonStatsLoading);
   const seasonPerformanceStats = useMatchStore((state) => state.seasonStats);
+  const fetchMatches = useMatchStore((state) => state.fetchMatches);
   const fetchSeasonStats = useMatchStore((state) => state.fetchSeasonStats);
   const setProfileCache = useProfileCacheStore((state) => state.setProfileCache);
   const profileGridColumns = viewportWidth >= 700 ? 4 : viewportWidth < 350 ? 2 : 3;
@@ -634,8 +678,109 @@ function Profile() {
       ? cachedProfile?.loadoutSnapshot ?? null
       : null;
   const [activeTab, setActiveTab] = React.useState<TabKey>("loadout");
+  const [statsDashboardTab, setStatsDashboardTab] =
+      React.useState<StatsDashboardTab>("overview");
+  const [profileNavContentMode, setProfileNavContentMode] =
+      React.useState<ProfileNavContentMode>("profile");
+  const [legacyProfileMounted, setLegacyProfileMounted] =
+      React.useState(true);
+  const [statsDashboardMounted, setStatsDashboardMounted] =
+      React.useState(false);
+  const [pixelBackgroundMounted, setPixelBackgroundMounted] =
+      React.useState(false);
+  const [pixelBackgroundTransition, setPixelBackgroundTransition] =
+      React.useState<"toDark" | "toLight">("toDark");
+  const profilePagerRef =
+      React.useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
+  const skinWhitespacePagerOriginRef = React.useRef(0);
+  const segmentProgress = useSharedValue(0);
+  const segmentLayoutProgress = useSharedValue(0);
+  const statsTabProgress = useSharedValue(0);
+  const segmentContainerWidth = useSharedValue(
+      Math.max(0, viewportWidth - 32)
+  );
+  React.useEffect(() => {
+    segmentContainerWidth.value = Math.max(0, viewportWidth - 32);
+  }, [segmentContainerWidth, viewportWidth]);
+  const handleSegmentContainerLayout = React.useCallback(
+      (event: LayoutChangeEvent) => {
+        segmentContainerWidth.value = event.nativeEvent.layout.width;
+      },
+      [segmentContainerWidth]
+  );
+  const handlePagerScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      segmentProgress.value = Math.max(
+          0,
+          Math.min(2, event.contentOffset.x / Math.max(1, viewportWidth))
+      );
+    },
+  });
+  const segmentIndicatorAnimatedStyle = useAnimatedStyle(
+      () => {
+        const contentWidth = Math.max(0, segmentContainerWidth.value - 16);
+        const profileSegmentTabWidth = Math.max(0, (contentWidth - 16) / 3);
+        const statsSegmentTabWidth = Math.max(0, (contentWidth - 8) / 2);
+
+        return {
+          width: interpolate(
+            segmentLayoutProgress.value,
+            [0, 1],
+            [profileSegmentTabWidth, statsSegmentTabWidth]
+          ),
+          transform: [
+            {
+              translateX: interpolate(
+                segmentLayoutProgress.value,
+                [0, 1],
+                [
+                  segmentProgress.value * (profileSegmentTabWidth + 8),
+                  statsTabProgress.value * (statsSegmentTabWidth + 8),
+                ]
+              ),
+            },
+          ],
+        };
+      }
+  );
+  const profileSegmentLayerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+        segmentLayoutProgress.value,
+        [0, 0.44, 1],
+        [1, 0, 0]
+    ),
+  }));
+  const statsSegmentLayerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+        segmentLayoutProgress.value,
+        [0, 0.56, 1],
+        [0, 0, 1]
+    ),
+  }));
+  const loadoutSegmentLabelAnimatedStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+        Math.min(1, Math.abs(segmentProgress.value)),
+        [0, 1],
+        ["#11181c", "rgba(255,255,255,0.6)"]
+    ),
+  }));
+  const skinsSegmentLabelAnimatedStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+        Math.min(1, Math.abs(segmentProgress.value - 1)),
+        [0, 1],
+        ["#11181c", "rgba(255,255,255,0.6)"]
+    ),
+  }));
+  const collectionSegmentLabelAnimatedStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+        Math.min(1, Math.abs(segmentProgress.value - 2)),
+        [0, 1],
+        ["#11181c", "rgba(255,255,255,0.6)"]
+    ),
+  }));
   const [loading, setLoading] = React.useState(!cachedLoadoutSnapshot);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [statsRefreshing, setStatsRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pickerError, setPickerError] = React.useState<string | null>(null);
   const [pickerLoading, setPickerLoading] = React.useState(false);
@@ -719,6 +864,9 @@ function Profile() {
       [colors]
   );
   const regionLabel = user.region ? user.region.toUpperCase() : "VAL";
+  const heroSubtitleText = t("profile_page.hero_subtitle");
+  const [heroSubtitleTargetText, setHeroSubtitleTargetText] =
+      React.useState(heroSubtitleText);
 
   // ─── Chuyển đổi giữa hồ sơ trang bị và thông tin người chơi ─────────────
   const [isPlayerInfoMode, setIsPlayerInfoMode] = React.useState(false);
@@ -727,11 +875,73 @@ function Profile() {
   const heroModeProgress = useSharedValue(0);
   const rankSplitProgress = useSharedValue(0);
   const statsVisibilityProgress = useSharedValue(1);
+  const heroSubtitleVisibilityProgress = useSharedValue(1);
+  const pageModeProgress = useSharedValue(0);
+  const legacyContentProgress = useSharedValue(1);
+  const dashboardProgress = useSharedValue(0);
   const statsExpandedRef = React.useRef(true);
   const lastRegionTapRef = React.useRef(0);
+  const heroSubtitleCollapseTimerRef = React.useRef<
+      ReturnType<typeof setTimeout> | null
+  >(null);
   const rankTransitionTimersRef = React.useRef<
       ReturnType<typeof setTimeout>[]
   >([]);
+  const profileModeTimersRef = React.useRef<
+      ReturnType<typeof setTimeout>[]
+  >([]);
+  const dashboardPreloadTaskRef = React.useRef<ReturnType<
+      typeof InteractionManager.runAfterInteractions
+  > | null>(null);
+
+  React.useEffect(() => {
+    const preloadTask = InteractionManager.runAfterInteractions(() => {
+      dashboardPreloadTaskRef.current = null;
+      setStatsDashboardMounted(true);
+    });
+    dashboardPreloadTaskRef.current = preloadTask;
+
+    return () => {
+      preloadTask.cancel();
+      if (dashboardPreloadTaskRef.current === preloadTask) {
+        dashboardPreloadTaskRef.current = null;
+      }
+    };
+  }, []);
+
+  const topHeaderTitleAnimatedStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+        pageModeProgress.value,
+        [0, 1],
+        [COLORS.TEXT_PRIMARY, "#F1F1F1"]
+    ),
+  }));
+
+  const topBalancePillAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+        pageModeProgress.value,
+        [0, 1],
+        [COLORS.PURE_BLACK, "#141414"]
+    ),
+    borderColor: interpolateColor(
+        pageModeProgress.value,
+        [0, 1],
+        ["rgba(42,42,42,0)", "#2A2A2A"]
+    ),
+  }));
+
+  const legacyContentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: legacyContentProgress.value,
+    transform: [
+      {
+        scale: interpolate(legacyContentProgress.value, [0, 1], [0.985, 1]),
+      },
+    ],
+  }));
+
+  const statsDashboardLayerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, dashboardProgress.value * 8),
+  }));
 
   const heroModeToggleAnimatedStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
@@ -760,6 +970,20 @@ function Profile() {
         translateX: interpolate(heroModeProgress.value, [0, 1], [7, -7]),
       },
     ],
+  }));
+
+  const heroSubtitleAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: heroSubtitleVisibilityProgress.value,
+    maxHeight: interpolate(
+        heroSubtitleVisibilityProgress.value,
+        [0, 1],
+        [0, 44]
+    ),
+    marginTop: interpolate(
+        heroSubtitleVisibilityProgress.value,
+        [0, 1],
+        [0, 4]
+    ),
   }));
 
   const balanceStatsAnimatedStyle = useAnimatedStyle(() => ({
@@ -846,13 +1070,156 @@ function Profile() {
 
   const toggleHeroMode = React.useCallback(() => {
     const nextMode = !isPlayerInfoMode;
+    if (heroSubtitleCollapseTimerRef.current) {
+      clearTimeout(heroSubtitleCollapseTimerRef.current);
+      heroSubtitleCollapseTimerRef.current = null;
+    }
+    profileModeTimersRef.current.forEach(clearTimeout);
+    profileModeTimersRef.current = [];
+
     setIsPlayerInfoMode(nextMode);
+    setProfileNavContentMode("blank");
     startRankSplitTransition(nextMode);
     heroModeProgress.value = withTiming(nextMode ? 1 : 0, {
       duration: 380,
       easing: Easing.out(Easing.cubic),
     });
-  }, [heroModeProgress, isPlayerInfoMode, startRankSplitTransition]);
+    pageModeProgress.value = withTiming(nextMode ? 1 : 0, {
+      duration: PROFILE_BACKGROUND_DURATION_MS,
+      easing: Easing.inOut(Easing.cubic),
+    });
+
+    if (nextMode) {
+      setPixelBackgroundTransition("toDark");
+      setPixelBackgroundMounted(true);
+      legacyContentProgress.value = withTiming(0, {
+        duration: PROFILE_BODY_FADE_DURATION_MS,
+        easing: Easing.out(Easing.cubic),
+      });
+      dashboardProgress.value = 0;
+
+      const unmountLegacyProfileTimer = setTimeout(() => {
+        setLegacyProfileMounted(false);
+      }, PROFILE_BODY_FADE_DURATION_MS);
+      const mountDashboardTimer = setTimeout(() => {
+        setStatsDashboardMounted(true);
+        dashboardProgress.value = withTiming(1, {
+          duration: PROFILE_DASHBOARD_GROW_DURATION_MS,
+          easing: Easing.out(Easing.cubic),
+        });
+      }, PROFILE_BODY_FADE_DURATION_MS + PROFILE_BODY_SWAP_GAP_MS);
+      const reshapeSegmentTimer = setTimeout(() => {
+        segmentLayoutProgress.value = withTiming(1, {
+          duration: PROFILE_SEGMENT_LAYOUT_DURATION_MS,
+          easing: Easing.inOut(Easing.cubic),
+        });
+      }, PROFILE_NAV_RETRACT_DURATION_MS);
+      const revealStatsTabsTimer = setTimeout(() => {
+        setProfileNavContentMode("stats");
+        profileModeTimersRef.current = [];
+      }, PROFILE_NAV_RETRACT_DURATION_MS + PROFILE_SEGMENT_LAYOUT_DURATION_MS);
+
+      profileModeTimersRef.current = [
+        unmountLegacyProfileTimer,
+        mountDashboardTimer,
+        reshapeSegmentTimer,
+        revealStatsTabsTimer,
+      ];
+    } else {
+      setPixelBackgroundTransition("toLight");
+      dashboardProgress.value = withTiming(0, {
+        duration: PROFILE_BODY_FADE_DURATION_MS,
+        easing: Easing.in(Easing.cubic),
+      });
+
+      const restoreProfileTimer = setTimeout(() => {
+        setLegacyProfileMounted(true);
+        legacyContentProgress.value = 0;
+        legacyContentProgress.value = withTiming(1, {
+          duration: PROFILE_BODY_FADE_DURATION_MS,
+          easing: Easing.out(Easing.cubic),
+        });
+      }, PROFILE_BODY_FADE_DURATION_MS + PROFILE_BODY_SWAP_GAP_MS);
+      const reshapeSegmentTimer = setTimeout(() => {
+        segmentLayoutProgress.value = withTiming(0, {
+          duration: PROFILE_SEGMENT_LAYOUT_DURATION_MS,
+          easing: Easing.inOut(Easing.cubic),
+        });
+      }, PROFILE_NAV_RETRACT_DURATION_MS);
+      const revealProfileTabsTimer = setTimeout(() => {
+        setProfileNavContentMode("profile");
+      }, PROFILE_NAV_RETRACT_DURATION_MS + PROFILE_SEGMENT_LAYOUT_DURATION_MS);
+      const unmountPixelBackgroundTimer = setTimeout(() => {
+        setPixelBackgroundMounted(false);
+        profileModeTimersRef.current = [];
+      }, PROFILE_BACKGROUND_DURATION_MS);
+
+      profileModeTimersRef.current = [
+        restoreProfileTimer,
+        reshapeSegmentTimer,
+        revealProfileTabsTimer,
+        unmountPixelBackgroundTimer,
+      ];
+    }
+
+    if (nextMode) {
+      // Giai đoạn 1: xoá hết chữ. Chỉ sau đó mới đóng dòng.
+      setHeroSubtitleTargetText("");
+      const deleteDuration =
+          heroSubtitleText.length * HERO_SUBTITLE_DELETING_SPEED_MS + 40;
+      heroSubtitleCollapseTimerRef.current = setTimeout(() => {
+        heroSubtitleVisibilityProgress.value = withTiming(0, {
+          duration: HERO_SUBTITLE_COLLAPSE_DURATION_MS,
+          easing: Easing.out(Easing.cubic),
+        });
+        heroSubtitleCollapseTimerRef.current = null;
+      }, deleteDuration);
+    } else {
+      // Giai đoạn 1: giữ chữ rỗng và mở dòng hoàn toàn.
+      setHeroSubtitleTargetText("");
+      heroSubtitleVisibilityProgress.value = withTiming(1, {
+        duration: HERO_SUBTITLE_EXPAND_DURATION_MS,
+        easing: Easing.out(Easing.cubic),
+      });
+
+      // Giai đoạn 2: dòng đã mở xong mới bắt đầu gõ chữ trở lại.
+      heroSubtitleCollapseTimerRef.current = setTimeout(() => {
+        setHeroSubtitleTargetText(heroSubtitleText);
+        heroSubtitleCollapseTimerRef.current = null;
+      }, HERO_SUBTITLE_EXPAND_DURATION_MS);
+    }
+  }, [
+    dashboardProgress,
+    heroModeProgress,
+    heroSubtitleText,
+    heroSubtitleVisibilityProgress,
+    isPlayerInfoMode,
+    legacyContentProgress,
+    pageModeProgress,
+    segmentLayoutProgress,
+    startRankSplitTransition,
+  ]);
+
+  const handleStatsDashboardTabChange = React.useCallback(
+      (tab: StatsDashboardTab) => {
+        setStatsDashboardTab(tab);
+        statsTabProgress.value = withTiming(tab === "overview" ? 0 : 1, {
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+        });
+      },
+      [statsTabProgress]
+  );
+
+  React.useEffect(() => {
+    if (!isPlayerInfoMode || !hasAuth) return;
+
+    const fetchTimer = setTimeout(() => {
+      void fetchMatches(user);
+    }, PROFILE_STATS_FETCH_DELAY_MS);
+
+    return () => clearTimeout(fetchTimer);
+  }, [fetchMatches, hasAuth, isPlayerInfoMode, user]);
 
   // ─── profileStats: các thông số hiển thị trong hero card ─────────────────
   const profileStats = React.useMemo(
@@ -1338,6 +1705,14 @@ function Profile() {
         }
         rankTransitionTimersRef.current.forEach(clearTimeout);
         rankTransitionTimersRef.current = [];
+        profileModeTimersRef.current.forEach(clearTimeout);
+        profileModeTimersRef.current = [];
+        dashboardPreloadTaskRef.current?.cancel();
+        dashboardPreloadTaskRef.current = null;
+        if (heroSubtitleCollapseTimerRef.current) {
+          clearTimeout(heroSubtitleCollapseTimerRef.current);
+          heroSubtitleCollapseTimerRef.current = null;
+        }
       },
       []
   );
@@ -2144,6 +2519,96 @@ function Profile() {
     );
   }, [collectionWeaponFilter, ownedCollection, searchQuery]);
 
+  const profileListRowsByTab = React.useMemo<Record<TabKey, ProfileListRow[]>>(() => {
+    if (loading) {
+      const rows: ProfileListRow[] = [
+        { key: "status-loading", kind: "loading" },
+      ];
+      return { loadout: rows, skins: rows, collection: rows };
+    }
+
+    if (error) {
+      const rows: ProfileListRow[] = [
+        {
+          key: "status-error",
+          kind: "message",
+          message: error,
+          tone: "error",
+        },
+      ];
+      return { loadout: rows, skins: rows, collection: rows };
+    }
+
+    const loadoutRows: ProfileListRow[] = [
+      { key: "identity", kind: "identity" },
+      { key: "expressions", kind: "expressions" },
+    ];
+
+    if (loadoutSorted.length === 0) {
+      const emptyRows: ProfileListRow[] = [
+        {
+          key: "status-empty-loadout",
+          kind: "message",
+          message: t("equip_page.empty"),
+          tone: "empty",
+        },
+      ];
+      return {
+        loadout: loadoutRows,
+        skins: emptyRows,
+        collection: emptyRows,
+      };
+    }
+
+    const skinRows: ProfileListRow[] = orderedLoadoutCategories.map(
+        (category) => ({
+        key: `skin-category:${category}`,
+        kind: "skin-category" as const,
+        category,
+      })
+    );
+
+    let collectionRows: ProfileListRow[];
+    if (filteredCollection.length === 0) {
+      collectionRows = [
+        {
+          key: "status-empty-collection",
+          kind: "message",
+          message: t("equip_page.empty"),
+          tone: "empty",
+        },
+      ];
+    } else {
+      collectionRows = [];
+      for (
+        let index = 0;
+        index < filteredCollection.length;
+        index += profileGridColumns
+      ) {
+        const items = filteredCollection.slice(index, index + profileGridColumns);
+        collectionRows.push({
+          key: `collection-row:${items[0].collectionId}`,
+          kind: "collection-row",
+          items,
+        });
+      }
+    }
+
+    return {
+      loadout: loadoutRows,
+      skins: skinRows,
+      collection: collectionRows,
+    };
+  }, [
+    error,
+    filteredCollection,
+    loading,
+    loadoutSorted.length,
+    orderedLoadoutCategories,
+    profileGridColumns,
+    t,
+  ]);
+
   /**
    * handleRefresh — Pull-to-refresh: gọi fetchLoadoutData không spinner.
    */
@@ -2154,6 +2619,20 @@ function Profile() {
     await fetchLoadoutData(false, true);
     setRefreshing(false);
   }, [fetchLoadoutData, hasAuth]);
+
+  const handleStatsRefresh = React.useCallback(async () => {
+    if (!hasAuth) return;
+
+    setStatsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchMatches(user, true),
+        fetchSeasonStats(user, true),
+      ]);
+    } finally {
+      setStatsRefreshing(false);
+    }
+  }, [fetchMatches, fetchSeasonStats, hasAuth, user]);
 
   /**
    * handleDismissPicker — Đóng picker modal và reset state liên quan.
@@ -2176,11 +2655,111 @@ function Profile() {
   }, [t]);
 
   const handleTabChange = React.useCallback(
-      (tab: TabKey) => {
-        handleDismissPicker();
-        setActiveTab(tab);
-      },
-      [handleDismissPicker]
+    (tab: TabKey) => {
+      handleDismissPicker();
+      const nextIndex = PROFILE_TAB_KEYS.indexOf(tab);
+
+      setActiveTab(tab);
+      profilePagerRef.current?.scrollTo({
+        x: nextIndex * viewportWidth,
+        y: 0,
+        animated: true,
+      });
+    },
+    [handleDismissPicker, profilePagerRef, viewportWidth]
+  );
+
+  const setPagerGestureEnabled = React.useCallback((enabled: boolean) => {
+    profilePagerRef.current?.setNativeProps({ scrollEnabled: enabled });
+  }, [profilePagerRef]);
+
+  const skinWhitespacePagerPanResponder = React.useMemo(
+      () =>
+          PanResponder.create({
+            onMoveShouldSetPanResponder: (_event, gestureState) => {
+              const horizontalDistance = Math.abs(gestureState.dx);
+              const verticalDistance = Math.abs(gestureState.dy);
+
+              return (
+                  horizontalDistance > 8 &&
+                  horizontalDistance > verticalDistance * 1.15
+              );
+            },
+            onMoveShouldSetPanResponderCapture: (_event, gestureState) => {
+              const horizontalDistance = Math.abs(gestureState.dx);
+              const verticalDistance = Math.abs(gestureState.dy);
+
+              return (
+                  horizontalDistance > 8 &&
+                  horizontalDistance > verticalDistance * 1.15
+              );
+            },
+            onPanResponderGrant: () => {
+              const currentIndex = PROFILE_TAB_KEYS.indexOf(activeTab);
+              skinWhitespacePagerOriginRef.current =
+                  currentIndex * viewportWidth;
+              setPagerGestureEnabled(false);
+            },
+            onPanResponderMove: (_event, gestureState) => {
+              const nextOffset = Math.max(
+                  0,
+                  Math.min(
+                      (PROFILE_TAB_KEYS.length - 1) * viewportWidth,
+                      skinWhitespacePagerOriginRef.current - gestureState.dx
+                  )
+              );
+
+              profilePagerRef.current?.scrollTo({
+                x: nextOffset,
+                y: 0,
+                animated: false,
+              });
+            },
+            onPanResponderRelease: (_event, gestureState) => {
+              const currentIndex = PROFILE_TAB_KEYS.indexOf(activeTab);
+              const shouldChangePage =
+                  Math.abs(gestureState.dx) > viewportWidth * 0.16 ||
+                  Math.abs(gestureState.vx) > 0.35;
+              const direction = gestureState.dx < 0 ? 1 : -1;
+              const nextIndex = shouldChangePage
+                  ? Math.max(
+                      0,
+                      Math.min(
+                          PROFILE_TAB_KEYS.length - 1,
+                          currentIndex + direction
+                      )
+                  )
+                  : currentIndex;
+
+              setPagerGestureEnabled(true);
+              handleTabChange(PROFILE_TAB_KEYS[nextIndex]);
+            },
+            onPanResponderTerminate: () => {
+              setPagerGestureEnabled(true);
+              handleTabChange(activeTab);
+            },
+            onPanResponderTerminationRequest: () => false,
+          }),
+      [
+        activeTab,
+        handleTabChange,
+        setPagerGestureEnabled,
+        viewportWidth,
+      ]
+  );
+
+  const handlePagerMomentumEnd = React.useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const nextIndex = Math.max(
+          0,
+          Math.min(
+              PROFILE_TAB_KEYS.length - 1,
+              Math.round(event.nativeEvent.contentOffset.x / Math.max(1, viewportWidth))
+          )
+      );
+      setActiveTab(PROFILE_TAB_KEYS[nextIndex]);
+    },
+    [viewportWidth]
   );
 
   /**
@@ -2880,41 +3459,109 @@ function Profile() {
 
   const renderSegmentedControl = () => (
       <View
+          onLayout={handleSegmentContainerLayout}
           style={[
             styles.segmentContainer,
             { backgroundColor: "#11181c" },
           ]}
       >
-        {tabItems.map((tab, index) => {
-          const active = activeTab === tab.value;
-          return (
-              <TouchableOpacity
-                  key={tab.value}
-                  onPress={() => handleTabChange(tab.value)}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.segmentButton,
-                    {
-                      backgroundColor: active ? "#ffffff" : "transparent",
-                      marginLeft: index === 0 ? 0 : 8,
-                    },
-                  ]}
-              >
-                <Text
+        <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.segmentIndicator,
+              segmentIndicatorAnimatedStyle,
+            ]}
+        />
+        {profileNavContentMode !== "stats" ? (
+          <Animated.View
+            pointerEvents={profileNavContentMode === "profile" ? "auto" : "none"}
+            accessibilityElementsHidden={profileNavContentMode !== "profile"}
+            importantForAccessibility={
+              profileNavContentMode === "profile" ? "auto" : "no-hide-descendants"
+            }
+            style={[styles.segmentLayer, profileSegmentLayerAnimatedStyle]}
+        >
+          {tabItems.map((tab, index) => {
+            const active = activeTab === tab.value;
+            return (
+                <TouchableOpacity
+                    key={tab.value}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => handleTabChange(tab.value)}
+                    activeOpacity={0.85}
                     style={[
-                      styles.segmentLabel,
-                      {
-                        color: active
-                            ? "#11181c"
-                            : "rgba(255,255,255,0.6)",
-                      },
+                      styles.segmentButton,
+                      { marginLeft: index === 0 ? 0 : 8 },
                     ]}
                 >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-          );
-        })}
+                  <TypewriterSwapText
+                      text={
+                        profileNavContentMode === "profile" ? tab.label : ""
+                      }
+                      showCursor={false}
+                      typingSpeed={32}
+                      deletingSpeed={20}
+                      initialDelay={55}
+                      style={[
+                        styles.segmentLabel,
+                        index === 0
+                            ? loadoutSegmentLabelAnimatedStyle
+                            : index === 1
+                              ? skinsSegmentLabelAnimatedStyle
+                              : collectionSegmentLabelAnimatedStyle,
+                      ]}
+                  />
+                </TouchableOpacity>
+            );
+          })}
+          </Animated.View>
+        ) : null}
+        {profileNavContentMode !== "profile" ? (
+          <Animated.View
+            pointerEvents={profileNavContentMode === "stats" ? "auto" : "none"}
+            accessibilityElementsHidden={profileNavContentMode !== "stats"}
+            importantForAccessibility={
+              profileNavContentMode === "stats" ? "auto" : "no-hide-descendants"
+            }
+            style={[styles.segmentLayer, statsSegmentLayerAnimatedStyle]}
+        >
+          {(["overview", "details"] as StatsDashboardTab[]).map((tab, index) => {
+            const active = statsDashboardTab === tab;
+            return (
+                <TouchableOpacity
+                    key={tab}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => handleStatsDashboardTabChange(tab)}
+                    activeOpacity={0.85}
+                    style={[
+                      styles.segmentButton,
+                      { marginLeft: index === 0 ? 0 : 8 },
+                    ]}
+                >
+                  <TypewriterSwapText
+                      text={
+                        profileNavContentMode === "stats"
+                            ? tab === "overview"
+                              ? "OVERVIEW"
+                              : "DETAILS"
+                            : ""
+                      }
+                      showCursor={false}
+                      typingSpeed={34}
+                      deletingSpeed={20}
+                      initialDelay={55}
+                      style={[
+                        styles.segmentLabel,
+                        { color: active ? "#11181c" : "rgba(255,255,255,0.6)" },
+                      ]}
+                  />
+                </TouchableOpacity>
+            );
+          })}
+          </Animated.View>
+        ) : null}
       </View>
   );
 
@@ -2996,7 +3643,23 @@ function Profile() {
               </View>
           ) : null}
         </View>
-        <Text style={styles.heroSubtitle}>{t("profile_page.hero_subtitle")}</Text>
+        <Animated.View
+            pointerEvents="none"
+            accessibilityElementsHidden={isPlayerInfoMode}
+            importantForAccessibility={
+              isPlayerInfoMode ? "no-hide-descendants" : "auto"
+            }
+            style={[styles.heroSubtitleViewport, heroSubtitleAnimatedStyle]}
+        >
+          <TypewriterSwapText
+              text={heroSubtitleTargetText}
+              showCursor={false}
+              typingSpeed={HERO_SUBTITLE_TYPING_SPEED_MS}
+              deletingSpeed={HERO_SUBTITLE_DELETING_SPEED_MS}
+              initialDelay={HERO_SUBTITLE_INITIAL_DELAY_MS}
+              style={styles.heroSubtitle}
+          />
+        </Animated.View>
 
         <View style={styles.heroMetaRow}>
           <View style={[styles.heroMetaPill, { backgroundColor: "rgba(255,255,255,0.08)" }]}>
@@ -3327,6 +3990,11 @@ function Profile() {
       [handleOpenWeaponPicker, profileSkinRowCardWidth]
   );
 
+  const renderSkinListItem = React.useCallback(
+      ({ item }: { item: EquippedWeapon }) => renderSkinGridCard(item),
+      [renderSkinGridCard]
+  );
+
   const renderPageHeader = () => (
       <>
         <View style={styles.topHeaderRow}>
@@ -3363,75 +4031,24 @@ function Profile() {
                 </View>
             ) : null}
           </TouchableOpacity>
-          <Text style={styles.topHeaderTitle}>Vshop</Text>
-          <View style={styles.topBalancePill}>
+          <Animated.Text
+              style={[styles.topHeaderTitle, topHeaderTitleAnimatedStyle]}
+          >
+            Vshop
+          </Animated.Text>
+          <Animated.View
+              style={[styles.topBalancePill, topBalancePillAnimatedStyle]}
+          >
             <Text style={styles.topBalanceText}>{user.balances.vp} {t("vp")}</Text>
-          </View>
+          </Animated.View>
         </View>
         {renderProfileHero()}
         {renderSegmentedControl()}
       </>
   );
 
-  const renderPageScroll = (
-      children: React.ReactNode,
-      contentStyle: StyleProp<ViewStyle> = styles.pageScrollContent,
-      bodyStyle: StyleProp<ViewStyle> = styles.pageBody
-  ) => (
-      <FlatList
-          key={`profile-content-${profileGridColumns}`}
-          style={styles.pageScroll}
-          data={EMPTY_PROFILE_LIST_DATA}
-          renderItem={renderEmptyProfileListItem}
-          numColumns={profileGridColumns}
-          contentContainerStyle={contentStyle}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor={palette.accent}
-                colors={[palette.accent]}
-            />
-          }
-          ListHeaderComponent={
-            <>
-              {renderPageHeader()}
-              <View style={bodyStyle}>{children}</View>
-            </>
-          }
-      />
-  );
-
-  const renderSkinsTab = () =>
-      renderPageScroll(
-          <View style={styles.profileSkinSections}>
-            {orderedLoadoutCategories.map((category) => (
-                <View key={category} style={styles.profileSkinCategory}>
-                  <Text
-                      style={[
-                        styles.profileSkinCategoryTitle,
-                        { color: palette.textPrimary },
-                      ]}
-                  >
-                    {formatCategoryLabel(category)}
-                  </Text>
-                  <ScrollView
-                      horizontal
-                      nestedScrollEnabled
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.profileSkinRow}
-                  >
-                    {loadoutByCategory[category].map(renderSkinGridCard)}
-                  </ScrollView>
-                </View>
-            ))}
-          </View>
-      );
-
-  const renderCollectionHeader = () => (
+  const renderCollectionControls = () => (
       <>
-        {renderPageHeader()}
         <View style={styles.collectionSearchRow}>
           <Searchbar
               placeholder={t("equip_page.search_placeholder")}
@@ -3450,6 +4067,9 @@ function Profile() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.collectionFilterRow}
+            onTouchStart={() => setPagerGestureEnabled(false)}
+            onTouchEnd={() => setPagerGestureEnabled(true)}
+            onTouchCancel={() => setPagerGestureEnabled(true)}
         >
           {collectionWeaponTabs.map((weaponName) => {
             const active = collectionWeaponFilter === weaponName;
@@ -3480,9 +4100,10 @@ function Profile() {
       </>
   );
 
-  const renderCollectionItem = React.useCallback(
-      ({ item }: { item: OwnedWeaponCollectionItem }) => (
+  const renderCollectionCard = React.useCallback(
+      (item: OwnedWeaponCollectionItem) => (
           <CompactProfileSkinCard
+              key={item.collectionId}
               weapon={item}
               width={profileGridCardWidth}
               onPress={() => handleEquipCollectionSkin(item)}
@@ -3491,51 +4112,155 @@ function Profile() {
       [handleEquipCollectionSkin, profileGridCardWidth]
   );
 
-  const renderCollectionEmpty = React.useCallback(
-      () => (
-          <Text style={[styles.emptyText, { color: palette.textSecondary }]}>
-            {t("equip_page.empty")}
-          </Text>
-      ),
-      [palette.textSecondary, t]
+  const renderProfileListRow = ({ item }: { item: ProfileListRow }) => {
+    switch (item.kind) {
+      case "loading":
+        return (
+            <View style={styles.pageStatus}>
+              <ActivityIndicator animating color={palette.accent} />
+            </View>
+        );
+      case "message":
+        return (
+            <View style={styles.pageStatus}>
+              <Text
+                  style={[
+                    item.tone === "error" ? styles.errorText : styles.emptyText,
+                    { color: palette.textSecondary },
+                  ]}
+              >
+                {item.message}
+              </Text>
+            </View>
+        );
+      case "identity":
+        return (
+            <View style={styles.pageBody}>
+              {renderIdentitySection()}
+            </View>
+        );
+      case "expressions":
+        return <View style={styles.pageBody}>{renderSpraySection()}</View>;
+      case "skin-category": {
+        const categoryWeapons = loadoutByCategory[item.category];
+        const availableRowWidth = viewportWidth - 32;
+        const skinListWidth = Math.min(
+            availableRowWidth,
+            categoryWeapons.length * profileSkinRowCardWidth +
+            Math.max(0, categoryWeapons.length - 1) * 8 +
+            8
+        );
+
+        return (
+            <View style={styles.profileSkinCategoryRow}>
+              <View
+                  style={styles.profileSkinCategoryTitleSwipeSurface}
+                  {...skinWhitespacePagerPanResponder.panHandlers}
+              >
+                <Text
+                    style={[
+                      styles.profileSkinCategoryTitle,
+                      { color: palette.textPrimary },
+                    ]}
+                >
+                  {formatCategoryLabel(item.category)}
+                </Text>
+              </View>
+              <View style={styles.profileSkinCardLane}>
+                <FlatList
+                    horizontal
+                    style={{ width: skinListWidth, flexGrow: 0 }}
+                    data={categoryWeapons}
+                    keyExtractor={(weapon) => weapon.weaponId}
+                    renderItem={renderSkinListItem}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.profileSkinRow}
+                    nestedScrollEnabled
+                    onTouchStart={() => setPagerGestureEnabled(false)}
+                    onTouchEnd={() => setPagerGestureEnabled(true)}
+                    onTouchCancel={() => setPagerGestureEnabled(true)}
+                    removeClippedSubviews
+                    initialNumToRender={2}
+                    maxToRenderPerBatch={2}
+                    windowSize={3}
+                    updateCellsBatchingPeriod={48}
+                />
+                {skinListWidth < availableRowWidth ? (
+                    <View
+                        collapsable={false}
+                        style={styles.profileSkinRowWhitespace}
+                        {...skinWhitespacePagerPanResponder.panHandlers}
+                    />
+                ) : null}
+              </View>
+              <View
+                  collapsable={false}
+                  style={styles.profileSkinCategorySpacer}
+                  {...skinWhitespacePagerPanResponder.panHandlers}
+              />
+            </View>
+        );
+      }
+      case "collection-row":
+        return (
+            <View style={styles.collectionRow}>
+              {item.items.map(renderCollectionCard)}
+            </View>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderProfileListHeader = (tab: TabKey) => (
+      <>
+        {tab === "collection" &&
+        !loading &&
+        !error &&
+        loadoutSorted.length > 0
+            ? renderCollectionControls()
+            : null}
+      </>
   );
 
-  const renderCollectionTab = () => (
-      <FlatList
-          key={`profile-content-${profileGridColumns}`}
-          style={styles.collectionContainer}
-          data={filteredCollection}
-          keyExtractor={(item) => item.collectionId}
-          numColumns={profileGridColumns}
-          refreshControl={
-            <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor={palette.accent}
-                colors={[palette.accent]}
+  const renderProfileTabPage = (tab: TabKey) => (
+      <View
+          key={tab}
+          style={[styles.profileTabPage, { width: viewportWidth }]}
+      >
+        {tab === "skins" ? (
+            <View
+                collapsable={false}
+                style={styles.profilePageSwipeZone}
+                {...skinWhitespacePagerPanResponder.panHandlers}
             />
-          }
-          contentContainerStyle={styles.collectionList}
-          columnWrapperStyle={styles.collectionRow}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderCollectionHeader()}
-          ListEmptyComponent={renderCollectionEmpty}
-          renderItem={renderCollectionItem}
-          removeClippedSubviews
-          initialNumToRender={8}
-          maxToRenderPerBatch={6}
-          windowSize={5}
-          updateCellsBatchingPeriod={24}
-      />
+        ) : (
+            <View style={styles.profilePageSwipeZone} />
+        )}
+        <FlatList
+            style={styles.pageScroll}
+            data={profileListRowsByTab[tab]}
+            keyExtractor={(item) => item.key}
+            renderItem={renderProfileListRow}
+            contentContainerStyle={styles.pageScrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  tintColor={palette.accent}
+                  colors={[palette.accent]}
+              />
+            }
+            ListHeaderComponent={renderProfileListHeader(tab)}
+            removeClippedSubviews={false}
+            initialNumToRender={1}
+            maxToRenderPerBatch={1}
+            windowSize={5}
+            updateCellsBatchingPeriod={48}
+        />
+      </View>
   );
-
-  const renderLoadoutTab = () =>
-      renderPageScroll(
-          <>
-            {renderIdentitySection()}
-            {renderSpraySection()}
-          </>
-      );
 
   const renderPickerModal = () => {
     if (!pickerState) {
@@ -4341,64 +5066,90 @@ function Profile() {
     );
   };
 
-  const renderStatusScroll = (
-      text: string,
-      textStyle: StyleProp<TextStyle>
-  ) =>
-      renderPageScroll(
-          <Text style={textStyle}>{text}</Text>,
-          styles.pageScrollContent,
-          styles.pageStatus
-      );
-
-  let content: React.ReactNode = null;
-
-  if (loading) {
-    content = renderPageScroll(
-        <View style={styles.pageStatus}>
-          <ActivityIndicator animating color={palette.accent} />
-        </View>,
-        styles.pageScrollContent,
-        styles.pageStatus
-    );
-  } else if (error) {
-    content = renderStatusScroll(error, [
-      styles.errorText,
-      { color: palette.textSecondary },
-    ]);
-  } else if (
-      activeTab !== "loadout" &&
-      loadoutSorted.length === 0
-  ) {
-    content = renderStatusScroll(t("equip_page.empty"), [
-      styles.emptyText,
-      { color: palette.textSecondary },
-    ]);
-  } else {
-    switch (activeTab) {
-      case "skins":
-        content = renderSkinsTab();
-        break;
-      case "collection":
-        content = renderCollectionTab();
-        break;
-      case "loadout":
-      default:
-        content = renderLoadoutTab();
-        break;
-    }
-  }
-
   return (
     <CollectionCheckerExportProvider
         items={ownedCollection}
         profile={collectionCheckerProfile}
         disabled={refreshing}
     >
-      <View style={[styles.container, { backgroundColor: palette.background }]}>
-        {content}
+      <Animated.View
+          style={[
+            styles.container,
+            {
+              backgroundColor: isPlayerInfoMode ? "#000000" : "#FFFFFF",
+            },
+          ]}
+      >
+        {pixelBackgroundMounted ? (
+            <PixelRevealBackground
+                durationMs={PROFILE_BACKGROUND_DURATION_MS}
+                transition={pixelBackgroundTransition}
+            />
+        ) : null}
+        {renderPageHeader()}
+        <View style={styles.profileBodyStack}>
+          {legacyProfileMounted ? (
+              <Animated.View
+                  pointerEvents={isPlayerInfoMode ? "none" : "auto"}
+                  accessibilityElementsHidden={isPlayerInfoMode}
+                  importantForAccessibility={
+                    isPlayerInfoMode ? "no-hide-descendants" : "auto"
+                  }
+                  style={[styles.profileBodyLayer, legacyContentAnimatedStyle]}
+              >
+                <Animated.ScrollView
+                    key={`profile-pager:${Math.round(viewportWidth)}`}
+                    ref={profilePagerRef}
+                    horizontal
+                    pagingEnabled
+                    bounces={false}
+                    disableIntervalMomentum
+                    directionalLockEnabled
+                    nestedScrollEnabled
+                    style={styles.profilePager}
+                    showsVerticalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={false}
+                    onScroll={handlePagerScroll}
+                    onMomentumScrollEnd={handlePagerMomentumEnd}
+                    scrollEventThrottle={16}
+                >
+                  {PROFILE_TAB_KEYS.map(renderProfileTabPage)}
+                </Animated.ScrollView>
+              </Animated.View>
+          ) : null}
+          {statsDashboardMounted ? (
+              <Animated.View
+                  pointerEvents={isPlayerInfoMode ? "auto" : "none"}
+                  accessibilityElementsHidden={!isPlayerInfoMode}
+                  importantForAccessibility={
+                    isPlayerInfoMode ? "auto" : "no-hide-descendants"
+                  }
+                  style={[
+                    styles.profileBodyLayer,
+                    statsDashboardLayerAnimatedStyle,
+                  ]}
+              >
+                <PlayerStatsDashboard
+                    activeTab={statsDashboardTab}
+                    competitiveRank={competitiveRank}
+                    loading={matchHistoryLoading || seasonStatsLoading}
+                    matches={matchAuthKey === authKey ? recentMatches : []}
+                    onRefresh={handleStatsRefresh}
+                    onRequestDetails={() =>
+                      handleStatsDashboardTabChange("details")
+                    }
+                    refreshing={statsRefreshing}
+                    seasonStats={
+                      matchAuthKey === authKey ? seasonPerformanceStats : null
+                    }
+                    totalMatches={matchAuthKey === authKey ? totalMatches : 0}
+                    transitionProgress={dashboardProgress}
+                />
+              </Animated.View>
+          ) : null}
+        </View>
         {renderPickerModal()}
-      </View>
+      </Animated.View>
     </CollectionCheckerExportProvider>
   );
 }
@@ -4413,6 +5164,22 @@ function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  profilePager: {
+    flex: 1,
+  },
+  profileBodyStack: {
+    flex: 1,
+    position: "relative",
+  },
+  profileBodyLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  profileTabPage: {
+    flex: 1,
+  },
+  profilePageSwipeZone: {
+    height: 12,
   },
   topHeaderRow: {
     flexDirection: "row",
@@ -4466,6 +5233,8 @@ const styles = StyleSheet.create({
   },
   topBalancePill: {
     backgroundColor: COLORS.PURE_BLACK,
+    borderWidth: 1,
+    borderColor: "transparent",
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
@@ -4562,9 +5331,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   heroSubtitle: {
-    marginTop: 4,
     fontSize: 14,
+    lineHeight: 20,
     color: "rgba(255,255,255,0.78)",
+  },
+  heroSubtitleViewport: {
+    overflow: "hidden",
   },
   heroMetaRow: {
     flexDirection: "row",
@@ -4981,14 +5753,27 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   segmentContainer: {
+    position: "relative",
+    height: 56,
+    borderRadius: 28,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  segmentLayer: {
+    ...StyleSheet.absoluteFillObject,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 8,
-    borderRadius: 28,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 20,
+  },
+  segmentIndicator: {
+    position: "absolute",
+    left: 8,
+    top: 8,
+    bottom: 8,
+    borderRadius: 22,
+    backgroundColor: COLORS.PURE_WHITE,
   },
   segmentButton: {
     flex: 1,
@@ -4997,6 +5782,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 1,
   },
   segmentLabel: {
     fontSize: 15,
@@ -5200,11 +5986,21 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  profileSkinSections: {
-    gap: 16,
+  profileSkinCategoryRow: {
+    paddingHorizontal: 16,
   },
-  profileSkinCategory: {
-    gap: 8,
+  profileSkinCategoryTitleSwipeSurface: {
+    alignSelf: "stretch",
+    marginBottom: 8,
+  },
+  profileSkinCardLane: {
+    flexDirection: "row",
+  },
+  profileSkinRowWhitespace: {
+    flex: 1,
+  },
+  profileSkinCategorySpacer: {
+    height: 16,
   },
   profileSkinCategoryTitle: {
     fontSize: 15,
@@ -5280,9 +6076,6 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     minHeight: 28,
   },
-  collectionContainer: {
-    flex: 1,
-  },
   searchBar: {
     flex: 1,
     borderRadius: 20,
@@ -5296,9 +6089,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
-  },
-  collectionList: {
-    paddingBottom: 140,
   },
   collectionFilterRow: {
     paddingHorizontal: 16,
@@ -5327,6 +6117,7 @@ const styles = StyleSheet.create({
     color: COLORS.PURE_WHITE,
   },
   collectionRow: {
+    flexDirection: "row",
     gap: 8,
     paddingHorizontal: 16,
   },
