@@ -23,7 +23,9 @@ export default function PixelRevealBackground({
   const latestTransitionRef = React.useRef(transition);
   const source = React.useMemo(() => ({ html: PIXEL_CANVAS_HTML }), []);
 
-  latestTransitionRef.current = transition;
+  React.useEffect(() => {
+    latestTransitionRef.current = transition;
+  }, [transition]);
 
   const runNativeTransition = React.useCallback(
     (nextTransition: PixelBackgroundTransition) => {
@@ -70,6 +72,7 @@ export default function PixelRevealBackground({
             }
           },
           ref: webFrameRef,
+          sandbox: "allow-scripts",
           srcDoc: PIXEL_CANVAS_HTML,
           style: {
             border: 0,
