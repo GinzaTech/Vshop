@@ -49,7 +49,7 @@ const Agent = () => {
               onPress={() => filterByRole(role.id)}
             >
               {/* Icon của role */}
-              <Image source={role.icon} style={styles.roleIcon} />
+              <Image source={role.icon} style={styles.roleIcon} contentFit="contain" />
               {/* Tên role, nếu được chọn thì màu trắng, không thì mờ */}
               <Text style={[styles.roleLabel, selectedRole === role.id && styles.roleLabelSelected]}>
                 {role.name}
@@ -109,7 +109,6 @@ const styles = StyleSheet.create({
   roleIcon: {
     width: 28,
     height: 28,
-    resizeMode: "contain",
   },
   // Label của role: màu trắng mờ 50%, cỡ chữ 11
   roleLabel: {
