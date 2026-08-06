@@ -71,7 +71,7 @@ let assetLookups: ReturnType<typeof buildAssetLookups> | null = null;
 // Cache dữ liệu bundle (mỗi key = "language|bundleId")
 // Giới hạn tối đa để tránh memory leak
 const BUNDLE_CACHE_MAX_SIZE = 100;
-const bundleCache = new Map<string, ValorantBundle | null>();
+const bundleCache = new Map<string, ValorantBundle>();
 // Map các request bundle đang thực thi (để deduplicate request)
 const bundleRequests = new Map<string, Promise<ValorantBundle | null>>();
 
@@ -542,6 +542,13 @@ export async function fetchBundle(bundleId: string, language?: string) {
     })
     .then((res) => (res.status === 200 ? res.data.data : null))
     .then((bundle) => {
+      // Riot's storefront can expose a new bundle before valorant-api.com has
+      // ingested the latest patch. Do not cache that temporary 404, otherwise
+      // this app session could never pick up the metadata after upstream syncs.
+      if (bundle == null) {
+        return null;
+      }
+
       if (bundleCache.size >= BUNDLE_CACHE_MAX_SIZE) {
         const firstKey = bundleCache.keys().next().value;
         if (firstKey !== undefined) bundleCache.delete(firstKey);
