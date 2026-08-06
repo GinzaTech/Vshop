@@ -95,7 +95,9 @@ export default function MatchHistoryScreen() {
   const hasMoreHistory = !isDemo && (pendingMatchCount > 0 || matches.length < totalMatches);
 
   // useEffect: fetch matches khi component mount (trừ demo)
-  React.useEffect(() => { if (!isDemo) void fetchMatches(user); }, [fetchMatches, isDemo, user.accessToken, user.entitlementsToken, user.region, user.id]);
+  React.useEffect(() => {
+    if (!isDemo) void fetchMatches(user);
+  }, [fetchMatches, isDemo, user]);
 
   // profileVisuals: thông tin visual của profile (avatar, rank icon)
   const profileVisuals = React.useMemo(() => {
