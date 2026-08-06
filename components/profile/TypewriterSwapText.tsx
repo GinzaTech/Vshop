@@ -81,21 +81,26 @@ function TypewriterSwapText({
     return () => clearTimeout(timer);
   }, [deletingSpeed, displayedText, initialDelay, phase, typingSpeed]);
 
+  const cursorVisible = showCursor && phase !== "idle";
+
   React.useEffect(() => {
+    cancelAnimation(cursorOpacity);
     cursorOpacity.value = 1;
-    cursorOpacity.value = withRepeat(
-      withTiming(0, { duration: cursorBlinkDuration }),
-      -1,
-      true
-    );
+
+    if (cursorVisible) {
+      cursorOpacity.value = withRepeat(
+        withTiming(0, { duration: cursorBlinkDuration }),
+        -1,
+        true
+      );
+    }
 
     return () => cancelAnimation(cursorOpacity);
-  }, [cursorBlinkDuration, cursorOpacity]);
+  }, [cursorBlinkDuration, cursorOpacity, cursorVisible]);
 
   const cursorAnimatedStyle = useAnimatedStyle(() => ({
     opacity: cursorOpacity.value,
   }));
-  const cursorVisible = showCursor && phase !== "idle";
 
   return (
     <Animated.Text
