@@ -1,29 +1,26 @@
 {
-  // Kế thừa cấu hình TypeScript cơ bản từ Expo (expo/tsconfig.base)
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    // Bật strict mode: kiểm tra kiểu nghiêm ngặt
     "strict": true,
-    // Định nghĩa alias đường dẫn: "~/" tương ứng với thư mục gốc "./"
-    // Ví dụ: import { x } from "~/utils/foo" -> import từ "./utils/foo"
     "paths": {
       "~/*": [
         "./*"
       ]
     }
   },
-  // Danh sách các file/thư mục sẽ được TypeScript biên dịch/kiểm tra
   "include": [
-    "**/*.ts",               // Tất cả file .ts
-    "**/*.tsx",              // Tất cả file .tsx (React Native/React)
-    "./types",               // Thư mục types (định nghĩa kiểu dữ liệu)
-    ".expo/types/**/*.ts",   // Types do Expo tự sinh
-    "expo-env.d.ts"          // File khai báo môi trường Expo
+    "**/*.ts",
+    "**/*.tsx",
+    "./types",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ],
-  // Danh sách các file/thư mục được loại trừ khỏi quá trình biên dịch
   "exclude": [
-    "node_modules",           // Thư mục dependencies
-    "rn-flow-visualizer",     // Công cụ visualize (không cần biên dịch)
-    "valorant-api-docs"       // Tài liệu API Valorant (không phải code)
+    "node_modules",
+    "backup",
+    ".codex-tmp",
+    "rn-flow-visualizer",
+    "valorant-api-docs",
+    "test"
   ]
 }
