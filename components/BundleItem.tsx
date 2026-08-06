@@ -66,8 +66,8 @@ const BundleItem = React.memo(function BundleItem({ item }: BundleItemProps) {
         <Text style={styles.categoryText} numberOfLines={1}>
           {t("shop_cards.bundle_accessory")}
         </Text>
-        {/* Tên item, tối đa 2 dòng */}
-        <Text style={styles.title} numberOfLines={2}>
+        {/* Hiển thị trọn tên item trong Bundle */}
+        <Text style={styles.title}>
           {item.displayName}
         </Text>
         {/* Hàng giá: icon VP + số giá */}
