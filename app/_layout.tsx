@@ -29,7 +29,7 @@ import {
   DefaultTheme as NavigationTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import React, { useEffect, useRef, useState, type ComponentProps } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, type GestureResponderEvent } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SplashScreen } from "expo-router";
@@ -42,6 +42,7 @@ import StripeProvider from "~/components/providers/StripeProvider";
 import { useUserStore } from "~/hooks/useUserStore";
 import {
   canResumeUserSession,
+  hasReusableAccessToken,
 } from "~/utils/auth-session";
 import { defaultUser } from "~/utils/valorant-api";
 import { flowTracer } from "~/utils/flow-tracer";
@@ -53,6 +54,10 @@ import { ErrorBoundary } from "~/components/ErrorBoundary";
 import LoadingScreen from "~/components/LoadingScreen";
 import { syncAllData } from "~/utils/data-sync";
 import { lockScreenOrientation } from "~/utils/screen-orientation";
+import {
+  isRiotAuthenticationError,
+  isTransientNetworkError,
+} from "~/utils/session-events";
 
 /**
  * CombinedAppTheme — Theme tổng hợp từ react-native-paper và @react-navigation/native.
@@ -137,7 +142,6 @@ function RootLayout() {
   const pathname = usePathname();
   const { demo } = useGlobalSearchParams<{ demo?: string | string[] }>();
   const { t } = useTranslation();
-  const user = useUserStore((state) => state.user);
   const hydrated = useUserStore((state) => state.hydrated);
   const setUser = useUserStore((state) => state.setUser);
   const bootstrappedRef = useRef(false);
@@ -207,13 +211,14 @@ function RootLayout() {
     let cancelled = false;
 
     const bootstrap = async () => {
+      const sessionUser = useUserStore.getState().user;
       // Đọc region từ AsyncStorage hoặc từ store
       const storedRegion = await AsyncStorage.getItem("region");
-      const region = storedRegion || user.region || defaultUser.region;
+      const region = storedRegion || sessionUser.region || defaultUser.region;
 
       // Đồng bộ region lên storage nếu chưa có
-      if (!storedRegion && user.region) {
-        await AsyncStorage.setItem("region", user.region);
+      if (!storedRegion && sessionUser.region) {
+        await AsyncStorage.setItem("region", sessionUser.region);
       }
 
       // Không có region => chưa setup lần đầu
@@ -226,14 +231,14 @@ function RootLayout() {
       }
 
       // Có region + session khả dụng => hiện loading screen, fetch ALL, rồi vào app
-      if (canResumeUserSession(user, region)) {
+      if (canResumeUserSession(sessionUser, region)) {
         // Hiện loading screen ngay lập tức, ẩn splash
         if (!cancelled) setIsPreloading(true);
         await SplashScreen.hideAsync();
 
         try {
           await Promise.race([
-            syncAllData(user, region),
+            syncAllData(sessionUser, region),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error("sync_timeout")), 20_000)
             ),
@@ -245,8 +250,16 @@ function RootLayout() {
           }
         } catch (error) {
           const isTimeout = error instanceof Error && error.message === "sync_timeout";
+          const latestToken = useUserStore.getState().user.accessToken;
+          const shouldKeepCachedSession =
+            isTimeout ||
+            isTransientNetworkError(error) ||
+            (!isRiotAuthenticationError(error) &&
+              hasReusableAccessToken(latestToken));
 
-          if (isTimeout) {
+          // Offline/timeout/server tạm lỗi không phải là logout. Giữ nguyên
+          // persisted session để AppWarmup tự recovery khi mạng trở lại.
+          if (shouldKeepCachedSession) {
             if (!cancelled) {
               setIsPreloading(false);
               router.replace("/profile");
@@ -259,6 +272,18 @@ function RootLayout() {
             }
           }
         }
+        return;
+      }
+
+      // Có persisted session nhưng access token đã hết hạn trong lúc app bị
+      // kill/background: vẫn mở cache. AppWarmup sẽ silent re-auth ngay khi có
+      // mạng; chỉ chuyển /reauth nếu Riot cookie thực sự không còn hợp lệ.
+      if (sessionUser.accessToken && sessionUser.id) {
+        if (!cancelled) {
+          setIsPreloading(false);
+          router.replace("/profile");
+        }
+        await SplashScreen.hideAsync();
         return;
       }
 
@@ -275,7 +300,7 @@ function RootLayout() {
     return () => {
       cancelled = true; // Cleanup: tránh setState sau khi unmount
     };
-  }, [allowMatchDemo, hydrated, router, setUser, user.accessToken, user.region]);
+  }, [allowMatchDemo, hydrated, router, setUser]);
 
   /**
    * handleGlobalTouchStart — Handler global cho mọi touch event.
