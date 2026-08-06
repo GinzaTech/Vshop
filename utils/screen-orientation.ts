@@ -1,9 +1,3 @@
-import { requireOptionalNativeModule } from "expo-modules-core";
-
-type ScreenOrientationModule = {
-  lockAsync?: (orientationLock: number) => Promise<void>;
-};
-
 export type AppScreenOrientation = "landscape" | "portrait";
 
 /**
@@ -14,16 +8,17 @@ export const lockScreenOrientation = async (
   orientation: AppScreenOrientation
 ) => {
   try {
-    const nativeOrientationModule =
-      requireOptionalNativeModule<ScreenOrientationModule>(
-        "ExpoScreenOrientation"
-      );
-    if (!nativeOrientationModule?.lockAsync) {
-      return false;
-    }
+    // Keep the import inside the guarded block. An old development client may
+    // not contain the native module until it is rebuilt.
+    const ScreenOrientation = require(
+      "expo-screen-orientation"
+    ) as typeof import("expo-screen-orientation");
+    const orientationLock =
+      orientation === "landscape"
+        ? ScreenOrientation.OrientationLock.LANDSCAPE
+        : ScreenOrientation.OrientationLock.PORTRAIT_UP;
 
-    // expo-screen-orientation enum: PORTRAIT_UP = 3, LANDSCAPE = 5.
-    await nativeOrientationModule.lockAsync(orientation === "landscape" ? 5 : 3);
+    await ScreenOrientation.lockAsync(orientationLock);
     return true;
   } catch {
     return false;
