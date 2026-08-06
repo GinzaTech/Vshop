@@ -11,9 +11,6 @@ import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import PageIntro from "~/components/ui/PageIntro";
 
-const CONTENT_PADDING = 20;
-const GRID_GAP = 12;
-
 // useDebounceValue: custom hook debounce giá trị string
 // value: giá trị đầu vào, delay: thời gian debounce (ms)
 // Trả về: giá trị đã debounce (chỉ cập nhật sau delay ms kể từ lần thay đổi cuối)
