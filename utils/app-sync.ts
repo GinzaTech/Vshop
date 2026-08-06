@@ -8,8 +8,7 @@
  * - Chỉ refresh khi data hết hạn (stale)
  */
 
-import { defaultUser, getBalances, getProgress, getShop, getUsername, parseShop } from "./valorant-api";
-import { getEntitlementsToken } from "./valorant-api";
+import { getBalances, getProgress, getShop, parseShop } from "./valorant-api";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { getNetworkProfile } from "./network";
