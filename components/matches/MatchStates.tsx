@@ -3,31 +3,57 @@ import React from "react";
 import {
   Animated,
   Easing,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
   type ViewStyle,
 } from "react-native";
-
-// Single shared shimmer loop — ALL skeletons interpolate from this ONE value
-// Much more efficient than per-component MotiView loops
-const shimmerValue = new Animated.Value(0);
-Animated.loop(
-  Animated.timing(shimmerValue, {
-    toValue: 1,
-    duration: 1200,
-    easing: Easing.inOut(Easing.ease),
-    useNativeDriver: true,
-  })
-).start();
-
 import {
   MATCH_COLORS,
   MATCH_LAYOUT,
   MATCH_RADIUS,
   MATCH_SPACING,
 } from "~/constants/MatchTheme";
+
+// Single shared shimmer loop — ALL skeletons interpolate from this ONE value
+// Much more efficient than per-component MotiView loops
+const shimmerValue = new Animated.Value(0);
+let shimmerLoop: Animated.CompositeAnimation | null = null;
+let shimmerSubscriberCount = 0;
+
+/**
+ * Start the shared shimmer only after a skeleton mounts. Module-level starts
+ * execute during Expo web SSR where requestAnimationFrame does not exist.
+ */
+const useSharedShimmerLoop = () => {
+  React.useEffect(() => {
+    shimmerSubscriberCount += 1;
+
+    if (!shimmerLoop) {
+      shimmerValue.setValue(0);
+      shimmerLoop = Animated.loop(
+        Animated.timing(shimmerValue, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: Platform.OS !== "web",
+        })
+      );
+      shimmerLoop.start();
+    }
+
+    return () => {
+      shimmerSubscriberCount = Math.max(0, shimmerSubscriberCount - 1);
+      if (shimmerSubscriberCount === 0) {
+        shimmerLoop?.stop();
+        shimmerLoop = null;
+        shimmerValue.setValue(0);
+      }
+    };
+  }, []);
+};
 
 type MatchStatePanelProps = {
   icon: "history" | "alert-circle-outline";
@@ -92,6 +118,8 @@ const SkeletonBlock = ({ style }: { style: ViewStyle }) => {
 };
 
 export const MatchCardSkeleton = React.memo(function MatchCardSkeleton() {
+  useSharedShimmerLoop();
+
   return (
     <View style={styles.skeletonCard} accessibilityLabel="Loading match">
       <View style={styles.skeletonTopRow}>
@@ -113,6 +141,8 @@ export const MatchCardSkeleton = React.memo(function MatchCardSkeleton() {
 });
 
 export function MatchListSkeleton() {
+  useSharedShimmerLoop();
+
   return (
     <View style={styles.skeletonList}>
       <SkeletonBlock style={styles.skeletonDay} />
@@ -124,6 +154,8 @@ export function MatchListSkeleton() {
 }
 
 export function MatchDetailSkeleton() {
+  useSharedShimmerLoop();
+
   return (
     <View style={styles.detailSkeleton} accessibilityLabel="Loading match details">
       <View style={styles.detailHeaderSkeleton}>
