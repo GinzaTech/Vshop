@@ -1,6 +1,5 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
 
 import type { DailyMatchSummary } from "~/types/match-ui";
 import { formatMetric } from "~/utils/match-ui";
@@ -14,8 +13,6 @@ const DIVIDER_COLOR = "#343A44";
 function DailyMatchSummaryCardComponent({
   summary,
 }: DailyMatchSummaryCardProps) {
-  const { t } = useTranslation();
-
   return (
     <View style={styles.card}>
       {/* Date + count badge */}
