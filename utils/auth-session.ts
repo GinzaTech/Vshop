@@ -1,22 +1,28 @@
 // Import jwtDecode để decode JWT token
 import { jwtDecode } from "jwt-decode";
 
-// Import hàm tải assets và agents của Valorant
-import { loadAgent, loadAssets } from "./valorant-assets";
+// Import hàm tải assets, agents và client version của Valorant
+import { fetchVersion, loadAgent, loadAssets } from "./valorant-assets";
 // Import các hàm API Valorant: user mặc định, lấy balance, entitlements, progress, shop, v.v.
 import {
   defaultUser,
   getBalances,
   getEntitlementsToken,
+  getRiotClientVersionForRequests,
   getProgress,
   getRiotGeo,
   getShop,
   getUserId,
   getUsername,
   parseShop,
+  reAuth,
 } from "./valorant-api";
 // Import helper chuẩn hóa shard (máy chủ) Valorant
-import { normalizeValorantShard } from "./misc";
+import {
+  getAccessTokenFromUri,
+  getIdTokenFromUri,
+  normalizeValorantShard,
+} from "./misc";
 
 // Số giây đệm trước khi token hết hạn (90 giây) để tránh dùng token sắp hết hạn
 const ACCESS_TOKEN_BUFFER_SECONDS = 90;
@@ -120,9 +126,66 @@ export const getTimeUntilTokenExpiry = (accessToken?: string): number => {
  * @returns boolean - true nếu token sẽ hết hạn trong 5 phút tới
  */
 export const shouldProactivelyRefreshToken = (accessToken?: string): boolean => {
+  if (!accessToken) return false;
   const remaining = getTimeUntilTokenExpiry(accessToken);
-  return remaining > 0 && remaining <= 5 * 60 * 1000;
+  return remaining <= 5 * 60 * 1000;
 };
+
+export class ReauthenticationRequiredError extends Error {
+  readonly code = "REAUTHENTICATION_REQUIRED";
+
+  constructor(message = "Riot session requires interactive authentication") {
+    super(message);
+    this.name = "ReauthenticationRequiredError";
+  }
+}
+
+export const isReauthenticationRequiredError = (error: unknown) =>
+  (error as { code?: string } | undefined)?.code ===
+  "REAUTHENTICATION_REQUIRED";
+
+/**
+ * Xin access/id token mới bằng Riot cookie hiện có rồi tạo entitlement token
+ * mới. Hàm này chỉ thay credentials; dữ liệu shop/profile được đồng bộ sau khi
+ * credentials mới đã được lưu vào Zustand.
+ */
+export async function renewAuthenticatedSession(
+  seedUser: typeof defaultUser
+): Promise<typeof defaultUser> {
+  const version = await fetchVersion().catch(() =>
+    getRiotClientVersionForRequests()
+  );
+  const response = await reAuth(version);
+  const callbackUri = response?.data?.response?.parameters?.uri;
+
+  if (typeof callbackUri !== "string" || !callbackUri) {
+    throw new ReauthenticationRequiredError();
+  }
+
+  let accessToken: string;
+  let idToken: string;
+  try {
+    accessToken = getAccessTokenFromUri(callbackUri);
+    idToken = getIdTokenFromUri(callbackUri);
+  } catch {
+    throw new ReauthenticationRequiredError();
+  }
+
+  const fallbackRegion = seedUser.region || defaultUser.region;
+  const [entitlementsToken, liveRegion] = await Promise.all([
+    getEntitlementsToken(accessToken),
+    resolveLiveRegion(accessToken, idToken, fallbackRegion),
+  ]);
+
+  return {
+    ...seedUser,
+    id: getUserId(accessToken),
+    region: liveRegion || fallbackRegion,
+    accessToken,
+    idToken,
+    entitlementsToken,
+  };
+}
 
 /**
  * Public API: Xây dựng đối tượng user đã được xác thực đầy đủ.
