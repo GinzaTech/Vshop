@@ -41,13 +41,11 @@ import Toast from "react-native-toast-message";
 
 import CurrencyIcon from "~/components/CurrencyIcon";
 import RankSplitGroup, {
-  type RankSplitContentMode,
   type RankSplitStat,
 } from "~/components/profile/RankSplitGroup";
 import PlayerStatsDashboard, {
   type StatsDashboardTab,
 } from "~/components/profile/PlayerStatsDashboard";
-import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
 import {
   CollectionCheckerExport,
   CollectionCheckerExportProvider,
@@ -117,24 +115,11 @@ type ProfileListRow =
       tone: "error" | "empty";
     };
 
-const RANK_TEXT_RETRACT_DURATION_MS = 520;
-const RANK_SPLIT_DURATION_MS = 420;
-const HERO_SUBTITLE_TYPING_SPEED_MS = 36;
-const HERO_SUBTITLE_DELETING_SPEED_MS = 22;
-const HERO_SUBTITLE_INITIAL_DELAY_MS = 60;
-const HERO_SUBTITLE_COLLAPSE_DURATION_MS = 180;
-const HERO_SUBTITLE_EXPAND_DURATION_MS = 240;
 const PROFILE_BODY_FADE_DURATION_MS = 260;
-const PROFILE_BODY_SWAP_GAP_MS = 32;
-const PROFILE_NAV_RETRACT_DURATION_MS = 420;
 const PROFILE_SEGMENT_LAYOUT_DURATION_MS = 340;
-const PROFILE_DASHBOARD_GROW_DURATION_MS = 720;
-const PROFILE_BACKGROUND_DURATION_MS = 800;
-const PROFILE_STATS_FETCH_DELAY_MS =
-    PROFILE_BODY_FADE_DURATION_MS +
-    PROFILE_BODY_SWAP_GAP_MS +
-    PROFILE_DASHBOARD_GROW_DURATION_MS;
-type ProfileNavContentMode = "profile" | "blank" | "stats";
+const PROFILE_DASHBOARD_GROW_DURATION_MS = 480;
+const PROFILE_BACKGROUND_DURATION_MS = 420;
+const PROFILE_STATS_FETCH_DELAY_MS = PROFILE_DASHBOARD_GROW_DURATION_MS + 120;
 const truncateToOneDecimal = (value: number) =>
     Math.trunc(value * 10) / 10;
 const formatOneDecimal = (value: number) =>
@@ -676,13 +661,15 @@ function Profile() {
   const cachedLoadoutSnapshot = hasValidProfileLoadoutCache(cachedProfile)
       ? cachedProfile?.loadoutSnapshot ?? null
       : null;
+  const dashboardMatches = React.useMemo(
+      () => (matchAuthKey === authKey ? recentMatches : []),
+      [authKey, matchAuthKey, recentMatches]
+  );
+  const dashboardSeasonStats =
+      matchAuthKey === authKey ? seasonPerformanceStats : null;
   const [activeTab, setActiveTab] = React.useState<TabKey>("loadout");
   const [statsDashboardTab, setStatsDashboardTab] =
       React.useState<StatsDashboardTab>("overview");
-  const [profileNavContentMode, setProfileNavContentMode] =
-      React.useState<ProfileNavContentMode>("profile");
-  const [legacyProfileMounted, setLegacyProfileMounted] =
-      React.useState(true);
   const [statsDashboardMounted, setStatsDashboardMounted] =
       React.useState(false);
   const profilePagerRef =
@@ -860,13 +847,9 @@ function Profile() {
   );
   const regionLabel = user.region ? user.region.toUpperCase() : "VAL";
   const heroSubtitleText = t("profile_page.hero_subtitle");
-  const [heroSubtitleTargetText, setHeroSubtitleTargetText] =
-      React.useState(heroSubtitleText);
 
   // ─── Chuyển đổi giữa hồ sơ trang bị và thông tin người chơi ─────────────
   const [isPlayerInfoMode, setIsPlayerInfoMode] = React.useState(false);
-  const [rankSplitContentMode, setRankSplitContentMode] =
-      React.useState<RankSplitContentMode>("rank");
   const heroModeProgress = useSharedValue(0);
   const rankSplitProgress = useSharedValue(0);
   const statsVisibilityProgress = useSharedValue(1);
@@ -876,15 +859,6 @@ function Profile() {
   const dashboardProgress = useSharedValue(0);
   const statsExpandedRef = React.useRef(true);
   const lastRegionTapRef = React.useRef(0);
-  const heroSubtitleCollapseTimerRef = React.useRef<
-      ReturnType<typeof setTimeout> | null
-  >(null);
-  const rankTransitionTimersRef = React.useRef<
-      ReturnType<typeof setTimeout>[]
-  >([]);
-  const profileModeTimersRef = React.useRef<
-      ReturnType<typeof setTimeout>[]
-  >([]);
   const dashboardPreloadTaskRef = React.useRef<ReturnType<
       typeof InteractionManager.runAfterInteractions
   > | null>(null);
@@ -913,11 +887,7 @@ function Profile() {
   }));
 
   const pageBackgroundAnimatedStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-        pageModeProgress.value,
-        [0, 1],
-        ["#FFFFFF", "#000000"]
-    ),
+    opacity: pageModeProgress.value,
   }));
 
   const topBalancePillAnimatedStyle = useAnimatedStyle(() => ({
@@ -977,16 +947,15 @@ function Profile() {
 
   const heroSubtitleAnimatedStyle = useAnimatedStyle(() => ({
     opacity: heroSubtitleVisibilityProgress.value,
-    maxHeight: interpolate(
-        heroSubtitleVisibilityProgress.value,
-        [0, 1],
-        [0, 44]
-    ),
-    marginTop: interpolate(
-        heroSubtitleVisibilityProgress.value,
-        [0, 1],
-        [0, 4]
-    ),
+    transform: [
+      {
+        translateY: interpolate(
+            heroSubtitleVisibilityProgress.value,
+            [0, 1],
+            [-3, 0]
+        ),
+      },
+    ],
   }));
 
   const balanceStatsAnimatedStyle = useAnimatedStyle(() => ({
@@ -1048,152 +1017,53 @@ function Profile() {
     );
   }, [statsVisibilityProgress]);
 
-  const startRankSplitTransition = React.useCallback(
-      (showActStats: boolean) => {
-        rankTransitionTimersRef.current.forEach(clearTimeout);
-        rankTransitionTimersRef.current = [];
-        setRankSplitContentMode("blank");
-
-        const splitTimer = setTimeout(() => {
-          rankSplitProgress.value = withTiming(showActStats ? 1 : 0, {
-            duration: RANK_SPLIT_DURATION_MS,
-            easing: Easing.inOut(Easing.cubic),
-          });
-        }, RANK_TEXT_RETRACT_DURATION_MS);
-
-        const revealTimer = setTimeout(() => {
-          setRankSplitContentMode(showActStats ? "act" : "rank");
-          rankTransitionTimersRef.current = [];
-        }, RANK_TEXT_RETRACT_DURATION_MS + RANK_SPLIT_DURATION_MS);
-
-        rankTransitionTimersRef.current = [splitTimer, revealTimer];
-      },
-      [rankSplitProgress]
-  );
-
   const toggleHeroMode = React.useCallback(() => {
     const nextMode = !isPlayerInfoMode;
-    if (heroSubtitleCollapseTimerRef.current) {
-      clearTimeout(heroSubtitleCollapseTimerRef.current);
-      heroSubtitleCollapseTimerRef.current = null;
-    }
-    profileModeTimersRef.current.forEach(clearTimeout);
-    profileModeTimersRef.current = [];
-
     setIsPlayerInfoMode(nextMode);
-    setProfileNavContentMode("blank");
-    startRankSplitTransition(nextMode);
+    if (!statsDashboardMounted) {
+      dashboardPreloadTaskRef.current?.cancel();
+      dashboardPreloadTaskRef.current = null;
+      setStatsDashboardMounted(true);
+    }
+
     heroModeProgress.value = withTiming(nextMode ? 1 : 0, {
-      duration: 380,
+      duration: 320,
       easing: Easing.out(Easing.cubic),
+    });
+    rankSplitProgress.value = withTiming(nextMode ? 1 : 0, {
+      duration: 360,
+      easing: Easing.inOut(Easing.cubic),
     });
     pageModeProgress.value = withTiming(nextMode ? 1 : 0, {
       duration: PROFILE_BACKGROUND_DURATION_MS,
       easing: Easing.inOut(Easing.cubic),
     });
-
-    if (nextMode) {
-      legacyContentProgress.value = withTiming(0, {
-        duration: PROFILE_BODY_FADE_DURATION_MS,
-        easing: Easing.out(Easing.cubic),
-      });
-      dashboardProgress.value = 0;
-
-      const unmountLegacyProfileTimer = setTimeout(() => {
-        setLegacyProfileMounted(false);
-      }, PROFILE_BODY_FADE_DURATION_MS);
-      const mountDashboardTimer = setTimeout(() => {
-        setStatsDashboardMounted(true);
-        dashboardProgress.value = withTiming(1, {
-          duration: PROFILE_DASHBOARD_GROW_DURATION_MS,
-          easing: Easing.out(Easing.cubic),
-        });
-      }, PROFILE_BODY_FADE_DURATION_MS + PROFILE_BODY_SWAP_GAP_MS);
-      const reshapeSegmentTimer = setTimeout(() => {
-        segmentLayoutProgress.value = withTiming(1, {
-          duration: PROFILE_SEGMENT_LAYOUT_DURATION_MS,
-          easing: Easing.inOut(Easing.cubic),
-        });
-      }, PROFILE_NAV_RETRACT_DURATION_MS);
-      const revealStatsTabsTimer = setTimeout(() => {
-        setProfileNavContentMode("stats");
-        profileModeTimersRef.current = [];
-      }, PROFILE_NAV_RETRACT_DURATION_MS + PROFILE_SEGMENT_LAYOUT_DURATION_MS);
-
-      profileModeTimersRef.current = [
-        unmountLegacyProfileTimer,
-        mountDashboardTimer,
-        reshapeSegmentTimer,
-        revealStatsTabsTimer,
-      ];
-    } else {
-      dashboardProgress.value = withTiming(0, {
-        duration: PROFILE_BODY_FADE_DURATION_MS,
-        easing: Easing.in(Easing.cubic),
-      });
-
-      const restoreProfileTimer = setTimeout(() => {
-        setLegacyProfileMounted(true);
-        legacyContentProgress.value = 0;
-        legacyContentProgress.value = withTiming(1, {
-          duration: PROFILE_BODY_FADE_DURATION_MS,
-          easing: Easing.out(Easing.cubic),
-        });
-      }, PROFILE_BODY_FADE_DURATION_MS + PROFILE_BODY_SWAP_GAP_MS);
-      const reshapeSegmentTimer = setTimeout(() => {
-        segmentLayoutProgress.value = withTiming(0, {
-          duration: PROFILE_SEGMENT_LAYOUT_DURATION_MS,
-          easing: Easing.inOut(Easing.cubic),
-        });
-      }, PROFILE_NAV_RETRACT_DURATION_MS);
-      const revealProfileTabsTimer = setTimeout(() => {
-        setProfileNavContentMode("profile");
-        profileModeTimersRef.current = [];
-      }, PROFILE_NAV_RETRACT_DURATION_MS + PROFILE_SEGMENT_LAYOUT_DURATION_MS);
-
-      profileModeTimersRef.current = [
-        restoreProfileTimer,
-        reshapeSegmentTimer,
-        revealProfileTabsTimer,
-      ];
-    }
-
-    if (nextMode) {
-      // Giai đoạn 1: xoá hết chữ. Chỉ sau đó mới đóng dòng.
-      setHeroSubtitleTargetText("");
-      const deleteDuration =
-          heroSubtitleText.length * HERO_SUBTITLE_DELETING_SPEED_MS + 40;
-      heroSubtitleCollapseTimerRef.current = setTimeout(() => {
-        heroSubtitleVisibilityProgress.value = withTiming(0, {
-          duration: HERO_SUBTITLE_COLLAPSE_DURATION_MS,
-          easing: Easing.out(Easing.cubic),
-        });
-        heroSubtitleCollapseTimerRef.current = null;
-      }, deleteDuration);
-    } else {
-      // Giai đoạn 1: giữ chữ rỗng và mở dòng hoàn toàn.
-      setHeroSubtitleTargetText("");
-      heroSubtitleVisibilityProgress.value = withTiming(1, {
-        duration: HERO_SUBTITLE_EXPAND_DURATION_MS,
-        easing: Easing.out(Easing.cubic),
-      });
-
-      // Giai đoạn 2: dòng đã mở xong mới bắt đầu gõ chữ trở lại.
-      heroSubtitleCollapseTimerRef.current = setTimeout(() => {
-        setHeroSubtitleTargetText(heroSubtitleText);
-        heroSubtitleCollapseTimerRef.current = null;
-      }, HERO_SUBTITLE_EXPAND_DURATION_MS);
-    }
+    legacyContentProgress.value = withTiming(nextMode ? 0 : 1, {
+      duration: PROFILE_BODY_FADE_DURATION_MS,
+      easing: Easing.out(Easing.cubic),
+    });
+    dashboardProgress.value = withTiming(nextMode ? 1 : 0, {
+      duration: PROFILE_DASHBOARD_GROW_DURATION_MS,
+      easing: nextMode ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+    });
+    segmentLayoutProgress.value = withTiming(nextMode ? 1 : 0, {
+      duration: PROFILE_SEGMENT_LAYOUT_DURATION_MS,
+      easing: Easing.inOut(Easing.cubic),
+    });
+    heroSubtitleVisibilityProgress.value = withTiming(nextMode ? 0 : 1, {
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+    });
   }, [
     dashboardProgress,
     heroModeProgress,
-    heroSubtitleText,
     heroSubtitleVisibilityProgress,
     isPlayerInfoMode,
     legacyContentProgress,
     pageModeProgress,
+    rankSplitProgress,
     segmentLayoutProgress,
-    startRankSplitTransition,
+    statsDashboardMounted,
   ]);
 
   const handleStatsDashboardTabChange = React.useCallback(
@@ -1703,16 +1573,8 @@ function Profile() {
           clearTimeout(initialFetchTimeoutRef.current);
           initialFetchTimeoutRef.current = null;
         }
-        rankTransitionTimersRef.current.forEach(clearTimeout);
-        rankTransitionTimersRef.current = [];
-        profileModeTimersRef.current.forEach(clearTimeout);
-        profileModeTimersRef.current = [];
         dashboardPreloadTaskRef.current?.cancel();
         dashboardPreloadTaskRef.current = null;
-        if (heroSubtitleCollapseTimerRef.current) {
-          clearTimeout(heroSubtitleCollapseTimerRef.current);
-          heroSubtitleCollapseTimerRef.current = null;
-        }
       },
       []
   );
@@ -3472,12 +3334,11 @@ function Profile() {
               segmentIndicatorAnimatedStyle,
             ]}
         />
-        {profileNavContentMode !== "stats" ? (
-          <Animated.View
-            pointerEvents={profileNavContentMode === "profile" ? "auto" : "none"}
-            accessibilityElementsHidden={profileNavContentMode !== "profile"}
+        <Animated.View
+            pointerEvents={isPlayerInfoMode ? "none" : "auto"}
+            accessibilityElementsHidden={isPlayerInfoMode}
             importantForAccessibility={
-              profileNavContentMode === "profile" ? "auto" : "no-hide-descendants"
+              isPlayerInfoMode ? "no-hide-descendants" : "auto"
             }
             style={[styles.segmentLayer, profileSegmentLayerAnimatedStyle]}
         >
@@ -3495,14 +3356,7 @@ function Profile() {
                       { marginLeft: index === 0 ? 0 : 8 },
                     ]}
                 >
-                  <TypewriterSwapText
-                      text={
-                        profileNavContentMode === "profile" ? tab.label : ""
-                      }
-                      showCursor={false}
-                      typingSpeed={32}
-                      deletingSpeed={20}
-                      initialDelay={55}
+                  <Animated.Text
                       style={[
                         styles.segmentLabel,
                         index === 0
@@ -3511,18 +3365,18 @@ function Profile() {
                               ? skinsSegmentLabelAnimatedStyle
                               : collectionSegmentLabelAnimatedStyle,
                       ]}
-                  />
+                  >
+                    {tab.label}
+                  </Animated.Text>
                 </TouchableOpacity>
             );
           })}
-          </Animated.View>
-        ) : null}
-        {profileNavContentMode !== "profile" ? (
-          <Animated.View
-            pointerEvents={profileNavContentMode === "stats" ? "auto" : "none"}
-            accessibilityElementsHidden={profileNavContentMode !== "stats"}
+        </Animated.View>
+        <Animated.View
+            pointerEvents={isPlayerInfoMode ? "auto" : "none"}
+            accessibilityElementsHidden={!isPlayerInfoMode}
             importantForAccessibility={
-              profileNavContentMode === "stats" ? "auto" : "no-hide-descendants"
+              isPlayerInfoMode ? "auto" : "no-hide-descendants"
             }
             style={[styles.segmentLayer, statsSegmentLayerAnimatedStyle]}
         >
@@ -3540,28 +3394,18 @@ function Profile() {
                       { marginLeft: index === 0 ? 0 : 8 },
                     ]}
                 >
-                  <TypewriterSwapText
-                      text={
-                        profileNavContentMode === "stats"
-                            ? tab === "overview"
-                              ? "OVERVIEW"
-                              : "DETAILS"
-                            : ""
-                      }
-                      showCursor={false}
-                      typingSpeed={34}
-                      deletingSpeed={20}
-                      initialDelay={55}
+                  <Text
                       style={[
                         styles.segmentLabel,
                         { color: active ? "#11181c" : "rgba(255,255,255,0.6)" },
                       ]}
-                  />
+                  >
+                    {tab === "overview" ? "OVERVIEW" : "DETAILS"}
+                  </Text>
                 </TouchableOpacity>
             );
           })}
-          </Animated.View>
-        ) : null}
+        </Animated.View>
       </View>
   );
 
@@ -3605,16 +3449,15 @@ function Profile() {
                 />
               </Animated.View>
               <View pointerEvents="none" style={styles.heroModeLabelViewport}>
-                <TypewriterSwapText
-                    text={
-                      isPlayerInfoMode
-                          ? t("profile_page.player_info", {
-                            defaultValue: "Thông tin",
-                          })
-                          : t("profile_page.hero_badge")
-                    }
+                <Animated.Text
                     style={[styles.heroModeLabel, heroModeLabelAnimatedStyle]}
-                />
+                >
+                  {isPlayerInfoMode
+                      ? t("profile_page.player_info", {
+                        defaultValue: "Thông tin",
+                      })
+                      : t("profile_page.hero_badge")}
+                </Animated.Text>
               </View>
             </Pressable>
           </Animated.View>
@@ -3651,14 +3494,7 @@ function Profile() {
             }
             style={[styles.heroSubtitleViewport, heroSubtitleAnimatedStyle]}
         >
-          <TypewriterSwapText
-              text={heroSubtitleTargetText}
-              showCursor={false}
-              typingSpeed={HERO_SUBTITLE_TYPING_SPEED_MS}
-              deletingSpeed={HERO_SUBTITLE_DELETING_SPEED_MS}
-              initialDelay={HERO_SUBTITLE_INITIAL_DELAY_MS}
-              style={styles.heroSubtitle}
-          />
+          <Text style={styles.heroSubtitle}>{heroSubtitleText}</Text>
         </Animated.View>
 
         <View style={styles.heroMetaRow}>
@@ -3724,26 +3560,18 @@ function Profile() {
                         />
                       </Animated.View>
                     </View>
-                    <TypewriterSwapText
-                        text={visibleStat.label}
-                        showCursor={false}
-                        typingSpeed={36}
-                        deletingSpeed={22}
-                        initialDelay={60}
+                    <Text
                         style={[
                           styles.heroStatLabel,
                           isPlayerInfoMode && styles.playerStatLabel,
                         ]}
-                    />
+                    >
+                      {visibleStat.label}
+                    </Text>
                   </View>
-                  <TypewriterSwapText
-                      text={String(visibleStat.value)}
-                      showCursor={false}
-                      typingSpeed={34}
-                      deletingSpeed={20}
-                      initialDelay={60}
-                      style={styles.heroStatValue}
-                  />
+                  <Text style={styles.heroStatValue}>
+                    {String(visibleStat.value)}
+                  </Text>
                 </Animated.View>
               );
             })}
@@ -3753,7 +3581,6 @@ function Profile() {
         <View style={styles.heroRankRow}>
           <RankSplitGroup
               splitProgress={rankSplitProgress}
-              contentMode={rankSplitContentMode}
               rankLabel={t("profile_page.current_rank")}
               rankValue={
                 competitiveRank?.currentName || t("profile_page.unrated")
@@ -3768,7 +3595,6 @@ function Profile() {
           />
           <RankSplitGroup
               splitProgress={rankSplitProgress}
-              contentMode={rankSplitContentMode}
               rankLabel={t("profile_page.peak_rank")}
               rankValue={competitiveRank?.peakName || t("profile_page.unrated")}
               rankIconUrl={competitiveRank?.peakIcon}
@@ -5072,43 +4898,40 @@ function Profile() {
         profile={collectionCheckerProfile}
         disabled={refreshing}
     >
-      <Animated.View
-          style={[
-            styles.container,
-            pageBackgroundAnimatedStyle,
-          ]}
-      >
+      <View style={styles.container}>
+        <Animated.View
+            pointerEvents="none"
+            style={[styles.statsBackground, pageBackgroundAnimatedStyle]}
+        />
         {renderPageHeader()}
         <View style={styles.profileBodyStack}>
-          {legacyProfileMounted ? (
-              <Animated.View
-                  pointerEvents={isPlayerInfoMode ? "none" : "auto"}
-                  accessibilityElementsHidden={isPlayerInfoMode}
-                  importantForAccessibility={
-                    isPlayerInfoMode ? "no-hide-descendants" : "auto"
-                  }
-                  style={[styles.profileBodyLayer, legacyContentAnimatedStyle]}
-              >
-                <Animated.ScrollView
-                    key={`profile-pager:${Math.round(viewportWidth)}`}
-                    ref={profilePagerRef}
-                    horizontal
-                    pagingEnabled
-                    bounces={false}
-                    disableIntervalMomentum
-                    directionalLockEnabled
-                    nestedScrollEnabled
-                    style={styles.profilePager}
-                    showsVerticalScrollIndicator={false}
-                    showsHorizontalScrollIndicator={false}
-                    onScroll={handlePagerScroll}
-                    onMomentumScrollEnd={handlePagerMomentumEnd}
-                    scrollEventThrottle={16}
-                >
-                  {PROFILE_TAB_KEYS.map(renderProfileTabPage)}
-                </Animated.ScrollView>
-              </Animated.View>
-          ) : null}
+          <Animated.View
+              pointerEvents={isPlayerInfoMode ? "none" : "auto"}
+              accessibilityElementsHidden={isPlayerInfoMode}
+              importantForAccessibility={
+                isPlayerInfoMode ? "no-hide-descendants" : "auto"
+              }
+              style={[styles.profileBodyLayer, legacyContentAnimatedStyle]}
+          >
+            <Animated.ScrollView
+                key={`profile-pager:${Math.round(viewportWidth)}`}
+                ref={profilePagerRef}
+                horizontal
+                pagingEnabled
+                bounces={false}
+                disableIntervalMomentum
+                directionalLockEnabled
+                nestedScrollEnabled
+                style={styles.profilePager}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+                onScroll={handlePagerScroll}
+                onMomentumScrollEnd={handlePagerMomentumEnd}
+                scrollEventThrottle={16}
+            >
+              {PROFILE_TAB_KEYS.map(renderProfileTabPage)}
+            </Animated.ScrollView>
+          </Animated.View>
           {statsDashboardMounted ? (
               <Animated.View
                   pointerEvents={isPlayerInfoMode ? "auto" : "none"}
@@ -5125,13 +4948,11 @@ function Profile() {
                     activeTab={statsDashboardTab}
                     competitiveRank={competitiveRank}
                     loading={matchHistoryLoading || seasonStatsLoading}
-                    matches={matchAuthKey === authKey ? recentMatches : []}
+                    matches={dashboardMatches}
                     onRefresh={handleStatsRefresh}
                     onRequestDetails={handleRequestStatsDetails}
                     refreshing={statsRefreshing}
-                    seasonStats={
-                      matchAuthKey === authKey ? seasonPerformanceStats : null
-                    }
+                    seasonStats={dashboardSeasonStats}
                     totalMatches={matchAuthKey === authKey ? totalMatches : 0}
                     transitionProgress={dashboardProgress}
                 />
@@ -5139,7 +4960,7 @@ function Profile() {
           ) : null}
         </View>
         {renderPickerModal()}
-      </Animated.View>
+      </View>
     </CollectionCheckerExportProvider>
   );
 }
@@ -5154,6 +4975,11 @@ function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  statsBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000000",
   },
   profilePager: {
     flex: 1,
