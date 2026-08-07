@@ -2,7 +2,7 @@
   "expo": {
     "name": "VShop",
     "slug": "vshop",
-    "version": "4.0.6",
+    "version": "4.0.5",
     "runtimeVersion": {
       "policy": "appVersion"
     },
