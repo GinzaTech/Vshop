@@ -47,7 +47,6 @@ import RankSplitGroup, {
 import PlayerStatsDashboard, {
   type StatsDashboardTab,
 } from "~/components/profile/PlayerStatsDashboard";
-import PixelRevealBackground from "~/components/profile/PixelRevealBackground";
 import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
 import {
   CollectionCheckerExport,
@@ -686,10 +685,6 @@ function Profile() {
       React.useState(true);
   const [statsDashboardMounted, setStatsDashboardMounted] =
       React.useState(false);
-  const [pixelBackgroundMounted, setPixelBackgroundMounted] =
-      React.useState(false);
-  const [pixelBackgroundTransition, setPixelBackgroundTransition] =
-      React.useState<"toDark" | "toLight">("toDark");
   const profilePagerRef =
       React.useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
   const skinWhitespacePagerOriginRef = React.useRef(0);
@@ -917,6 +912,14 @@ function Profile() {
     ),
   }));
 
+  const pageBackgroundAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+        pageModeProgress.value,
+        [0, 1],
+        ["#FFFFFF", "#000000"]
+    ),
+  }));
+
   const topBalancePillAnimatedStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
         pageModeProgress.value,
@@ -1090,8 +1093,6 @@ function Profile() {
     });
 
     if (nextMode) {
-      setPixelBackgroundTransition("toDark");
-      setPixelBackgroundMounted(true);
       legacyContentProgress.value = withTiming(0, {
         duration: PROFILE_BODY_FADE_DURATION_MS,
         easing: Easing.out(Easing.cubic),
@@ -1126,7 +1127,6 @@ function Profile() {
         revealStatsTabsTimer,
       ];
     } else {
-      setPixelBackgroundTransition("toLight");
       dashboardProgress.value = withTiming(0, {
         duration: PROFILE_BODY_FADE_DURATION_MS,
         easing: Easing.in(Easing.cubic),
@@ -1148,17 +1148,13 @@ function Profile() {
       }, PROFILE_NAV_RETRACT_DURATION_MS);
       const revealProfileTabsTimer = setTimeout(() => {
         setProfileNavContentMode("profile");
-      }, PROFILE_NAV_RETRACT_DURATION_MS + PROFILE_SEGMENT_LAYOUT_DURATION_MS);
-      const unmountPixelBackgroundTimer = setTimeout(() => {
-        setPixelBackgroundMounted(false);
         profileModeTimersRef.current = [];
-      }, PROFILE_BACKGROUND_DURATION_MS);
+      }, PROFILE_NAV_RETRACT_DURATION_MS + PROFILE_SEGMENT_LAYOUT_DURATION_MS);
 
       profileModeTimersRef.current = [
         restoreProfileTimer,
         reshapeSegmentTimer,
         revealProfileTabsTimer,
-        unmountPixelBackgroundTimer,
       ];
     }
 
@@ -1210,6 +1206,10 @@ function Profile() {
       },
       [statsTabProgress]
   );
+
+  const handleRequestStatsDetails = React.useCallback(() => {
+    handleStatsDashboardTabChange("details");
+  }, [handleStatsDashboardTabChange]);
 
   React.useEffect(() => {
     if (!isPlayerInfoMode || !hasAuth) return;
@@ -5075,17 +5075,9 @@ function Profile() {
       <Animated.View
           style={[
             styles.container,
-            {
-              backgroundColor: isPlayerInfoMode ? "#000000" : "#FFFFFF",
-            },
+            pageBackgroundAnimatedStyle,
           ]}
       >
-        {pixelBackgroundMounted ? (
-            <PixelRevealBackground
-                durationMs={PROFILE_BACKGROUND_DURATION_MS}
-                transition={pixelBackgroundTransition}
-            />
-        ) : null}
         {renderPageHeader()}
         <View style={styles.profileBodyStack}>
           {legacyProfileMounted ? (
@@ -5135,9 +5127,7 @@ function Profile() {
                     loading={matchHistoryLoading || seasonStatsLoading}
                     matches={matchAuthKey === authKey ? recentMatches : []}
                     onRefresh={handleStatsRefresh}
-                    onRequestDetails={() =>
-                      handleStatsDashboardTabChange("details")
-                    }
+                    onRequestDetails={handleRequestStatsDetails}
                     refreshing={statsRefreshing}
                     seasonStats={
                       matchAuthKey === authKey ? seasonPerformanceStats : null

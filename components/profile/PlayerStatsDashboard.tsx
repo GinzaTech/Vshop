@@ -851,7 +851,7 @@ function DetailSection({ rows, title }: DetailSectionProps) {
   );
 }
 
-export default function PlayerStatsDashboard({
+function PlayerStatsDashboard({
   activeTab,
   competitiveRank,
   loading,
@@ -1031,6 +1031,8 @@ export default function PlayerStatsDashboard({
     </Animated.ScrollView>
   );
 }
+
+export default React.memo(PlayerStatsDashboard);
 
 const styles = StyleSheet.create({
   screen: {
