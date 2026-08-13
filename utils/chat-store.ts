@@ -10,6 +10,10 @@ export interface ChatMessage {
   timestamp: number; // Thời gian gửi (Unix timestamp ms)
 }
 
+// Zustand selectors must return a stable snapshot when no messages exist.
+// Reusing this constant avoids an infinite useSyncExternalStore render loop.
+export const EMPTY_CHAT_MESSAGES: readonly ChatMessage[] = Object.freeze([]);
+
 // Interface định nghĩa cấu trúc một người bạn trong danh bạ
 export interface ChatFriend {
   id: string;       // Riot PUUID
