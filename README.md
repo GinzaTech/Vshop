@@ -39,14 +39,14 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 # English
 
-## Release 4.0.4 highlights
+## Release 4.1.0 highlights
 
-- **Profile player information mode:** the loadout header now transitions into Act performance cards with type/delete text motion and a split-card animation.
-- **Accurate Act records:** wins come from Riot's placement-inclusive MMR total, win rate includes every competitive game, and HS/K/D/KAST values use consistent one-decimal truncation.
-- **Collection image export:** the Collection tab can generate and save a shareable image containing Rare-or-higher weapon skins, sorted by weapon and rarity without blocking the rest of the UI.
-- **Expanded match details:** landscape-only match sessions now include a redesigned scoreboard, round timeline, combat events, weapon statistics, opponent matchups, spike artwork, and current/peak rank corrections.
-- **Combat and social reliability:** agent select includes silent leave-party behavior, while XMPP connection handling and direct-message delivery are more resilient.
-- **Orientation policy:** only the Match Session screen can rotate to landscape; every other screen remains portrait.
+- **Modern runtime:** upgraded to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
+- **Safer API architecture:** Riot/public traffic now uses isolated clients, a typed endpoint registry, validation, contract tests and read-only smoke tests.
+- **Refresh everywhere:** authenticated data screens, empty states, Match Session and chat support pull-to-refresh with duplicate-request protection.
+- **Complete leaderboard history:** every started Act can be selected, with Episode/Act labels, newest-first ordering and stale-response protection.
+- **Smoother motion:** shared timing/spring tokens keep high-frequency interaction animation on the UI thread and respect system Reduce Motion.
+- **Expo Blur compatibility:** Android blur targets use the current BlurView API without deprecated-property warnings.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation details.
 
@@ -67,11 +67,11 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 
 | Layer | Technology |
 |---|---|
-| **Framework** | React Native 0.74.5 + Expo SDK 51 |
+| **Framework** | React Native 0.86 + Expo SDK 57 |
 | **Routing** | Expo Router (file-based) |
-| **State** | Zustand 4.5.5 + persist middleware |
+| **State** | Zustand 5 + persist middleware |
 | **Storage** | MMKV (sync, ultra-fast) + AsyncStorage fallback |
-| **Animations** | react-native-reanimated 3.10, moti 0.30 |
+| **Animations** | react-native-reanimated 4.5 with centralized motion tokens |
 | **UI** | react-native-paper, custom glassmorphism design system |
 | **i18n** | react-i18next (18 languages) |
 | **Network** | axios with gzip, keep-alive, request dedup |
@@ -324,20 +324,23 @@ components/             # Reusable UI components
 hooks/                  # Zustand stores (user, match, profile, wishlist, combat)
 utils/                  # Business logic, API layer, caching, sync
 constants/              # Design tokens, hardcoded data
+services/               # Isolated HTTP clients, Riot endpoints, public API facade
 types/                  # TypeScript type definitions
 assets/                 # Images, i18n translations
 ```
 
 ## Build
 
+See [BUILD_DESIGN_SYSTEM.md](BUILD_DESIGN_SYSTEM.md) for the complete design, validation, signing and release policy. Repository-wide coding rules are in [AGENTS.md](AGENTS.md).
+
 ### Development Build
 ```bash
-eas build --profile development --platform android
+pnpm dlx eas-cli@latest build --profile development --platform android
 ```
 
 ### Production Build
 ```bash
-eas build --profile production --platform android
+pnpm dlx eas-cli@latest build --profile production --platform android
 ```
 
 Install via QR code or APK from the Expo dashboard.
@@ -353,14 +356,14 @@ Install via QR code or APK from the Expo dashboard.
 
 # Tiếng Việt
 
-## Điểm nổi bật bản 4.0.4
+## Điểm nổi bật bản 4.1.0
 
-- **Chế độ Thông tin trong Profile:** phần hồ sơ trang bị chuyển thành thống kê Act với hiệu ứng thu chữ, xẻ đôi thẻ rank và chạy chữ khi hiện dữ liệu mới.
-- **Thống kê Act chính xác hơn:** số trận thắng lấy từ MMR có placement, tỉ lệ thắng tính trên toàn bộ trận competitive; HS, K/D và KAST được cắt ở một chữ số thập phân.
-- **Xuất ảnh bộ sưu tập:** nút tải ảnh tạo ảnh chia sẻ chỉ gồm skin súng từ bậc Hiếm trở lên, sắp xếp theo loại súng và độ hiếm mà không khóa thao tác trên màn hình.
-- **Chi tiết trận đấu mở rộng:** Phiên đấu hiển thị ngang với scoreboard mới, diễn biến round, sự kiện giao tranh, thống kê vũ khí, bảng đối đầu, ảnh Spike và rank hiện tại/peak đã sửa.
-- **Combat và bạn bè ổn định hơn:** màn chọn agent có nút rời party không hiện thông báo; kết nối XMPP và gửi tin nhắn trực tiếp được gia cố.
-- **Quy tắc xoay màn hình:** chỉ màn Phiên đấu được phép xoay ngang, các màn còn lại luôn giữ dọc.
+- **Runtime mới:** nâng lên Expo SDK 57, React Native 0.86, React 19, Reanimated 4 và Zustand 5.
+- **Kiến trúc API an toàn hơn:** Riot/public API dùng client tách biệt, endpoint registry có type, validation, contract test và smoke test chỉ đọc.
+- **Kéo để tải lại toàn ứng dụng:** các màn dữ liệu, empty state, Phiên đấu và chat đều hỗ trợ refresh, đồng thời chặn request trùng.
+- **Đầy đủ lịch sử bảng xếp hạng:** chọn được mọi Act đã bắt đầu, có nhãn Episode/Act, sắp xếp mới nhất và chống response cũ ghi đè.
+- **Animation mượt và nhất quán:** timing/spring dùng token chung, chạy tương tác trên UI thread và tôn trọng Reduce Motion.
+- **BlurView tương thích SDK mới:** Android dùng `blurTarget` và `blurMethod`, không còn cảnh báo prop deprecated.
 
 Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHANGELOG.md).
 
@@ -381,11 +384,11 @@ Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHA
 
 | Lớp | Công nghệ |
 |---|---|
-| **Framework** | React Native 0.74.5 + Expo SDK 51 |
+| **Framework** | React Native 0.86 + Expo SDK 57 |
 | **Routing** | Expo Router (file-based) |
-| **State** | Zustand 4.5.5 + persist middleware |
+| **State** | Zustand 5 + persist middleware |
 | **Storage** | MMKV (đồng bộ, siêu nhanh) + AsyncStorage fallback |
-| **Animation** | react-native-reanimated 3.10, moti 0.30 |
+| **Animation** | react-native-reanimated 4.5 và motion token tập trung |
 | **UI** | react-native-paper, design system glassmorphism tùy chỉnh |
 | **Đa ngôn ngữ** | react-i18next (18 ngôn ngữ) |
 | **Mạng** | axios với gzip, keep-alive, chống request trùng |
@@ -632,20 +635,23 @@ components/             # Component UI tái sử dụng
 hooks/                  # Zustand stores (user, match, profile, wishlist, combat)
 utils/                  # Logic, API layer, cache, sync
 constants/              # Design tokens, dữ liệu cố định
+services/               # HTTP client tách biệt, Riot endpoints, public API facade
 types/                  # Định nghĩa kiểu TypeScript
 assets/                 # Ảnh, bản dịch i18n
 ```
 
 ## Build
 
+Xem [BUILD_DESIGN_SYSTEM.md](BUILD_DESIGN_SYSTEM.md) để biết đầy đủ quy tắc design, kiểm tra, signing và release. Quy tắc sửa code toàn repository nằm trong [AGENTS.md](AGENTS.md).
+
 ### Build Development
 ```bash
-eas build --profile development --platform android
+pnpm dlx eas-cli@latest build --profile development --platform android
 ```
 
 ### Build Production
 ```bash
-eas build --profile production --platform android
+pnpm dlx eas-cli@latest build --profile production --platform android
 ```
 
 Cài qua QR code hoặc file APK từ dashboard Expo.
