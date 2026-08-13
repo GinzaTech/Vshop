@@ -18,7 +18,7 @@ import {
 } from "~/constants/MatchTheme";
 
 // Single shared shimmer loop — ALL skeletons interpolate from this ONE value
-// Much more efficient than per-component MotiView loops
+// One shared native-driver loop avoids per-component animation work.
 const shimmerValue = new Animated.Value(0);
 let shimmerLoop: Animated.CompositeAnimation | null = null;
 let shimmerSubscriberCount = 0;
