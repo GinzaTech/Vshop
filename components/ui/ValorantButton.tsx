@@ -7,6 +7,7 @@ import { Pressable, Text, StyleSheet, View, StyleProp, ViewStyle, TextStyle } fr
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";                       // Thư viện rung haptic (cảm ứng vật lý)
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { MOTION_SPRING } from "~/constants/Motion";
 import { BlurView } from "expo-blur";                           // Hiệu ứng mờ glassmorphism
 import { flowTracer } from "~/utils/flow-tracer";              // Công cụ theo dõi luồng sự kiện
 
@@ -130,10 +131,10 @@ export default function ValorantButton({
             <Pressable
                 onPress={handlePress}
                 onPressIn={() => {
-                    scale.value = withSpring(0.95, { damping: 15, stiffness: 150 });
+                    scale.value = withSpring(0.96, MOTION_SPRING.press);
                 }}
                 onPressOut={() => {
-                    scale.value = withSpring(1, { damping: 15, stiffness: 150 });
+                    scale.value = withSpring(1, MOTION_SPRING.settle);
                 }}
                 style={[styles.container, style]}
             >
