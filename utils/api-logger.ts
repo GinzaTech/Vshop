@@ -1,5 +1,5 @@
 // Import thư viện FileSystem của expo để làm việc với file hệ thống
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 // Import Platform từ react-native để kiểm tra platform (web, ios, android)
 import { Platform } from "react-native";
 
