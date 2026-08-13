@@ -9,7 +9,12 @@ const isRemoteUrl = (value: unknown): value is string =>
   typeof value === "string" && /^https?:\/\//i.test(value);
 
 const isImageSourceObject = (value: unknown): value is ImageSource =>
-  Boolean(value && typeof value === "object" && !Array.isArray(value));
+  Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      "uri" in value
+  );
 
 export function buildImageCacheKey(cacheId: ImageCacheId) {
   if (cacheId === null || cacheId === undefined) return null;
@@ -51,5 +56,9 @@ export function getManagedImageSource(
   }
 
   if (typeof source === "number" || source == null) return source;
-  return manageSourceItem(source, baseCacheKey);
+  if (typeof source === "string" || isImageSourceObject(source)) {
+    return manageSourceItem(source, baseCacheKey);
+  }
+
+  return source;
 }
