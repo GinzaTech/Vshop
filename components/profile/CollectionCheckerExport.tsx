@@ -489,7 +489,7 @@ function CheckerSheet({
   styles: CheckerStyles;
   onImageReady: (key: string) => void;
   onLayoutReady: () => void;
-  exportRef: React.RefObject<View>;
+  exportRef: React.RefObject<View | null>;
 }) {
   return (
     <View
@@ -647,7 +647,7 @@ export function CollectionCheckerExportProvider({
         result: "tmpfile",
       });
 
-      await MediaLibrary.saveToLibraryAsync(uri);
+      await MediaLibrary.Asset.create(uri);
       Toast.show({
         type: "success",
         text1: "Đã lưu ảnh bộ sưu tập",
