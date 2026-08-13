@@ -1,11 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Modal, Portal, Text, useTheme } from "react-native-paper";
-import { ResizeMode, Video } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { create } from "zustand";
 import { CachedImage as Image } from "~/components/CachedImage";
 
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+
+interface MediaVideoProps {
+  onLoad: () => void;
+  uri: string;
+}
+
+function MediaVideo({ onLoad, uri }: MediaVideoProps) {
+  const player = useVideoPlayer(uri, (nextPlayer) => {
+    nextPlayer.loop = true;
+    nextPlayer.muted = false;
+    nextPlayer.play();
+  });
+
+  return (
+    <VideoView
+      contentFit="contain"
+      nativeControls={false}
+      onFirstFrameRender={onLoad}
+      player={player}
+      style={styles.media}
+    />
+  );
+}
 
 // ─── Zustand Store: useMediaPopupStore ─────────────────────────────────────────
 // Quản lý trạng thái của popup media (hiển thị ảnh/video skin).
@@ -74,6 +97,10 @@ function MediaPopup() {
   const [loading, setLoading] = useState(true);
   const { colors } = useTheme();
 
+  useEffect(() => {
+    setLoading(true);
+  }, [selectedIndex, uris]);
+
   return (
     <Portal>
       <Modal
@@ -111,14 +138,8 @@ function MediaPopup() {
                 onLoad={() => setLoading(false)}
               />
             ) : (
-              <Video
-                source={{ uri: uris[selectedIndex] }}
-                style={styles.media}
-                resizeMode={ResizeMode.CONTAIN}
-                shouldPlay
-                isMuted={false}
-                isLooping
-                onLoadStart={() => setLoading(true)}
+              <MediaVideo
+                uri={uris[selectedIndex]}
                 onLoad={() => setLoading(false)}
               />
             ))}
@@ -129,7 +150,7 @@ function MediaPopup() {
             Mỗi tab là một nút tròn đánh số thứ tự, active thì nền đen chữ trắng
             */}
           <View style={styles.footer}>
-            <Text style={[styles.title, { color: colors.text }]}>{text}</Text>
+            <Text style={[styles.title, { color: colors.onSurface }]}>{text}</Text>
 
             <View style={styles.tabs}>
               {uris.map((uri, index) => {
