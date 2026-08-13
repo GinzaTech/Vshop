@@ -3,14 +3,19 @@
 // Hỗ trợ: double-tap để toggle wishlist (với animation sweep), single-tap để xem preview media.
 import React from "react";
 import {
-  Animated,
-  Easing,
   LayoutChangeEvent,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { BlurView } from "expo-blur";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
@@ -21,6 +26,7 @@ import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { WEAPON_NAME_ORDER } from "~/components/GalleryProfile";
+import { MOTION_TIMING } from "~/constants/Motion";
 
 // Props cho GalleryWeapon
 // item: đối tượng GalleryItem (chứa thông tin skin vũ khí)
@@ -45,9 +51,16 @@ export default function GalleryWeapon({
   // cardWidth: state lưu chiều rộng thực tế của card (đo bằng onLayout)
   const [cardWidth, setCardWidth] = React.useState(0);
   // sweepTranslateX: Animated.Value cho hiệu ứng sweep (quét ngang) khi toggle wishlist
-  const sweepTranslateX = React.useRef(new Animated.Value(-160)).current;
+  const sweepTranslateX = useSharedValue(-160);
   // sweepOpacity: Animated.Value cho độ mờ của sweep overlay
-  const sweepOpacity = React.useRef(new Animated.Value(0)).current;
+  const sweepOpacity = useSharedValue(0);
+  const sweepAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: sweepOpacity.value,
+    transform: [
+      { translateX: sweepTranslateX.value },
+      { rotate: "14deg" },
+    ],
+  }));
   // tier: thông tin visual của content tier (màu sắc, nhãn) dựa vào contentTierUuid
   const tier = getContentTierVisual(item.contentTierUuid);
 
@@ -115,32 +128,22 @@ export default function GalleryWeapon({
 
       // Animation sweep: overlay trắng mờ quét từ trái sang phải
       const startX = -Math.max(cardWidth * 0.7, 120);
-      sweepTranslateX.stopAnimation();
-      sweepOpacity.stopAnimation();
-      sweepTranslateX.setValue(startX);
-      sweepOpacity.setValue(0);
+      cancelAnimation(sweepTranslateX);
+      cancelAnimation(sweepOpacity);
+      sweepTranslateX.value = startX;
+      sweepOpacity.value = 0;
 
       // Sequence opacity: hiện lên 0.95 (120ms) => tắt dần 0 (360ms)
-      Animated.sequence([
-        Animated.timing(sweepOpacity, {
-          toValue: 0.95,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(sweepOpacity, {
-          toValue: 0,
-          duration: 360,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      sweepOpacity.value = withSequence(
+        withTiming(0.95, { ...MOTION_TIMING.fast, duration: 120 }),
+        withTiming(0, MOTION_TIMING.emphasized),
+      );
 
       // Translate X: quét từ trái qua phải trong 520ms
-      Animated.timing(sweepTranslateX, {
-        toValue: cardWidth + 120,
-        duration: 520,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
+      sweepTranslateX.value = withTiming(cardWidth + 120, {
+        ...MOTION_TIMING.emphasized,
+        duration: 480,
+      });
       return;
     }
 
@@ -190,10 +193,7 @@ export default function GalleryWeapon({
         pointerEvents="none"
         style={[
           styles.sweepOverlay,
-          {
-            opacity: sweepOpacity,
-            transform: [{ translateX: sweepTranslateX }, { rotate: "14deg" }],
-          },
+          sweepAnimatedStyle,
         ]}
       >
         <BlurView intensity={55} tint="light" style={styles.sweepBlur}>
