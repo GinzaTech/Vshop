@@ -26,6 +26,8 @@ import {
 import { getStoredItem, setStoredItem, removeStoredItem } from "~/utils/storage";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 /** ToggleOverrides: Key-value ghi đè feature flag (lưu local). */
@@ -75,33 +77,35 @@ export default function AboutScreen() {
   );
 
   // ── Load data ────────────────────────────────────────────────────────────
-  React.useEffect(() => {
-    const fetchAll = async () => {
-      if (!user.accessToken || !user.entitlementsToken || !user.region) {
-        setLoading(false);
-        return;
+  const fetchAll = React.useCallback(async () => {
+    if (!user.accessToken || !user.entitlementsToken || !user.region) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const [pi, rc, ct, toggleRaw] = await Promise.all([
+        getPlayerInfo(user.accessToken).catch(() => null),
+        getRiotClientConfig(user.accessToken, user.entitlementsToken).catch(() => null),
+        getContent(user.accessToken, user.entitlementsToken, user.region).catch(() => null),
+        getStoredItem(STORAGE_KEY_TOGGLES).catch(() => null),
+      ]);
+      if (pi) setPlayerInfo(pi);
+      if (rc) setRiotConfig(rc);
+      if (ct) setContent(ct);
+      if (toggleRaw) {
+        try { setToggleOverrides(JSON.parse(toggleRaw)); } catch {}
       }
-      try {
-        const [pi, rc, ct, toggleRaw] = await Promise.all([
-          getPlayerInfo(user.accessToken).catch(() => null),
-          getRiotClientConfig(user.accessToken, user.entitlementsToken).catch(() => null),
-          getContent(user.accessToken, user.entitlementsToken, user.region).catch(() => null),
-          getStoredItem(STORAGE_KEY_TOGGLES).catch(() => null),
-        ]);
-        if (pi) setPlayerInfo(pi);
-        if (rc) setRiotConfig(rc);
-        if (ct) setContent(ct);
-        if (toggleRaw) {
-          try { setToggleOverrides(JSON.parse(toggleRaw)); } catch {}
-        }
-      } catch (err) {
-        if (__DEV__) console.error("[about] fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
+    } catch (err) {
+      if (__DEV__) console.error("[about] fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [user.accessToken, user.entitlementsToken, user.region]);
+
+  React.useEffect(() => {
+    void fetchAll();
+  }, [fetchAll]);
+  const { refreshing, onRefresh } = useAsyncRefresh(fetchAll);
 
   // ── Toggle helpers ───────────────────────────────────────────────────────
   const getToggleValue = (key: string, riotDefault: boolean): boolean =>
@@ -199,6 +203,10 @@ export default function AboutScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
+      refreshControl={
+        <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      alwaysBounceVertical
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
