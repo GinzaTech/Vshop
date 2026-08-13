@@ -10,6 +10,9 @@ import { getAssets } from "~/utils/valorant-assets";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import PageIntro from "~/components/ui/PageIntro";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { fullBackgroundSync } from "~/utils/app-sync";
 
 // useDebounceValue: custom hook debounce giá trị string
 // value: giá trị đầu vào, delay: thời gian debounce (ms)
@@ -36,6 +39,8 @@ function Gallery() {
 
   const skinIds = useWishlistStore((state) => state.skinIds);
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);                     // Wishlist store
+  const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
   // gallerySkins: danh sách skin đã lọc + sort (memoized)
   // Lọc theo: query (tên skin), có contentTier, wishlist (nếu filter = "wishlist")
@@ -87,14 +92,34 @@ function Gallery() {
       </View>
 
       {/* Danh sách skin */}
-      {gallerySkins.length > 0 ? (
-        <FlatList data={gallerySkins} keyExtractor={(item) => item.uuid} renderItem={renderItem}
-          key={`grid-${columnCount}`}
-          numColumns={columnCount} columnWrapperStyle={styles.gridRow} contentContainerStyle={styles.gridContent} showsVerticalScrollIndicator={false}
-          removeClippedSubviews initialNumToRender={8} maxToRenderPerBatch={8} windowSize={5} />
-      ) : (
-        <EmptyStateCard title={t("gallery_page.empty_title")} subtitle={t("gallery_page.empty_subtitle")} style={styles.emptyState} />
-      )}
+      <FlatList
+        data={gallerySkins}
+        keyExtractor={(item) => item.uuid}
+        renderItem={renderItem}
+        key={`grid-${columnCount}`}
+        numColumns={columnCount}
+        columnWrapperStyle={gallerySkins.length > 0 ? styles.gridRow : undefined}
+        contentContainerStyle={[
+          styles.gridContent,
+          gallerySkins.length === 0 && styles.gridContentEmpty,
+        ]}
+        ListEmptyComponent={
+          <EmptyStateCard
+            title={t("gallery_page.empty_title")}
+            subtitle={t("gallery_page.empty_subtitle")}
+            style={styles.emptyState}
+          />
+        }
+        refreshControl={
+          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        alwaysBounceVertical
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+      />
     </View>
   );
 }
@@ -118,6 +143,7 @@ const styles = StyleSheet.create({
   emptyState: { margin: 20 },
   // Lưới skin
   gridContent: { paddingHorizontal: 14, paddingBottom: 32, paddingTop: 4 },
+  gridContentEmpty: { flexGrow: 1 },
   gridRow: { gap: 12, marginBottom: 12 },
 });
 
