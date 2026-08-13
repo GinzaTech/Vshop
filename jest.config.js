@@ -7,7 +7,10 @@ module.exports = {
   moduleNameMapper: {
     "^~/(.*)$": "<rootDir>/$1",
   },
-  collectCoverageFrom: ["utils/session-events.ts"],
+  collectCoverageFrom: [
+    "utils/session-events.ts",
+    "services/riot/endpoints.ts",
+  ],
   coveragePathIgnorePatterns: [
     "/node_modules/",
     "/backup/",
