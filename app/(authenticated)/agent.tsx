@@ -10,6 +10,8 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import { AgentGrid, AgentModal } from "~/components/GalleryAgent";
 import useAgentGallery from "~/components/GalleryAgent";
 import { COLORS } from "~/constants/DesignSystem";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { fullBackgroundSync } from "~/utils/app-sync";
 
 // Component chính: Agent - hiển thị danh sách các Agent theo vai trò (role)
 // Cho phép lọc agent theo role, chọn agent và xem chi tiết kỹ năng
@@ -26,6 +28,8 @@ const Agent = () => {
   // setSelectedAbility: hàm set kỹ năng được chọn
   const { filteredAgents, selectedRole, selectedAgent, selectedAbility, filterByRole,
     handleAgentPress, sortAbilities, setSelectedAgent, setSelectedAbility } = useAgentGallery();
+  const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
   // Mảng ROLES: định nghĩa 4 vai trò trong game (Duelist, Controller, Initiator, Sentinel)
   // Mỗi role có id, name và icon (ảnh local)
@@ -58,7 +62,12 @@ const Agent = () => {
           ))}
         </View>
         {/* Lưới hiển thị các agent đã lọc */}
-        <AgentGrid agents={filteredAgents} onAgentPress={handleAgentPress} />
+        <AgentGrid
+          agents={filteredAgents}
+          onAgentPress={handleAgentPress}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
         {/* Modal chi tiết agent: chỉ hiển thị khi có agent được chọn */}
         {selectedAgent && (
             <AgentModal
