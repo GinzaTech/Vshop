@@ -9,6 +9,9 @@ import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { EQUIPMENT_SECTIONS, getCollectionBySection, sortEquipItems, buildEquipDisplayList, sanitizeQuery } from "~/components/popups/equipHelpers";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { fullBackgroundSync } from "~/utils/app-sync";
 
 // EquipmentSectionKey: kiểu key cho các section (VD: "melee", "sidearm", ...)
 type EquipmentSectionKey = (typeof EQUIPMENT_SECTIONS)[number]["key"];
@@ -27,6 +30,8 @@ const Equip = () => {
   const [activeSection, setActiveSection] = React.useState<EquipmentSectionKey>(EQUIPMENT_SECTIONS[0].key); // Section đang active (UI)
   const [renderedSection, setRenderedSection] = React.useState<EquipmentSectionKey>(EQUIPMENT_SECTIONS[0].key); // Section thực tế render (delay)
   const [searchQuery, setSearchQuery] = React.useState("");                                                     // Từ khóa tìm kiếm
+  const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
   // sectionFrameRef: ref cho requestAnimationFrame, dùng để delay render section
   // tránh giật lag khi chuyển tab
@@ -112,6 +117,10 @@ const Equip = () => {
         numColumns={columnCount}
         columnWrapperStyle={styles.listColumn}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        alwaysBounceVertical
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={<EmptyStateCard title={t("equipment_page.empty_title")} subtitle={t("equipment_page.empty_subtitle")} style={styles.emptyState} />}
         removeClippedSubviews
