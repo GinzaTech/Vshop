@@ -8,6 +8,9 @@ import { useTranslation } from "react-i18next";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { CROSSHAIR_DB, type CrosshairData } from "~/constants/CrosshairData";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { fullBackgroundSync } from "~/utils/app-sync";
 
 // CrosshairRender: component vẽ crosshair dựa trên style (type, color, thickness, gap)
 // Hỗ trợ 4 kiểu: cross, dot, box, circle
@@ -58,6 +61,8 @@ export default function CrosshairDatabase() {
   const [search, setSearch] = useState("");                                  // Từ khóa tìm kiếm
   const [activeCategory, setActiveCategory] = useState<string>("All");       // Category đang lọc
   const [copiedName, setCopiedName] = useState<string | null>(null);         // Tên crosshair vừa copy (hiển thị badge)
+  const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
   // categories: danh sách category để lọc
   const categories: { value: string; label: string }[] = [
@@ -148,6 +153,10 @@ export default function CrosshairDatabase() {
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          alwaysBounceVertical
           showsVerticalScrollIndicator={false}
         />
       </View>
