@@ -8,12 +8,12 @@ type CookieManagerModule = {
 };
 
 /**
- * loadCookieManager - Tải module @react-native-cookies/cookies
+ * loadCookieManager - Tải cookie manager hỗ trợ React Native New Architecture
  * @returns {CookieManagerModule | null} Trả về đối tượng cookie manager nếu load thành công, null nếu thất bại
  */
 const loadCookieManager = (): CookieManagerModule | null => {
   try {
-    const cookieModule = require("@react-native-cookies/cookies");
+    const cookieModule = require("@preeternal/react-native-cookie-manager");
     return cookieModule?.default ?? cookieModule ?? null;
   } catch {
     return null;
