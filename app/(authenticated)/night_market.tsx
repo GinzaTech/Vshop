@@ -18,6 +18,9 @@ import NightMarketItem from "~/components/NightMarketItem";
 import { useUserStore } from "~/hooks/useUserStore";
 import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { refreshShopAndBalances } from "~/utils/app-sync";
 
 // Khoảng cách padding cho nội dung
 const CONTENT_PADDING = 20;
@@ -34,6 +37,11 @@ function NightMarket() {
   const { width } = useWindowDimensions();
   // Thông tin user từ store
   const user = useUserStore(({ user }) => user);
+  const refreshShop = React.useCallback(
+    () => refreshShopAndBalances(true),
+    []
+  );
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
   // Timestamp kết thúc Night Market (hiện tại + số giây còn lại)
   const timestamp =
     new Date().getTime() + user.shops.remainingSecs.nightMarket * 1000;
@@ -45,24 +53,25 @@ function NightMarket() {
       columnCount
   );
 
-  // Empty state: không có item nào trong Night Market
-  if (user.shops.nightMarket.length === 0) {
-    return (
-      <EmptyStateCard
-        centered
-        icon={<Icon name="weather-night" size={36} color={COLORS.TEXT_PRIMARY} />}
-        title={t("night_market_page.empty_title")}
-        subtitle={t("night_market_page.empty_subtitle")}
-      />
-    );
-  }
-
   return (
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
+      refreshControl={
+        <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      alwaysBounceVertical
       showsVerticalScrollIndicator={false}
     >
+      {user.shops.nightMarket.length === 0 ? (
+        <EmptyStateCard
+          centered
+          icon={<Icon name="weather-night" size={36} color={COLORS.TEXT_PRIMARY} />}
+          title={t("night_market_page.empty_title")}
+          subtitle={t("night_market_page.empty_subtitle")}
+        />
+      ) : (
+        <>
       {/* Premium Custom Header: logo + badge + balance + avatar */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
@@ -106,6 +115,8 @@ function NightMarket() {
           {t("night_market_page.info_note")}
         </Text>
       </View>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -121,6 +132,7 @@ const styles = StyleSheet.create({
   },
   // content – Padding cho ScrollView
   content: {
+    flexGrow: 1,
     padding: CONTENT_PADDING,
     paddingBottom: 140,
   },
