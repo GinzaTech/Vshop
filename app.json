@@ -1,8 +1,8 @@
-﻿{
+{
   "expo": {
     "name": "VShop",
     "slug": "vshop",
-    "version": "4.0.5",
+    "version": "4.1.0",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -14,14 +14,9 @@
       "url": "https://u.expo.dev/90bdf4e2-2472-4cd1-a168-4a5ee4e62218",
       "checkAutomatically": "ON_ERROR_RECOVERY"
     },
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#2f343b"
-    },
     "ios": {
       "bundleIdentifier": "dev.vasc.vshop",
-      "buildNumber": "31",
+      "buildNumber": "32",
       "supportsTablet": true
     },
     "android": {
@@ -34,7 +29,7 @@
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "package": "com.android.vshop",
-      "versionCode": 78
+      "versionCode": 79
     },
     "web": {
       "bundler": "metro",
@@ -64,7 +59,25 @@
           "color": "#7b838f"
         }
       ],
-      "react-native-background-fetch"
+      "react-native-background-fetch",
+      [
+        "@preeternal/react-native-cookie-manager",
+        {
+          "androidWebkitVersion": "1.16.0"
+        }
+      ],
+      "expo-image",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#2f343b"
+        }
+      ],
+      "expo-status-bar",
+      "expo-video",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
