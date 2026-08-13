@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   BackHandler,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -27,6 +28,8 @@ import {
 import { getAgent, getAssets } from "~/utils/valorant-assets";
 import { formatSessionQueueLabel } from "~/utils/valorant-session";
 import { lockScreenOrientation } from "~/utils/screen-orientation";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 
 const TRACKER_COLORS = {
   background: "#07101D",
@@ -641,6 +644,7 @@ export default function CombatSessionScreen() {
   const loadSnapshot = React.useCallback(async () => {
     await fetchSession(user);
   }, [fetchSession, user]);
+  const { refreshing, onRefresh } = useAsyncRefresh(loadSnapshot);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -1293,6 +1297,15 @@ export default function CombatSessionScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar hidden />
+      <ScrollView
+        style={styles.sessionScroll}
+        contentContainerStyle={styles.sessionScrollContent}
+        refreshControl={
+          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        alwaysBounceVertical
+        showsVerticalScrollIndicator={false}
+      >
       <View style={[styles.landscapeContent, isTight && styles.landscapeContentTight]}>
         <View style={[styles.trackerHeader, isTight && styles.trackerHeaderTight]}>
           {mapImage ? (
@@ -1513,6 +1526,7 @@ export default function CombatSessionScreen() {
           </View>
         )}
       </View>
+      </ScrollView>
 
       {selectedPlayer && selectedPresentation ? (
         <View style={styles.modalRoot}>
@@ -1791,6 +1805,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: TRACKER_COLORS.background,
   },
+  sessionScroll: {
+    flex: 1,
+  },
+  sessionScrollContent: {
+    flexGrow: 1,
+  },
   landscapeContent: {
     flex: 1,
     paddingHorizontal: 10,
@@ -1817,11 +1837,11 @@ const styles = StyleSheet.create({
     height: 46,
   },
   headerMapImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     opacity: 0.28,
   },
   headerScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(7, 16, 29, 0.72)",
   },
   headerPlayer: {
@@ -2264,7 +2284,7 @@ const styles = StyleSheet.create({
     backgroundColor: TRACKER_COLORS.background,
   },
   modalRoot: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 50,
     alignItems: "center",
     justifyContent: "center",
