@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(16, 18, 22, 0.86)",
   },
   topRow: {
