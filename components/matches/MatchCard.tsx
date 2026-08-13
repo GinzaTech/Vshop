@@ -27,6 +27,7 @@ import {
   formatPercent,
   humanizeMatchMode,
 } from "~/utils/match-ui";
+import { MOTION_SPRING } from "~/constants/Motion";
 
 type MatchCardProps = {
   match: MatchHistoryItem;
@@ -81,10 +82,10 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
         accessibilityLabel={accessibilityLabel}
         onPress={() => onPress(match.id)}
         onPressIn={() => {
-          scale.value = withSpring(0.97, { damping: 15, stiffness: 150 });
+          scale.value = withSpring(0.97, MOTION_SPRING.press);
         }}
         onPressOut={() => {
-          scale.value = withSpring(1, { damping: 15, stiffness: 150 });
+          scale.value = withSpring(1, MOTION_SPRING.settle);
         }}
         style={[styles.card, isWin && styles.winCard]}
       >
