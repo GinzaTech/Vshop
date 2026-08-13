@@ -1,5 +1,5 @@
 // Import axios để gọi HTTP request
-import axios from "axios";
+import { riotApiClient as axios } from "~/services/riot/client";
 // Import jwtDecode để decode JWT token
 import { jwtDecode } from "jwt-decode";
 
