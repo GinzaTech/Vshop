@@ -9,7 +9,6 @@
 import React from "react";
 import {
   FlatList,
-  InteractionManager,
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -35,17 +34,19 @@ import Animated, {
 import { ActivityIndicator, Modal, Portal, Searchbar, useTheme } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
+import { runWhenIdle, type IdleTask } from "~/utils/idle-task";
 
 import CurrencyIcon from "~/components/CurrencyIcon";
 import RankSplitGroup, {
+  type RankSplitContentMode,
   type RankSplitStat,
 } from "~/components/profile/RankSplitGroup";
 import PlayerStatsDashboard, {
   type StatsDashboardTab,
 } from "~/components/profile/PlayerStatsDashboard";
+import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
 import {
   CollectionCheckerExport,
   CollectionCheckerExportProvider,
@@ -95,6 +96,7 @@ import {
 import { COLORS, RADIUS, GLOBAL_STYLES } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { VItemTypes } from "~/utils/misc";
+import { getPublicWeapons } from "~/services/valorant/public-api";
 
 const PROFILE_TAB_KEYS: TabKey[] = ["loadout", "skins", "collection"];
 
@@ -115,11 +117,20 @@ type ProfileListRow =
       tone: "error" | "empty";
     };
 
+const RANK_TEXT_RETRACT_DURATION_MS = 520;
+const RANK_SPLIT_DURATION_MS = 420;
+const HERO_SUBTITLE_TYPING_SPEED_MS = 36;
+const HERO_SUBTITLE_DELETING_SPEED_MS = 22;
+const HERO_SUBTITLE_INITIAL_DELAY_MS = 60;
+const HERO_SUBTITLE_COLLAPSE_DURATION_MS = 180;
+const HERO_SUBTITLE_EXPAND_DURATION_MS = 240;
 const PROFILE_BODY_FADE_DURATION_MS = 260;
+const PROFILE_NAV_RETRACT_DURATION_MS = 420;
 const PROFILE_SEGMENT_LAYOUT_DURATION_MS = 340;
 const PROFILE_DASHBOARD_GROW_DURATION_MS = 480;
 const PROFILE_BACKGROUND_DURATION_MS = 420;
 const PROFILE_STATS_FETCH_DELAY_MS = PROFILE_DASHBOARD_GROW_DURATION_MS + 120;
+type ProfileNavContentMode = "profile" | "blank" | "stats";
 const truncateToOneDecimal = (value: number) =>
     Math.trunc(value * 10) / 10;
 const formatOneDecimal = (value: number) =>
@@ -606,7 +617,7 @@ const loadoutsMatch = (
  * - activeWeaponChroma: Chroma panel đang mở cho weapon/skin nào.
  *
  * Refs:
- * - pickerTaskRef: Task InteractionManager cho picker (hủy được).
+ * - pickerTaskRef: Tác vụ idle cho picker (hủy được).
  * - loadoutSnapshotRef: Luôn giữ loadout mới nhất (dùng trong async).
  * - loadoutMutationVersionRef: Version tăng dần khi mutate loadout.
  * - pendingLoadoutRef: Bản cập nhật loadout đang chờ xác nhận.
@@ -670,10 +681,12 @@ function Profile() {
   const [activeTab, setActiveTab] = React.useState<TabKey>("loadout");
   const [statsDashboardTab, setStatsDashboardTab] =
       React.useState<StatsDashboardTab>("overview");
+  const [profileNavContentMode, setProfileNavContentMode] =
+      React.useState<ProfileNavContentMode>("profile");
   const [statsDashboardMounted, setStatsDashboardMounted] =
       React.useState(false);
   const profilePagerRef =
-      React.useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
+      React.useRef<React.ElementRef<typeof ScrollView>>(null);
   const skinWhitespacePagerOriginRef = React.useRef(0);
   const segmentProgress = useSharedValue(0);
   const segmentLayoutProgress = useSharedValue(0);
@@ -811,17 +824,13 @@ function Profile() {
     weapon: EquippedWeapon;
     option: OwnedSkinOption;
   } | null>(null);
-  const pickerTaskRef = React.useRef<ReturnType<
-      typeof InteractionManager.runAfterInteractions
-  > | null>(null);
+  const pickerTaskRef = React.useRef<IdleTask | null>(null);
   const loadoutSnapshotRef = React.useRef<PlayerLoadoutResponse | null>(
       cachedLoadoutSnapshot
   );
   const loadoutMutationVersionRef = React.useRef(0);          // Tăng sau mỗi mutation
   const pendingLoadoutRef = React.useRef<PendingLoadoutUpdate | null>(null);
-  const initialFetchTaskRef = React.useRef<ReturnType<
-      typeof InteractionManager.runAfterInteractions
-  > | null>(null);
+  const initialFetchTaskRef = React.useRef<IdleTask | null>(null);
   const initialFetchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
       null
   );
@@ -839,7 +848,7 @@ function Profile() {
           card: COLORS.SURFACE,
           cardBorder: COLORS.BORDER,
           chipBackground: COLORS.SURFACE_MUTED,
-          textPrimary: colors?.text ?? COLORS.TEXT_PRIMARY,
+          textPrimary: colors?.onSurface ?? COLORS.TEXT_PRIMARY,
           textSecondary: COLORS.TEXT_SECONDARY,
         };
       },
@@ -847,9 +856,14 @@ function Profile() {
   );
   const regionLabel = user.region ? user.region.toUpperCase() : "VAL";
   const heroSubtitleText = t("profile_page.hero_subtitle");
+  const [heroSubtitleTargetText, setHeroSubtitleTargetText] =
+      React.useState(heroSubtitleText);
 
   // ─── Chuyển đổi giữa hồ sơ trang bị và thông tin người chơi ─────────────
   const [isPlayerInfoMode, setIsPlayerInfoMode] = React.useState(false);
+  const isPlayerInfoModeRef = React.useRef(false);
+  const [rankSplitContentMode, setRankSplitContentMode] =
+      React.useState<RankSplitContentMode>("rank");
   const heroModeProgress = useSharedValue(0);
   const rankSplitProgress = useSharedValue(0);
   const statsVisibilityProgress = useSharedValue(1);
@@ -859,12 +873,19 @@ function Profile() {
   const dashboardProgress = useSharedValue(0);
   const statsExpandedRef = React.useRef(true);
   const lastRegionTapRef = React.useRef(0);
-  const dashboardPreloadTaskRef = React.useRef<ReturnType<
-      typeof InteractionManager.runAfterInteractions
-  > | null>(null);
+  const heroSubtitleCollapseTimerRef = React.useRef<
+      ReturnType<typeof setTimeout> | null
+  >(null);
+  const rankTransitionTimersRef = React.useRef<
+      ReturnType<typeof setTimeout>[]
+  >([]);
+  const profileModeTimersRef = React.useRef<
+      ReturnType<typeof setTimeout>[]
+  >([]);
+  const dashboardPreloadTaskRef = React.useRef<IdleTask | null>(null);
 
   React.useEffect(() => {
-    const preloadTask = InteractionManager.runAfterInteractions(() => {
+    const preloadTask = runWhenIdle(() => {
       dashboardPreloadTaskRef.current = null;
       setStatsDashboardMounted(true);
     });
@@ -905,15 +926,15 @@ function Profile() {
 
   const legacyContentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: legacyContentProgress.value,
-    transform: [
-      {
-        scale: interpolate(legacyContentProgress.value, [0, 1], [0.985, 1]),
-      },
-    ],
   }));
 
   const statsDashboardLayerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, dashboardProgress.value * 8),
+    opacity: dashboardProgress.value,
+    transform: [
+      {
+        translateY: interpolate(dashboardProgress.value, [0, 1], [8, 0]),
+      },
+    ],
   }));
 
   const heroModeToggleAnimatedStyle = useAnimatedStyle(() => ({
@@ -947,15 +968,16 @@ function Profile() {
 
   const heroSubtitleAnimatedStyle = useAnimatedStyle(() => ({
     opacity: heroSubtitleVisibilityProgress.value,
-    transform: [
-      {
-        translateY: interpolate(
-            heroSubtitleVisibilityProgress.value,
-            [0, 1],
-            [-3, 0]
-        ),
-      },
-    ],
+    maxHeight: interpolate(
+        heroSubtitleVisibilityProgress.value,
+        [0, 1],
+        [0, 44]
+    ),
+    marginTop: interpolate(
+        heroSubtitleVisibilityProgress.value,
+        [0, 1],
+        [0, 4]
+    ),
   }));
 
   const balanceStatsAnimatedStyle = useAnimatedStyle(() => ({
@@ -1017,9 +1039,44 @@ function Profile() {
     );
   }, [statsVisibilityProgress]);
 
+  const startRankSplitTransition = React.useCallback(
+      (showActStats: boolean) => {
+        rankTransitionTimersRef.current.forEach(clearTimeout);
+        rankTransitionTimersRef.current = [];
+        setRankSplitContentMode("blank");
+
+        const splitTimer = setTimeout(() => {
+          rankSplitProgress.value = withTiming(showActStats ? 1 : 0, {
+            duration: RANK_SPLIT_DURATION_MS,
+            easing: Easing.inOut(Easing.cubic),
+          });
+        }, RANK_TEXT_RETRACT_DURATION_MS);
+
+        const revealTimer = setTimeout(() => {
+          setRankSplitContentMode(showActStats ? "act" : "rank");
+          rankTransitionTimersRef.current = [];
+        }, RANK_TEXT_RETRACT_DURATION_MS + RANK_SPLIT_DURATION_MS);
+
+        rankTransitionTimersRef.current = [splitTimer, revealTimer];
+      },
+      [rankSplitProgress]
+  );
+
   const toggleHeroMode = React.useCallback(() => {
-    const nextMode = !isPlayerInfoMode;
+    const nextMode = !isPlayerInfoModeRef.current;
+
+    if (heroSubtitleCollapseTimerRef.current) {
+      clearTimeout(heroSubtitleCollapseTimerRef.current);
+      heroSubtitleCollapseTimerRef.current = null;
+    }
+    profileModeTimersRef.current.forEach(clearTimeout);
+    profileModeTimersRef.current = [];
+
+    isPlayerInfoModeRef.current = nextMode;
     setIsPlayerInfoMode(nextMode);
+    setProfileNavContentMode("blank");
+    startRankSplitTransition(nextMode);
+
     if (!statsDashboardMounted) {
       dashboardPreloadTaskRef.current?.cancel();
       dashboardPreloadTaskRef.current = null;
@@ -1027,12 +1084,8 @@ function Profile() {
     }
 
     heroModeProgress.value = withTiming(nextMode ? 1 : 0, {
-      duration: 320,
+      duration: 380,
       easing: Easing.out(Easing.cubic),
-    });
-    rankSplitProgress.value = withTiming(nextMode ? 1 : 0, {
-      duration: 360,
-      easing: Easing.inOut(Easing.cubic),
     });
     pageModeProgress.value = withTiming(nextMode ? 1 : 0, {
       duration: PROFILE_BACKGROUND_DURATION_MS,
@@ -1046,23 +1099,53 @@ function Profile() {
       duration: PROFILE_DASHBOARD_GROW_DURATION_MS,
       easing: nextMode ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
     });
-    segmentLayoutProgress.value = withTiming(nextMode ? 1 : 0, {
-      duration: PROFILE_SEGMENT_LAYOUT_DURATION_MS,
-      easing: Easing.inOut(Easing.cubic),
-    });
-    heroSubtitleVisibilityProgress.value = withTiming(nextMode ? 0 : 1, {
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-    });
+
+    const reshapeSegmentTimer = setTimeout(() => {
+      segmentLayoutProgress.value = withTiming(nextMode ? 1 : 0, {
+        duration: PROFILE_SEGMENT_LAYOUT_DURATION_MS,
+        easing: Easing.inOut(Easing.cubic),
+      });
+    }, PROFILE_NAV_RETRACT_DURATION_MS);
+    const revealSegmentTextTimer = setTimeout(() => {
+      setProfileNavContentMode(nextMode ? "stats" : "profile");
+      profileModeTimersRef.current = [];
+    }, PROFILE_NAV_RETRACT_DURATION_MS + PROFILE_SEGMENT_LAYOUT_DURATION_MS);
+    profileModeTimersRef.current = [
+      reshapeSegmentTimer,
+      revealSegmentTextTimer,
+    ];
+
+    if (nextMode) {
+      setHeroSubtitleTargetText("");
+      const deleteDuration =
+          heroSubtitleText.length * HERO_SUBTITLE_DELETING_SPEED_MS + 40;
+      heroSubtitleCollapseTimerRef.current = setTimeout(() => {
+        heroSubtitleVisibilityProgress.value = withTiming(0, {
+          duration: HERO_SUBTITLE_COLLAPSE_DURATION_MS,
+          easing: Easing.out(Easing.cubic),
+        });
+        heroSubtitleCollapseTimerRef.current = null;
+      }, deleteDuration);
+    } else {
+      setHeroSubtitleTargetText("");
+      heroSubtitleVisibilityProgress.value = withTiming(1, {
+        duration: HERO_SUBTITLE_EXPAND_DURATION_MS,
+        easing: Easing.out(Easing.cubic),
+      });
+      heroSubtitleCollapseTimerRef.current = setTimeout(() => {
+        setHeroSubtitleTargetText(heroSubtitleText);
+        heroSubtitleCollapseTimerRef.current = null;
+      }, HERO_SUBTITLE_EXPAND_DURATION_MS);
+    }
   }, [
     dashboardProgress,
     heroModeProgress,
+    heroSubtitleText,
     heroSubtitleVisibilityProgress,
-    isPlayerInfoMode,
     legacyContentProgress,
     pageModeProgress,
-    rankSplitProgress,
     segmentLayoutProgress,
+    startRankSplitTransition,
     statsDashboardMounted,
   ]);
 
@@ -1545,13 +1628,12 @@ function Profile() {
   React.useEffect(() => {
     let isMounted = true;
 
-    axios
-        .get<{ data: WeaponMetadata[] }>("https://valorant-api.com/v1/weapons")
-        .then((response) => {
+    getPublicWeapons()
+        .then((weapons) => {
           if (!isMounted) return;
           const map: WeaponMetadataMap = {};
-          response.data.data.forEach((weapon) => {
-            map[weapon.uuid] = weapon;
+          weapons.forEach((weapon) => {
+            map[weapon.uuid] = weapon as WeaponMetadata;
           });
           setWeaponMetadata(map);
         })
@@ -1573,8 +1655,16 @@ function Profile() {
           clearTimeout(initialFetchTimeoutRef.current);
           initialFetchTimeoutRef.current = null;
         }
+        rankTransitionTimersRef.current.forEach(clearTimeout);
+        rankTransitionTimersRef.current = [];
+        profileModeTimersRef.current.forEach(clearTimeout);
+        profileModeTimersRef.current = [];
         dashboardPreloadTaskRef.current?.cancel();
         dashboardPreloadTaskRef.current = null;
+        if (heroSubtitleCollapseTimerRef.current) {
+          clearTimeout(heroSubtitleCollapseTimerRef.current);
+          heroSubtitleCollapseTimerRef.current = null;
+        }
       },
       []
   );
@@ -1584,7 +1674,7 @@ function Profile() {
   // - Nếu không có auth → reset state, hiển thị lỗi.
   // - Nếu cache còn fresh và có loadout cache + rank cache → không fetch.
   // - Nếu cache fresh nhưng thiếu rank → refresh rank (chỉ 1 lần).
-  // - Nếu cache stale hoặc không có → fetch đầy đủ sau InteractionManager.
+  // - Nếu cache stale hoặc không có → fetch đầy đủ khi JS runtime rảnh.
   // - Delay: 120ms nếu có cache, 260ms nếu không (để animation mượt).
   React.useEffect(() => {
     if (!hasAuth) {
@@ -1633,7 +1723,7 @@ function Profile() {
       initialFetchTimeoutRef.current = null;
     }
 
-    initialFetchTaskRef.current = InteractionManager.runAfterInteractions(() => {
+    initialFetchTaskRef.current = runWhenIdle(() => {
       initialFetchTimeoutRef.current = setTimeout(() => {
         initialFetchTimeoutRef.current = null;
         void fetchLoadoutData(!cachedLoadoutSnapshot);
@@ -2626,7 +2716,7 @@ function Profile() {
 
   /**
    * handleOpenWeaponPicker — Mở picker chọn skin cho vũ khí.
-   * Load options bất đồng bộ qua InteractionManager.
+   * Load options bất đồng bộ khi JS runtime rảnh.
    */
   const handleOpenWeaponPicker = React.useCallback(
       (weapon: EquippedWeapon) => {
@@ -2635,7 +2725,7 @@ function Profile() {
         setPickerLoading(true);
         setActiveWeaponChroma(null);
 
-        pickerTaskRef.current = InteractionManager.runAfterInteractions(() => {
+        pickerTaskRef.current = runWhenIdle(() => {
           const options = buildOwnedSkinOptions(weapon);
           React.startTransition(() => {
             setPickerState({
@@ -2657,7 +2747,7 @@ function Profile() {
         setPickerError(null);
         setPickerLoading(true);
 
-        pickerTaskRef.current = InteractionManager.runAfterInteractions(() => {
+        pickerTaskRef.current = runWhenIdle(() => {
           const options = buildOwnedSprayOptions(spray);
           React.startTransition(() => {
             setPickerState({
@@ -2679,7 +2769,7 @@ function Profile() {
         setPickerError(null);
         setPickerLoading(true);
 
-        pickerTaskRef.current = InteractionManager.runAfterInteractions(() => {
+        pickerTaskRef.current = runWhenIdle(() => {
           const options = buildOwnedExpressionOptions(expression, mode);
           React.startTransition(() => {
             setPickerState({
@@ -3335,10 +3425,12 @@ function Profile() {
             ]}
         />
         <Animated.View
-            pointerEvents={isPlayerInfoMode ? "none" : "auto"}
-            accessibilityElementsHidden={isPlayerInfoMode}
+            pointerEvents={profileNavContentMode === "profile" ? "auto" : "none"}
+            accessibilityElementsHidden={profileNavContentMode !== "profile"}
             importantForAccessibility={
-              isPlayerInfoMode ? "no-hide-descendants" : "auto"
+              profileNavContentMode === "profile"
+                  ? "auto"
+                  : "no-hide-descendants"
             }
             style={[styles.segmentLayer, profileSegmentLayerAnimatedStyle]}
         >
@@ -3356,7 +3448,14 @@ function Profile() {
                       { marginLeft: index === 0 ? 0 : 8 },
                     ]}
                 >
-                  <Animated.Text
+                  <TypewriterSwapText
+                      text={
+                        profileNavContentMode === "profile" ? tab.label : ""
+                      }
+                      showCursor={false}
+                      typingSpeed={32}
+                      deletingSpeed={20}
+                      initialDelay={55}
                       style={[
                         styles.segmentLabel,
                         index === 0
@@ -3365,18 +3464,18 @@ function Profile() {
                               ? skinsSegmentLabelAnimatedStyle
                               : collectionSegmentLabelAnimatedStyle,
                       ]}
-                  >
-                    {tab.label}
-                  </Animated.Text>
+                  />
                 </TouchableOpacity>
             );
           })}
         </Animated.View>
         <Animated.View
-            pointerEvents={isPlayerInfoMode ? "auto" : "none"}
-            accessibilityElementsHidden={!isPlayerInfoMode}
+            pointerEvents={profileNavContentMode === "stats" ? "auto" : "none"}
+            accessibilityElementsHidden={profileNavContentMode !== "stats"}
             importantForAccessibility={
-              isPlayerInfoMode ? "auto" : "no-hide-descendants"
+              profileNavContentMode === "stats"
+                  ? "auto"
+                  : "no-hide-descendants"
             }
             style={[styles.segmentLayer, statsSegmentLayerAnimatedStyle]}
         >
@@ -3394,14 +3493,23 @@ function Profile() {
                       { marginLeft: index === 0 ? 0 : 8 },
                     ]}
                 >
-                  <Text
+                  <TypewriterSwapText
+                      text={
+                        profileNavContentMode === "stats"
+                            ? tab === "overview"
+                              ? "OVERVIEW"
+                              : "DETAILS"
+                            : ""
+                      }
+                      showCursor={false}
+                      typingSpeed={34}
+                      deletingSpeed={20}
+                      initialDelay={55}
                       style={[
                         styles.segmentLabel,
                         { color: active ? "#11181c" : "rgba(255,255,255,0.6)" },
                       ]}
-                  >
-                    {tab === "overview" ? "OVERVIEW" : "DETAILS"}
-                  </Text>
+                  />
                 </TouchableOpacity>
             );
           })}
@@ -3449,15 +3557,17 @@ function Profile() {
                 />
               </Animated.View>
               <View pointerEvents="none" style={styles.heroModeLabelViewport}>
-                <Animated.Text
+                <TypewriterSwapText
+                    text={
+                      isPlayerInfoMode
+                          ? t("profile_page.player_info", {
+                            defaultValue: "Thông tin",
+                          })
+                          : t("profile_page.hero_badge")
+                    }
+                    charactersPerStep={1}
                     style={[styles.heroModeLabel, heroModeLabelAnimatedStyle]}
-                >
-                  {isPlayerInfoMode
-                      ? t("profile_page.player_info", {
-                        defaultValue: "Thông tin",
-                      })
-                      : t("profile_page.hero_badge")}
-                </Animated.Text>
+                />
               </View>
             </Pressable>
           </Animated.View>
@@ -3494,7 +3604,15 @@ function Profile() {
             }
             style={[styles.heroSubtitleViewport, heroSubtitleAnimatedStyle]}
         >
-          <Text style={styles.heroSubtitle}>{heroSubtitleText}</Text>
+          <TypewriterSwapText
+              text={heroSubtitleTargetText}
+              charactersPerStep={1}
+              showCursor={false}
+              typingSpeed={HERO_SUBTITLE_TYPING_SPEED_MS}
+              deletingSpeed={HERO_SUBTITLE_DELETING_SPEED_MS}
+              initialDelay={HERO_SUBTITLE_INITIAL_DELAY_MS}
+              style={styles.heroSubtitle}
+          />
         </Animated.View>
 
         <View style={styles.heroMetaRow}>
@@ -3560,18 +3678,26 @@ function Profile() {
                         />
                       </Animated.View>
                     </View>
-                    <Text
+                    <TypewriterSwapText
+                        text={visibleStat.label}
+                        showCursor={false}
+                        typingSpeed={36}
+                        deletingSpeed={22}
+                        initialDelay={60}
                         style={[
                           styles.heroStatLabel,
                           isPlayerInfoMode && styles.playerStatLabel,
                         ]}
-                    >
-                      {visibleStat.label}
-                    </Text>
+                    />
                   </View>
-                  <Text style={styles.heroStatValue}>
-                    {String(visibleStat.value)}
-                  </Text>
+                  <TypewriterSwapText
+                      text={String(visibleStat.value)}
+                      showCursor={false}
+                      typingSpeed={34}
+                      deletingSpeed={20}
+                      initialDelay={60}
+                      style={styles.heroStatValue}
+                  />
                 </Animated.View>
               );
             })}
@@ -3581,6 +3707,7 @@ function Profile() {
         <View style={styles.heroRankRow}>
           <RankSplitGroup
               splitProgress={rankSplitProgress}
+              contentMode={rankSplitContentMode}
               rankLabel={t("profile_page.current_rank")}
               rankValue={
                 competitiveRank?.currentName || t("profile_page.unrated")
@@ -3595,6 +3722,7 @@ function Profile() {
           />
           <RankSplitGroup
               splitProgress={rankSplitProgress}
+              contentMode={rankSplitContentMode}
               rankLabel={t("profile_page.peak_rank")}
               rankValue={competitiveRank?.peakName || t("profile_page.unrated")}
               rankIconUrl={competitiveRank?.peakIcon}
@@ -4954,7 +5082,6 @@ function Profile() {
                     refreshing={statsRefreshing}
                     seasonStats={dashboardSeasonStats}
                     totalMatches={matchAuthKey === authKey ? totalMatches : 0}
-                    transitionProgress={dashboardProgress}
                 />
               </Animated.View>
           ) : null}
@@ -4978,7 +5105,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   statsBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "#000000",
   },
   profilePager: {
@@ -4989,7 +5116,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   profileBodyLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   profileTabPage: {
     flex: 1,
@@ -5097,7 +5224,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.24)",
   },
   heroModeLabelViewport: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 6,
@@ -5204,7 +5331,7 @@ const styles = StyleSheet.create({
     height: 15,
   },
   heroStatIconLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -5577,7 +5704,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   segmentLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
