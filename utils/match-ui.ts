@@ -105,6 +105,18 @@ const optionalNumber = (value: unknown): number | undefined => {
 const normalizeAssetId = (value: unknown): string =>
   typeof value === "string" ? value.trim().toLowerCase() : "";
 
+const resolveAgentAsset = (
+  catalog: MatchAssetCatalog,
+  agentId: unknown
+): MatchAgentAsset | undefined =>
+  catalog.agentsById.get(normalizeAssetId(agentId));
+
+const resolveMapAsset = (
+  catalog: MatchAssetCatalog,
+  mapUrl: unknown
+): MatchMapAsset | undefined =>
+  catalog.mapsByUrl.get(normalizeAssetId(mapUrl));
+
 const addToMap = (map: Map<string, number>, key: string, value: number) => {
   if (!key || value === 0) return;
   map.set(key, (map.get(key) ?? 0) + value);
@@ -197,13 +209,15 @@ export function createMatchAssetCatalog(): MatchAssetCatalog {
   });
 
   return {
-    agentsById: new Map(agentAssets.map((agent) => [agent.uuid, agent])),
+    agentsById: new Map(
+      agentAssets.map((agent) => [normalizeAssetId(agent.uuid), agent])
+    ),
     mapsByUrl: new Map(
       mapAssets
         .filter((map): map is MatchMapAsset & { mapUrl: string } =>
           Boolean(map.mapUrl)
         )
-        .map((map) => [map.mapUrl, map])
+        .map((map) => [normalizeAssetId(map.mapUrl), map])
     ),
     tiersByNumber,
     weaponsById: new Map(
@@ -695,7 +709,7 @@ export function buildMatchDetailViewModel(
       ];
     })
   );
-  const map = catalog.mapsByUrl.get(details.matchInfo?.mapId ?? "");
+  const map = resolveMapAsset(catalog, details.matchInfo?.mapId);
   const teams = details.teams ?? [];
   const teamA = teams.find((team) => toTeam(team.teamId) === "A");
   const teamB = teams.find((team) => toTeam(team.teamId) === "B");
@@ -774,8 +788,8 @@ export function buildMatchHistoryRecord(
     match.rankUpdate?.TierAfterUpdate ?? player.competitiveTier
   );
   const tier = catalog.tiersByNumber.get(rankTier);
-  const agent = catalog.agentsById.get(player.characterId);
-  const map = catalog.mapsByUrl.get(details.matchInfo?.mapId ?? "");
+  const agent = resolveAgentAsset(catalog, player.characterId);
+  const map = resolveMapAsset(catalog, details.matchInfo?.mapId);
   const roundsPlayed = Math.max(1, numberOrZero(player.stats.roundsPlayed));
   const hs = scoreboardPlayer.headshotPercent;
   const stats: MatchHistoryStats = {
@@ -827,6 +841,59 @@ export function buildMatchHistoryRecord(
   };
 
   return { ...match, stats };
+}
+
+/**
+ * Re-resolve visual metadata for records restored from persistent storage.
+ * A cold start can hydrate the Zustand cache before Valorant's asset catalog is
+ * loaded, leaving otherwise valid records with raw map paths and placeholders.
+ */
+export function enrichMatchHistoryAssets(
+  records: readonly MatchHistoryRecord[],
+  catalog: MatchAssetCatalog = createMatchAssetCatalog()
+): MatchHistoryRecord[] {
+  return records.map((record) => {
+    const stats = record.stats;
+    if (!stats) return record;
+
+    const agent = resolveAgentAsset(catalog, stats.agentId);
+    const map = resolveMapAsset(catalog, stats.mapId);
+    const tier = stats.rankTier
+      ? catalog.tiersByNumber.get(stats.rankTier)
+      : undefined;
+    const next = {
+      agentIcon:
+        agent?.displayIcon || agent?.displayIconSmall || stats.agentIcon,
+      agentName: agent?.displayName || stats.agentName,
+      agentPortrait:
+        agent?.bustPortrait ||
+        agent?.fullPortraitV2 ||
+        agent?.fullPortrait ||
+        stats.agentPortrait,
+      mapName: map?.displayName || stats.mapName,
+      mapImage: map?.listViewIcon || map?.splash || stats.mapImage,
+      rankName: tier?.tierName || stats.rankName,
+      rankIcon:
+        tier?.smallIcon ||
+        tier?.largeIcon ||
+        tier?.rankTriangleDownIcon ||
+        stats.rankIcon,
+    };
+
+    if (
+      next.agentIcon === stats.agentIcon &&
+      next.agentName === stats.agentName &&
+      next.agentPortrait === stats.agentPortrait &&
+      next.mapName === stats.mapName &&
+      next.mapImage === stats.mapImage &&
+      next.rankName === stats.rankName &&
+      next.rankIcon === stats.rankIcon
+    ) {
+      return record;
+    }
+
+    return { ...record, stats: { ...stats, ...next } };
+  });
 }
 
 export function toMatchHistoryItem(
