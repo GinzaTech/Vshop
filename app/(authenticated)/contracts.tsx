@@ -5,7 +5,6 @@ import { ActivityIndicator } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import axios from "axios";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import { getContracts } from "~/utils/valorant-api";
@@ -13,6 +12,9 @@ import { getAgent } from "~/utils/valorant-assets";
 import { getVAPILang } from "~/utils/localization";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { getPublicContracts } from "~/services/valorant/public-api";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 
 // ContractEntry: kiểu dữ liệu cho một contract của người dùng
 type ContractEntry = {
@@ -64,16 +66,17 @@ export default function ContractsScreen() {
     try {
       const [data, definitionsResponse] = await Promise.all([
         getContracts(user.accessToken, user.entitlementsToken, user.region, user.id),
-        axios.get<{ data: ContractDefinition[] }>(`https://valorant-api.com/v1/contracts?language=${getVAPILang()}`).catch(() => null),
+        getPublicContracts(getVAPILang()).catch(() => null),
       ]);
       setContracts(data);
-      setContractDefinitions(definitionsResponse?.data?.data ?? []);
+      setContractDefinitions(definitionsResponse ?? []);
     } catch (err) { if (__DEV__) console.error("Failed to fetch contracts:", err); }
     finally { setLoading(false); }
   }, [user.accessToken, user.entitlementsToken, user.region, user.id]);
 
   // useEffect: gọi fetchData khi component mount
   React.useEffect(() => { fetchData(); }, [fetchData]);
+  const { refreshing, onRefresh } = useAsyncRefresh(fetchData);
 
   // getAgentForContract: tìm agent liên kết với contract (dựa vào relationUuid)
   const getAgentForContract = (contractId: string) => {
@@ -196,7 +199,15 @@ export default function ContractsScreen() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      alwaysBounceVertical
+      showsVerticalScrollIndicator={false}
+    >
       {/* Hero header: icon passport + tiêu đề */}
       <View style={styles.hero}>
         <View style={styles.heroIcon}><Icon name="passport" size={26} color={COLORS.PURE_WHITE} /></View>
