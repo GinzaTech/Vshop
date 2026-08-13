@@ -20,13 +20,18 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import * as Clipboard from "expo-clipboard";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
-import { MotiView } from "moti";
+import Animated, {
+  FadeInDown,
+  FadeOut,
+  ReduceMotion,
+} from "react-native-reanimated";
 
 import { AgentGrid } from "~/components/GalleryAgent";
 import useCombat from "~/components/Combat";
 import GlassCard from "~/components/ui/GlassCard";
 import InfoPill from "~/components/ui/InfoPill";
 import ValorantButton from "~/components/ui/ValorantButton";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { COLORS } from "~/constants/DesignSystem";
 import { getAssets } from "~/utils/valorant-assets";
 import {
@@ -50,8 +55,14 @@ import {
   sendPartyChatMessage as sendLocalPartyChatMessage,
   type LocalChatMessage,
 } from "~/utils/riot-local-chat";
-import { useChatStore, type ChatFriend, type ChatMessage } from "~/utils/chat-store";
+import {
+  EMPTY_CHAT_MESSAGES,
+  useChatStore,
+  type ChatFriend,
+  type ChatMessage,
+} from "~/utils/chat-store";
 import { useUserStore } from "~/hooks/useUserStore";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 
 // ===== Hằng số =====
 // ROLES: danh sách 4 vai trò Agent trong game, mỗi role có id, name và icon
@@ -88,7 +99,7 @@ const getChatSenderName = (
 };
 
 // sortChatMessagesByTime: sắp xếp mảng tin nhắn theo thời gian tăng dần
-const sortChatMessagesByTime = (messages: ChatMessage[]) =>
+const sortChatMessagesByTime = (messages: readonly ChatMessage[]) =>
   [...messages].sort((a, b) => a.timestamp - b.timestamp);
 
 // LOCAL_PARTY_ROOM_PREFIX: tiền tố cho room chat local, phân biệt với XMPP chat
@@ -161,7 +172,7 @@ function PartyChatPanel({
   const presencePartyId = useChatStore((state) => state.currentPartyId); // Party ID từ presence XMPP
   const friends = useChatStore((state) => state.friends);              // Danh sách bạn bè
   const messages = useChatStore((state) =>                           // Tin nhắn trong party room hiện tại
-    partyRoom ? state.partyMessages[partyRoom] || [] : []
+    partyRoom ? state.partyMessages[partyRoom] || EMPTY_CHAT_MESSAGES : EMPTY_CHAT_MESSAGES
   );
   // State local
   const [chatInput, setChatInput] = React.useState("");              // Nội dung input chat
@@ -318,6 +329,10 @@ function PartyChatPanel({
       tryDiscovery: true,
     });
   }, [loadPartyChat, onRefreshSession]);
+  const {
+    refreshing: partyRefreshing,
+    onRefresh: onRefreshPartyChat,
+  } = useAsyncRefresh(refreshPartyChat);
 
   // useEffect: tự động tải party chat khi component mount (không tryDiscovery)
   React.useEffect(() => {
@@ -385,12 +400,12 @@ function PartyChatPanel({
         </View>
         <TouchableOpacity
           activeOpacity={0.75}
-          disabled={loading}
-          onPress={() => { void refreshPartyChat(); }}
+          disabled={loading || partyRefreshing}
+          onPress={onRefreshPartyChat}
           style={styles.partyChatRefreshButton}
         >
           <Icon
-            name={loading ? "loading" : "refresh"}
+            name={loading || partyRefreshing ? "loading" : "refresh"}
             size={18}
             color={COLORS.TEXT_PRIMARY}
           />
@@ -428,6 +443,13 @@ function PartyChatPanel({
         }
         contentContainerStyle={styles.chatListContent}
         style={styles.chatList}
+        refreshControl={
+          <AppRefreshControl
+            refreshing={partyRefreshing}
+            onRefresh={onRefreshPartyChat}
+          />
+        }
+        alwaysBounceVertical
       />
 
       {/* Hàng input chat: TextInput + nút Send */}
@@ -490,6 +512,7 @@ export default function Combat() {
     togglePartyReadyState,   // Toggle ready state
     loadSessionSnapshot,     // Tải session snapshot
   } = useCombat();
+  const { refreshing, onRefresh } = useAsyncRefresh(loadSessionSnapshot);
 
   // useFocusEffect: tải lại session mỗi khi màn hình được focus
   useFocusEffect(
@@ -810,16 +833,14 @@ export default function Combat() {
                       <Icon name="content-copy" size={15} color={COLORS.TEXT_PRIMARY} />
                     </TouchableOpacity>
                     {copied ? (
-                      <MotiView
-                        from={{ opacity: 0, scale: 0.8, translateY: 10 }}
-                        animate={{ opacity: 1, scale: 1, translateY: 0 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ type: "spring", damping: 15 }}
+                      <Animated.View
+                        entering={FadeInDown.duration(180).reduceMotion(ReduceMotion.System)}
+                        exiting={FadeOut.duration(120).reduceMotion(ReduceMotion.System)}
                         style={styles.copiedBadge}
                       >
                         <Icon name="check-circle-outline" size={14} color={COLORS.SUCCESS} />
                         <Text style={styles.copiedText}>Copied!</Text>
-                      </MotiView>
+                      </Animated.View>
                     ) : null}
                   </View>
                   <TouchableOpacity activeOpacity={0.75} style={styles.smallIconButton} disabled={partyCodeLoading} onPress={handleDisableCode}>
@@ -906,7 +927,13 @@ export default function Combat() {
                     </View>
                     {/* Lưới agent */}
                     <View style={styles.gridWrap}>
-                      <AgentGrid agents={filteredAgents} onAgentPress={handleAgentPress} selectedAgentId={selectedAgent?.uuid} />
+                      <AgentGrid
+                        agents={filteredAgents}
+                        onAgentPress={handleAgentPress}
+                        selectedAgentId={selectedAgent?.uuid}
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                      />
                     </View>
                   </>
                 ) : (
