@@ -2,6 +2,7 @@ module.exports = function (api) {
   api.cache(true);
   return {
     presets: ["babel-preset-expo"],
-    plugins: ["react-native-paper/babel", "react-native-reanimated/plugin"], // reanimated has to be last!
+    // SDK 57's Babel preset configures Reanimated 4 / Worklets automatically.
+    plugins: ["react-native-paper/babel"],
   };
 };
