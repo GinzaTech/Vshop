@@ -15,7 +15,11 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { useChatStore, type ChatMessage } from "~/utils/chat-store";
+import {
+  EMPTY_CHAT_MESSAGES,
+  useChatStore,
+  type ChatMessage,
+} from "~/utils/chat-store";
 import {
   initChatService,
   requestChatHistory,
@@ -25,6 +29,8 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { COLORS } from "~/constants/DesignSystem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUserStore } from "~/hooks/useUserStore";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 
 /**
  * renderChatMessage — Render một bubble tin nhắn.
@@ -94,7 +100,7 @@ export default function ChatScreen() {
   );
   // Lấy tin nhắn của friend này
   const messages = useChatStore((state) =>
-    friendId ? state.messages[friendId] || [] : []
+    friendId ? state.messages[friendId] || EMPTY_CHAT_MESSAGES : EMPTY_CHAT_MESSAGES
   );
   const [text, setText] = useState("");                     // Input text
   const [sending, setSending] = useState(false);             // Đang gửi
@@ -138,6 +144,26 @@ export default function ChatScreen() {
       historyRequestRef.current = requestKey;
     }
   }, [chatStatus, friend?.jid, friendId]);
+
+  const refreshChat = React.useCallback(async () => {
+    if (user.accessToken && user.entitlementsToken) {
+      await initChatService(
+        user.accessToken,
+        user.entitlementsToken,
+        user.region,
+        user.id
+      );
+    }
+
+    historyRequestRef.current = null;
+    if (chatStatus === "authenticated" && friendId) {
+      const requestKey = `${friendId}:${friend?.jid || ""}`;
+      if (requestChatHistory(friend?.jid || friendId)) {
+        historyRequestRef.current = requestKey;
+      }
+    }
+  }, [chatStatus, friend?.jid, friendId, user]);
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshChat);
 
   /**
    * handleSend — Xử lý gửi tin nhắn.
@@ -206,6 +232,10 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderChatMessage}
         contentContainerStyle={styles.messageList}
+        refreshControl={
+          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        alwaysBounceVertical
         onContentSizeChange={() =>
           messageListRef.current?.scrollToEnd({ animated: messages.length > 1 })
         }
