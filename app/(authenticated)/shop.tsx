@@ -21,6 +21,9 @@ import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { refreshShopAndBalances } from "~/utils/app-sync";
 
 const CONTENT_PADDING = 20;
 const GRID_GAP = 12;
@@ -36,6 +39,11 @@ function Shop() {
   const user = useUserStore((state) => state.user);
   const [mode, setMode] = React.useState<"all" | "wishlist">("all");
   const skinIds = useWishlistStore((state) => state.skinIds);
+  const refreshShop = React.useCallback(
+    () => refreshShopAndBalances(true),
+    []
+  );
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
 
   const timestamp = new Date().getTime() + user.shops.remainingSecs.main * 1000;
 
@@ -57,6 +65,10 @@ function Shop() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
+      refreshControl={
+        <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      alwaysBounceVertical
       showsVerticalScrollIndicator={false}
     >
       {/* Premium Custom Header Row: avatar, tên, chào, balance VP */}
@@ -163,6 +175,7 @@ const styles = StyleSheet.create({
   },
   // content – Padding ScrollView
   content: {
+    flexGrow: 1,
     padding: 20,
     paddingBottom: 140,
   },
