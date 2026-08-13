@@ -15,7 +15,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Reanimated, {
-  Easing,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -27,6 +26,7 @@ import MediaPopup from "~/components/popups/MediaPopup";
 import { COLORS, GLOBAL_STYLES } from "~/constants/DesignSystem";
 import { useUserStore } from "~/hooks/useUserStore";
 import { flowTracer } from "~/utils/flow-tracer";
+import { MOTION_TIMING } from "~/constants/Motion";
 
 /**
  * PRIMARY_ROUTES — Định nghĩa các tab chính hiển thị trên thanh điều hướng.
@@ -93,6 +93,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
   const [collapsed, setCollapsed] = useState(false);
   const collapseProgress = useSharedValue(1); // 1 = mở, 0 = thu gọn
   const moreLongPressHandledRef = useRef(false);
+  const indicatorTranslateX = useSharedValue(0);
   const activeRoute = state.routes[state.index];
 
   // Track khi tab bar chuyển từ hidden → visible (Back từ sub-screen)
@@ -111,10 +112,10 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
 
   // Animation khi thay đổi trạng thái collapsed
   useEffect(() => {
-    collapseProgress.value = withTiming(collapsed ? 0 : 1, {
-      duration: collapsed ? 340 : 420,
-      easing: Easing.inOut(Easing.cubic),
-    });
+    collapseProgress.value = withTiming(
+      collapsed ? 0 : 1,
+      MOTION_TIMING.emphasized,
+    );
   }, [collapseProgress, collapsed]);
 
 
@@ -152,6 +153,27 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
     visibleRoutes.length > 0
       ? (expandedBarWidth - TAB_PADDING_H * 2) / visibleRoutes.length
       : INDICATOR_SIZE;
+  const indicatorTargetX =
+    activeVisibleIndex * tabButtonWidth +
+    (tabButtonWidth - INDICATOR_SIZE) / 2;
+
+  useEffect(() => {
+    if (!isPrimaryRoute) return;
+    if (shouldJump.value) {
+      indicatorTranslateX.value = indicatorTargetX;
+      shouldJump.value = false;
+      return;
+    }
+    indicatorTranslateX.value = withTiming(
+      indicatorTargetX,
+      MOTION_TIMING.standard,
+    );
+  }, [
+    indicatorTargetX,
+    indicatorTranslateX,
+    isPrimaryRoute,
+    shouldJump,
+  ]);
   const tabBarAnimatedStyle = useAnimatedStyle(() => ({
     width: interpolate(
       collapseProgress.value,
@@ -206,7 +228,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
     // User chủ động đổi tab → animate slide
     return {
       opacity: collapseProgress.value,
-      transform: [{ translateX: withTiming(targetX, { duration: 200 }) }],
+      transform: [{ translateX: indicatorTranslateX.value }],
     };
   });
 
@@ -585,14 +607,14 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   expandedTabContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 18,
   },
   collapsedTabContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },
