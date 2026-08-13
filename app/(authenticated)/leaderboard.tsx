@@ -4,6 +4,8 @@
 import React from "react";
 import {
   FlatList,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -24,6 +26,10 @@ import {
   COMPETITIVE_TIER_IDS,
   TIER_COLORS,
 } from "~/constants/LeaderboardData";
+import {
+  buildLeaderboardSeasonOptions,
+  type LeaderboardSeasonOption,
+} from "~/utils/leaderboard-seasons";
 
 // Kiểu: thông tin một tier cạnh tranh (tên, icon các loại)
 type CompetitiveTierInfo = {
@@ -80,27 +86,35 @@ export default function LeaderboardScreen() {
   const [players, setPlayers] = React.useState<LeaderboardResponse["Players"]>([]);
   // State: trạng thái đang tải
   const [loading, setLoading] = React.useState(true);
+  // State: trạng thái kéo xuống để làm mới
+  const [refreshing, setRefreshing] = React.useState(false);
   // State: từ khóa tìm kiếm
   const [searchQuery, setSearchQuery] = React.useState("");
   // State: tổng số người chơi trên leaderboard
   const [totalPlayers, setTotalPlayers] = React.useState(0);
   // State: danh sách mùa giải có sẵn
-  const [seasons, setSeasons] = React.useState<{ id: string; name: string }[]>([]);
+  const [seasons, setSeasons] = React.useState<LeaderboardSeasonOption[]>([]);
   // State: ID mùa giải đang được chọn
   const [selectedSeason, setSelectedSeason] = React.useState<string | null>(null);
   // State: Map tra cứu thông tin tier (khởi tạo từ assets có sẵn)
   const [tierLookup, setTierLookup] = React.useState(() =>
     buildTierLookup(getAssets().competitiveTiers as CompetitiveTierSet[])
   );
+  const leaderboardRequestId = React.useRef(0);
 
   /**
    * fetchLeaderboard – Gọi API lấy dữ liệu bảng xếp hạng theo seasonId
    * @param seasonId – ID của mùa giải cần lấy
    */
   const fetchLeaderboard = React.useCallback(
-    async (seasonId: string) => {
-      if (!user.accessToken || !user.entitlementsToken || !user.region) return;
-      setLoading(true);
+    async (seasonId: string, options: { showLoading?: boolean } = {}) => {
+      const { showLoading = true } = options;
+      const requestId = ++leaderboardRequestId.current;
+      if (!user.accessToken || !user.entitlementsToken || !user.region) {
+        if (showLoading) setLoading(false);
+        return;
+      }
+      if (showLoading) setLoading(true);
       try {
         const data = await getLeaderboard(
           user.accessToken,
@@ -109,6 +123,7 @@ export default function LeaderboardScreen() {
           seasonId,
           { startIndex: 0, size: 100 }
         );
+        if (requestId !== leaderboardRequestId.current) return;
         if (data) {
           setPlayers(data.Players ?? []);
           setTotalPlayers(data.totalPlayers ?? 0);
@@ -117,11 +132,14 @@ export default function LeaderboardScreen() {
           setTotalPlayers(0);
         }
       } catch (err) {
+        if (requestId !== leaderboardRequestId.current) return;
         if (__DEV__) console.error("Failed to fetch leaderboard:", err);
         setPlayers([]);
         setTotalPlayers(0);
       } finally {
-        setLoading(false);
+        if (showLoading && requestId === leaderboardRequestId.current) {
+          setLoading(false);
+        }
       }
     },
     [user]
@@ -138,13 +156,14 @@ export default function LeaderboardScreen() {
           user.region
         );
         if (content) {
-          // Lọc các season đang active, loại "act"
-          const acts = content.Seasons.filter((s) => s.Type === "act" && s.IsActive);
-          const seasonList = acts.map((a) => ({ id: a.ID, name: a.Name }));
+          // Hiển thị toàn bộ Act đã bắt đầu, mới nhất trước.
+          const seasonList = buildLeaderboardSeasonOptions(content.Seasons);
           setSeasons(seasonList);
           if (seasonList.length > 0) {
-            setSelectedSeason(seasonList[0].id);
-            fetchLeaderboard(seasonList[0].id);
+            const defaultSeason =
+              seasonList.find((season) => season.isActive) ?? seasonList[0];
+            setSelectedSeason(defaultSeason.id);
+            fetchLeaderboard(defaultSeason.id);
           } else {
             setLoading(false);
           }
@@ -199,9 +218,22 @@ export default function LeaderboardScreen() {
    * @param seasonId – ID mùa giải mới
    */
   const handleSeasonChange = (seasonId: string) => {
+    if (seasonId === selectedSeason) return;
     setSelectedSeason(seasonId);
+    setSearchQuery("");
     fetchLeaderboard(seasonId);
   };
+
+  const handleRefresh = React.useCallback(async () => {
+    if (!selectedSeason || refreshing) return;
+
+    setRefreshing(true);
+    try {
+      await fetchLeaderboard(selectedSeason, { showLoading: false });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchLeaderboard, refreshing, selectedSeason]);
 
   /**
    * renderPlayerRow – Render một hàng người chơi trong danh sách
@@ -288,25 +320,35 @@ export default function LeaderboardScreen() {
       {seasons.length > 0 && (
         <View style={styles.seasonRow}>
           <Icon name="calendar-range" size={16} color={COLORS.TEXT_SECONDARY} />
-          {seasons.map((s) => (
-            <TouchableOpacity
-              key={s.id}
-              style={[
-                styles.seasonChip,
-                selectedSeason === s.id && styles.seasonChipActive,
-              ]}
-              onPress={() => handleSeasonChange(s.id)}
-            >
-              <Text
+          <ScrollView
+            horizontal
+            style={styles.seasonScroller}
+            contentContainerStyle={styles.seasonScrollerContent}
+            showsHorizontalScrollIndicator={false}
+          >
+            {seasons.map((s) => (
+              <TouchableOpacity
+                key={s.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: selectedSeason === s.id }}
                 style={[
-                  styles.seasonChipText,
-                  selectedSeason === s.id && styles.seasonChipTextActive,
+                  styles.seasonChip,
+                  selectedSeason === s.id && styles.seasonChipActive,
                 ]}
+                onPress={() => handleSeasonChange(s.id)}
               >
-                {s.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.seasonChipText,
+                    selectedSeason === s.id && styles.seasonChipTextActive,
+                  ]}
+                >
+                  {s.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       )}
 
@@ -334,24 +376,37 @@ export default function LeaderboardScreen() {
         </Text>
       )}
 
-      {/* Danh sách người chơi hoặc empty state */}
-      {filteredPlayers.length === 0 && !loading ? (
-        <GlassCard style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>
-            {t("leaderboard_page.no_results")}
-          </Text>
-        </GlassCard>
-      ) : (
-        <FlatList
-          data={filteredPlayers}
-          keyExtractor={(item, index) => item.puuid || `player-${index}`}
-          renderItem={renderPlayerRow}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          onRefresh={() => selectedSeason && fetchLeaderboard(selectedSeason)}
-          refreshing={loading}
-        />
-      )}
+      {/* Luôn giữ FlatList để pull-to-refresh hoạt động cả khi danh sách rỗng. */}
+      <FlatList
+        data={filteredPlayers}
+        keyExtractor={(item, index) => item.puuid || `player-${index}`}
+        renderItem={renderPlayerRow}
+        style={styles.list}
+        contentContainerStyle={[
+          styles.listContent,
+          filteredPlayers.length === 0 && styles.listContentEmpty,
+        ]}
+        ListEmptyComponent={
+          loading ? null : (
+            <GlassCard style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>
+                {t("leaderboard_page.no_results")}
+              </Text>
+            </GlassCard>
+          )
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[COLORS.ACCENT]}
+            tintColor={COLORS.ACCENT}
+            progressBackgroundColor={COLORS.SURFACE}
+          />
+        }
+        alwaysBounceVertical
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 }
@@ -401,9 +456,16 @@ const styles = StyleSheet.create({
   seasonRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
+    paddingLeft: 20,
     paddingBottom: 12,
+  },
+  seasonScroller: {
+    flex: 1,
+  },
+  seasonScrollerContent: {
+    gap: 8,
+    paddingLeft: 8,
+    paddingRight: 20,
   },
   // seasonChip – Chip chọn mùa (mặc định)
   seasonChip: {
@@ -458,9 +520,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   // listContent – Content container cho FlatList
+  list: {
+    flex: 1,
+  },
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 140,
+  },
+  listContentEmpty: {
+    flexGrow: 1,
   },
   // playerRow – Một hàng người chơi
   playerRow: {
@@ -529,7 +597,7 @@ const styles = StyleSheet.create({
   },
   // emptyCard – Card empty state
   emptyCard: {
-    marginHorizontal: 20,
+    marginTop: 8,
     padding: 24,
     alignItems: "center",
   },
