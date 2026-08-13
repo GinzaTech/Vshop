@@ -1,6 +1,9 @@
 import React from "react";
 import { Text, TextStyle } from "react-native";
-import { MotiView } from "moti";
+import Animated, {
+  FadeIn,
+  ReduceMotion,
+} from "react-native-reanimated";
 
 type AnimatedNumberProps = {
   value: number;
@@ -9,13 +12,11 @@ type AnimatedNumberProps = {
 
 export default function AnimatedNumber({ value, style }: AnimatedNumberProps) {
   return (
-    <MotiView
+    <Animated.View
       key={value}
-      from={{ opacity: 0.4, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", damping: 18 }}
+      entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
     >
       <Text style={style}>{value.toLocaleString()}</Text>
-    </MotiView>
+    </Animated.View>
   );
 }
