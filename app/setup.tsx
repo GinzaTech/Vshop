@@ -6,7 +6,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SafeAreaView, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import {
   Button,
   Paragraph,
@@ -21,7 +21,7 @@ import { useUserStore } from "~/hooks/useUserStore";
 import LoginWebView from "~/components/LoginWebView";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS } from "~/constants/DesignSystem";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ─── Hằng số layout ───────────────────────────────────────────────────────────
 const FOOTER_HEIGHT = 92;         // Chiều cao vùng footer (chứa Back / Next)
