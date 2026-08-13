@@ -4,6 +4,31 @@ All notable changes to VShop are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses semantic app versions with independent Android and iOS build numbers.
 
+## [4.1.1] - 2026-08-13
+
+### Added
+
+- Added regression coverage for Bundle, Shop and More tab navigation, including the collapsed navigation state.
+
+### Fixed
+
+- Fixed Bundle, Shop and More tabs not responding on Android by mounting only the active navigation interaction layer.
+- Fixed tab navigation dropping route parameters.
+- Fixed web static rendering failing when the Profile collection exporter loaded native media-library code.
+
+### Validation
+
+- `pnpm run check` — 75 tests passing
+- `pnpm run test:api` — 13 public API endpoints passing
+- Android Metro production export — 2,664 modules bundled successfully
+
+### Build metadata
+
+- App version: `4.1.1`
+- Android version code: `80`
+- iOS build number: `33`
+- Production artifact: APK from EAS profile `production`
+
 ## [4.1.0] - 2026-08-13
 
 ### Added
@@ -134,5 +159,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - iOS build number: `30`
 - Production profile: `eas build --profile production --platform android`
 
+[4.1.1]: https://github.com/GinzaTech/Vshop/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/GinzaTech/Vshop/compare/v4.0.4...v4.1.0
 [4.0.4]: https://github.com/GinzaTech/Vshop/compare/V4.0.3...v4.0.4
