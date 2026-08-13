@@ -37,6 +37,9 @@ import {
   applyOtaUpdate,
   checkForAppUpdate,
 } from "~/utils/app-update";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { fullBackgroundSync } from "~/utils/app-sync";
 
 /**
  * Settings – Component chính hiển thị trang cài đặt
@@ -67,6 +70,8 @@ function Settings() {
   // State: kết quả kiểm tra cập nhật
   const [updateResult, setUpdateResult] =
     React.useState<AppUpdateCheckResult | null>(null);
+  const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
   /**
    * handleLogout – Xử lý đăng xuất: xóa cookies, reset user, dừng background fetch,
@@ -245,6 +250,10 @@ function Settings() {
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
+        refreshControl={
+          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        alwaysBounceVertical
         showsVerticalScrollIndicator={false}
       >
         {/* Hero: tiêu đề */}
@@ -324,7 +333,7 @@ function Settings() {
         <Text style={styles.sectionTitle}>{t("settings_page.links")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
-            icon: "discord",
+            icon: "forum-outline",
             title: t("discord_server"),
             onPress: () => Linking.openURL("https://discord.gg/gB2nM6vKrD"),
           })}
