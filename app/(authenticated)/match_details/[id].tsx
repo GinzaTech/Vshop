@@ -6,12 +6,16 @@ import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
-  Animated,
   ScrollView,
   Share,
   StyleSheet,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
@@ -43,6 +47,9 @@ import type {
 } from "~/types/match-ui";
 import { buildMatchDetailViewModel } from "~/utils/match-ui";
 import { getPlayerNames } from "~/utils/valorant-api";
+import { MOTION_TIMING } from "~/constants/Motion";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 
 /**
  * firstParam – Lấy phần tử đầu tiên nếu value là mảng, nếu không thì trả về nguyên value
@@ -105,7 +112,10 @@ export default function MatchDetailsScreen() {
   // Ref: tham chiếu đến ScrollView để scroll
   const scrollRef = React.useRef<ScrollView>(null);
   // Ref: giá trị opacity cho animation chuyển tab
-  const contentOpacity = React.useRef(new Animated.Value(1)).current;
+  const contentOpacity = useSharedValue(1);
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+  }));
   // Ref: key của request lấy tên người chơi (tránh gọi lại trùng)
   const requestedNamesKey = React.useRef<string | null>(null);
 
@@ -133,6 +143,11 @@ export default function MatchDetailsScreen() {
     },
     [fetchMatchDetails, isDemo, matchId, t, user]
   );
+  const refreshDetails = React.useCallback(
+    () => loadDetails(true),
+    [loadDetails]
+  );
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshDetails);
 
   // Effect: Load chi tiết match khi component mount (hoặc dùng cache)
   React.useEffect(() => {
@@ -237,14 +252,10 @@ export default function MatchDetailsScreen() {
     (tab: MatchDetailTab) => {
       if (tab === activeTab) return;
       // Fade out nhẹ, đổi tab, scroll lên đầu, fade in
-      contentOpacity.setValue(0.45);
+      contentOpacity.value = 0.55;
       setActiveTab(tab);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 190,
-        useNativeDriver: true,
-      }).start();
+      contentOpacity.value = withTiming(1, MOTION_TIMING.standard);
     },
     [activeTab, contentOpacity]
   );
@@ -332,11 +343,19 @@ export default function MatchDetailsScreen() {
       {/* Tabs: Scoreboard / Performance */}
       <MatchDetailTabs activeTab={activeTab} onChange={changeTab} />
       {/* Nội dung cuộn với animation opacity khi chuyển tab */}
-      <Animated.View style={[styles.scrollShell, { opacity: contentOpacity }]}>
+      <Animated.View style={[styles.scrollShell, contentAnimatedStyle]}>
         <ScrollView
           ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <AppRefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              enabled={!isDemo}
+            />
+          }
+          alwaysBounceVertical
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled
           directionalLockEnabled
