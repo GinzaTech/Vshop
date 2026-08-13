@@ -28,7 +28,7 @@ import merge from "deepmerge";
 import {
   DefaultTheme as NavigationTheme,
   ThemeProvider,
-} from "@react-navigation/native";
+} from "expo-router/react-navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { View, type GestureResponderEvent } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
