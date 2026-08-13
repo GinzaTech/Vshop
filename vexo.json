@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "cli": {
+    "telemetry": false
+  },
+  "runtime": {
+    "policy": "fingerprint",
+    "exclude": [
+      "**/*.md",
+      "**/.vexo/**"
+    ]
+  },
+  "build": {
+    "development": {
+      "distribution": "internal",
+      "developmentClient": true,
+      "channel": "development",
+      "environment": "development",
+      "cache": {
+        "mode": "read-write"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "environment": "preview",
+      "cache": {
+        "mode": "read-write"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "channel": "production",
+      "environment": "production",
+      "cache": {
+        "mode": "read-only-fallback"
+      },
+      "requireCleanGit": true
+    }
+  },
+  "updates": {
+    "protocolVersion": 1,
+    "codeSigning": "required",
+    "defaultRolloutPercent": 10,
+    "assetRetentionDays": 180
+  },
+  "$schema": "https://schemas.vexo.dev/vexo/v1.json"
+}
