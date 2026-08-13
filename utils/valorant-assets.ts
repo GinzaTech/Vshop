@@ -1,14 +1,16 @@
 // Import axios để gọi API Valorant (valorant-api.com)
-import axios from "axios";
+import {
+  getValorantApiData,
+  getValorantApiDataOrNull,
+} from "~/services/valorant/public-api";
 // Import hàm lấy ngôn ngữ hiện tại từ localization
 import { getVAPILang } from "./localization";
 // Import expo-file-system để đọc/ghi file cache
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 // Import hàm lấy network profile và mapWithConcurrency (chạy đồng thời có giới hạn)
 import { getNetworkProfile, mapWithConcurrency } from "./network";
 
 // Thiết lập timeout mặc định cho axios: 15 giây
-axios.defaults.timeout = 15_000;
 
 // Kiểu dữ liệu lưu trữ toàn bộ assets của Valorant (vũ khí, skin, buddy, spray, card, title, map, ...)
 type StoredAssets = {
@@ -372,14 +374,11 @@ export async function fetchVersion(force = false) {
   }
 
   if (!versionInFlight) {
-    versionInFlight = axios
-      .request({
-        url: "https://valorant-api.com/v1/version",
-        method: "GET",
-        timeout: 10_000,
-      })
-      .then((res) => {
-        versionValue = res.data.data.riotClientVersion;
+    versionInFlight = getValorantApiData<{ riotClientVersion: string }>(
+      "version",
+    )
+      .then((version) => {
+        versionValue = version.riotClientVersion;
         return versionValue as string;
       })
       .finally(() => {
@@ -395,13 +394,9 @@ export async function fetchVersion(force = false) {
 //   - language: ngôn ngữ (mặc định từ getVAPILang())
 // Returns: Promise<ValorantSkin[]>
 export async function fetchSkins(language?: string) {
-  const res = await axios.request<{ data: ValorantSkin[] }>({
-    url: `https://valorant-api.com/v1/weapons/skins?language=${language ?? getVAPILang()
-      }`,
-    method: "GET",
+  return getValorantApiData<ValorantSkin[]>("weapons/skins", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch danh sách buddy (vật phẩm treo vũ khí) từ API
@@ -409,13 +404,9 @@ export async function fetchSkins(language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<ValorantBuddyAccessory[]>
 export async function fetchBuddies(language?: string) {
-  const res = await axios.request<{ data: ValorantBuddyAccessory[] }>({
-    url: `https://valorant-api.com/v1/buddies?language=${language ?? getVAPILang()
-      }`,
-    method: "GET",
+  return getValorantApiData<ValorantBuddyAccessory[]>("buddies", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch danh sách spray từ API
@@ -423,13 +414,9 @@ export async function fetchBuddies(language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<ValorantSprayAccessory[]>
 export async function fetchSprays(language?: string) {
-  const res = await axios.request<{ data: ValorantSprayAccessory[] }>({
-    url: `https://valorant-api.com/v1/sprays?language=${language ?? getVAPILang()
-      }`,
-    method: "GET",
+  return getValorantApiData<ValorantSprayAccessory[]>("sprays", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch danh sách vũ khí từ API
@@ -437,12 +424,9 @@ export async function fetchSprays(language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<ValorantWeapon[]>
 export async function fetchWeapons(language?: string) {
-  const res = await axios.request<{ data: ValorantWeapon[] }>({
-    url: `https://valorant-api.com/v1/weapons?language=${language ?? getVAPILang()}`,
-    method: "GET",
+  return getValorantApiData<ValorantWeapon[]>("weapons", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch danh sách flex (vật phẩm khoe) từ API
@@ -450,12 +434,9 @@ export async function fetchWeapons(language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<ValorantFlexAccessory[]>
 export async function fetchFlex(language?: string) {
-  const res = await axios.request<{ data: ValorantFlexAccessory[] }>({
-    url: `https://valorant-api.com/v1/flex?language=${language ?? getVAPILang()}`,
-    method: "GET",
+  return getValorantApiData<ValorantFlexAccessory[]>("flex", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch danh sách thẻ người chơi từ API
@@ -463,13 +444,9 @@ export async function fetchFlex(language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<ValorantCardAccessory[]>
 export async function fetchPlayerCards(language?: string) {
-  const res = await axios.request<{ data: ValorantCardAccessory[] }>({
-    url: `https://valorant-api.com/v1/playercards?language=${language ?? getVAPILang()
-      }`,
-    method: "GET",
+  return getValorantApiData<ValorantCardAccessory[]>("playercards", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch danh sách title (danh hiệu) từ API
@@ -477,13 +454,9 @@ export async function fetchPlayerCards(language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<ValorantTitleAccessory[]>
 export async function fetchPlayerTitles(language?: string) {
-  const res = await axios.request<{ data: ValorantTitleAccessory[] }>({
-    url: `https://valorant-api.com/v1/playertitles?language=${language ?? getVAPILang()
-      }`,
-    method: "GET",
+  return getValorantApiData<ValorantTitleAccessory[]>("playertitles", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch danh sách bản đồ từ API
@@ -491,13 +464,9 @@ export async function fetchPlayerTitles(language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<any[]>
 export async function fetchMaps(language?: string) {
-  const res = await axios.request<{ data: any[] }>({
-    url: `https://valorant-api.com/v1/maps?language=${language ?? getVAPILang()
-      }`,
-    method: "GET",
+  return getValorantApiData<any[]>("maps", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch danh sách competitive tiers từ API
@@ -505,13 +474,9 @@ export async function fetchMaps(language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<any[]>
 export async function fetchCompetitiveTiers(language?: string) {
-  const res = await axios.request<{ data: any[] }>({
-    url: `https://valorant-api.com/v1/competitivetiers?language=${language ?? getVAPILang()
-      }`,
-    method: "GET",
+  return getValorantApiData<any[]>("competitivetiers", {
+    language: language ?? getVAPILang(),
   });
-
-  return res.data.data;
 }
 
 // Export hàm fetch thông tin bundle (gói) từ API theo bundleId
@@ -534,13 +499,10 @@ export async function fetchBundle(bundleId: string, language?: string) {
     return pending;
   }
 
-  const request = axios
-    .request<{ data: ValorantBundle }>({
-      url: `https://valorant-api.com/v1/bundles/${bundleId}?language=${requestLanguage}`,
-      method: "GET",
-      validateStatus: () => true,
-    })
-    .then((res) => (res.status === 200 ? res.data.data : null))
+  const request = getValorantApiDataOrNull<ValorantBundle>(
+    `bundles/${encodeURIComponent(bundleId)}`,
+    { language: requestLanguage },
+  )
     .then((bundle) => {
       // Riot's storefront can expose a new bundle before valorant-api.com has
       // ingested the latest patch. Do not cache that temporary 404, otherwise
@@ -569,6 +531,7 @@ export async function fetchBundle(bundleId: string, language?: string) {
 //   - language: ngôn ngữ
 // Returns: Promise<ValorantAgent[]>
 export async function fetchAgent(language?: string) {
-  const res = await axios.get<{ data: ValorantAgent[] }>(`https://valorant-api.com/v1/agents?language=${language ?? getVAPILang()}`);
-  return res.data.data;
+  return getValorantApiData<ValorantAgent[]>("agents", {
+    language: language ?? getVAPILang(),
+  });
 }
