@@ -1,6 +1,6 @@
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, {
   interpolate,
   interpolateColor,
@@ -9,7 +9,10 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { CachedImage as Image } from "~/components/CachedImage";
+import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
 import { COLORS } from "~/constants/DesignSystem";
+
+export type RankSplitContentMode = "rank" | "blank" | "act";
 
 export type RankSplitStat = {
   key: string;
@@ -20,6 +23,7 @@ export type RankSplitStat = {
 
 type RankSplitGroupProps = {
   splitProgress: SharedValue<number>;
+  contentMode: RankSplitContentMode;
   rankLabel: string;
   rankValue: string;
   rankIconUrl?: string | null;
@@ -29,12 +33,16 @@ type RankSplitGroupProps = {
 
 function RankSplitGroup({
   splitProgress,
+  contentMode,
   rankLabel,
   rankValue,
   rankIconUrl,
   rankIconCacheId,
   stats,
 }: RankSplitGroupProps) {
+  const surfacesAnimatedStyle = useAnimatedStyle(() => ({
+    gap: interpolate(splitProgress.value, [0, 1], [0, 7]),
+  }));
   const surfaceAnimatedStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
       splitProgress.value,
@@ -55,9 +63,6 @@ function RankSplitGroup({
     borderTopLeftRadius: interpolate(splitProgress.value, [0, 1], [0, 16]),
     borderBottomLeftRadius: interpolate(splitProgress.value, [0, 1], [0, 16]),
   }));
-  const dividerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: splitProgress.value,
-  }));
   const rankContentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(splitProgress.value, [0, 0.35, 1], [1, 0, 0]),
     transform: [
@@ -75,9 +80,16 @@ function RankSplitGroup({
     ],
   }));
 
+  const rankTextTarget = contentMode === "rank" ? rankValue : "";
+  const rankLabelTarget = contentMode === "rank" ? rankLabel : "";
+  const actStatsVisible = contentMode === "act";
+
   return (
     <View style={styles.container}>
-      <View pointerEvents="none" style={styles.surfaces}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.surfaces, surfacesAnimatedStyle]}
+      >
         <Animated.View
           style={[
             styles.surface,
@@ -94,14 +106,20 @@ function RankSplitGroup({
             rightSurfaceAnimatedStyle,
           ]}
         />
-        <Animated.View style={[styles.splitDivider, dividerAnimatedStyle]} />
-      </View>
+      </Animated.View>
 
       <Animated.View
         pointerEvents="none"
         style={[styles.rankContent, rankContentAnimatedStyle]}
       >
-        <Text style={styles.rankLabel}>{rankLabel}</Text>
+        <TypewriterSwapText
+          text={rankLabelTarget}
+          showCursor={false}
+          typingSpeed={34}
+          deletingSpeed={22}
+          initialDelay={60}
+          style={styles.rankLabel}
+        />
         <View style={styles.rankValueRow}>
           {rankIconUrl ? (
             <Image
@@ -120,7 +138,14 @@ function RankSplitGroup({
               color="rgba(255,255,255,0.6)"
             />
           )}
-          <Text style={styles.rankValue}>{rankValue}</Text>
+          <TypewriterSwapText
+            text={rankTextTarget}
+            showCursor={false}
+            typingSpeed={34}
+            deletingSpeed={22}
+            initialDelay={60}
+            style={styles.rankValue}
+          />
         </View>
       </Animated.View>
 
@@ -132,16 +157,26 @@ function RankSplitGroup({
           <View key={stat.key} style={styles.actCell}>
             <View style={styles.actLabelRow}>
               <Icon name={stat.icon} size={11} color="#ff4655" />
-              <Text
+              <TypewriterSwapText
+                text={actStatsVisible ? stat.label : ""}
+                showCursor={false}
+                typingSpeed={34}
+                deletingSpeed={20}
+                initialDelay={55}
                 style={[
                   styles.actLabel,
                   stat.label.length > 8 && styles.actLabelCompact,
                 ]}
-              >
-                {stat.label}
-              </Text>
+              />
             </View>
-            <Text style={styles.actValue}>{stat.value}</Text>
+            <TypewriterSwapText
+              text={actStatsVisible ? stat.value : ""}
+              showCursor={false}
+              typingSpeed={36}
+              deletingSpeed={20}
+              initialDelay={55}
+              style={styles.actValue}
+            />
           </View>
         ))}
       </Animated.View>
@@ -157,17 +192,8 @@ const styles = StyleSheet.create({
     height: 64,
   },
   surfaces: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: "row",
-  },
-  splitDivider: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: "50%",
-    width: 7,
-    marginLeft: -3.5,
-    backgroundColor: "#1a1d24",
   },
   surface: {
     flex: 1,
@@ -182,7 +208,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 18,
   },
   rankContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -212,7 +238,7 @@ const styles = StyleSheet.create({
     color: COLORS.PURE_WHITE,
   },
   actContent: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: "row",
     gap: 7,
   },
