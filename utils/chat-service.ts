@@ -400,7 +400,10 @@ export async function initChatService(
 
       client.connect();
     } catch (error) {
-      if (__DEV__) console.error("Failed to initialize chat service:", error);
+      // Chat retries with exponential backoff and session recovery may replace
+      // stale credentials shortly afterwards. Avoid an intrusive LogBox error
+      // for this recoverable state while keeping the failure visible in logs.
+      if (__DEV__) console.log("[XMPP] Initialization failed; retry scheduled", error);
       activeConnectionKey = connectionKey;
       useChatStore.getState().setStatus("error");
       scheduleReconnect(
