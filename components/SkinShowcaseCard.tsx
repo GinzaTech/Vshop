@@ -19,6 +19,7 @@ import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { WEAPON_NAME_ORDER } from "~/components/GalleryProfile";
+import { MOTION_SPRING, MOTION_TIMING } from "~/constants/Motion";
 
 // ─── SkinShowcaseCardProps ─────────────────────────────────────────────────────
 //   - item: đối tượng SkinShopItem chứa thông tin skin
@@ -103,12 +104,12 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   useEffect(() => {
     if (isFavorited) {
       badgeScale.value = withSequence(
-        withSpring(1.3, { damping: 8 }),
-        withSpring(1, { damping: 14 }),
+        withSpring(1.2, MOTION_SPRING.press),
+        withSpring(1, MOTION_SPRING.settle),
       );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      badgeScale.value = withTiming(0);
+      badgeScale.value = withTiming(0, MOTION_TIMING.fast);
     }
   }, [badgeScale, isFavorited]);
 
@@ -191,10 +192,10 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         accessibilityLabel={item.displayName}
         onPress={handleCardPress}
         onPressIn={() => {
-          scale.value = withSpring(0.97, { damping: 15, stiffness: 150 });
+          scale.value = withSpring(0.97, MOTION_SPRING.press);
         }}
         onPressOut={() => {
-          scale.value = withSpring(1, { damping: 15, stiffness: 150 });
+          scale.value = withSpring(1, MOTION_SPRING.settle);
         }}
         style={[
           styles.card,
