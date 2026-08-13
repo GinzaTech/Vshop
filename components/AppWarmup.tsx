@@ -7,7 +7,6 @@ import { useRouter } from "expo-router";
 import {
   AppState,
   type AppStateStatus,
-  InteractionManager,
   NativeModules,
   Platform,
 } from "react-native";
@@ -33,6 +32,7 @@ import {
   isTransientNetworkError,
   subscribeSessionAuthFailures,
 } from "~/utils/session-events";
+import { runWhenIdle, type IdleTask } from "~/utils/idle-task";
 
 const NETWORK_RECOVERY_POLL_MS = 15_000;
 const AUTH_FAILURE_RECOVERY_COOLDOWN_MS = 5_000;
@@ -45,26 +45,26 @@ const AUTH_FAILURE_RECOVERY_COOLDOWN_MS = 5_000;
 function createWarmupScheduler() {
   let cancelled = false;
   const timers: ReturnType<typeof setTimeout>[] = [];
-  const interactions: { cancel?: () => void | Promise<void> }[] = [];
+  const idleTasks: IdleTask[] = [];
 
   return {
     // Kiểm tra scheduler đã bị hủy chưa
     isCancelled: () => cancelled,
     /**
      * schedule – Lên lịch một tác vụ chạy sau delayMs mili giây
-     * Sau delay, chờ InteractionManager (đảm bảo không block UI)
+     * Sau delay, chờ JS runtime rảnh để không block UI.
      * @param delayMs – Thời gian delay (ms)
      * @param task – Hàm cần thực thi
      */
     schedule(delayMs: number, task: () => void | Promise<void>) {
       const timer = setTimeout(() => {
         if (cancelled) return;
-        const interactionTask = InteractionManager.runAfterInteractions(() => {
+        const idleTask = runWhenIdle(() => {
           if (!cancelled) {
             void task();
           }
         });
-        interactions.push(interactionTask);
+        idleTasks.push(idleTask);
       }, delayMs);
       timers.push(timer);
     },
@@ -72,7 +72,7 @@ function createWarmupScheduler() {
     cancel() {
       cancelled = true;
       timers.forEach((timer) => clearTimeout(timer));
-      interactions.forEach((task) => task.cancel?.());
+      idleTasks.forEach((task) => task.cancel());
     },
   };
 }
