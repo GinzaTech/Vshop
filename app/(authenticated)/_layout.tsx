@@ -84,7 +84,7 @@ const PRIMARY_ROUTE_ORDER = [
  *
  * @returns {JSX.Element | null} Thanh tab hoặc null nếu route không phải primary.
  */
-function FloatingTabBar({ state, descriptors, navigation }: any) {
+export function FloatingTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
   const hasNightMarketItems = useUserStore(
@@ -253,13 +253,13 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
         ]}
       >
         <View style={styles.tabBarClip}>
-          <Reanimated.View
-            pointerEvents={collapsed ? "none" : "auto"}
-            style={[
-              styles.expandedTabContent,
-              expandedContentAnimatedStyle,
-            ]}
-          >
+          {!collapsed ? (
+            <Reanimated.View
+              style={[
+                styles.expandedTabContent,
+                expandedContentAnimatedStyle,
+              ]}
+            >
             {/* Sliding indicator phía sau tab đang active */}
             <Reanimated.View
               pointerEvents="none"
@@ -279,6 +279,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                   key={route.key}
                   accessibilityRole="button"
                   accessibilityLabel={options.tabBarAccessibilityLabel}
+                  accessibilityState={{ selected: focused }}
                   delayLongPress={isMoreRoute ? 1000 : undefined}
                   onLongPress={
                     isMoreRoute
@@ -325,7 +326,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                         input: { from: activeRoute.name, to: route.name },
                         tool: "React Navigation",
                       });
-                      navigation.navigate(route.name);
+                      navigation.navigate(route.name, route.params);
                     }
                   }}
                   style={({ pressed }) => [
@@ -357,15 +358,14 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                 </Pressable>
               );
             })}
-          </Reanimated.View>
-
-          <Reanimated.View
-            pointerEvents={collapsed ? "auto" : "none"}
-            style={[
-              styles.collapsedTabContent,
-              collapsedContentAnimatedStyle,
-            ]}
-          >
+            </Reanimated.View>
+          ) : (
+            <Reanimated.View
+              style={[
+                styles.collapsedTabContent,
+                collapsedContentAnimatedStyle,
+              ]}
+            >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Expand navigation"
@@ -382,7 +382,8 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
             >
               <Icon name="dots-grid" size={26} color={COLORS.PURE_BLACK} />
             </Pressable>
-          </Reanimated.View>
+            </Reanimated.View>
+          )}
         </View>
       </Reanimated.View>
     </View>
