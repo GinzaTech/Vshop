@@ -1,0 +1,12 @@
+# .vexoignore - files excluded from Vexo source snapshots
+# Lines use gitignore syntax.
+
+.vexo/
+node_modules/
+dist/
+build/
+.turbo/
+.expo/
+ios/
+android/
+*.log
