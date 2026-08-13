@@ -1,6 +1,7 @@
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
+  FlatList,
   LayoutChangeEvent,
   Platform,
   Pressable,
@@ -37,11 +38,42 @@ type PlayerStatsDashboardProps = {
   refreshing: boolean;
   seasonStats: SeasonPerformanceStats | null;
   totalMatches: number;
-  transitionProgress: SharedValue<number>;
 };
 
 type DashboardTone = "positive" | "negative" | "neutral";
 type TableMode = "agents" | "maps";
+type DashboardCardKind =
+  | "performance"
+  | "agents-maps"
+  | "recent"
+  | "activity"
+  | "rr-trend"
+  | "rank-summary"
+  | "combat"
+  | "totals"
+  | "record";
+
+type DashboardCardItem = {
+  key: DashboardCardKind;
+  kind: DashboardCardKind;
+};
+
+const OVERVIEW_DASHBOARD_CARDS: DashboardCardItem[] = [
+  { key: "performance", kind: "performance" },
+  { key: "agents-maps", kind: "agents-maps" },
+  { key: "recent", kind: "recent" },
+  { key: "activity", kind: "activity" },
+  { key: "rr-trend", kind: "rr-trend" },
+];
+
+const DETAIL_DASHBOARD_CARDS: DashboardCardItem[] = [
+  { key: "rank-summary", kind: "rank-summary" },
+  { key: "combat", kind: "combat" },
+  { key: "totals", kind: "totals" },
+  { key: "record", kind: "record" },
+];
+
+const dashboardCardKeyExtractor = (item: DashboardCardItem) => item.key;
 
 type AggregateRow = {
   adr: number;
@@ -262,21 +294,18 @@ type DashboardCardProps = {
   children: React.ReactNode;
   index: number;
   tabProgress: SharedValue<number>;
-  transitionProgress: SharedValue<number>;
 };
 
 function DashboardCard({
   children,
   index,
   tabProgress,
-  transitionProgress,
 }: DashboardCardProps) {
   const animatedStyle = useAnimatedStyle(() => {
-    const combined = transitionProgress.value * tabProgress.value;
     const start = Math.min(0.46, 0.04 + index * 0.075);
     const end = Math.min(0.94, start + 0.34);
     const reveal = interpolate(
-      combined,
+      tabProgress.value,
       [start, end],
       [0, 1],
       Extrapolation.CLAMP
@@ -285,8 +314,7 @@ function DashboardCard({
     return {
       opacity: reveal,
       transform: [
-        { scale: interpolate(reveal, [0, 1], [0.66, 1]) },
-        { translateY: interpolate(reveal, [0, 1], [18, 0]) },
+        { translateY: interpolate(reveal, [0, 1], [10, 0]) },
       ],
     };
   }, [index]);
@@ -861,9 +889,9 @@ function PlayerStatsDashboard({
   refreshing,
   seasonStats,
   totalMatches,
-  transitionProgress,
 }: PlayerStatsDashboardProps) {
-  const tabProgress = useSharedValue(0);
+  const tabProgress = useSharedValue(1);
+  const previousActiveTabRef = React.useRef(activeTab);
   const competitiveMatches = React.useMemo(
     () =>
       matches
@@ -884,7 +912,10 @@ function PlayerStatsDashboard({
     [competitiveMatches]
   );
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
+    if (previousActiveTabRef.current === activeTab) return;
+
+    previousActiveTabRef.current = activeTab;
     tabProgress.value = 0;
     tabProgress.value = withTiming(1, {
       duration: 520,
@@ -896,38 +927,137 @@ function PlayerStatsDashboard({
     seasonStats && seasonStats.roundsPlayed > 0
       ? seasonStats.kills / seasonStats.roundsPlayed
       : null;
-  const combatRows: DetailRow[] = [
-    { label: "K/D", value: oneDecimal(seasonStats?.kd), tone: toneForKd(seasonStats?.kd) },
-    { label: "ACS", value: oneDecimal(seasonStats?.acs) },
-    { label: "DMG / ROUND", value: oneDecimal(seasonStats?.adr) },
-    { label: "KILLS / ROUND", value: oneDecimal(killsPerRound) },
-    { label: "HS%", value: percentage(seasonStats?.headshotPercent) },
-    { label: "KAST%", value: percentage(seasonStats?.kast) },
-  ];
-  const totalRows: DetailRow[] = [
-    { label: "KILLS", value: compactNumber(seasonStats?.kills) },
-    { label: "DEATHS", value: compactNumber(seasonStats?.deaths) },
-    { label: "HEADSHOTS", value: compactNumber(seasonStats?.headshots) },
-    { label: "DAMAGE", value: compactNumber(seasonStats?.damage) },
-    { label: "SCORE", value: compactNumber(seasonStats?.score) },
-    { label: "ROUNDS", value: compactNumber(seasonStats?.roundsPlayed) },
-  ];
-  const recordRows: DetailRow[] = [
-    { label: "WINS", value: compactNumber(seasonStats?.wins), tone: "positive" },
-    { label: "LOSSES", value: compactNumber(seasonStats?.losses), tone: "negative" },
-    { label: "GAMES", value: compactNumber(seasonStats?.matchCount) },
-    {
-      label: "WIN%",
-      value: percentage(seasonStats?.winRate),
-      tone: toneForWinRate(seasonStats?.winRate),
+  const combatRows = React.useMemo<DetailRow[]>(
+    () => [
+      {
+        label: "K/D",
+        value: oneDecimal(seasonStats?.kd),
+        tone: toneForKd(seasonStats?.kd),
+      },
+      { label: "ACS", value: oneDecimal(seasonStats?.acs) },
+      { label: "DMG / ROUND", value: oneDecimal(seasonStats?.adr) },
+      { label: "KILLS / ROUND", value: oneDecimal(killsPerRound) },
+      { label: "HS%", value: percentage(seasonStats?.headshotPercent) },
+      { label: "KAST%", value: percentage(seasonStats?.kast) },
+    ],
+    [killsPerRound, seasonStats]
+  );
+  const totalRows = React.useMemo<DetailRow[]>(
+    () => [
+      { label: "KILLS", value: compactNumber(seasonStats?.kills) },
+      { label: "DEATHS", value: compactNumber(seasonStats?.deaths) },
+      { label: "HEADSHOTS", value: compactNumber(seasonStats?.headshots) },
+      { label: "DAMAGE", value: compactNumber(seasonStats?.damage) },
+      { label: "SCORE", value: compactNumber(seasonStats?.score) },
+      { label: "ROUNDS", value: compactNumber(seasonStats?.roundsPlayed) },
+    ],
+    [seasonStats]
+  );
+  const recordRows = React.useMemo<DetailRow[]>(
+    () => [
+      {
+        label: "WINS",
+        value: compactNumber(seasonStats?.wins),
+        tone: "positive",
+      },
+      {
+        label: "LOSSES",
+        value: compactNumber(seasonStats?.losses),
+        tone: "negative",
+      },
+      { label: "GAMES", value: compactNumber(seasonStats?.matchCount) },
+      {
+        label: "WIN%",
+        value: percentage(seasonStats?.winRate),
+        tone: toneForWinRate(seasonStats?.winRate),
+      },
+    ],
+    [seasonStats]
+  );
+  const dashboardCards =
+    activeTab === "overview"
+      ? OVERVIEW_DASHBOARD_CARDS
+      : DETAIL_DASHBOARD_CARDS;
+  const renderDashboardCard = React.useCallback(
+    ({ item, index }: { item: DashboardCardItem; index: number }) => {
+      let content: React.ReactNode = null;
+
+      switch (item.kind) {
+        case "performance":
+          content = (
+            <PerformanceCard
+              onRequestDetails={onRequestDetails}
+              seasonStats={seasonStats}
+            />
+          );
+          break;
+        case "agents-maps":
+          content = (
+            <AgentsMapsCard
+              agentRows={agentRows}
+              mapRows={mapRows}
+              totalGames={
+                seasonStats?.matchCount ?? competitiveMatches.length
+              }
+            />
+          );
+          break;
+        case "recent":
+          content = <RecentCompetitiveCard matches={competitiveMatches} />;
+          break;
+        case "activity":
+          content = <ActivityCard matches={competitiveMatches} />;
+          break;
+        case "rr-trend":
+          content = <RrTrendCard matches={competitiveMatches} />;
+          break;
+        case "rank-summary":
+          content = <RankSummaryCard competitiveRank={competitiveRank} />;
+          break;
+        case "combat":
+          content = <DetailSection title="COMBAT" rows={combatRows} />;
+          break;
+        case "totals":
+          content = <DetailSection title="TOTALS" rows={totalRows} />;
+          break;
+        case "record":
+          content = <DetailSection title="RECORD" rows={recordRows} />;
+          break;
+      }
+
+      return (
+        <DashboardCard index={index} tabProgress={tabProgress}>
+          {content}
+        </DashboardCard>
+      );
     },
-  ];
+    [
+      agentRows,
+      combatRows,
+      competitiveMatches,
+      competitiveRank,
+      mapRows,
+      onRequestDetails,
+      recordRows,
+      seasonStats,
+      tabProgress,
+      totalRows,
+    ]
+  );
 
   return (
-    <Animated.ScrollView
+    <FlatList
       style={styles.screen}
+      data={dashboardCards}
+      keyExtractor={dashboardCardKeyExtractor}
+      renderItem={renderDashboardCard}
       contentContainerStyle={styles.screenContent}
       showsVerticalScrollIndicator={false}
+      initialNumToRender={2}
+      maxToRenderPerBatch={1}
+      updateCellsBatchingPeriod={64}
+      windowSize={3}
+      removeClippedSubviews={Platform.OS === "android"}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -937,98 +1067,21 @@ function PlayerStatsDashboard({
           progressBackgroundColor={STATS_COLORS.card}
         />
       }
-    >
-      {loading && !seasonStats ? (
+      ListHeaderComponent={loading && !seasonStats ? (
         <View style={styles.loadingBar}>
           <View style={styles.loadingDot} />
           <Text style={styles.loadingText}>SYNCING PERFORMANCE DATA</Text>
         </View>
       ) : null}
 
-      {activeTab === "overview" ? (
-        <>
-          <DashboardCard
-            index={0}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <PerformanceCard
-              onRequestDetails={onRequestDetails}
-              seasonStats={seasonStats}
-            />
-          </DashboardCard>
-          <DashboardCard
-            index={1}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <AgentsMapsCard
-              agentRows={agentRows}
-              mapRows={mapRows}
-              totalGames={seasonStats?.matchCount ?? competitiveMatches.length}
-            />
-          </DashboardCard>
-          <DashboardCard
-            index={2}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <RecentCompetitiveCard matches={competitiveMatches} />
-          </DashboardCard>
-          <DashboardCard
-            index={3}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <ActivityCard matches={competitiveMatches} />
-          </DashboardCard>
-          <DashboardCard
-            index={4}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <RrTrendCard matches={competitiveMatches} />
-          </DashboardCard>
-        </>
-      ) : (
-        <>
-          <DashboardCard
-            index={0}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <RankSummaryCard competitiveRank={competitiveRank} />
-          </DashboardCard>
-          <DashboardCard
-            index={1}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <DetailSection title="COMBAT" rows={combatRows} />
-          </DashboardCard>
-          <DashboardCard
-            index={2}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <DetailSection title="TOTALS" rows={totalRows} />
-          </DashboardCard>
-          <DashboardCard
-            index={3}
-            tabProgress={tabProgress}
-            transitionProgress={transitionProgress}
-          >
-            <DetailSection title="RECORD" rows={recordRows} />
-          </DashboardCard>
-        </>
-      )}
-
-      <Text style={styles.dashboardFooter}>
-        {totalMatches > 0
-          ? `${totalMatches.toLocaleString()} MATCHES IN ACCOUNT HISTORY`
-          : "VALORANT PERFORMANCE · VSHOP"}
-      </Text>
-    </Animated.ScrollView>
+      ListFooterComponent={
+        <Text style={styles.dashboardFooter}>
+          {totalMatches > 0
+            ? `${totalMatches.toLocaleString()} MATCHES IN ACCOUNT HISTORY`
+            : "VALORANT PERFORMANCE · VSHOP"}
+        </Text>
+      }
+    />
   );
 }
 
