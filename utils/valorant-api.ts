@@ -1,31 +1,22 @@
 // Import axios để thực hiện HTTP requests đến API Riot Games
-import axios from "axios";
+import { riotApiClient as axios } from "~/services/riot/client";
+import {
+  buildRiotApiUrl,
+  type RiotEndpointName,
+} from "~/services/riot/endpoints";
 // Import jwtDecode để giải mã JWT token lấy thông tin user
 import { jwtDecode } from "jwt-decode";
 // Import các hàm tiện ích: normalize shard, enum tiền tệ, enum loại item
-import { normalizeValorantShard, VCurrencies, VItemTypes } from "./misc";
+import { VCurrencies, VItemTypes } from "./misc";
 // Import https-browserify để tạo HTTPS agent với ciphers tùy chỉnh (dùng cho reAuth)
 import https from "https-browserify";
 // Import hàm fetch bundle, getAssetLookups và getAssets từ module assets
 import { fetchBundle, getAssetLookups, getAssets } from "./valorant-assets";
 // Import các hàm log cho axios request/response/error
-import {
-  logAxiosRequest,
-  logAxiosResponse,
-  logAxiosError,
-  initApiLogger,
-} from "./api-logger";
-import {
-  getRequestUrl,
-  isRiotAuthenticationError,
-  notifySessionAuthFailure,
-} from "./session-events";
 
 // Thiết lập timeout mặc định cho axios: 10 giây (giảm từ 15s để fail-fast trên 4G)
-axios.defaults.timeout = 10_000;
 
 // Khởi tạo API logger (async, không await để tránh chặn)
-void initApiLogger();
 
 // Large Riot request/response logs can block the JS thread in Expo dev.
 // Keep them opt-in so normal development stays responsive.
@@ -33,46 +24,10 @@ const API_DEBUG_LOGGING =
   __DEV__ && process.env.EXPO_PUBLIC_API_DEBUG_LOGGING === "1";
 
 // Interceptor cho request: log URL, ghi lại thời gian bắt đầu
-axios.interceptors.request.use(
-  function (config) {
-    if (API_DEBUG_LOGGING) {
-      console.log(`${config.method?.toUpperCase()} ${config.url}`);
-    }
-    (config as any).metadata = { startTime: Date.now() };
-    return logAxiosRequest(config);
-  },
-  function (error) {
-    return Promise.reject(error);
-  }
-);
 
 // Interceptor cho response: log response/error và báo cho lifecycle manager
 // khi Riot xác nhận session không còn hợp lệ. Cả nhánh fulfilled lẫn rejected
 // đều được kiểm tra vì một số API dùng validateStatus để tự xử lý status code.
-axios.interceptors.response.use(
-  function (response) {
-    const errorLike = {
-      config: response.config,
-      response,
-    };
-    if (isRiotAuthenticationError(errorLike)) {
-      notifySessionAuthFailure({
-        status: response.status,
-        url: getRequestUrl(errorLike),
-      });
-    }
-    return logAxiosResponse(response);
-  },
-  function (error) {
-    if (isRiotAuthenticationError(error)) {
-      notifySessionAuthFailure({
-        status: Number(error.response?.status) || 401,
-        url: getRequestUrl(error),
-      });
-    }
-    return logAxiosError(error);
-  }
-);
 
 // Hàm che giấu thông tin bí mật (token, secret) khi log
 // Chỉ hiện 8 ký tự đầu và 6 ký tự cuối nếu chuỗi dài > 16, nếu không thì hiện "***"
@@ -1567,7 +1522,7 @@ function getUrl({
   itemTypeId,
   code,
 }: {
-  name: string;
+  name: RiotEndpointName;
   region?: string | null;
   userId?: string | null;
   matchId?: string | null;
@@ -1576,59 +1531,16 @@ function getUrl({
   code?: string | null;
 }) {
   // Chuẩn hóa shard từ region
-  const shard = normalizeValorantShard(region);
+  return buildRiotApiUrl({
+    name,
+    region,
+    userId,
+    matchId,
+    agentId,
+    itemTypeId,
+    code,
+  });
   // Map chứa tất cả các API endpoints
-  const URLS: Record<string, string> = {
-    auth: "https://auth.riotgames.com/api/v1/authorization/",
-    entitlements: "https://entitlements.auth.riotgames.com/api/token/v1/",
-    storefront: `https://pd.${shard}.a.pvp.net/store/v3/storefront/${userId}`,
-    wallet: `https://pd.${shard}.a.pvp.net/store/v1/wallet/${userId}`,
-    playerxp: `https://pd.${shard}.a.pvp.net/account-xp/v1/players/${userId}`,
-    weapons: "https://valorant-api.com/v1/weapons/",
-    offers: `https://pd.${shard}.a.pvp.net/store/v1/offers/`,
-    name: `https://pd.${shard}.a.pvp.net/name-service/v2/players`,
-    matchID: `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/players/${userId}`,
-    lock: `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}/lock/${agentId}`,
-    quit: `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}/quit`,
-    player: `https://pd.${shard}.a.pvp.net/personalization/v2/players/${userId}/playerloadout`,
-    "player-v3": `https://pd.${shard}.a.pvp.net/personalization/v3/players/${userId}/playerloadout`,
-    mmr: `https://pd.${shard}.a.pvp.net/mmr/v1/players/${userId}`,
-    "owned-items": `https://pd.${shard}.a.pvp.net/store/v1/entitlements/${userId}/${itemTypeId}`,
-    "match-history": `https://pd.${shard}.a.pvp.net/match-history/v1/history/${userId}`,
-    "match-details": `https://pd.${shard}.a.pvp.net/match-details/v1/matches/${matchId}`,
-    "competitive-updates": `https://pd.${shard}.a.pvp.net/mmr/v1/players/${userId}/competitiveupdates`,
-    session: `https://glz-${shard}-1.${shard}.a.pvp.net/session/v1/sessions/${userId}`,
-    "pregame-player": `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/players/${userId}`,
-    "pregame-match": `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}`,
-    "select-agent": `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}/select/${agentId}`,
-    "pregame-loadouts": `https://glz-${shard}-1.${shard}.a.pvp.net/pregame/v1/matches/${matchId}/loadouts`,
-    "coregame-player": `https://glz-${shard}-1.${shard}.a.pvp.net/core-game/v1/players/${userId}`,
-    "coregame-match": `https://glz-${shard}-1.${shard}.a.pvp.net/core-game/v1/matches/${matchId}`,
-    "coregame-loadouts": `https://glz-${shard}-1.${shard}.a.pvp.net/core-game/v1/matches/${matchId}/loadouts`,
-    "coregame-quit": `https://glz-${shard}-1.${shard}.a.pvp.net/core-game/v1/matches/${matchId}/quit`,
-    "party-player": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/players/${userId}`,
-    "party": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}`,
-    "party-ready": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/members/${userId}/setReady`,
-    "party-remove": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/players/${userId}`,
-    "party-join-queue": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/matchmaking/join`,
-    "party-leave-queue": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/matchmaking/leave`,
-    "party-invite-code": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/invitecode`,
-    "party-join-by-code": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/players/joinbycode/${code}`,
-    "party-muc-token": `https://glz-${shard}-1.${shard}.a.pvp.net/parties/v1/parties/${matchId}/muctoken`,
-    "contracts": `https://pd.${shard}.a.pvp.net/contracts/v1/contracts/${userId}`,
-    "activate-contract": `https://pd.${shard}.a.pvp.net/contracts/v1/contracts/${userId}/special/${itemTypeId}`,
-    "item-upgrades": `https://pd.${shard}.a.pvp.net/contract-definitions/v3/item-upgrades`,
-    "content": `https://shared.${shard}.a.pvp.net/content-service/v3/content`,
-    "leaderboard": `https://pd.${shard}.a.pvp.net/mmr/v1/leaderboards/affinity/${shard}/queue/competitive/season/${itemTypeId}`,
-    "config": `https://pd.${shard}.a.pvp.net/v1/config/${shard}`,
-    "penalties": `https://pd.${shard}.a.pvp.net/restrictions/v3/penalties`,
-    "playerinfo": "https://auth.riotgames.com/userinfo",
-    "riotgeo": "https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant",
-    "pastoken": "https://riot-geo.pas.si.riotgames.com/pas/v1/service/chat",
-    "riotclientconfig": "https://clientconfig.rpg.riotgames.com/api/v1/config/player?app=Riot%20Client",
-  };
-
-  return URLS[name];
 }
 
 // ---------------------------------------------------------------------------
