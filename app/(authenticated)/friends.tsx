@@ -12,6 +12,9 @@ import { COLORS } from "~/constants/DesignSystem";
 import { useChatStore, type ChatFriend } from "~/utils/chat-store";
 import { initChatService } from "~/utils/chat-service";
 import { router } from "expo-router";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { fullBackgroundSync } from "~/utils/app-sync";
 
 // FriendStateInfo: thông tin hiển thị cho trạng thái của bạn bè
 type FriendStateInfo = { icon: ComponentProps<typeof Icon>["name"]; color: string; label: string };
@@ -63,6 +66,20 @@ export default function FriendsScreen() {
     return () => clearTimeout(connectTimer);
   }, [status, user.accessToken, user.entitlementsToken, user.region, user.id]);
 
+  const refreshFriends = React.useCallback(async () => {
+    await fullBackgroundSync(true);
+    const latestUser = useUserStore.getState().user;
+    if (latestUser.accessToken && latestUser.entitlementsToken) {
+      await initChatService(
+        latestUser.accessToken,
+        latestUser.entitlementsToken,
+        latestUser.region,
+        latestUser.id
+      );
+    }
+  }, []);
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshFriends);
+
   // renderFriend: render một hàng bạn bè (chấm trạng thái, tên, status text, icon)
   const renderFriend = ({ item }: { item: ChatFriend }) => {
     const displayName = item.gameName && item.gameName !== "Unknown"
@@ -106,22 +123,27 @@ export default function FriendsScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Nếu không có bạn bè → empty card, nếu có → FlatList */}
-      {friends.length === 0 ? (
-        <GlassCard style={styles.emptyCard}>
-          <Icon name="account-group-outline" size={48} color={COLORS.TEXT_SECONDARY} />
-          <Text style={styles.emptyTitle}>{t("friends_page.empty_title")}</Text>
-          <Text style={styles.emptySubtitle}>{t("friends_page.empty_subtitle")}</Text>
-        </GlassCard>
-      ) : (
-        <FlatList
-          data={friends}
-          keyExtractor={(item) => item.id}
-          renderItem={renderFriend}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <FlatList
+        data={friends}
+        keyExtractor={(item) => item.id}
+        renderItem={renderFriend}
+        contentContainerStyle={[
+          styles.listContent,
+          friends.length === 0 && styles.listContentEmpty,
+        ]}
+        ListEmptyComponent={
+          <GlassCard style={styles.emptyCard}>
+            <Icon name="account-group-outline" size={48} color={COLORS.TEXT_SECONDARY} />
+            <Text style={styles.emptyTitle}>{t("friends_page.empty_title")}</Text>
+            <Text style={styles.emptySubtitle}>{t("friends_page.empty_subtitle")}</Text>
+          </GlassCard>
+        }
+        refreshControl={
+          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        alwaysBounceVertical
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 }
@@ -135,6 +157,7 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 12, color: COLORS.TEXT_SECONDARY, fontSize: 14 },
   // Danh sách: padding ngang 20, trên 8, dưới 140
   listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 140 },
+  listContentEmpty: { flexGrow: 1 },
   // Hàng bạn bè: hàng ngang, gap 12, có borderBottom
   friendRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.BORDER },
   friendRowPressed: { opacity: 0.72 },
@@ -144,7 +167,7 @@ const styles = StyleSheet.create({
   friendName: { fontSize: 15, fontWeight: "700", color: COLORS.TEXT_PRIMARY },
   friendStatus: { marginTop: 2, fontSize: 12, color: COLORS.TEXT_SECONDARY },
   // Empty card
-  emptyCard: { marginHorizontal: 20, padding: 32, alignItems: "center", gap: 12 },
+  emptyCard: { padding: 32, alignItems: "center", gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: "700", color: COLORS.TEXT_PRIMARY },
   emptySubtitle: { fontSize: 14, color: COLORS.TEXT_SECONDARY, textAlign: "center", lineHeight: 20 },
 });
