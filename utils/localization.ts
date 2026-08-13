@@ -157,7 +157,8 @@ i18n
     resources,                // Tài nguyên dịch thuật các ngôn ngữ
     compatibilityJSON: "v3",  // Tương thích JSON phiên bản 3
     fallbackLng: "en",        // Ngôn ngữ dự phòng là tiếng Anh
-    debug: __DEV__,           // Bật debug khi ở môi trường development
+    // i18next debug dumps every translation key and noticeably delays dev startup.
+    debug: false,
     react: {
       useSuspense: false,     // Tắt Suspense mode
     },
