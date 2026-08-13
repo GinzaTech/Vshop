@@ -15,6 +15,9 @@ import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
 import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { refreshShopAndBalances } from "~/utils/app-sync";
 
 /**
  * AccessoryShop — Component hiển thị cửa hàng phụ kiện.
@@ -38,6 +41,11 @@ function AccessoryShop() {
   const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
   const [query, setQuery] = React.useState(""); // Input tìm kiếm
+  const refreshShop = React.useCallback(
+    () => refreshShopAndBalances(true),
+    []
+  );
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
 
   // Thời gian refresh shop = bây giờ + số giây còn lại
   const timestamp =
@@ -54,6 +62,10 @@ function AccessoryShop() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
+      refreshControl={
+        <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      alwaysBounceVertical
       showsVerticalScrollIndicator={false}
     >
       {/* ── Thanh tìm kiếm ── */}
@@ -108,6 +120,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.BACKGROUND,
   },
   content: {
+    flexGrow: 1,
     padding: 20,
     paddingBottom: 36,
   },
