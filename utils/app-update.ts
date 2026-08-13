@@ -1,5 +1,5 @@
 // Import axios để thực hiện HTTP request
-import axios from "axios";
+import { publicHttpClient as axios } from "~/services/http/clients";
 // Import expo-application để lấy thông tin version app
 import * as Application from "expo-application";
 // Import expo-constants để lấy cấu hình từ app.json / app.config
