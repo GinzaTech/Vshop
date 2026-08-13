@@ -17,9 +17,11 @@ import {
   buildMatchHistoryRecord,
   compactRankUpdate,
   createMatchAssetCatalog,
+  enrichMatchHistoryAssets,
 } from "~/utils/match-ui";
 import { getNetworkProfile, mapWithConcurrency } from "~/utils/network";
 import { appStorage } from "~/utils/storage";
+import { loadAgent, loadAssets } from "~/utils/valorant-assets";
 
 // --- Hằng số cấu hình ---
 const MATCH_CACHE_TTL_MS = 30 * 60 * 1000;       // TTL cache match (30 phút — giảm API calls)
@@ -841,6 +843,29 @@ export const useMatchStore = create<MatchState>()(
         const authKey = getMatchAuthKey(user);
         const state = get();
         const isSameSession = state.authKey === authKey;
+
+        // Restored sessions do not pass through buildAuthenticatedUser, so the
+        // in-memory asset catalog starts empty even when match records are cached.
+        // Load it before the TTL early return and repair cached visual metadata.
+        try {
+          await Promise.all([loadAssets(), loadAgent()]);
+          if (get().authKey === authKey && get().matches.length > 0) {
+            const currentMatches = get().matches;
+            const enrichedMatches = enrichMatchHistoryAssets(currentMatches);
+            if (
+              enrichedMatches.some(
+                (record, index) => record !== currentMatches[index]
+              )
+            ) {
+              set({ matches: enrichedMatches });
+            }
+          }
+        } catch (error) {
+          if (__DEV__) {
+            console.warn("[matchStore] asset metadata unavailable", error);
+          }
+        }
+
         if (
           !force &&
           isSameSession &&
