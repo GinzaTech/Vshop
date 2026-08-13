@@ -3,7 +3,7 @@ import { getAccessTokenFromUri, isSameDayUTC } from "./misc";
 // Import AsyncStorage để lưu trữ thời gian kiểm tra wishlist gần nhất
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // Import axios để gọi API lấy thông tin skin
-import axios from "axios";
+import { getPublicSkinLevel } from "~/services/valorant/public-api";
 // Import hook quản lý state wishlist (danh sách skin yêu thích) dùng Zustand persist
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 // Import Platform để kiểm tra nền tảng (bỏ qua background fetch trên web)
@@ -35,6 +35,8 @@ function configureNotifications() {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }),
@@ -127,24 +129,20 @@ export async function checkShop(wishlist: string[]) {
     const shop = await getShop(accessToken, entitlementsToken, region, userId);
 
     // Duyệt danh sách wishlist, kiểm tra từng skin có trong shop hôm nay không
-    var hit = false;
+    let hit = false;
     for (let i = 0; i < wishlist.length; i++) {
       if (shop.SkinsPanelLayout.SingleItemOffers.includes(wishlist[i])) {
         // Skin có trong shop: lấy thông tin chi tiết từ valorant-api.com
-        const skinData = await axios.get<{
-          status: number;
-          data: ValorantSkinLevel;
-        }>(
-          `https://valorant-api.com/v1/weapons/skinlevels/${
-            wishlist[i]
-          }?language=${getVAPILang()}`
+        const skinData = await getPublicSkinLevel(
+          wishlist[i],
+          getVAPILang(),
         );
         // Gửi thông báo: có skin yêu thích trong shop
         await Notifications.scheduleNotificationAsync({
           content: {
             title: i18n.t("wishlist.name"),
             body: i18n.t("wishlist.notification.hit", {
-              displayname: skinData.data.data.displayName,
+              displayname: skinData.displayName,
             }),
           },
           trigger: {
