@@ -2,10 +2,13 @@
 // Hiển thị một khối nội dung có nền trong suốt kết hợp hiệu ứng làm mờ phía sau,
 // tạo cảm giác "kính mờ" giống giao diện Valorant / hiện đại.
 
-import { MotiView } from "moti";
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, ViewProps } from "react-native";
 import { BlurView } from "expo-blur";
+import Animated, {
+    FadeInDown,
+    ReduceMotion,
+} from "react-native-reanimated";
 import { GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
 
 /**
@@ -49,16 +52,14 @@ export default function GlassCard({
 }: GlassCardProps) {
     if (animated) {
         return (
-            <MotiView
-                from={{ opacity: 0, translateY: 12 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "spring", damping: 20, stiffness: 120 }}
+            <Animated.View
+                entering={FadeInDown.duration(260).reduceMotion(ReduceMotion.System)}
                 style={[styles.container, style]}
                 {...props}
             >
                 <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
                 <View style={[styles.content, contentStyle]}>{children}</View>
-            </MotiView>
+            </Animated.View>
         );
     }
     return (
