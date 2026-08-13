@@ -4,7 +4,14 @@
  */
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { MotiView } from "moti";
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { COLORS } from "~/constants/DesignSystem";
 
@@ -13,62 +20,59 @@ type LoadingScreenProps = {
 };
 
 export default function LoadingScreen({ message = "Loading" }: LoadingScreenProps) {
+  const reduceMotion = useReducedMotion();
+  const pulse = useSharedValue(1);
+  const rotation = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (reduceMotion) {
+      pulse.value = 1;
+      rotation.value = 0;
+      return;
+    }
+    pulse.value = withRepeat(withTiming(0, { duration: 800 }), -1, true);
+    rotation.value = withRepeat(withTiming(360, { duration: 1200 }), -1);
+    return () => {
+      cancelAnimation(pulse);
+      cancelAnimation(rotation);
+    };
+  }, [pulse, reduceMotion, rotation]);
+
+  const logoAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: 0.55 + pulse.value * 0.45,
+    transform: [{ scale: 0.94 + pulse.value * 0.06 }],
+  }));
+  const spinnerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+  const textAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: 0.65 + pulse.value * 0.35,
+  }));
+
   return (
     <View style={styles.container}>
       {/* Pulsing logo */}
-      <MotiView
-        from={{ opacity: 0.4, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{
-          type: "timing",
-          duration: 800,
-          loop: true,
-          repeatReverse: true,
-        }}
-        style={styles.logoWrap}
+      <Animated.View
+        style={[styles.logoWrap, logoAnimatedStyle]}
       >
         <Icon name="shield-star-outline" size={48} color={COLORS.ACCENT} />
-      </MotiView>
+      </Animated.View>
 
       {/* Spinning ring */}
-      <MotiView
-        from={{ rotate: "0deg" }}
-        animate={{ rotate: "360deg" }}
-        transition={{
-          type: "timing",
-          duration: 1200,
-          loop: true,
-        }}
-        style={styles.spinnerRing}
+      <Animated.View
+        style={[styles.spinnerRing, spinnerAnimatedStyle]}
       />
 
       {/* Loading text */}
-      <MotiView
-        from={{ opacity: 0.4 }}
-        animate={{ opacity: 1 }}
-        transition={{
-          type: "timing",
-          duration: 600,
-          loop: true,
-          repeatReverse: true,
-        }}
-      >
+      <Animated.View style={textAnimatedStyle}>
         <LoadingText text={message} />
-      </MotiView>
+      </Animated.View>
     </View>
   );
 }
 
 function LoadingText({ text }: { text: string }) {
-  return (
-    <MotiView
-      from={{ opacity: 0.5 }}
-      animate={{ opacity: 1 }}
-      transition={{ type: "timing", duration: 500, loop: true, repeatReverse: true }}
-    >
-      <StyledText>{text}</StyledText>
-    </MotiView>
-  );
+  return <StyledText>{text}</StyledText>;
 }
 
 function StyledText({ children }: { children: React.ReactNode }) {
