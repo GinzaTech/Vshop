@@ -1,5 +1,4 @@
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import * as MediaLibrary from "expo-media-library";
 import React from "react";
 import {
   ActivityIndicator,
@@ -72,6 +71,16 @@ type CollectionCheckerExportProps = {
 };
 
 type CheckerStyles = ReturnType<typeof createCheckerStyles>;
+
+type MediaLibraryModule = typeof import("expo-media-library");
+
+const getMediaLibrary = (): MediaLibraryModule => {
+  if (Platform.OS === "web") {
+    throw new Error("Media library is unavailable on web.");
+  }
+
+  return require("expo-media-library") as MediaLibraryModule;
+};
 
 type CollectionExportContextValue = {
   disabled: boolean;
@@ -633,6 +642,8 @@ export function CollectionCheckerExportProvider({
 
   const saveCheckerImage = React.useCallback(async () => {
     try {
+      const MediaLibrary = getMediaLibrary();
+
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
@@ -691,6 +702,7 @@ export function CollectionCheckerExportProvider({
     setExporting(true);
 
     try {
+      const MediaLibrary = getMediaLibrary();
       const currentPermission = await MediaLibrary.getPermissionsAsync(
         true,
         ["photo"]
