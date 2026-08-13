@@ -21,6 +21,8 @@ import { getAssetLookups } from "~/utils/valorant-assets";
 import CurrencyIcon from "~/components/CurrencyIcon";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 
 // Hằng số ID loại skin vũ khí (weapon skin type)
 const WEAPON_SKIN_TYPE_ID = "e7c63390-eda7-46e0-bb7a-a6abdacd2433";
@@ -99,6 +101,7 @@ export default function ItemUpgradesScreen() {
   React.useEffect(() => {
     fetchData();
   }, [fetchData]);
+  const { refreshing, onRefresh } = useAsyncRefresh(fetchData);
 
   // useMemo: Trích xuất danh sách Definitions từ response, memoized theo upgrades.Definitions
   const definitions = React.useMemo(
@@ -505,6 +508,10 @@ export default function ItemUpgradesScreen() {
       renderItem={renderUpgradeDefinition}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.content}
+      refreshControl={
+        <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      alwaysBounceVertical
       ListHeaderComponent={
         <>
           {/* Hero section: icon + tiêu đề */}
