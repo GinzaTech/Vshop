@@ -1,5 +1,5 @@
 // Import axios để gửi HTTP request
-import axios from "axios";
+import { telemetryHttpClient as axios } from "~/services/http/clients";
 // Import Platform từ React Native để kiểm tra hệ điều hành
 import { Platform } from "react-native";
 
