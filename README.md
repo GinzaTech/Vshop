@@ -39,8 +39,10 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 # English
 
-## Release 4.1.0 highlights
+## Release 4.1.1 highlights
 
+- **Reliable primary navigation:** Bundle, Shop and More now keep a single Android interaction layer and preserve route parameters.
+- **Web-safe profile export:** native media-library code is isolated from the web static renderer.
 - **Modern runtime:** upgraded to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
 - **Safer API architecture:** Riot/public traffic now uses isolated clients, a typed endpoint registry, validation, contract tests and read-only smoke tests.
 - **Refresh everywhere:** authenticated data screens, empty states, Match Session and chat support pull-to-refresh with duplicate-request protection.
@@ -356,8 +358,10 @@ Install via QR code or APK from the Expo dashboard.
 
 # Tiếng Việt
 
-## Điểm nổi bật bản 4.1.0
+## Điểm nổi bật bản 4.1.1
 
+- **Điều hướng chính ổn định:** Bundle, Shop và More chỉ giữ một lớp tương tác trên Android và bảo toàn tham số route.
+- **Profile tương thích web:** phần xuất ảnh dùng media-library native đã được tách khỏi trình render web tĩnh.
 - **Runtime mới:** nâng lên Expo SDK 57, React Native 0.86, React 19, Reanimated 4 và Zustand 5.
 - **Kiến trúc API an toàn hơn:** Riot/public API dùng client tách biệt, endpoint registry có type, validation, contract test và smoke test chỉ đọc.
 - **Kéo để tải lại toàn ứng dụng:** các màn dữ liệu, empty state, Phiên đấu và chat đều hỗ trợ refresh, đồng thời chặn request trùng.
