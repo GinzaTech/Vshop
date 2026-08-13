@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import { BlurView } from "expo-blur";
+import { BlurTargetView, BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 import { Modal, Portal, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,6 +24,9 @@ import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
 import PageIntro from "~/components/ui/PageIntro";
 import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { refreshShopAndBalances } from "~/utils/app-sync";
 
 // Component Bundles: hiển thị danh sách các bundle (gói hàng) trong shop
 // Cho phép xem thông tin bundle và các item bên trong qua modal
@@ -46,6 +49,12 @@ function Bundles() {
   // State: bundle đang được chọn để xem chi tiết (null = không có modal)
   const [selectedBundle, setSelectedBundle] =
     React.useState<BundleShopItem | null>(null);
+  const blurTargetRef = React.useRef<View | null>(null);
+  const refreshShop = React.useCallback(
+    () => refreshShopAndBalances(true),
+    []
+  );
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
 
   // dismissBundle: đóng modal chi tiết bundle bằng cách set selectedBundle về null
   const dismissBundle = React.useCallback(() => {
@@ -55,27 +64,41 @@ function Bundles() {
   // Nếu không có bundle nào, hiển thị EmptyStateCard thông báo trống
   if (user.shops.bundles.length === 0) {
     return (
-      <EmptyStateCard
-        centered
-        icon={
-          <Icon
-            name="package-variant-closed"
-            size={38}
-            color={COLORS.TEXT_PRIMARY}
-          />
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        title={t("bundles_page.empty_title")}
-        subtitle={t("bundles_page.empty_subtitle")}
-      />
+        alwaysBounceVertical
+      >
+        <EmptyStateCard
+          centered
+          icon={
+            <Icon
+              name="package-variant-closed"
+              size={38}
+              color={COLORS.TEXT_PRIMARY}
+            />
+          }
+          title={t("bundles_page.empty_title")}
+          subtitle={t("bundles_page.empty_subtitle")}
+        />
+      </ScrollView>
     );
   }
 
   return (
     <>
       {/* ScrollView chính: cuộn dọc, nền tối */}
+      <BlurTargetView ref={blurTargetRef} style={styles.blurTarget}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
+        refreshControl={
+          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        alwaysBounceVertical
         showsVerticalScrollIndicator={false}
       >
         {/* Tiêu đề trang */}
@@ -103,6 +126,7 @@ function Bundles() {
           </View>
         ))}
       </ScrollView>
+      </BlurTargetView>
 
       {/* Portal: hiển thị modal chi tiết bundle ở lớp trên cùng */}
       <Portal>
@@ -118,9 +142,10 @@ function Bundles() {
             <>
               <BlurView
                 pointerEvents="none"
+                blurTarget={blurTargetRef}
                 intensity={72}
                 tint="dark"
-                experimentalBlurMethod="dimezisBlurView"
+                blurMethod="dimezisBlurViewSdk31Plus"
                 style={StyleSheet.absoluteFill}
               />
               <View pointerEvents="none" style={styles.modalDim} />
@@ -192,6 +217,9 @@ const modalCardShadow =
 
 // ===== StyleSheet định nghĩa giao diện =====
 const styles = StyleSheet.create({
+  blurTarget: {
+    flex: 1,
+  },
   // Màn hình chính: nền tối, chiếm toàn bộ không gian
   screen: {
     flex: 1,
@@ -199,6 +227,7 @@ const styles = StyleSheet.create({
   },
   // Nội dung ScrollView: padding 20, bottom 140 để chừa chỗ cho tab bar
   content: {
+    flexGrow: 1,
     padding: 20,
     paddingBottom: 140,
   },
@@ -240,7 +269,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   modalDim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(7, 12, 20, 0.42)",
   },
   modalContent: {
