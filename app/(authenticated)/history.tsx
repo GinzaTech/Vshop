@@ -1,7 +1,7 @@
 // ===== Import thư viện =====
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { FlatList, LayoutAnimation, Platform, Pressable, RefreshControl, StyleSheet, Text, UIManager, View } from "react-native";
+import { FlatList, LayoutAnimation, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -18,11 +18,6 @@ import { mockMatchHistory } from "~/mocks/match-ui";
 import type { DailyMatchSummary, MatchHistoryItem, MatchHistoryRecord } from "~/types/match-ui";
 import { buildMatchHistoryGroups } from "~/utils/match-ui";
 import { getAssets } from "~/utils/valorant-assets";
-
-// Bật LayoutAnimation trên Android (cần gọi trước khi dùng)
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 // HistoryRow: kiểu dữ liệu cho mỗi hàng trong danh sách lịch sử
 type HistoryRow =
