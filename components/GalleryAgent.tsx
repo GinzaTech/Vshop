@@ -7,6 +7,7 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 import { getAgent } from "~/utils/valorant-assets";
 import { COLORS } from "~/constants/DesignSystem";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
 
 // Interface Role: định nghĩa một role (vai trò) của agent
 // icon: đường dẫn ảnh icon role
@@ -26,6 +27,8 @@ interface AgentGridProps {
     agents: ValorantAgent[];
     onAgentPress: (agent: ValorantAgent) => void;
     selectedAgentId?: string | null;
+    refreshing?: boolean;
+    onRefresh?: () => void;
 }
 
 // Interface RoleSelectorProps: props cho component RoleSelector
@@ -205,7 +208,7 @@ const AgentItem = React.memo(({ item, onPress, selected }: { item: ValorantAgent
 // Props: agents (danh sách), onAgentPress (callback), selectedAgentId (uuid agent đang chọn)
 // Được memo hóa (React.memo)
 // renderItem được useCallback để tối ưu performance
-export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgentPress, selectedAgentId }) => {
+export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgentPress, selectedAgentId, refreshing = false, onRefresh }) => {
     const renderItem = useCallback(({ item }: { item: ValorantAgent }) => (
         <AgentItem
             item={item}
@@ -222,6 +225,12 @@ export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgent
             numColumns={5}
             renderItem={renderItem}
             contentContainerStyle={styles.listContainer}
+            refreshControl={
+                onRefresh ? (
+                    <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                ) : undefined
+            }
+            alwaysBounceVertical={Boolean(onRefresh)}
             showsVerticalScrollIndicator={false}
         />
     );
