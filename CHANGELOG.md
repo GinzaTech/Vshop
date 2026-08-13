@@ -4,6 +4,50 @@ All notable changes to VShop are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses semantic app versions with independent Android and iOS build numbers.
 
+## [4.1.0] - 2026-08-13
+
+### Added
+
+- Added typed Riot endpoint registry, isolated HTTP clients and a public VALORANT API facade.
+- Added endpoint contract tests, public API smoke tests and match/leaderboard helper tests.
+- Added all-season leaderboard selection with Episode/Act labels and stale-request protection.
+- Added application-wide pull-to-refresh for authenticated screens, Match Session and direct chat.
+- Added shared `AppRefreshControl` and `useAsyncRefresh` primitives with duplicate-request protection.
+- Added centralized motion timing/spring tokens with system Reduce Motion support.
+- Added `AGENTS.md` and `BUILD_DESIGN_SYSTEM.md` as coding, design and production-build policy.
+
+### Changed
+
+- Upgraded the application to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
+- Restructured API ownership into `services/http`, `services/riot` and `services/valorant` while retaining compatible domain facades.
+- Updated session recovery, API error classification and cache-first background synchronization.
+- Standardized screen transitions, press feedback and high-frequency animations on Reanimated UI-thread primitives.
+- Empty states now remain inside their list/scroll containers so refresh gestures continue to work.
+- Updated Android plugins, native package compatibility and release metadata.
+
+### Fixed
+
+- Fixed Expo Blur warnings by using `blurTarget` and the supported `blurMethod` API.
+- Fixed pull-to-refresh being unavailable on empty or filtered lists.
+- Fixed older leaderboard responses overwriting a newly selected season.
+- Fixed leaderboard season discovery being limited to only the active Act.
+- Fixed several API URLs, parameter encodings, timeouts and shared Axios side effects.
+- Fixed animation cleanup, unnecessary render churn and image/cache instability across core screens.
+
+### Validation
+
+- `pnpm run typecheck`
+- `pnpm run lint`
+- `pnpm run test:ci` — 71 tests passing
+- Android Metro production export — 2,664 modules bundled successfully
+
+### Build metadata
+
+- App version: `4.1.0`
+- Android version code: `79`
+- iOS build number: `32`
+- Production artifact: APK from EAS profile `production`
+
 ## [4.0.4] - 2026-07-29
 
 ### Added
@@ -90,4 +134,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - iOS build number: `30`
 - Production profile: `eas build --profile production --platform android`
 
+[4.1.0]: https://github.com/GinzaTech/Vshop/compare/v4.0.4...v4.1.0
 [4.0.4]: https://github.com/GinzaTech/Vshop/compare/V4.0.3...v4.0.4
