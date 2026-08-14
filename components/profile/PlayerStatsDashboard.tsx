@@ -16,6 +16,7 @@ import Animated, {
   Easing,
   Extrapolation,
   interpolate,
+  ReduceMotion,
   SharedValue,
   useAnimatedStyle,
   useSharedValue,
@@ -23,6 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { CachedImage as Image } from "~/components/CachedImage";
+import { MOTION_DURATION } from "~/constants/Motion";
 import type { MatchHistoryRecord, SeasonPerformanceStats } from "~/types/match-ui";
 import type { CompetitiveRankSummary } from "~/utils/profile-cache";
 
@@ -302,8 +304,8 @@ function DashboardCard({
   tabProgress,
 }: DashboardCardProps) {
   const animatedStyle = useAnimatedStyle(() => {
-    const start = Math.min(0.46, 0.04 + index * 0.075);
-    const end = Math.min(0.94, start + 0.34);
+    const start = Math.min(0.24, 0.025 + index * 0.04);
+    const end = Math.min(0.92, start + 0.42);
     const reveal = interpolate(
       tabProgress.value,
       [start, end],
@@ -314,7 +316,7 @@ function DashboardCard({
     return {
       opacity: reveal,
       transform: [
-        { translateY: interpolate(reveal, [0, 1], [10, 0]) },
+        { translateY: interpolate(reveal, [0, 1], [6, 0]) },
       ],
     };
   }, [index]);
@@ -918,8 +920,9 @@ function PlayerStatsDashboard({
     previousActiveTabRef.current = activeTab;
     tabProgress.value = 0;
     tabProgress.value = withTiming(1, {
-      duration: 520,
+      duration: MOTION_DURATION.standard,
       easing: Easing.out(Easing.cubic),
+      reduceMotion: ReduceMotion.System,
     });
   }, [activeTab, tabProgress]);
 
