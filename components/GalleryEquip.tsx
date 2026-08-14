@@ -1,42 +1,51 @@
 // ===== GalleryEquip.tsx =====
 // Component hiển thị một item trong thư viện equipment (phụ kiện).
 // Hỗ trợ 4 loại: buddies (vật phẩm treo vũ khí), sprays (hình xăm), cards (thẻ người chơi), titles (danh hiệu).
-import React from "react";
+import React, { type ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { getEquipmentImage } from "./popups/equipHelpers";
+import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useReducedMotion } from "react-native-reanimated";
+
+import {
+  buildEquipDisplayList,
+  getEquipmentImage,
+} from "./popups/equipHelpers";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { CachedImage as Image } from "~/components/CachedImage";
+import { MOTION_DURATION } from "~/constants/Motion";
 import { useTranslation } from "react-i18next";
 
-// SECTION_VISUALS: Cấu hình màu sắc và nhãn cho từng loại equipment
-// Mỗi section có: labelKey (key dịch), cardBackground (nền card),
-//   borderColor (màu viền), visualBackground (nền khung ảnh)
-const SECTION_VISUALS = {
+type EquipmentDisplayItem = ReturnType<
+  typeof buildEquipDisplayList
+>[number];
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+
+const SECTION_VISUALS: Record<
+  string,
+  {
+    labelKey: string;
+    icon: ComponentProps<typeof Icon>["name"];
+  }
+> = {
   buddies: {
     labelKey: "equip_gallery.labels.buddies",
-    cardBackground: "#e8eef6",
-    borderColor: "rgba(90, 112, 138, 0.18)",
-    visualBackground: "#d4dfea",
+    icon: "link-variant",
   },
   sprays: {
     labelKey: "equip_gallery.labels.sprays",
-    cardBackground: "#edf0f5",
-    borderColor: "rgba(95, 106, 120, 0.18)",
-    visualBackground: "#d9e0e8",
+    icon: "spray",
   },
   cards: {
     labelKey: "equip_gallery.labels.cards",
-    cardBackground: "#eef1e8",
-    borderColor: "rgba(110, 120, 98, 0.18)",
-    visualBackground: "#dbe3d2",
+    icon: "card-account-details-outline",
   },
   titles: {
     labelKey: "equip_gallery.labels.titles",
-    cardBackground: "#ece8f0",
-    borderColor: "rgba(108, 102, 122, 0.18)",
-    visualBackground: "#ddd6e5",
+    icon: "format-title",
   },
-} as const;
+};
 
 // GalleryEquipComponent: Component nội bộ hiển thị một card equipment
 // data: dữ liệu item (chứa section, id, displayName, ...)
@@ -45,20 +54,27 @@ const GalleryEquipComponent = ({
   data,
   screenshotModeEnabled,
 }: {
-  data: any;
+  data: EquipmentDisplayItem;
   screenshotModeEnabled: boolean;
 }) => {
-  // Hook dịch thuật i18n
   const { t } = useTranslation();
+  const reduceMotion = useReducedMotion();
 
-  // visual: lấy cấu hình màu sắc dựa vào data.section
-  // Nếu section không hợp lệ, mặc định dùng buddies
   const visual =
-    SECTION_VISUALS[data.section as keyof typeof SECTION_VISUALS] ||
+    SECTION_VISUALS[data.section] ||
     SECTION_VISUALS.buddies;
+  const categoryLabel = t(visual.labelKey);
+  const rawDisplayName =
+    typeof data.displayName === "string" ? data.displayName.trim() : "";
+  const displayName =
+    rawDisplayName && !UUID_PATTERN.test(rawDisplayName)
+      ? rawDisplayName
+      : categoryLabel;
+  const rawSubtitle =
+    typeof data.subtitle === "string" ? data.subtitle.trim() : "";
+  const subtitle = /::|_/.test(rawSubtitle) ? "" : rawSubtitle;
+  const isTitle = data.section === "titles";
 
-  // imageSource: useMemo tính toán nguồn ảnh
-  // Dùng getEquipmentImage(data) để lấy URL, nếu không có hoặc screenshotMode thì dùng noimage.png
   const imageSource = React.useMemo(() => {
     const icon = getEquipmentImage(data);
 
@@ -72,41 +88,58 @@ const GalleryEquipComponent = ({
   return (
     <View style={styles.container}>
       <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: visual.cardBackground,
-            borderColor: visual.borderColor,
-          },
-        ]}
+        style={styles.card}
         accessible
-        accessibilityLabel={data.displayName}
+        accessibilityLabel={`${categoryLabel}: ${displayName}`}
       >
-        {/* Eyebrow: nhãn loại equipment (VD: "BUDDIES", "SPRAYS") */}
-        <Text style={styles.eyebrow} numberOfLines={1}>
-          {t(visual.labelKey)}
-        </Text>
-
-        {/* visualFrame: khung chứa ảnh */}
         <View
           style={[
             styles.visualFrame,
-            { backgroundColor: visual.visualBackground, borderColor: visual.borderColor },
+            data.section === "cards" && styles.cardVisualFrame,
+            isTitle && styles.titleVisualFrame,
           ]}
         >
-          <Image
-            cacheId={`equipment:${data.section}:${data.id}:display`}
-            source={imageSource}
-            style={styles.cover}
-            // Cards dùng "cover" (fill khung), các loại khác dùng "contain" (giữ tỷ lệ)
-            contentFit={data.section === "cards" ? "cover" : "contain"}
-            cachePolicy="memory-disk"
-            priority="low"
-            transition={120}
-            recyclingKey={data.id}
-          />
+          {isTitle ? (
+            <Text style={styles.titleArtwork} numberOfLines={3}>
+              {subtitle || displayName}
+            </Text>
+          ) : (
+            <Image
+              cacheId={`equipment:${data.section}:${data.id}:display`}
+              source={imageSource}
+              style={styles.cover}
+              contentFit={data.section === "cards" ? "cover" : "contain"}
+              cachePolicy="memory-disk"
+              priority="low"
+              transition={reduceMotion ? 0 : MOTION_DURATION.fast}
+              recyclingKey={data.id}
+            />
+          )}
+
+          <View style={styles.categoryChip}>
+            <Icon name={visual.icon} size={13} color={COLORS.PURE_WHITE} />
+            <Text
+              style={[
+                styles.categoryLabel,
+                data.section === "cards" && styles.categoryLabelCompact,
+              ]}
+              numberOfLines={1}
+            >
+              {categoryLabel}
+            </Text>
+          </View>
         </View>
 
+        <View style={styles.content}>
+          <Text style={styles.title} numberOfLines={2}>
+            {displayName}
+          </Text>
+          {subtitle ? (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -119,30 +152,86 @@ const styles = StyleSheet.create({
     margin: 6,        // Khoảng cách giữa các card
   },
   card: {
-    minHeight: 180,                    // Chiều cao tối thiểu
-    borderRadius: RADIUS.card,         // Bo góc card
+    minHeight: 248,
+    borderRadius: RADIUS.card,
     borderWidth: 1,
-    padding: 14,
-    overflow: "hidden",                // Ẩn nội dung tràn
+    borderColor: COLORS.BORDER,
+    padding: 10,
+    backgroundColor: COLORS.SURFACE,
+    overflow: "hidden",
   },
   cover: {
     width: "100%",
-    height: "100%",                    // Ảnh fill khung visualFrame
-  },
-  eyebrow: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 10,                  // Khoảng cách với visualFrame
+    height: "100%",
   },
   visualFrame: {
     width: "100%",
-    height: 118,                       // Chiều cao cố định cho khung ảnh
-    borderRadius: 18,
+    height: 142,
+    borderRadius: RADIUS.button,
     borderWidth: 1,
-    alignItems: "center",              // Căn giữa ảnh
+    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    alignItems: "center",
     justifyContent: "center",
-    padding: 10,                       // Padding để ảnh không sát viền
+    padding: 14,
+    overflow: "hidden",
+  },
+  cardVisualFrame: {
+    padding: 0,
+  },
+  titleVisualFrame: {
+    backgroundColor: COLORS.ACCENT_DEEP,
+    paddingHorizontal: 18,
+    paddingTop: 38,
+  },
+  titleArtwork: {
+    color: COLORS.PURE_WHITE,
+    fontSize: 18,
+    fontWeight: "700",
+    lineHeight: 23,
+    textAlign: "center",
+  },
+  categoryChip: {
+    position: "absolute",
+    left: 10,
+    top: 10,
+    maxWidth: "82%",
+    minHeight: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.chip,
+    backgroundColor: COLORS.PURE_BLACK,
+  },
+  categoryLabel: {
+    flexShrink: 1,
+    color: COLORS.PURE_WHITE,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  categoryLabelCompact: {
+    fontSize: 10,
+    letterSpacing: 0,
+  },
+  content: {
+    minHeight: 76,
+    paddingHorizontal: 4,
+    paddingTop: 12,
+  },
+  title: {
+    minHeight: 40,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  subtitle: {
+    marginTop: 4,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+    lineHeight: 17,
   },
 });
 
@@ -158,6 +247,7 @@ const GalleryEquip = React.memo(
 
     return (
       prevData.id === nextData.id &&
+      prevData.section === nextData.section &&
       prevData.displayName === nextData.displayName &&
       prevData.subtitle === nextData.subtitle
     );
