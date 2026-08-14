@@ -43,7 +43,20 @@ function RankSplitGroup({
   const surfacesAnimatedStyle = useAnimatedStyle(() => ({
     gap: interpolate(splitProgress.value, [0, 1], [0, 7]),
   }));
+  const mergedSurfaceAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      splitProgress.value,
+      [0, 0.02, 0.04, 1],
+      [1, 1, 0, 0]
+    ),
+  }));
   const surfaceAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      splitProgress.value,
+      [0, 0.02, 0.04, 1],
+      [0, 0, 1, 1]
+    ),
+    borderWidth: interpolate(splitProgress.value, [0, 1], [0, 1]),
     backgroundColor: interpolateColor(
       splitProgress.value,
       [0, 1],
@@ -86,6 +99,10 @@ function RankSplitGroup({
 
   return (
     <View style={styles.container}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.mergedSurface, mergedSurfaceAnimatedStyle]}
+      />
       <Animated.View
         pointerEvents="none"
         style={[styles.surfaces, surfacesAnimatedStyle]}
@@ -195,9 +212,13 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     flexDirection: "row",
   },
+  mergedSurface: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
   surface: {
     flex: 1,
-    borderWidth: 1,
   },
   leftSurface: {
     borderTopLeftRadius: 18,
@@ -260,7 +281,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginLeft: 4,
     fontSize: 9,
-    fontWeight: "800",
+    fontWeight: "700",
     color: "rgba(255,255,255,0.78)",
     textTransform: "uppercase",
   },
@@ -272,7 +293,7 @@ const styles = StyleSheet.create({
   actValue: {
     marginTop: 5,
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
 });
