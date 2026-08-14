@@ -185,12 +185,17 @@ export function logAxiosResponse(response: any) {
  * @returns Promise.reject(error) - Trả về Promise bị reject để chain interceptor
  */
 export function logAxiosError(error: any) {
+  const requestStartedAt = error.config?.metadata?.startTime;
   const entry: LogEntry = {
     ts: new Date().toISOString(),
     method: error.config?.method?.toUpperCase(),
     url: error.config?.url || "",
     status: error.response?.status,
     statusText: error.response?.statusText,
+    durationMs:
+      typeof requestStartedAt === "number"
+        ? Math.max(0, Date.now() - requestStartedAt)
+        : undefined,
     error: error.message || String(error),
   };
   logApiCall(entry);
