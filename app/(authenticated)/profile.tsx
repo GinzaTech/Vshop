@@ -7,6 +7,7 @@
 //   - Picker modal để chọn skin/spray/card/title.
 
 import React from "react";
+import { useFocusEffect } from "expo-router";
 import {
   FlatList,
   LayoutChangeEvent,
@@ -27,9 +28,11 @@ import Animated, {
   interpolateColor,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
   Easing,
+  ReduceMotion,
 } from "react-native-reanimated";
 import { ActivityIndicator, Modal, Portal, Searchbar, useTheme } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
@@ -55,6 +58,7 @@ import {
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useUserStore } from "~/hooks/useUserStore";
+import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import {
   extractOwnedItemIds,
   ownedItems,
@@ -679,6 +683,10 @@ function Profile() {
   const dashboardSeasonStats =
       matchAuthKey === authKey ? seasonPerformanceStats : null;
   const [activeTab, setActiveTab] = React.useState<TabKey>("loadout");
+  const reduceMotionEnabled = useReducedMotion();
+  const setTopInsetTone = useSystemChromeStore(
+      (state) => state.setTopInsetTone
+  );
   const [statsDashboardTab, setStatsDashboardTab] =
       React.useState<StatsDashboardTab>("overview");
   const [profileNavContentMode, setProfileNavContentMode] =
@@ -907,6 +915,19 @@ function Profile() {
     ),
   }));
 
+  const topAvatarAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+        pageModeProgress.value,
+        [0, 1],
+        [COLORS.SURFACE_MUTED, "#141414"]
+    ),
+    borderColor: interpolateColor(
+        pageModeProgress.value,
+        [0, 1],
+        [COLORS.BORDER, "#2A2A2A"]
+    ),
+  }));
+
   const pageBackgroundAnimatedStyle = useAnimatedStyle(() => ({
     opacity: pageModeProgress.value,
   }));
@@ -1049,6 +1070,7 @@ function Profile() {
           rankSplitProgress.value = withTiming(showActStats ? 1 : 0, {
             duration: RANK_SPLIT_DURATION_MS,
             easing: Easing.inOut(Easing.cubic),
+            reduceMotion: ReduceMotion.System,
           });
         }, RANK_TEXT_RETRACT_DURATION_MS);
 
@@ -1073,6 +1095,7 @@ function Profile() {
     profileModeTimersRef.current = [];
 
     isPlayerInfoModeRef.current = nextMode;
+    setTopInsetTone(nextMode ? "dark" : "light");
     setIsPlayerInfoMode(nextMode);
     setProfileNavContentMode("blank");
     startRankSplitTransition(nextMode);
@@ -1145,9 +1168,20 @@ function Profile() {
     legacyContentProgress,
     pageModeProgress,
     segmentLayoutProgress,
+    setTopInsetTone,
     startRankSplitTransition,
     statsDashboardMounted,
   ]);
+
+  useFocusEffect(
+      React.useCallback(() => {
+        setTopInsetTone(isPlayerInfoMode ? "dark" : "light");
+
+        return () => {
+          setTopInsetTone("light");
+        };
+      }, [isPlayerInfoMode, setTopInsetTone])
+  );
 
   const handleStatsDashboardTabChange = React.useCallback(
       (tab: StatsDashboardTab) => {
@@ -2611,14 +2645,24 @@ function Profile() {
       handleDismissPicker();
       const nextIndex = PROFILE_TAB_KEYS.indexOf(tab);
 
-      setActiveTab(tab);
+      if (nextIndex < 0) return;
+
       profilePagerRef.current?.scrollTo({
         x: nextIndex * viewportWidth,
         y: 0,
-        animated: true,
+        animated: !reduceMotionEnabled,
       });
+
+      if (reduceMotionEnabled) {
+        setActiveTab(tab);
+      }
     },
-    [handleDismissPicker, profilePagerRef, viewportWidth]
+    [
+      handleDismissPicker,
+      profilePagerRef,
+      reduceMotionEnabled,
+      viewportWidth,
+    ]
   );
 
   const setPagerGestureEnabled = React.useCallback((enabled: boolean) => {
@@ -3962,7 +4006,7 @@ function Profile() {
               onPress={() => handleOpenIdentityPicker("player-card")}
               style={styles.topAvatarButton}
           >
-            <View style={styles.topAvatar}>
+            <Animated.View style={[styles.topAvatar, topAvatarAnimatedStyle]}>
               {identityDetails?.cardArt ? (
                   <Image
                       cacheId={`player-card:${identityDetails.cardId}:avatar`}
@@ -3978,7 +4022,7 @@ function Profile() {
                     {(user.name || "V").slice(0, 1).toUpperCase()}
                   </Text>
               )}
-            </View>
+            </Animated.View>
             {identityDetails ? (
                 <View style={styles.topAvatarEditBadge}>
                   <Icon name="pencil" size={8} color={COLORS.PURE_WHITE} />
@@ -5141,7 +5185,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.PURE_BLACK,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -5149,6 +5195,7 @@ const styles = StyleSheet.create({
   topAvatarImage: {
     width: "100%",
     height: "100%",
+    transform: [{ scale: 1.08 }],
   },
   topAvatarEditBadge: {
     position: "absolute",
