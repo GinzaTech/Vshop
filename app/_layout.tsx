@@ -30,7 +30,14 @@ import {
   ThemeProvider,
 } from "expo-router/react-navigation";
 import React, { useEffect, useRef, useState } from "react";
-import { View, type GestureResponderEvent } from "react-native";
+import { StatusBar, View, type GestureResponderEvent } from "react-native";
+import * as SystemUI from "expo-system-ui";
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SplashScreen } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -43,6 +50,7 @@ import { useUserStore } from "~/hooks/useUserStore";
 import {
   canResumeUserSession,
   hasReusableAccessToken,
+  renewAuthenticatedSession,
 } from "~/utils/auth-session";
 import { defaultUser } from "~/utils/valorant-api";
 import { flowTracer } from "~/utils/flow-tracer";
@@ -50,6 +58,7 @@ import { useCombatStore } from "~/hooks/useCombatStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
+import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import LoadingScreen from "~/components/LoadingScreen";
 import { syncAllData } from "~/utils/data-sync";
@@ -58,6 +67,9 @@ import {
   isRiotAuthenticationError,
   isTransientNetworkError,
 } from "~/utils/session-events";
+import { MOTION_TIMING } from "~/constants/Motion";
+
+const AnimatedSafeAreaView = Animated.createAnimatedComponent(SafeAreaView);
 
 /**
  * CombinedAppTheme — Theme tổng hợp từ react-native-paper và @react-navigation/native.
@@ -144,9 +156,11 @@ function RootLayout() {
   const { t } = useTranslation();
   const hydrated = useUserStore((state) => state.hydrated);
   const setUser = useUserStore((state) => state.setUser);
+  const topInsetTone = useSystemChromeStore((state) => state.topInsetTone);
+  const topInsetProgress = useSharedValue(topInsetTone === "dark" ? 1 : 0);
   const bootstrappedRef = useRef(false);
   const touchSequenceRef = useRef(0);
-  const [isPreloading, setIsPreloading] = useState(false);
+  const [isPreloading, setIsPreloading] = useState(true);
   const demoValue = Array.isArray(demo) ? demo[0] : demo;
   const allowMatchDemo =
     __DEV__ &&
@@ -154,6 +168,26 @@ function RootLayout() {
     (pathname === "/history" || pathname.startsWith("/match_details/"));
   const isCombatSessionRoute =
     pathname === "/combat_session" || pathname.endsWith("/combat_session");
+
+  useEffect(() => {
+    const topInsetColor =
+      topInsetTone === "dark"
+        ? COLORS.PURE_BLACK
+        : CombinedAppTheme.colors.background;
+    void SystemUI.setBackgroundColorAsync(topInsetColor);
+    topInsetProgress.value = withTiming(
+      topInsetTone === "dark" ? 1 : 0,
+      MOTION_TIMING.standard,
+    );
+  }, [topInsetProgress, topInsetTone]);
+
+  const topInsetAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      topInsetProgress.value,
+      [0, 1],
+      [CombinedAppTheme.colors.background, COLORS.PURE_BLACK],
+    ),
+  }));
 
   // Every screen stays portrait. The combat session owns its landscape lock
   // while focused, then restores portrait when it closes.
@@ -204,6 +238,7 @@ function RootLayout() {
     bootstrappedRef.current = true;
 
     if (allowMatchDemo) {
+      setIsPreloading(false);
       void SplashScreen.hideAsync();
       return;
     }
@@ -225,28 +260,38 @@ function RootLayout() {
       if (!region) {
         if (!cancelled) {
           router.replace("/setup");
+          setIsPreloading(false);
         }
         await SplashScreen.hideAsync();
         return;
       }
 
-      // Có region + session khả dụng => hiện loading screen, fetch ALL, rồi vào app
-      if (canResumeUserSession(sessionUser, region)) {
+      // Keep the single bootstrap overlay visible until session recovery and
+      // the initial API/cache synchronization have both settled.
+      if (sessionUser.accessToken && sessionUser.id) {
         // Hiện loading screen ngay lập tức, ẩn splash
-        if (!cancelled) setIsPreloading(true);
         await SplashScreen.hideAsync();
 
         try {
+          let syncUser = sessionUser;
+          if (!canResumeUserSession(sessionUser, region)) {
+            syncUser = await renewAuthenticatedSession({
+              ...sessionUser,
+              region,
+            });
+            useUserStore.getState().setUser(syncUser);
+          }
+
           await Promise.race([
-            syncAllData(sessionUser, region),
+            syncAllData(syncUser, region),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error("sync_timeout")), 20_000)
             ),
           ]);
 
           if (!cancelled) {
-            setIsPreloading(false);
             router.replace("/profile");
+            setIsPreloading(false);
           }
         } catch (error) {
           const isTimeout = error instanceof Error && error.message === "sync_timeout";
@@ -261,29 +306,17 @@ function RootLayout() {
           // persisted session để AppWarmup tự recovery khi mạng trở lại.
           if (shouldKeepCachedSession) {
             if (!cancelled) {
-              setIsPreloading(false);
               router.replace("/profile");
+              setIsPreloading(false);
             }
           } else {
             if (!cancelled) {
-              setIsPreloading(false);
               setUser({ ...defaultUser, region });
               router.replace("/reauth");
+              setIsPreloading(false);
             }
           }
         }
-        return;
-      }
-
-      // Có persisted session nhưng access token đã hết hạn trong lúc app bị
-      // kill/background: vẫn mở cache. AppWarmup sẽ silent re-auth ngay khi có
-      // mạng; chỉ chuyển /reauth nếu Riot cookie thực sự không còn hợp lệ.
-      if (sessionUser.accessToken && sessionUser.id) {
-        if (!cancelled) {
-          setIsPreloading(false);
-          router.replace("/profile");
-        }
-        await SplashScreen.hideAsync();
         return;
       }
 
@@ -291,6 +324,7 @@ function RootLayout() {
       if (!cancelled) {
         setUser({ ...defaultUser, region });
         router.replace("/reauth");
+        setIsPreloading(false);
       }
       await SplashScreen.hideAsync();
     };
@@ -343,13 +377,22 @@ function RootLayout() {
         style={{ flex: 1 }}
         onStartShouldSetResponderCapture={handleGlobalTouchStart}
       >
-        {isPreloading ? (
-          <LoadingScreen message="Loading data..." />
-        ) : (
         <PlausibleProvider>
           {/* SafeAreaView phía trên (status bar) */}
-          <SafeAreaView
-            style={{ backgroundColor: CombinedAppTheme.colors.background }}
+          <StatusBar
+            animated
+            backgroundColor={
+              topInsetTone === "dark"
+                ? COLORS.PURE_BLACK
+                : CombinedAppTheme.colors.background
+            }
+            barStyle={
+              topInsetTone === "dark" ? "light-content" : "dark-content"
+            }
+          />
+          <AnimatedSafeAreaView
+            edges={["top"]}
+            style={topInsetAnimatedStyle}
           />
           <PaperProvider theme={CombinedAppTheme}>
             <StripeProvider
@@ -388,7 +431,20 @@ function RootLayout() {
             </StripeProvider>
           </PaperProvider>
         </PlausibleProvider>
-        )}
+        {isPreloading ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              zIndex: 1000,
+            }}
+          >
+            <LoadingScreen message="Loading data..." />
+          </View>
+        ) : null}
       </View>
     </GestureHandlerRootView>
     </ErrorBoundary>
