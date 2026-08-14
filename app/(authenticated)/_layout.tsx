@@ -17,6 +17,7 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Reanimated, {
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -53,6 +54,11 @@ const PRIMARY_ROUTE_ORDER = [
   "night_market",
   "settings",
 ] as const;
+
+export const PRIMARY_TAB_SCREEN_OPTIONS = {
+  lazy: false,
+  freezeOnBlur: false,
+} as const;
 
 /**
  * FloatingTabBar — Thanh tab nổi (floating) tùy chỉnh.
@@ -278,7 +284,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
                 <Pressable
                   key={route.key}
                   accessibilityRole="button"
-                  accessibilityLabel={options.tabBarAccessibilityLabel}
+                  accessibilityLabel={
+                    options.tabBarAccessibilityLabel ??
+                    PRIMARY_ROUTES[route.name].label
+                  }
                   accessibilityState={{ selected: focused }}
                   delayLongPress={isMoreRoute ? 1000 : undefined}
                   onLongPress={
@@ -326,7 +335,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
                         input: { from: activeRoute.name, to: route.name },
                         tool: "React Navigation",
                       });
-                      navigation.navigate(route.name, route.params);
+                      navigation.navigate(route.name);
                     }
                   }}
                   style={({ pressed }) => [
@@ -412,6 +421,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
  */
 function Layout() {
   const { t } = useTranslation();
+  const reduceMotionEnabled = useReducedMotion();
 
   return (
     <>
@@ -419,18 +429,35 @@ function Layout() {
       <Tabs
         initialRouteName="profile"
         backBehavior="history"
+        detachInactiveScreens={false}
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
+          animation: reduceMotionEnabled ? "none" : "fade",
           headerShown: false,
           tabBarShowLabel: false,
         }}
       >
         {/* ── Tab chính ── */}
-        <Tabs.Screen name="bundles" options={{ title: t("bundles") }} />
-        <Tabs.Screen name="shop" options={{ title: t("shop") }} />
-        <Tabs.Screen name="night_market" options={{ title: t("nightmarket") }} />
-        <Tabs.Screen name="profile" options={{ title: t("profile") }} />
-        <Tabs.Screen name="settings" options={{ title: t("settings") }} />
+        <Tabs.Screen
+          name="bundles"
+          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("bundles") }}
+        />
+        <Tabs.Screen
+          name="shop"
+          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("shop") }}
+        />
+        <Tabs.Screen
+          name="night_market"
+          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("nightmarket") }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("profile") }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("settings") }}
+        />
 
         {/* ── Tab phụ (href: null → ẩn khỏi tab bar) ── */}
         <Tabs.Screen
