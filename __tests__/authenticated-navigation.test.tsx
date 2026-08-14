@@ -1,7 +1,10 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 
-import { FloatingTabBar } from "~/app/(authenticated)/_layout";
+import {
+  FloatingTabBar,
+  PRIMARY_TAB_SCREEN_OPTIONS,
+} from "~/app/(authenticated)/_layout";
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
   function MockMaterialCommunityIcon() {
@@ -42,6 +45,7 @@ jest.mock("react-native-reanimated", () => {
       outputRange: number[],
     ) => (value === inputRange[0] ? outputRange[0] : outputRange.at(-1)),
     useAnimatedStyle: (factory: () => object) => factory(),
+    useReducedMotion: () => false,
     useSharedValue: (value: unknown) => ({ value }),
     withTiming: (value: unknown) => value,
   };
@@ -88,6 +92,13 @@ const getButton = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
   );
 
 describe("FloatingTabBar", () => {
+  it("pre-mounts primary screens so the first tab switch has content", () => {
+    expect(PRIMARY_TAB_SCREEN_OPTIONS).toEqual({
+      lazy: false,
+      freezeOnBlur: false,
+    });
+  });
+
   const renderTabBar = () => {
     const navigation = {
       emit: jest.fn(() => ({ defaultPrevented: false })),
@@ -109,10 +120,10 @@ describe("FloatingTabBar", () => {
   };
 
   it.each([
-    ["bundles", "bundles", { source: "tab" }],
-    ["shop", "shop", undefined],
-    ["settings", "settings", undefined],
-  ])("navigates the %s tab with its route params", (label, route, params) => {
+    ["bundles", "bundles"],
+    ["shop", "shop"],
+    ["settings", "settings"],
+  ])("navigates the %s tab", (label, route) => {
     const { navigation, renderer } = renderTabBar();
 
     act(() => getButton(renderer, label).props.onPress());
@@ -122,7 +133,7 @@ describe("FloatingTabBar", () => {
       target: `${route}-key`,
       canPreventDefault: true,
     });
-    expect(navigation.navigate).toHaveBeenCalledWith(route, params);
+    expect(navigation.navigate).toHaveBeenCalledWith(route);
   });
 
   it("keeps only one interactive layer mounted while collapsing", () => {
