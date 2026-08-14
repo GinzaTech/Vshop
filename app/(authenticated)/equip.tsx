@@ -102,7 +102,15 @@ const Equip = () => {
             <TouchableOpacity key={section.key}
               style={[styles.tabButton, isActive && styles.tabButtonActive, index === EQUIPMENT_SECTIONS.length - 1 && { marginRight: 0 }]}
               onPress={() => handleSectionPress(section.key)} activeOpacity={0.85}>
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{t(section.labelKey)}</Text>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  section.key === "cards" && styles.tabLabelCompact,
+                  isActive && styles.tabLabelActive,
+                ]}
+              >
+                {t(section.labelKey)}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -147,6 +155,7 @@ const styles = StyleSheet.create({
   tabButton: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.chip, borderWidth: 1, borderColor: COLORS.BORDER, alignItems: "center", justifyContent: "center", marginRight: 8, backgroundColor: COLORS.SURFACE },
   tabButtonActive: { backgroundColor: COLORS.PURE_BLACK, borderColor: COLORS.PURE_BLACK },
   tabLabel: { fontSize: 13, fontWeight: "600", color: COLORS.TEXT_SECONDARY },
+  tabLabelCompact: { fontSize: 11, lineHeight: 14 },
   tabLabelActive: { color: COLORS.PURE_WHITE },
   // Nội dung danh sách
   listContent: { paddingHorizontal: 12, paddingBottom: 40, paddingTop: 16 },
