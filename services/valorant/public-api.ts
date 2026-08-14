@@ -53,8 +53,14 @@ export const getPublicWeapons = (language?: string) =>
     language ? { language } : undefined,
   );
 
-export const getPublicSkinLevel = (skinLevelId: string, language?: string) =>
-  getValorantApiData<ValorantSkinLevel>(
-    `weapons/skinlevels/${encodeURIComponent(skinLevelId)}`,
+export const getPublicSkinLevel = (skinLevelId: string, language?: string) => {
+  const normalizedSkinLevelId = skinLevelId.trim();
+  if (!normalizedSkinLevelId) {
+    throw new Error("skinLevelId is required");
+  }
+
+  return getValorantApiData<ValorantSkinLevel>(
+    `weapons/skinlevels/${encodeURIComponent(normalizedSkinLevelId)}`,
     language ? { language } : undefined,
   );
+};
