@@ -29,7 +29,7 @@
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "package": "com.android.vshop",
-      "versionCode": 80
+      "versionCode": 81
     },
     "web": {
       "bundler": "metro",
