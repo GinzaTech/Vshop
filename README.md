@@ -41,6 +41,7 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 ## Release 4.1.1 highlights
 
+- **Latest production OTA (22 August 2026):** primary tabs now mount on demand, freeze and detach while inactive; More shortcuts and accessory search expose stable accessibility/automation metadata; display-only accessory cards are no longer announced as buttons.
 - **Reliable primary navigation:** Bundle, Shop and More now keep a single Android interaction layer and preserve route parameters.
 - **Web-safe profile export:** native media-library code is isolated from the web static renderer.
 - **Modern runtime:** upgraded to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
@@ -360,6 +361,7 @@ Install via QR code or APK from the Expo dashboard.
 
 ## Điểm nổi bật bản 4.1.1
 
+- **OTA production mới nhất (22/08/2026):** tab chính chỉ mount khi dùng, được freeze và detach khi không hoạt động; shortcut trong More và ô tìm phụ kiện có metadata accessibility/automation ổn định; card phụ kiện chỉ hiển thị không còn bị đọc nhầm là nút bấm.
 - **Điều hướng chính ổn định:** Bundle, Shop và More chỉ giữ một lớp tương tác trên Android và bảo toàn tham số route.
 - **Profile tương thích web:** phần xuất ảnh dùng media-library native đã được tách khỏi trình render web tĩnh.
 - **Runtime mới:** nâng lên Expo SDK 57, React Native 0.86, React 19, Reanimated 4 và Zustand 5.

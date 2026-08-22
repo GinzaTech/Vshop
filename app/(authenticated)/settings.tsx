@@ -269,6 +269,9 @@ function Settings() {
           {shortcutItems.map((item) => (
             <TouchableOpacity
               key={item.key}
+              testID={`settings-shortcut-${item.key}`}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
               activeOpacity={0.85}
               style={styles.shortcutCard}
               onPress={() => {

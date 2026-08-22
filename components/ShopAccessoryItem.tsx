@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 
@@ -46,12 +46,7 @@ export default function ShopAccessoryItem({ item }: Props) {
   }, [item, screenshotModeEnabled]);
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.card,
-        pressed && styles.cardPressed,
-      ]}
-    >
+    <View style={styles.card}>
       {/*
         ── visualFrame ──────────────────────────────────────────────────────────
         Khung hình phía trên card: chứa typeBadge (nhãn "ACCESSORY") và ảnh
@@ -93,7 +88,7 @@ export default function ShopAccessoryItem({ item }: Props) {
           </View>
         </View>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -107,10 +102,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: COLORS.SURFACE,
     borderColor: COLORS.WARNING_BORDER,
-  },
-  // cardPressed: hiệu ứng khi nhấn - giảm độ mờ
-  cardPressed: {
-    opacity: 0.86,
   },
   // content: padding ngang/dọc cho phần nội dung
   content: {

@@ -56,8 +56,8 @@ const PRIMARY_ROUTE_ORDER = [
 ] as const;
 
 export const PRIMARY_TAB_SCREEN_OPTIONS = {
-  lazy: false,
-  freezeOnBlur: false,
+  lazy: true,
+  freezeOnBlur: true,
 } as const;
 
 /**
@@ -429,7 +429,7 @@ function Layout() {
       <Tabs
         initialRouteName="profile"
         backBehavior="history"
-        detachInactiveScreens={false}
+        detachInactiveScreens
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
           animation: reduceMotionEnabled ? "none" : "fade",

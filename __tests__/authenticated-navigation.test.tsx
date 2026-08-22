@@ -92,10 +92,10 @@ const getButton = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
   );
 
 describe("FloatingTabBar", () => {
-  it("pre-mounts primary screens so the first tab switch has content", () => {
+  it("mounts primary screens on demand and freezes inactive tabs", () => {
     expect(PRIMARY_TAB_SCREEN_OPTIONS).toEqual({
-      lazy: false,
-      freezeOnBlur: false,
+      lazy: true,
+      freezeOnBlur: true,
     });
   });
 

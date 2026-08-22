@@ -4,6 +4,30 @@ All notable changes to VShop are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses semantic app versions with independent Android and iOS build numbers.
 
+## [Unreleased]
+
+## [4.1.1 OTA 2] - 2026-08-22
+
+### Changed
+
+- Primary tabs now mount on first use, freeze while inactive and detach their native views to reduce startup work and off-screen rendering.
+- More shortcuts and the accessory search field now expose stable Android automation IDs and accessibility labels.
+- Accessory cards that do not perform an action are rendered as non-interactive views.
+
+### Validation
+
+- `pnpm run check` — typecheck and lint passing; 9/9 suites and 83/83 tests passing with 100% measured coverage.
+- `pnpm run test:api` — 13/13 read-only public API checks passing.
+- Android production export — 2,667 modules and 38 assets bundled successfully; Hermes bundle approximately 7.5 MB.
+- Physical-device smoke test on 2026-08-22 — `NOT VERIFIED` because ADB reported no connected device after restarting the daemon.
+
+### Build metadata
+
+- App/runtime version: `4.1.1`
+- Android version code: `81`
+- iOS build number: `33`
+- Distribution: EAS Update channel `production` for Android and iOS; no native metadata change.
+
 ## [4.1.1] - 2026-08-13
 
 ### Added

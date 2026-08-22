@@ -72,10 +72,13 @@ function AccessoryShop() {
       <View style={styles.searchBar}>
         <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
         <TextInput
+          testID="accessories-search-input"
+          accessibilityLabel={t("accessories_page.search_placeholder")}
           value={query}
           onChangeText={setQuery}
           placeholder={t("accessories_page.search_placeholder")}
           placeholderTextColor={COLORS.TEXT_SECONDARY}
+          returnKeyType="search"
           style={styles.searchInput}
         />
       </View>

@@ -16,6 +16,8 @@ ios/
 # Tests and reports
 coverage/
 test/
+.artifacts/
+RN_OBSERVER_PERFORMANCE_TEST_REPORT_*.md
 
 # Local backups and temporary files
 backup/
