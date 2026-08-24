@@ -1,0 +1,3 @@
+[submodule "valorant-api-docs"]
+	path = valorant-api-docs
+	url = https://github.com/techchrism/valorant-api-docs.git
