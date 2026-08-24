@@ -11,7 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Refreshed all dependencies allowed by the Expo SDK 57 compatibility ranges, including Axios 1.19 and current Expo 57 patch releases.
 - Pinned patched transitive versions of `fast-xml-parser` and `uuid`; `pnpm audit --audit-level=low` now reports no known vulnerabilities.
 - Kept Reanimated on Expo's expected 4.5.1 release instead of accepting an incompatible patch drift.
-- Hardened CI with read-only repository permissions, immutable action SHAs, Node.js 22 and a single package-manager version source.
+- Hardened CI with read-only repository permissions, immutable action SHAs, Node.js 22 and a Corepack-pinned package manager.
 - Normalized the package-manager declaration to `pnpm@9.6.0` so Linux CI resolves the same lockfile tooling used locally.
 - Restored the missing metadata for the existing `valorant-api-docs` gitlink so hardened checkout can validate repository state without failing.
 
