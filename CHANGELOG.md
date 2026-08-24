@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Security
+
+- Refreshed all dependencies allowed by the Expo SDK 57 compatibility ranges, including Axios 1.19 and current Expo 57 patch releases.
+- Pinned patched transitive versions of `fast-xml-parser` and `uuid`; `pnpm audit --audit-level=low` now reports no known vulnerabilities.
+- Kept Reanimated on Expo's expected 4.5.1 release instead of accepting an incompatible patch drift.
+
+### Validation
+
+- `pnpm exec expo install --check` — all installed versions match Expo SDK 57 expectations.
+- `pnpm run check` — typecheck and lint passing; 9/9 suites and 83/83 tests passing with 100% measured coverage.
+- Android production export — 2,657 modules and 38 assets bundled successfully; Hermes bundle approximately 7.8 MB.
+- Physical-device runtime — `NOT VERIFIED`; this dependency-only change was validated without launching or modifying a live Riot account.
+
 ## [4.1.1 OTA 2] - 2026-08-22
 
 ### Changed
