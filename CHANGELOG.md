@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Pinned patched transitive versions of `fast-xml-parser` and `uuid`; `pnpm audit --audit-level=low` now reports no known vulnerabilities.
 - Kept Reanimated on Expo's expected 4.5.1 release instead of accepting an incompatible patch drift.
 - Hardened CI with read-only repository permissions, immutable action SHAs, Node.js 22 and a single package-manager version source.
+- Restored the missing metadata for the existing `valorant-api-docs` gitlink so hardened checkout can validate repository state without failing.
 
 ### Validation
 
