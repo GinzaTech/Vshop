@@ -13,6 +13,7 @@ import {
 
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useUserStore } from "~/hooks/useUserStore";
+import { useAccountStore } from "~/hooks/useAccountStore";
 import {
   disconnectChatService,
   initChatService,
@@ -34,6 +35,7 @@ import {
   subscribeSessionAuthFailures,
 } from "~/utils/session-events";
 import { runWhenIdle, type IdleTask } from "~/utils/idle-task";
+import { isAccountSwitchInProgress } from "~/services/accounts/session";
 
 const NETWORK_RECOVERY_POLL_MS = 15_000;
 const AUTH_FAILURE_RECOVERY_COOLDOWN_MS = 5_000;
@@ -89,6 +91,7 @@ export default function AppWarmup() {
   const router = useRouter();
   // Thông tin user từ store
   const user = useUserStore((state) => state.user);
+  const accountsHydrated = useAccountStore((state) => state.hydrated);
   // Ref: lưu user hiện tại để dùng trong callback async (tránh stale closure)
   const sessionUserRef = React.useRef(user);
   /**
@@ -111,6 +114,13 @@ export default function AppWarmup() {
   React.useEffect(() => {
     sessionUserRef.current = user;
   }, [user]);
+
+  // Đồng bộ identity/credentials mới nhất vào danh sách account. Chỉ lưu các
+  // trường phiên nhỏ gọn, không nhân bản shop/profile lớn trong storage.
+  React.useEffect(() => {
+    if (!accountsHydrated || !user.id || !user.accessToken) return;
+    useAccountStore.getState().saveAccount(user);
+  }, [accountsHydrated, user]);
 
   // Effect 1: Kết nối chat service (chỉ trên native Android có TcpSockets)
   React.useEffect(() => {
@@ -182,6 +192,7 @@ export default function AppWarmup() {
 
         // Cellular: delay 7800ms, WiFi: 5200ms
         scheduler.schedule(isCellular ? 7800 : 5200, async () => {
+          if (isAccountSwitchInProgress()) return;
           await matchStore.fetchMatches(currentUser);
         });
       } catch (error) {
@@ -204,6 +215,7 @@ export default function AppWarmup() {
   React.useEffect(() => {
     if (!user.accessToken || !user.entitlementsToken || !user.region || !user.id) return;
     const timer = setTimeout(() => {
+      if (isAccountSwitchInProgress()) return;
       void refreshShopAndBalances(false);
     }, 3000);
     return () => clearTimeout(timer);
@@ -272,19 +284,23 @@ export default function AppWarmup() {
           // Giữ dữ liệu UI mới nhất nếu một screen vừa cập nhật store trong lúc
           // recovery đang chạy, nhưng luôn ghi đè toàn bộ credentials vừa lấy.
           const latestUser = useUserStore.getState().user;
+          if (latestUser.id !== currentUser.id) {
+            // Người dùng đã đổi account trong lúc recovery đang chạy.
+            // Bỏ toàn bộ kết quả cũ thay vì chạm vào phiên vừa chọn.
+            return;
+          }
           const nextUser =
-            latestUser.id === currentUser.id
-              ? {
-                  ...latestUser,
-                  id: recoveredUser.id,
-                  region: recoveredUser.region,
-                  accessToken: recoveredUser.accessToken,
-                  idToken: recoveredUser.idToken,
-                  entitlementsToken: recoveredUser.entitlementsToken,
-                }
-              : recoveredUser;
+            {
+              ...latestUser,
+              id: recoveredUser.id,
+              region: recoveredUser.region,
+              accessToken: recoveredUser.accessToken,
+              idToken: recoveredUser.idToken,
+              entitlementsToken: recoveredUser.entitlementsToken,
+            };
 
           store.setUser(nextUser);
+          useAccountStore.getState().saveAccount(nextUser);
           // A process resumed after a long background interval can have a
           // live-looking token but stale sockets/config. Rebuild the complete
           // authenticated snapshot before allowing later actions to use it.

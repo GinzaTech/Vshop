@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from "react-native";
 import { useUserStore } from "~/hooks/useUserStore";
+import { useAccountStore } from "~/hooks/useAccountStore";
 import { getAccessTokenFromUri, getIdTokenFromUri } from "~/utils/misc";
 import { defaultUser } from "~/utils/valorant-api";
 import Loading from "./Loading";
@@ -18,6 +19,7 @@ import { buildAuthenticatedUser } from "~/utils/auth-session";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { fetchProfileWarmCache } from "~/utils/profile-cache";
+import { disconnectChatService } from "~/utils/chat-service";
 
 // URL đăng nhập Riot OAuth2
 const LOGIN_URL =
@@ -58,7 +60,7 @@ export default function LoginWebView({
 }: LoginWebViewProps) {
   const router = useRouter();
   // Hàm setUser từ store (lưu thông tin user sau đăng nhập)
-  const setUser = useUserStore((state) => state.setUser);
+  const activateUser = useUserStore((state) => state.activateUser);
 
   // State: thông báo loading (hiển thị progress message)
   const [loading, setLoading] = useState<string | null>(null);
@@ -121,8 +123,11 @@ export default function LoginWebView({
           await AsyncStorage.setItem("region", authenticatedUser.region);
         }
 
-        // Lưu user vào store
-        setUser(authenticatedUser);
+        // Login là hành động đổi phiên có chủ đích. Ngắt socket của account cũ,
+        // lưu account mới rồi mới kích hoạt để mọi effect chạy đúng credentials.
+        disconnectChatService();
+        useAccountStore.getState().saveAccount(authenticatedUser, true);
+        activateUser(authenticatedUser);
 
         setLoading(t("fetching.progress"));
 

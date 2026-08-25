@@ -829,7 +829,7 @@ export function buildMatchHistoryRecord(
       tier?.rankTriangleDownIcon ||
       scoreboardPlayer.rank?.iconUrl ||
       null,
-    rrEarned: optionalNumber(match.rankUpdate?.RankedRatingEarned) ?? null,
+    rrEarned: getRankedRatingChange(match.rankUpdate) ?? null,
     rrAfter:
       optionalNumber(match.rankUpdate?.RankedRatingAfterUpdate) ?? null,
     rrBefore:
@@ -937,9 +937,26 @@ export function toMatchHistoryItem(
     headshotPercent: stats.headshotPercent ?? undefined,
     adr: stats.adr,
     acs: stats.acs,
-    rrAfter: stats.rrAfter ?? undefined,
-    rrChange: stats.rrEarned ?? undefined,
+    rrAfter:
+      stats.rrAfter ??
+      optionalNumber(match.rankUpdate?.RankedRatingAfterUpdate) ??
+      undefined,
+    rrChange:
+      stats.rrEarned ?? getRankedRatingChange(match.rankUpdate) ?? undefined,
   };
+}
+
+export function getRankedRatingChange(
+  rankUpdate: RankUpdate | null | undefined,
+): number | undefined {
+  const earned = optionalNumber(rankUpdate?.RankedRatingEarned);
+  if (earned !== undefined) return earned;
+
+  const after = optionalNumber(rankUpdate?.RankedRatingAfterUpdate);
+  const before = optionalNumber(rankUpdate?.RankedRatingBeforeUpdate);
+  return after !== undefined && before !== undefined
+    ? after - before
+    : undefined;
 }
 
 const localDateKey = (value: Date): string => {

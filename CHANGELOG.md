@@ -6,6 +6,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.1.3] - 2026-08-25
+
+### Added
+
+- Added saved Riot accounts under More, including an explicit signed-in account list, add-account flow, safe session switching, reauthentication for expired sessions and account removal.
+- Added local Riot ID search to Friends while preserving the latest cached roster during temporary network failures.
+- Added regression coverage for account-session switching, saved-account normalization, friend filtering, authenticated navigation, match RR derivation and media-popup portal ordering.
+
+### Fixed
+
+- Mounted the global skin media portal only while it is open so skin videos selected inside Bundle's “show all skins” sheet render above that sheet on Android.
+- Anchored the direct-chat composer to the bottom edge, moved it with the software keyboard and restored a high-contrast black send button.
+- Refreshed the Riot friends roster and chat connection whenever Friends is opened, including retry behavior after background network loss.
+- Prevented repeated taps on Profile's Loadout/Player Info control until its current animation has completed.
+- Corrected the floating navigation's selected circular icon contrast for both dark and light navigation tones.
+- Made competitive match history fetch and retain Riot RR updates for initial, delta and load-more requests; cards now show only a compact per-match RR gain or loss.
+- Kept the newest authenticated account snapshot when startup recovery or account switching finishes, preventing stale asynchronous data from overwriting the selected account.
+
+### Validation
+
+- `pnpm run check` — typecheck and lint passing; 13/13 suites and 96/96 tests passing with 100% measured coverage.
+- Android production export — 2,671 modules and 38 assets bundled successfully.
+
+### Build metadata
+
+- App/runtime version: `4.1.3`
+- Android version code: `84`
+- iOS build number: `36`
+- Distribution: EAS Update channel `production`, EAS production APK and GitHub Release asset `vshop.apk`.
+
 ## [4.1.2] - 2026-08-25
 
 ### Fixed
@@ -220,7 +250,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - iOS build number: `30`
 - Production profile: `eas build --profile production --platform android`
 
-[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.2...HEAD
+[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.3...HEAD
+[4.1.3]: https://github.com/GinzaTech/Vshop/compare/v4.1.2...v4.1.3
 [4.1.2]: https://github.com/GinzaTech/Vshop/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/GinzaTech/Vshop/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/GinzaTech/Vshop/compare/v4.0.4...v4.1.0

@@ -27,7 +27,10 @@ import {
 } from "~/utils/chat-service";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { COLORS } from "~/constants/DesignSystem";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useUserStore } from "~/hooks/useUserStore";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
@@ -88,6 +91,7 @@ function renderChatMessage({ item }: ListRenderItemInfo<ChatMessage>) {
  * @returns {JSX.Element} Màn hình chat.
  */
 export default function ChatScreen() {
+  const insets = useSafeAreaInsets();
   // Đọc friendId từ URL params
   const params = useLocalSearchParams<{ friendId: string | string[] }>();
   const friendId = Array.isArray(params.friendId)
@@ -216,10 +220,11 @@ export default function ChatScreen() {
   const canSend = chatStatus === "authenticated" && Boolean(text.trim()) && !sending;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={insets.top}
       >
       {/* ── Header ── */}
       <View style={styles.header}>
@@ -254,26 +259,29 @@ export default function ChatScreen() {
       </View>
 
       {/* ── Danh sách tin nhắn ── */}
-        <FlatList
-          ref={messageListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderChatMessage}
-          style={styles.messageList}
-          contentContainerStyle={styles.messageListContent}
-          ListEmptyComponent={
-            <View style={styles.emptyState} accessibilityLiveRegion="polite">
-              <Text style={styles.emptyStateTitle}>No messages yet</Text>
-              <Text style={styles.emptyStateText}>Start a conversation with this friend.</Text>
-            </View>
-          }
-          refreshControl={
-            <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          alwaysBounceVertical
-          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-          keyboardShouldPersistTaps="handled"
-        />
+        <View style={styles.messageRegion}>
+          <FlatList
+            ref={messageListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderChatMessage}
+            style={styles.messageList}
+            contentContainerStyle={styles.messageListContent}
+            ListEmptyComponent={
+              <View style={styles.emptyState} accessibilityLiveRegion="polite">
+                <Text style={styles.emptyStateTitle}>No messages yet</Text>
+                <Text style={styles.emptyStateText}>Start a conversation with this friend.</Text>
+              </View>
+            }
+            refreshControl={
+              <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            alwaysBounceVertical
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            keyboardShouldPersistTaps="handled"
+            testID="chat-message-list"
+          />
+        </View>
 
       {/* ── Lỗi gửi tin nhắn ── */}
       {sendError ? (
@@ -281,7 +289,7 @@ export default function ChatScreen() {
       ) : null}
 
       {/* ── Input + Send button ── */}
-        <View style={styles.inputContainer}>
+        <View style={styles.inputContainer} testID="chat-composer">
         <TextInput
           style={[styles.input, { height: inputHeight }]}
           value={text}
@@ -306,10 +314,9 @@ export default function ChatScreen() {
         <Pressable
           disabled={!canSend}
           onPress={handleSend}
-          android_ripple={{ color: COLORS.GLASS_WHITE_DIM, borderless: true }}
+          android_ripple={{ color: COLORS.GLASS_WHITE_DIM }}
           style={({ pressed }) => [
             styles.sendButton,
-            !canSend && styles.sendButtonDisabled,
             pressed && styles.sendButtonPressed,
           ]}
           accessibilityRole="button"
@@ -318,7 +325,16 @@ export default function ChatScreen() {
             disabled: !canSend,
           }}
         >
-          <Icon name="send" size={20} color={COLORS.PURE_WHITE} />
+          <View
+            pointerEvents="none"
+            style={styles.sendButtonSurface}
+          >
+            <Icon
+              name="send"
+              size={20}
+              color={COLORS.PURE_WHITE}
+            />
+          </View>
         </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -377,9 +393,12 @@ const styles = StyleSheet.create({
   connectionStatusError: {
     color: COLORS.WARNING, // Cam: lỗi kết nối
   },
-  messageList: {
+  messageRegion: {
     flex: 1,
     minHeight: 0,
+  },
+  messageList: {
+    flex: 1,
   },
   messageListContent: {
     padding: 16,
@@ -455,12 +474,15 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.ACCENT,
+    overflow: "hidden",
+  },
+  sendButtonSurface: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 22,
+    backgroundColor: COLORS.PURE_BLACK,
     alignItems: "center",
     justifyContent: "center",
-  },
-  sendButtonDisabled: {
-    opacity: 0.4, // Làm mờ khi disabled
   },
   sendButtonPressed: {
     opacity: 0.78, // Hiệu ứng nhấn

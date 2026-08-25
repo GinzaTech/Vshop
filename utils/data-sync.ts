@@ -190,7 +190,7 @@ export async function syncAllData(
 
   // Startup/resume only completes after every core source is available. This
   // prevents a half-valid session from entering the app with dead API actions.
-  markSynced(["shop", "balances", "matches"]);
+  markSynced(["shop", "balances", "matches"], authUser);
 
   const report: SyncReport = {
     userChanged,

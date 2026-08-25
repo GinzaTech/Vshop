@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  getAccountSessionKey,
+  isSameAccountSessionKey,
+} from "~/utils/saved-accounts";
 
 import type {
   MatchDetailsData,
@@ -28,7 +32,7 @@ const MATCH_CACHE_TTL_MS = 30 * 60 * 1000;       // TTL cache match (30 phút �
 const MATCH_HISTORY_LIMIT = 20;                    // Giới hạn Riot API: 20 trận/request
 const INITIAL_FETCH_TOTAL = 30;                    // Tổng số trận tải lần đầu (2 requests)
 const DELTA_FETCH_LIMIT = 5;                       // Số trận kiểm tra khi delta sync (chỉ lấy mới)
-const MATCH_STORE_VERSION = 5;                     // Tăng version → migrate (thêm thống kê theo mùa)
+const MATCH_STORE_VERSION = 6;                     // Tăng version → nạp lại RR theo từng trận
 const MAX_DETAIL_CACHE_ENTRIES = 10;               // Memory cache only (không persist)
 const CELLULAR_INITIAL_DETAILS = 15;               // Hydrate 15/30 trận đầu trên 4G
 const WIFI_INITIAL_DETAILS = 30;                   // Hydrate hết 30 trận trên WiFi
@@ -45,7 +49,7 @@ const wait = (durationMs: number) =>
 
 // --- Tạo auth key từ thông tin user (dùng để phân biệt session) ---
 const getMatchAuthKey = (user: typeof defaultUser) =>
-  user.region && user.id ? `${user.region}|${user.id}` : "guest";
+  getAccountSessionKey(user);
 
 type ActiveCompetitiveSeason = {
   id: string;
@@ -554,23 +558,40 @@ export const useMatchStore = create<MatchState>()(
             if (pending.length === 0) {
               const state = get();
               const startIndex = state.historyEndIndex;
-              const page = await playerMatchHistory(
-                user.accessToken,
-                user.entitlementsToken,
-                user.region,
-                user.id,
-                {
-                  startIndex,
-                  endIndex: Math.min(
-                    startIndex + MATCH_HISTORY_LIMIT,
-                    state.totalMatches
-                  ),
-                }
+              const endIndex = Math.min(
+                startIndex + MATCH_HISTORY_LIMIT,
+                state.totalMatches
               );
+              const [page, competitiveUpdates] = await Promise.all([
+                playerMatchHistory(
+                  user.accessToken,
+                  user.entitlementsToken,
+                  user.region,
+                  user.id,
+                  { startIndex, endIndex }
+                ),
+                getCompetitiveUpdates(
+                  user.accessToken,
+                  user.entitlementsToken,
+                  user.region,
+                  user.id,
+                  {
+                    startIndex: 0,
+                    endIndex: Math.max(0, endIndex - 1),
+                    queue: "competitive",
+                  }
+                ).catch(() => null),
+              ]);
               if (get().authKey !== authKey) return;
 
               const knownIds = new Set(
                 get().matches.map((match) => match.MatchID)
+              );
+              const updateByMatch = new Map(
+                (competitiveUpdates?.Matches ?? []).map((entry) => [
+                  entry.MatchID,
+                  compactRankUpdate(entry),
+                ])
               );
               // Lọc bỏ các match đã có trong danh sách (tránh trùng lặp)
               const nextMatches: MatchHistoryRecord[] = (
@@ -583,6 +604,7 @@ export const useMatchStore = create<MatchState>()(
                         MatchID: match.MatchID,
                         GameStartTime: match.GameStartTime,
                         QueueID: match.QueueID,
+                        rankUpdate: updateByMatch.get(match.MatchID) ?? null,
                       },
                     ]
               );
@@ -898,16 +920,49 @@ export const useMatchStore = create<MatchState>()(
 
           const deltaRequest = (async () => {
             try {
-              const deltaPage = await playerMatchHistory(
-                user.accessToken,
-                user.entitlementsToken,
-                user.region,
-                user.id,
-                { startIndex: 0, endIndex: DELTA_FETCH_LIMIT - 1 }
-              );
-              if (get().authKey !== authKey || !deltaPage?.History) {
+              const [deltaPage, competitiveUpdates] = await Promise.all([
+                playerMatchHistory(
+                  user.accessToken,
+                  user.entitlementsToken,
+                  user.region,
+                  user.id,
+                  { startIndex: 0, endIndex: DELTA_FETCH_LIMIT - 1 }
+                ),
+                getCompetitiveUpdates(
+                  user.accessToken,
+                  user.entitlementsToken,
+                  user.region,
+                  user.id,
+                  {
+                    startIndex: 0,
+                    endIndex: DELTA_FETCH_LIMIT - 1,
+                    queue: "competitive",
+                  }
+                ).catch(() => null),
+              ]);
+              if (!isSameAccountSessionKey(get().authKey, authKey)) {
+                return;
+              }
+              if (!deltaPage?.History) {
                 set({ lastUpdated: Date.now() });
                 return;
+              }
+
+              const updateByMatch = new Map(
+                (competitiveUpdates?.Matches ?? []).map((entry) => [
+                  entry.MatchID,
+                  compactRankUpdate(entry),
+                ])
+              );
+              if (updateByMatch.size > 0) {
+                set((current) => ({
+                  matches: current.matches.map((match) => {
+                    const rankUpdate = updateByMatch.get(match.MatchID);
+                    return rankUpdate
+                      ? { ...match, rankUpdate }
+                      : match;
+                  }),
+                }));
               }
 
               const knownIds = new Set(get().matches.map((m) => m.MatchID));
@@ -931,6 +986,7 @@ export const useMatchStore = create<MatchState>()(
                     MatchID: raw.MatchID,
                     GameStartTime: raw.GameStartTime,
                     QueueID: raw.QueueID,
+                    rankUpdate: updateByMatch.get(raw.MatchID) ?? null,
                   },
                   details,
                   user.id,
@@ -952,7 +1008,9 @@ export const useMatchStore = create<MatchState>()(
               }
             } catch (error) {
               if (__DEV__) console.warn("[matchStore] delta sync failed", error);
-              set({ lastUpdated: Date.now() });
+              if (isSameAccountSessionKey(get().authKey, authKey)) {
+                set({ lastUpdated: Date.now() });
+              }
             } finally {
               if (matchesInFlight?.key === authKey) matchesInFlight = null;
             }

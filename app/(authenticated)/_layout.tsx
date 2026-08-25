@@ -360,7 +360,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
                     <View
                       style={[
                         styles.tabIconWrap,
-                        focused && styles.tabIconWrapActive,
+                        focused &&
+                          (primaryNavigationTone === "light"
+                            ? styles.tabIconWrapActiveLight
+                            : styles.tabIconWrapActive),
                         pressed &&
                           !focused &&
                           (primaryNavigationTone === "light"
@@ -373,7 +376,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
                         size={22}
                         color={
                           focused
-                            ? COLORS.PURE_BLACK
+                            ? primaryNavigationTone === "light"
+                              ? COLORS.PURE_WHITE
+                              : COLORS.PURE_BLACK
                             : primaryNavigationTone === "light" || pressed
                               ? COLORS.TEXT_PRIMARY
                               : COLORS.PURE_WHITE
@@ -407,7 +412,15 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
                 pressed && styles.collapsedTabButtonPressed,
               ]}
             >
-              <Icon name="dots-grid" size={26} color={COLORS.PURE_BLACK} />
+              <Icon
+                name="dots-grid"
+                size={26}
+                color={
+                  primaryNavigationTone === "light"
+                    ? COLORS.PURE_WHITE
+                    : COLORS.PURE_BLACK
+                }
+              />
             </Pressable>
             </Reanimated.View>
           )}
@@ -686,7 +699,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.PURE_WHITE,
   },
   collapsedTabButtonLight: {
-    backgroundColor: COLORS.SURFACE_MUTED,
+    backgroundColor: COLORS.PURE_BLACK,
   },
   collapsedTabButtonPressed: {
     transform: [{ scale: 0.96 }],
@@ -718,6 +731,9 @@ const styles = StyleSheet.create({
   tabIconWrapActive: {
     backgroundColor: COLORS.PURE_WHITE, // Nền trắng cho tab đang active
   },
+  tabIconWrapActiveLight: {
+    backgroundColor: COLORS.PURE_BLACK,
+  },
   tabIndicator: {
     position: "absolute",
     top: 12,
@@ -728,7 +744,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.14)",
   },
   tabIndicatorLight: {
-    backgroundColor: COLORS.SURFACE_MUTED,
+    backgroundColor: COLORS.PURE_BLACK,
   },
 });
 

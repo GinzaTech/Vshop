@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { defaultUser } from "~/utils/valorant-api";
+import { shouldAcceptSessionUpdate } from "~/utils/saved-accounts";
 import { appStorage } from "~/utils/storage";
 
 // --- Định nghĩa store quản lý thông tin user (phiên đăng nhập) ---
@@ -16,6 +17,8 @@ interface UserState {
   hydrated: boolean;
   /** Cập nhật thông tin user */
   setUser: (user: typeof defaultUser) => void;
+  /** Chuyển phiên có chủ đích sau login hoặc chọn tài khoản đã lưu */
+  activateUser: (user: typeof defaultUser) => void;
   /** Reset user về giá trị mặc định */
   resetUser: () => void;
   /** Đánh dấu trạng thái hydrated */
@@ -32,8 +35,15 @@ export const useUserStore = create<UserState>()(
       user: defaultUser,
       /** Chưa rehydrate */
       hydrated: false,
-      /** Gán user mới */
-      setUser: (user) => set({ user }),
+      /** Gán dữ liệu mới chỉ khi request vẫn thuộc phiên hiện tại */
+      setUser: (user) =>
+        set((state) =>
+          shouldAcceptSessionUpdate(state.user.id, user.id)
+            ? { user }
+            : state
+        ),
+      /** Cho phép login/chuyển tài khoản thay toàn bộ phiên hiện tại */
+      activateUser: (user) => set({ user }),
       /** Reset về user mặc định */
       resetUser: () => set({ user: defaultUser }),
       /** Cập nhật trạng thái hydrated */

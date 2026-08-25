@@ -110,10 +110,17 @@ function MediaPopup() {
     setLoading(true);
   }, [selectedIndex, uris]);
 
+  // Mount the Portal only while the viewer is open. Screens such as Bundles
+  // register their own Portal lazily, so keeping this Portal mounted from app
+  // startup can leave it underneath a screen modal on Android.
+  if (uris.length === 0) {
+    return null;
+  }
+
   return (
     <Portal>
       <Modal
-        visible={uris.length > 0}
+        visible
         onDismiss={hideMediaPopup}
         style={styles.modal}
         contentContainerStyle={styles.modalContainer}

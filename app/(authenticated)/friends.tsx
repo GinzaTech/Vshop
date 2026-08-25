@@ -1,6 +1,13 @@
 // ===== Import thư viện =====
 import React from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
@@ -11,9 +18,10 @@ import GlassCard from "~/components/ui/GlassCard";
 import { COLORS } from "~/constants/DesignSystem";
 import { useChatStore, type ChatFriend } from "~/utils/chat-store";
 import { refreshFriendsRoster } from "~/utils/chat-service";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { filterFriendsByRiotId } from "~/utils/friend-search";
 
 // FriendStateInfo: thông tin hiển thị cho trạng thái của bạn bè
 type FriendStateInfo = { icon: ComponentProps<typeof Icon>["name"]; color: string; label: string };
@@ -33,12 +41,46 @@ const FRIEND_STATE_ORDER: Record<string, number> = { chat: 0, mobile: 0, away: 1
 // Component FriendsScreen: hiển thị danh sách bạn bè (Riot Friends) với trạng thái online/offline
 export default function FriendsScreen() {
   const { t } = useTranslation();
+  const navigation = useNavigation();
 
   // Lấy dữ liệu từ store
   const friendsObj = useChatStore((state) => state.friends); // Object bạn bè {id: ChatFriend}
   const status = useChatStore((state) => state.status);      // Trạng thái kết nối chat
   const [loadingRoster, setLoadingRoster] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [searchVisible, setSearchVisible] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => {
+            setSearchVisible((visible) => {
+              if (visible) setSearchQuery("");
+              return !visible;
+            });
+          }}
+          style={({ pressed }) => [
+            styles.searchHeaderButton,
+            pressed && styles.friendRowPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            searchVisible
+              ? t("friends_page.close_search")
+              : t("friends_page.open_search")
+          }
+        >
+          <Icon
+            name={searchVisible ? "close" : "magnify"}
+            size={24}
+            color={COLORS.TEXT_PRIMARY}
+          />
+        </Pressable>
+      ),
+    });
+  }, [navigation, searchVisible, t]);
 
   // friends: mảng bạn bè đã sắp xếp (memoized)
   // Thứ tự: online (chat/mobile) → away → offline → dnd
@@ -54,6 +96,12 @@ export default function FriendsScreen() {
         return leftName.localeCompare(rightName);
       }),
     [friendsObj]
+  );
+
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
+  const visibleFriends = React.useMemo(
+    () => filterFriendsByRiotId(friends, normalizedSearchQuery),
+    [friends, normalizedSearchQuery],
   );
 
   const refreshFriends = React.useCallback(async () => {
@@ -143,17 +191,55 @@ export default function FriendsScreen() {
 
   return (
     <View style={styles.screen}>
+      {searchVisible ? (
+        <View style={styles.searchBar}>
+          <Icon name="magnify" size={22} color={COLORS.TEXT_SECONDARY} />
+          <TextInput
+            autoFocus
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t("friends_page.search_placeholder")}
+            placeholderTextColor={COLORS.TEXT_SECONDARY}
+            style={styles.searchInput}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel={t("friends_page.search_placeholder")}
+          />
+          {searchQuery ? (
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              style={({ pressed }) => [
+                styles.clearSearchButton,
+                pressed && styles.friendRowPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t("friends_page.clear_search")}
+            >
+              <Icon name="close-circle" size={20} color={COLORS.TEXT_SECONDARY} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       <FlatList
-        data={friends}
+        data={visibleFriends}
         keyExtractor={(item) => item.id}
         renderItem={renderFriend}
         contentContainerStyle={[
           styles.listContent,
-          friends.length === 0 && styles.listContentEmpty,
+          visibleFriends.length === 0 && styles.listContentEmpty,
         ]}
         ListEmptyComponent={
           <GlassCard style={styles.emptyCard}>
-            {loadingRoster || status === "connecting" ? (
+            {normalizedSearchQuery ? (
+              <>
+                <Icon name="account-search-outline" size={48} color={COLORS.TEXT_SECONDARY} />
+                <Text style={styles.emptyTitle}>{t("friends_page.search_empty_title")}</Text>
+                <Text style={styles.emptySubtitle}>
+                  {t("friends_page.search_empty_subtitle", { query: searchQuery.trim() })}
+                </Text>
+              </>
+            ) : loadingRoster || status === "connecting" ? (
               <>
                 <ActivityIndicator animating color={COLORS.ACCENT} size="large" />
                 <Text style={styles.loadingText}>{t("friends_page.loading")}</Text>
@@ -204,6 +290,39 @@ export default function FriendsScreen() {
 const styles = StyleSheet.create({
   // Màn hình: nền tối
   screen: { flex: 1, backgroundColor: COLORS.BACKGROUND },
+  searchHeaderButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchBar: {
+    minHeight: 52,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 26,
+    backgroundColor: COLORS.SURFACE_MUTED,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 10,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 15,
+  },
+  clearSearchButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   loadingText: { marginTop: 12, color: COLORS.TEXT_SECONDARY, fontSize: 14 },
   // Danh sách: padding ngang 20, trên 8, dưới 140
   listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 },

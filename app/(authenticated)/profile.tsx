@@ -134,6 +134,7 @@ const PROFILE_SEGMENT_LAYOUT_DURATION_MS = 340;
 const PROFILE_DASHBOARD_GROW_DURATION_MS = 480;
 const PROFILE_BACKGROUND_DURATION_MS = 420;
 const PROFILE_STATS_FETCH_DELAY_MS = PROFILE_DASHBOARD_GROW_DURATION_MS + 120;
+const PROFILE_MODE_INTERACTION_BUFFER_MS = 80;
 type ProfileNavContentMode = "profile" | "blank" | "stats";
 const truncateToOneDecimal = (value: number) =>
     Math.trunc(value * 10) / 10;
@@ -872,7 +873,13 @@ function Profile() {
 
   // ─── Chuyển đổi giữa hồ sơ trang bị và thông tin người chơi ─────────────
   const [isPlayerInfoMode, setIsPlayerInfoMode] = React.useState(false);
+  const [profileModeTransitioning, setProfileModeTransitioning] =
+      React.useState(false);
   const isPlayerInfoModeRef = React.useRef(false);
+  const profileModeInteractionLockedRef = React.useRef(false);
+  const profileModeInteractionTimerRef = React.useRef<
+      ReturnType<typeof setTimeout> | null
+  >(null);
   const [rankSplitContentMode, setRankSplitContentMode] =
       React.useState<RankSplitContentMode>("rank");
   const heroModeProgress = useSharedValue(0);
@@ -1088,7 +1095,31 @@ function Profile() {
   );
 
   const toggleHeroMode = React.useCallback(() => {
+    if (profileModeInteractionLockedRef.current) return;
+
     const nextMode = !isPlayerInfoModeRef.current;
+    const subtitleTransitionDuration = nextMode
+        ? heroSubtitleText.length * HERO_SUBTITLE_DELETING_SPEED_MS +
+          40 +
+          HERO_SUBTITLE_COLLAPSE_DURATION_MS
+        : HERO_SUBTITLE_EXPAND_DURATION_MS +
+          HERO_SUBTITLE_INITIAL_DELAY_MS +
+          heroSubtitleText.length * HERO_SUBTITLE_TYPING_SPEED_MS;
+    const interactionLockDuration =
+        Math.max(
+            RANK_TEXT_RETRACT_DURATION_MS + RANK_SPLIT_DURATION_MS,
+            PROFILE_NAV_RETRACT_DURATION_MS +
+              PROFILE_SEGMENT_LAYOUT_DURATION_MS,
+            subtitleTransitionDuration
+        ) + PROFILE_MODE_INTERACTION_BUFFER_MS;
+
+    profileModeInteractionLockedRef.current = true;
+    setProfileModeTransitioning(true);
+    profileModeInteractionTimerRef.current = setTimeout(() => {
+      profileModeInteractionLockedRef.current = false;
+      profileModeInteractionTimerRef.current = null;
+      setProfileModeTransitioning(false);
+    }, interactionLockDuration);
 
     if (heroSubtitleCollapseTimerRef.current) {
       clearTimeout(heroSubtitleCollapseTimerRef.current);
@@ -1706,6 +1737,11 @@ function Profile() {
           clearTimeout(heroSubtitleCollapseTimerRef.current);
           heroSubtitleCollapseTimerRef.current = null;
         }
+        if (profileModeInteractionTimerRef.current) {
+          clearTimeout(profileModeInteractionTimerRef.current);
+          profileModeInteractionTimerRef.current = null;
+        }
+        profileModeInteractionLockedRef.current = false;
       },
       []
   );
@@ -3586,11 +3622,16 @@ function Profile() {
                 accessibilityHint={t("profile_page.switch_info_hint", {
                   defaultValue: "Chuyển nhóm chỉ số đang hiển thị",
                 })}
-                accessibilityState={{ selected: isPlayerInfoMode }}
+                accessibilityState={{
+                  selected: isPlayerInfoMode,
+                  disabled: profileModeTransitioning,
+                  busy: profileModeTransitioning,
+                }}
+                disabled={profileModeTransitioning}
                 onPress={toggleHeroMode}
                 style={({ pressed }) => [
                   styles.heroModePressTarget,
-                  pressed && styles.heroModePressed,
+                  pressed && !profileModeTransitioning && styles.heroModePressed,
                 ]}
             >
               <Animated.View

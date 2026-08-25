@@ -4,6 +4,8 @@
 
 import React from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Linking,
   Platform,
   ScrollView,
@@ -24,6 +26,7 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 
 import { useUserStore } from "~/hooks/useUserStore";
+import { useAccountStore } from "~/hooks/useAccountStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
@@ -40,6 +43,14 @@ import {
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { fullBackgroundSync } from "~/utils/app-sync";
+import { hasReusableAccessToken } from "~/utils/auth-session";
+import { disconnectChatService } from "~/utils/chat-service";
+import { switchSavedAccount } from "~/services/accounts/session";
+import {
+  normalizeAccountId,
+  toSavedAccount,
+  type SavedAccount,
+} from "~/utils/saved-accounts";
 
 /**
  * Settings – Component chính hiển thị trang cài đặt
@@ -52,6 +63,10 @@ function Settings() {
   // User store: thông tin user + hàm reset
   const user = useUserStore((state) => state.user);
   const resetUser = useUserStore((state) => state.resetUser);
+  const savedAccounts = useAccountStore((state) => state.accounts);
+  const saveAccount = useAccountStore((state) => state.saveAccount);
+  const removeAccount = useAccountStore((state) => state.removeAccount);
+  const clearAccounts = useAccountStore((state) => state.clearAccounts);
   // Feature store: screenshot mode
   const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
   const toggleScreenshotMode = useFeatureStore((state) => state.toggleScreenshotMode);
@@ -70,8 +85,29 @@ function Settings() {
   // State: kết quả kiểm tra cập nhật
   const [updateResult, setUpdateResult] =
     React.useState<AppUpdateCheckResult | null>(null);
+  const [switchingAccountId, setSwitchingAccountId] = React.useState<
+    string | null
+  >(null);
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
+
+  const accountRows = React.useMemo(() => {
+    const currentId = normalizeAccountId(user.id);
+    const hasCurrentAccount = savedAccounts.some(
+      (account) => normalizeAccountId(account.id) === currentId
+    );
+    const rows: SavedAccount[] =
+      currentId && !hasCurrentAccount && user.accessToken
+        ? [toSavedAccount(user, 0), ...savedAccounts]
+        : savedAccounts;
+
+    return [...rows].sort((left, right) => {
+      const leftIsCurrent = normalizeAccountId(left.id) === currentId;
+      const rightIsCurrent = normalizeAccountId(right.id) === currentId;
+      if (leftIsCurrent !== rightIsCurrent) return leftIsCurrent ? -1 : 1;
+      return right.lastUsedAt - left.lastUsedAt;
+    });
+  }, [savedAccounts, user]);
 
   /**
    * handleLogout – Xử lý đăng xuất: xóa cookies, reset user, dừng background fetch,
@@ -80,10 +116,73 @@ function Settings() {
   const handleLogout = async () => {
     await clearAllCookies(true);
     await AsyncStorage.removeItem("region");
+    disconnectChatService();
+    clearAccounts();
     resetUser();
     stopBackgroundFetch();
     setNotificationEnabled(false);
     router.replace("/setup");
+  };
+
+  const handleAddAccount = async () => {
+    if (user.id && user.accessToken) {
+      saveAccount(user, true);
+    }
+    disconnectChatService();
+    await clearAllCookies(true);
+    router.push({ pathname: "/reauth", params: { mode: "add" } });
+  };
+
+  const handleSwitchAccount = async (accountId: string) => {
+    if (
+      normalizeAccountId(accountId) === normalizeAccountId(user.id) ||
+      switchingAccountId
+    ) {
+      return;
+    }
+
+    setSwitchingAccountId(accountId);
+    try {
+      const result = await switchSavedAccount(accountId);
+      if (result.kind === "switched") {
+        router.replace("/profile");
+        return;
+      }
+
+      if (result.kind === "reauth-required") {
+        router.push({
+          pathname: "/reauth",
+          params: { mode: "switch", accountId },
+        });
+        return;
+      }
+
+      if (result.kind === "failed") {
+        Alert.alert(
+          t("settings_page.accounts.switch_failed_title"),
+          t("settings_page.accounts.switch_failed_description")
+        );
+      }
+    } finally {
+      setSwitchingAccountId(null);
+    }
+  };
+
+  const confirmRemoveAccount = (account: SavedAccount) => {
+    Alert.alert(
+      t("settings_page.accounts.remove_title"),
+      t("settings_page.accounts.remove_description", {
+        account: `${account.name}#${account.tagLine}`,
+      }),
+      [
+        { text: t("settings_page.accounts.cancel"), style: "cancel" },
+        {
+          text: t("settings_page.accounts.remove"),
+          style: "destructive",
+          onPress: () => removeAccount(account.id),
+        },
+      ]
+    );
   };
 
   /**
@@ -363,9 +462,117 @@ function Settings() {
           })}
         </GlassCard>
 
-        {/* Section Account: copy Riot ID + logout */}
-        <Text style={styles.sectionTitle}>{t("settings_page.account")}</Text>
+        {/* Saved account list: current account first, then recent accounts */}
+        <View style={styles.sectionHeading}>
+          <Text accessibilityRole="header" style={styles.sectionTitleInline}>
+            {t("settings_page.accounts.logged_in")}
+          </Text>
+          <View
+            accessible
+            accessibilityRole="text"
+            style={styles.accountCountBadge}
+            accessibilityLabel={t("settings_page.accounts.logged_in_count", {
+              count: accountRows.length,
+            })}
+          >
+            <Text style={styles.accountCountText}>{accountRows.length}</Text>
+          </View>
+        </View>
         <GlassCard style={styles.card}>
+          {accountRows.map((account) => {
+            const isCurrent =
+              normalizeAccountId(account.id) === normalizeAccountId(user.id);
+            const isSwitching = switchingAccountId === account.id;
+            const sessionReady = hasReusableAccessToken(account.accessToken);
+            const displayName = account.name
+              ? `${account.name}#${account.tagLine}`
+              : account.id;
+
+            return (
+              <View key={account.id} style={styles.accountRow}>
+                <TouchableOpacity
+                  activeOpacity={isCurrent ? 1 : 0.82}
+                  disabled={isCurrent || Boolean(switchingAccountId)}
+                  onPress={() => void handleSwitchAccount(account.id)}
+                  style={styles.accountMain}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("settings_page.accounts.switch_to", {
+                    account: displayName,
+                  })}
+                  accessibilityState={{
+                    disabled: isCurrent || Boolean(switchingAccountId),
+                    selected: isCurrent,
+                    busy: isSwitching,
+                  }}
+                >
+                  <View
+                    style={[
+                      styles.accountAvatar,
+                      isCurrent && styles.accountAvatarCurrent,
+                    ]}
+                  >
+                    <Icon
+                      name="account-outline"
+                      size={21}
+                      color={isCurrent ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
+                    />
+                  </View>
+                  <View style={styles.accountCopy}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>
+                      {displayName}
+                    </Text>
+                    <Text style={styles.rowDescription} numberOfLines={1}>
+                      {isCurrent
+                        ? t("settings_page.accounts.current", {
+                            region: account.region.toUpperCase(),
+                          })
+                        : sessionReady
+                          ? t("settings_page.accounts.ready", {
+                              region: account.region.toUpperCase(),
+                            })
+                          : t("settings_page.accounts.login_required", {
+                              region: account.region.toUpperCase(),
+                            })}
+                    </Text>
+                  </View>
+                  {isSwitching ? (
+                    <ActivityIndicator size="small" color={COLORS.TEXT_PRIMARY} />
+                  ) : isCurrent ? (
+                    <Icon name="check-circle" size={22} color={COLORS.SUCCESS} />
+                  ) : (
+                    <Icon name="swap-horizontal" size={22} color={COLORS.TEXT_SECONDARY} />
+                  )}
+                </TouchableOpacity>
+                {!isCurrent ? (
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => confirmRemoveAccount(account)}
+                    disabled={Boolean(switchingAccountId)}
+                    style={styles.removeAccountButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("settings_page.accounts.remove_account", {
+                      account: displayName,
+                    })}
+                  >
+                    <Icon name="close" size={20} color={COLORS.TEXT_SECONDARY} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            );
+          })}
+        </GlassCard>
+
+        {/* Account management actions */}
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          {t("settings_page.accounts.manage")}
+        </Text>
+        <GlassCard style={styles.card}>
+          {renderRow({
+            icon: "account-plus-outline",
+            title: t("settings_page.accounts.add"),
+            description: t("settings_page.accounts.add_description"),
+            onPress: () => void handleAddAccount(),
+          })}
           {renderRow({
             icon: "content-copy",
             title: t("copy_riot_id"),
@@ -374,7 +581,7 @@ function Settings() {
           })}
           {renderRow({
             icon: "logout",
-            title: t("logout"),
+            title: t("settings_page.accounts.logout_all"),
             onPress: handleLogout,
             danger: true,
           })}
@@ -473,6 +680,34 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
+  sectionHeading: {
+    minHeight: 32,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  sectionTitleInline: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  accountCountBadge: {
+    minWidth: 32,
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.chip,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.PURE_BLACK,
+  },
+  accountCountText: {
+    color: COLORS.PURE_WHITE,
+    fontSize: 14,
+    fontWeight: "700",
+  },
   // card – Margin bottom cho GlassCard
   card: {
     marginBottom: 20,
@@ -537,6 +772,41 @@ const styles = StyleSheet.create({
   // rowDescriptionCompact – Description compact
   rowDescriptionCompact: {
     fontSize: 12,
+  },
+  accountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 64,
+  },
+  accountMain: {
+    flex: 1,
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+  },
+  accountAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.chip,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.SURFACE_MUTED,
+  },
+  accountAvatarCurrent: {
+    backgroundColor: COLORS.PURE_BLACK,
+  },
+  accountCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  removeAccountButton: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.chip,
+    alignItems: "center",
+    justifyContent: "center",
   },
   // disclaimer – Text disclaimer cuối trang
   disclaimer: {

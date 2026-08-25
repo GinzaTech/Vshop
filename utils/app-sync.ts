@@ -12,6 +12,7 @@ import { getBalances, getProgress, getShop, parseShop } from "./valorant-api";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { getNetworkProfile } from "./network";
+import { getAccountSessionKey } from "./saved-accounts";
 
 // ===== Base TTL (milliseconds) =====
 const BASE_TTL = {
@@ -43,11 +44,30 @@ async function adaptTtlForNetwork(): Promise<void> {
   } catch { /* ignore */ }
 }
 
-// ===== Sync tracking (lưu trong module, không cần persist) =====
-let lastShopSync = 0;
-let lastBalancesSync = 0;
-let lastMatchesSync = 0;
-let syncInFlight = false;
+// ===== Sync tracking (theo từng account, không persist) =====
+type SyncSource = keyof typeof BASE_TTL;
+type AccountSyncState = Record<SyncSource, number>;
+
+const accountSyncStates = new Map<string, AccountSyncState>();
+const shopBalancesInFlight = new Map<string, Promise<void>>();
+
+const createAccountSyncState = (): AccountSyncState => ({
+  shop: 0,
+  balances: 0,
+  matches: 0,
+  profile: 0,
+  leaderboard: 0,
+  contracts: 0,
+});
+
+const getAccountSyncState = (accountKey: string) => {
+  const existing = accountSyncStates.get(accountKey);
+  if (existing) return existing;
+
+  const created = createAccountSyncState();
+  accountSyncStates.set(accountKey, created);
+  return created;
+};
 
 /** Kiểm tra xem data có stale (cần refresh) không */
 export const isStale = (key: keyof typeof SYNC_TTL, lastSyncedAt: number): boolean => {
@@ -57,9 +77,8 @@ export const isStale = (key: keyof typeof SYNC_TTL, lastSyncedAt: number): boole
 
 /** Lấy timestamp sync gần nhất */
 export const getLastSync = (key: "shop" | "balances" | "matches") => {
-  if (key === "shop") return lastShopSync;
-  if (key === "balances") return lastBalancesSync;
-  return lastMatchesSync;
+  const accountKey = getAccountSessionKey(useUserStore.getState().user);
+  return getAccountSyncState(accountKey)[key];
 };
 
 /**
@@ -68,8 +87,6 @@ export const getLastSync = (key: "shop" | "balances" | "matches") => {
  * Không throw — lỗi được nuốt im lặng.
  */
 export async function refreshShopAndBalances(force = false): Promise<void> {
-  if (syncInFlight && !force) return;
-
   const store = useUserStore.getState();
   const user = store.user;
 
@@ -77,38 +94,53 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
     return;
   }
 
-  const shopStale = force || isStale("shop", lastShopSync);
-  const balancesStale = force || isStale("balances", lastBalancesSync);
+  const accountKey = getAccountSessionKey(user);
+  const existingRequest = shopBalancesInFlight.get(accountKey);
+  if (existingRequest) return existingRequest;
 
-  if (!shopStale && !balancesStale) return;
+  const request = (async () => {
+    const syncState = getAccountSyncState(accountKey);
+    const shopStale = force || isStale("shop", syncState.shop);
+    const balancesStale = force || isStale("balances", syncState.balances);
 
-  syncInFlight = true;
+    if (!shopStale && !balancesStale) return;
 
-  try {
-    if (shopStale) {
-      const [shop, progress, balances] = await Promise.all([
-        getShop(user.accessToken, user.entitlementsToken, user.region, user.id),
-        getProgress(user.accessToken, user.entitlementsToken, user.region, user.id),
-        getBalances(user.accessToken, user.entitlementsToken, user.region, user.id),
-      ]);
+    try {
+      if (shopStale || balancesStale) {
+        const [shop, progress, balances] = await Promise.all([
+          getShop(user.accessToken, user.entitlementsToken, user.region, user.id),
+          getProgress(user.accessToken, user.entitlementsToken, user.region, user.id),
+          getBalances(user.accessToken, user.entitlementsToken, user.region, user.id),
+        ]);
 
-      const shops = await parseShop(shop, user.shops.bundles);
+        const shops = await parseShop(shop, user.shops.bundles);
+        const currentUser = useUserStore.getState().user;
+        if (getAccountSessionKey(currentUser) !== accountKey) {
+          return;
+        }
+        store.setUser({
+          ...currentUser,
+          shops,
+          progress,
+          balances,
+        });
 
-      const currentUser = useUserStore.getState().user;
-      store.setUser({
-        ...currentUser,
-        shops,
-        progress,
-        balances,
-      });
-
-      lastShopSync = Date.now();
-      lastBalancesSync = Date.now();
+        const syncedAt = Date.now();
+        syncState.shop = syncedAt;
+        syncState.balances = syncedAt;
+      }
+    } catch (error) {
+      if (__DEV__) console.warn("[app-sync] shop/balances refresh failed", error);
     }
-  } catch (error) {
-    if (__DEV__) console.warn("[app-sync] shop/balances refresh failed", error);
+  })();
+
+  shopBalancesInFlight.set(accountKey, request);
+  try {
+    await request;
   } finally {
-    syncInFlight = false;
+    if (shopBalancesInFlight.get(accountKey) === request) {
+      shopBalancesInFlight.delete(accountKey);
+    }
   }
 }
 
@@ -117,16 +149,20 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
  * Delegate cho useMatchStore.fetchMatches (đã có dedup + cache).
  */
 export async function refreshMatches(force = false): Promise<void> {
-  if (!force && !isStale("matches", lastMatchesSync)) return;
-
   const store = useUserStore.getState();
   const user = store.user;
 
   if (!user.accessToken || !user.region || !user.id) return;
 
+  const accountKey = getAccountSessionKey(user);
+  const syncState = getAccountSyncState(accountKey);
+  if (!force && !isStale("matches", syncState.matches)) return;
+
   try {
     await useMatchStore.getState().fetchMatches(user, force);
-    lastMatchesSync = Date.now();
+    if (getAccountSessionKey(useUserStore.getState().user) === accountKey) {
+      syncState.matches = Date.now();
+    }
   } catch (error) {
     if (__DEV__) console.warn("[app-sync] matches refresh failed", error);
   }
@@ -161,18 +197,25 @@ export async function fullBackgroundSync(force = false): Promise<void> {
  * Trả về true nếu tất cả data đều còn fresh.
  */
 export function shouldSkipFullSync(): boolean {
-  return !isStale("shop", lastShopSync) && !isStale("matches", lastMatchesSync);
+  const accountKey = getAccountSessionKey(useUserStore.getState().user);
+  const syncState = getAccountSyncState(accountKey);
+  return (
+    !isStale("shop", syncState.shop) &&
+    !isStale("matches", syncState.matches)
+  );
 }
 
 /**
  * markSynced — Đánh dấu data source đã được sync (set timestamp = now).
  * Dùng sau khi buildAuthenticatedUser hoặc manual fetch để tránh re-fetch thỡ.
  */
-export function markSynced(keys: ("shop" | "balances" | "matches")[]) {
+export function markSynced(
+  keys: ("shop" | "balances" | "matches")[],
+  account = useUserStore.getState().user
+) {
+  const syncState = getAccountSyncState(getAccountSessionKey(account));
   const now = Date.now();
   keys.forEach((key) => {
-    if (key === "shop") lastShopSync = now;
-    if (key === "balances") lastBalancesSync = now;
-    if (key === "matches") lastMatchesSync = now;
+    syncState[key] = now;
   });
 }

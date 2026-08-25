@@ -1,10 +1,13 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import {
   FloatingTabBar,
   PRIMARY_TAB_SCREEN_OPTIONS,
 } from "~/app/(authenticated)/_layout";
+import { COLORS } from "~/constants/DesignSystem";
+import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
   function MockMaterialCommunityIcon() {
@@ -158,5 +161,27 @@ describe("FloatingTabBar", () => {
     act(() => getButton(renderer, "Expand navigation").props.onPress());
 
     expect(getButton(renderer, "bundles")).toBeDefined();
+  });
+
+  it("inverts the active circle and icon when the floating bar is light", () => {
+    act(() => {
+      useSystemChromeStore.getState().setPrimaryNavigationTone("light");
+    });
+
+    try {
+      const { renderer } = renderTabBar();
+      const profileIcon = renderer.root.find(
+        (node) => node.props.name === "account-circle-outline",
+      );
+
+      expect(profileIcon.props.color).toBe(COLORS.PURE_WHITE);
+      expect(StyleSheet.flatten(profileIcon.parent?.props.style)).toMatchObject({
+        backgroundColor: COLORS.PURE_BLACK,
+      });
+    } finally {
+      act(() => {
+        useSystemChromeStore.getState().setPrimaryNavigationTone("dark");
+      });
+    }
   });
 });

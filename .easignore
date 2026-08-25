@@ -21,11 +21,19 @@ ios/
 expo-env.d.ts
 
 # Local Codex indexes, logs, temporary files, and backups
+.agents/
+.cache/
 .codegraph/
 .codex/
 .codex-logs/
 .codex-tmp/
+.turbo/
 backup/
+.artifacts/
+coverage/
+test/
+RN_OBSERVER_PERFORMANCE_TEST_REPORT_*.md
+*.log
 %ProgramData%/
 *.bak
 

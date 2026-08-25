@@ -39,9 +39,9 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 # English
 
-## Release 4.1.2 highlights
+## Release 4.1.3 highlights
 
-- **Native production release (25 August 2026):** fixes cross-screen ghosting, rebuilds the startup hand-off, keeps Friends/chat connected with a fresh Riot roster on every open, corrects Profile navigation tones, and shows current RR plus match RR changes.
+- **Native production release (25 August 2026):** adds saved Riot accounts with fast switching in More, adds Friends search and resilient roster/chat recovery, keeps the chat composer and send button above the keyboard, shows compact per-match RR changes, and fixes Bundle skin videos appearing underneath the “show all skins” sheet.
 
 - **Latest production OTA (22 August 2026):** primary tabs now mount on demand, freeze and detach while inactive; More shortcuts and accessory search expose stable accessibility/automation metadata; display-only accessory cards are no longer announced as buttons.
 - **Reliable primary navigation:** Bundle, Shop and More now keep a single Android interaction layer and preserve route parameters.
@@ -363,9 +363,9 @@ Install via QR code or APK from the Expo dashboard.
 
 # Tiếng Việt
 
-## Điểm nổi bật bản 4.1.2
+## Điểm nổi bật bản 4.1.3
 
-- **Bản native production (25/08/2026):** sửa bóng mờ khi chuyển màn, làm lại luồng khởi động, chủ động tải roster Riot mỗi lần mở Bạn bè để chat ổn định, sửa màu thanh điều hướng Profile và hiển thị RR hiện tại cùng mức RR thay đổi theo trận.
+- **Bản native production (25/08/2026):** thêm danh sách tài khoản Riot đã đăng nhập và chuyển nhanh trong More, thêm tìm kiếm bạn bè cùng cơ chế phục hồi roster/chat, giữ khung chat và nút gửi phía trên bàn phím, thu gọn RR theo trận, đồng thời sửa video skin trong Bundle bị nằm dưới lớp “xem toàn bộ skin”.
 
 - **OTA production mới nhất (22/08/2026):** tab chính chỉ mount khi dùng, được freeze và detach khi không hoạt động; shortcut trong More và ô tìm phụ kiện có metadata accessibility/automation ổn định; card phụ kiện chỉ hiển thị không còn bị đọc nhầm là nút bấm.
 - **Điều hướng chính ổn định:** Bundle, Shop và More chỉ giữ một lớp tương tác trên Android và bảo toàn tham số route.

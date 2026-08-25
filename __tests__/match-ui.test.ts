@@ -121,4 +121,25 @@ describe("toMatchHistoryItem", () => {
       rrChange: -16,
     });
   });
+
+  it("derives deducted RR from before and after values when earned is absent", () => {
+    const item = toMatchHistoryItem({
+      ...cachedRecord,
+      rankUpdate: {
+        RankedRatingBeforeUpdate: 78,
+        RankedRatingAfterUpdate: 62,
+      },
+      stats: {
+        ...cachedRecord.stats!,
+        rrAfter: null,
+        rrBefore: null,
+        rrEarned: null,
+      },
+    });
+
+    expect(item).toMatchObject({
+      rrAfter: 62,
+      rrChange: -16,
+    });
+  });
 });
