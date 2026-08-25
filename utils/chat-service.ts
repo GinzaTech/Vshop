@@ -44,6 +44,10 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
 // Các connection key đang được khởi tạo, tránh tạo hai socket XMPP cùng lúc.
 const initializingConnectionKeys = new Set<string>();
+// Một lần focus có thể trùng với pull-to-refresh; dùng chung request đang chạy.
+let rosterRefreshPromise: Promise<void> | null = null;
+// Tăng sau mỗi roster response, kể cả roster rỗng, để phân biệt response mới.
+let rosterRevision = 0;
 
 /**
  * Chuẩn hóa friend ID từ JID (Jabber ID) hoặc PUUID.
@@ -218,11 +222,13 @@ export async function initChatService(
   if (userId) {
     currentUserId = normalizeFriendId(userId);
   }
-  // Nếu đã kết nối với cùng key và không có lỗi, bỏ qua
+  // Nếu cùng socket đang kết nối hoặc đã xác thực thì giữ lại. Trạng thái
+  // disconnected/error phải dựng lại vì socket cũ không còn dùng được.
+  const chatStatus = useChatStore.getState().status;
   if (
     xmppClientInstance &&
     activeConnectionKey === connectionKey &&
-    useChatStore.getState().status !== "error"
+    (chatStatus === "connecting" || chatStatus === "authenticated")
   ) {
     return;
   }
@@ -295,6 +301,7 @@ export async function initChatService(
     // Sự kiện: nhận danh sách bạn bè (roster)
     client.onRoster = (friends) => {
       if (!isActiveClient()) return;
+      rosterRevision += 1;
       const friendIds = friends.map((friend) => normalizeFriendId(friend.jid));
       useChatStore.getState().setFriends(
         friends.map((friend) => {
@@ -458,6 +465,75 @@ async function waitForChatAuthentication(timeoutMs = 15_000) {
   }
 
   throw new Error("Riot chat connection timed out. Please refresh party chat.");
+}
+
+async function waitForRosterRevision(
+  previousRevision: number,
+  timeoutMs = 10_000
+) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (rosterRevision > previousRevision) return;
+    const status = useChatStore.getState().status;
+    if (status === "error" || status === "disconnected") {
+      throw new Error("Riot chat disconnected while loading friends");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  throw new Error("Riot friends list request timed out");
+}
+
+/**
+ * Kết nối chat nếu cần rồi luôn yêu cầu roster mới từ Riot. Hàm này được gọi
+ * khi màn Bạn bè nhận focus và khi người dùng kéo để refresh.
+ */
+export async function refreshFriendsRoster({
+  accessToken,
+  entitlementsToken,
+  region,
+  userId,
+}: {
+  accessToken: string;
+  entitlementsToken: string;
+  region: string;
+  userId: string;
+}) {
+  if (rosterRefreshPromise) return rosterRefreshPromise;
+
+  const refreshTask = (async () => {
+    await initChatService(accessToken, entitlementsToken, region, userId);
+    await waitForChatAuthentication();
+
+    let previousRevision = rosterRevision;
+    let requested = xmppClientInstance?.requestRoster() ?? false;
+
+    // Socket có thể chết mà state chưa kịp cập nhật. Đánh dấu lỗi để
+    // initChatService dựng client mới rồi thử đúng một lần nữa.
+    if (!requested) {
+      useChatStore.getState().setStatus("error");
+      await initChatService(accessToken, entitlementsToken, region, userId);
+      await waitForChatAuthentication();
+      previousRevision = rosterRevision;
+      requested = xmppClientInstance?.requestRoster() ?? false;
+    }
+
+    if (!requested) {
+      throw new Error("Could not request Riot friends list");
+    }
+
+    await waitForRosterRevision(previousRevision);
+  })();
+
+  rosterRefreshPromise = refreshTask;
+  try {
+    await refreshTask;
+  } finally {
+    if (rosterRefreshPromise === refreshTask) {
+      rosterRefreshPromise = null;
+    }
+  }
 }
 
 /**
@@ -685,6 +761,8 @@ export function disconnectChatService() {
   }
   activeConnectionKey = null;
   rosterNameResolveKey = null;
+  rosterRefreshPromise = null;
+  rosterRevision = 0;
   currentUserId = null;
   useChatStore.getState().resetChatSession();
 }

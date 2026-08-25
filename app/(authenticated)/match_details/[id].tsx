@@ -309,7 +309,7 @@ export default function MatchDetailsScreen() {
   // Hiển thị skeleton loading khi đang tải
   if (loading && !viewModel) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
+      <SafeAreaView style={styles.screen} edges={[]}>
         <MatchDetailSkeleton />
       </SafeAreaView>
     );
@@ -318,7 +318,7 @@ export default function MatchDetailsScreen() {
   // Hiển thị error state nếu có lỗi hoặc không có viewModel
   if (!viewModel || error) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+      <SafeAreaView style={styles.screen} edges={["bottom"]}>
         <MatchStatePanel
           icon="alert-circle-outline"
           title={t("match_ui.states.error_title")}
@@ -333,7 +333,7 @@ export default function MatchDetailsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
+    <SafeAreaView style={styles.screen} edges={[]}>
       {/* Header: thông tin match + nút đóng */}
       <MatchDetailHeader
         match={viewModel.match}

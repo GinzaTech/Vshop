@@ -1098,7 +1098,7 @@ const styles = StyleSheet.create({
   screenContent: {
     paddingHorizontal: 6,
     paddingTop: 10,
-    paddingBottom: 140,
+    paddingBottom: 32,
   },
   card: {
     marginBottom: 10,

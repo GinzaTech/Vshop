@@ -233,6 +233,19 @@ export class XMPPClient {
     );
   }
 
+  // Yêu cầu Riot gửi lại roster hiện tại. Mỗi request dùng ID riêng để màn
+  // Bạn bè có thể chủ động refresh mà không cần phá socket đang hoạt động.
+  public requestRoster() {
+    if (this.state !== "authenticated" || !this.client) {
+      return false;
+    }
+
+    const requestId = `roster_${++this.requestCounter}`;
+    return this.write(
+      `<iq type="get" id="${requestId}"><query xmlns="jabber:iq:riotgames:roster" last_state="true"/></iq>`
+    );
+  }
+
   // Phương thức public: tham gia phòng chat nhóm (MUC - Multi-User Chat)
   // Nếu chưa xác thực, lưu vào hàng đợi để join sau
   // Parameters:
@@ -315,9 +328,7 @@ export class XMPPClient {
       )}</token></entitlements></iq>`
     );
     // Yêu cầu danh sách bạn bè (roster)
-    this.write(
-      `<iq type="get" id="roster_1"><query xmlns="jabber:iq:riotgames:roster" last_state="true"/></iq>`
-    );
+    this.requestRoster();
     // Gửi presence: thông báo trạng thái online
     this.write("<presence/>");
     // Thực hiện các yêu cầu join phòng đang chờ
@@ -414,30 +425,33 @@ export class XMPPClient {
   }
 
   // Phương thức private: xử lý danh sách bạn bè (roster) từ buffer
-  // Parse <item> trong IQ roster_1, gọi callback onRoster
+  // Parse <item> trong mọi IQ roster, gọi callback onRoster
   private processRoster() {
     const rosterRegex =
-      /<iq[^>]*id=['"]roster_1['"][\s\S]*?<query[^>]*>([\s\S]*?)<\/query>[\s\S]*?<\/iq>/;
-    const rosterMatch = rosterRegex.exec(this.buffer);
-    if (!rosterMatch) return;
+      /<iq\b[^>]*>(?:(?!<\/iq>)[\s\S])*?<query\b(?=[^>]*xmlns=['"]jabber:iq:riotgames:roster['"])[^>]*(?:\/>|>([\s\S]*?)<\/query>)(?:(?!<\/iq>)[\s\S])*?<\/iq>/;
+    let rosterMatch = rosterRegex.exec(this.buffer);
 
-    const itemRegex = /<item\s+([^>]+?)\/?>/g;
-    const friends: RosterFriend[] = [];
-    let itemMatch: RegExpExecArray | null;
+    while (rosterMatch) {
+      const itemRegex = /<item\s+([^>]+?)\/?>/g;
+      const friends: RosterFriend[] = [];
+      let itemMatch: RegExpExecArray | null;
+      const rosterBody = rosterMatch[1] || "";
 
-    // Duyệt từng item trong roster
-    while ((itemMatch = itemRegex.exec(rosterMatch[1])) !== null) {
-      const attrs = this.parseAttributes(itemMatch[1]);
-      if (attrs.jid) {
-        friends.push({
-          jid: attrs.jid,
-          name: attrs.name || "Unknown",
-        });
+      // Duyệt từng item trong roster
+      while ((itemMatch = itemRegex.exec(rosterBody)) !== null) {
+        const attrs = this.parseAttributes(itemMatch[1]);
+        if (attrs.jid) {
+          friends.push({
+            jid: attrs.jid,
+            name: attrs.name || "Unknown",
+          });
+        }
       }
-    }
 
-    this.onRoster?.(friends);
-    this.buffer = this.buffer.replace(rosterMatch[0], "");
+      this.onRoster?.(friends);
+      this.buffer = this.buffer.replace(rosterMatch[0], "");
+      rosterMatch = rosterRegex.exec(this.buffer);
+    }
   }
 
   // Phương thức private: xử lý tin nhắn từ buffer

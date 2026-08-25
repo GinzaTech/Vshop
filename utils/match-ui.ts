@@ -937,6 +937,8 @@ export function toMatchHistoryItem(
     headshotPercent: stats.headshotPercent ?? undefined,
     adr: stats.adr,
     acs: stats.acs,
+    rrAfter: stats.rrAfter ?? undefined,
+    rrChange: stats.rrEarned ?? undefined,
   };
 }
 

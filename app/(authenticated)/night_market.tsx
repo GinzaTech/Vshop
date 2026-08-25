@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: CONTENT_PADDING,
-    paddingBottom: 140,
+    paddingBottom: 32,
   },
   // headerRow – Hàng header (trái: logo, phải: balance + avatar)
   headerRow: {

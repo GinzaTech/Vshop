@@ -97,7 +97,7 @@ import {
   formatSpraySlot,
   WEAPON_NAME_ORDER,
 } from "~/components/GalleryProfile";
-import { COLORS, RADIUS, GLOBAL_STYLES } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, SHADOWS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { VItemTypes } from "~/utils/misc";
 import { getPublicWeapons } from "~/services/valorant/public-api";
@@ -687,6 +687,9 @@ function Profile() {
   const setTopInsetTone = useSystemChromeStore(
       (state) => state.setTopInsetTone
   );
+  const setPrimaryNavigationTone = useSystemChromeStore(
+      (state) => state.setPrimaryNavigationTone
+  );
   const [statsDashboardTab, setStatsDashboardTab] =
       React.useState<StatsDashboardTab>("overview");
   const [profileNavContentMode, setProfileNavContentMode] =
@@ -1096,6 +1099,7 @@ function Profile() {
 
     isPlayerInfoModeRef.current = nextMode;
     setTopInsetTone(nextMode ? "dark" : "light");
+    setPrimaryNavigationTone(nextMode ? "light" : "dark");
     setIsPlayerInfoMode(nextMode);
     setProfileNavContentMode("blank");
     startRankSplitTransition(nextMode);
@@ -1168,6 +1172,7 @@ function Profile() {
     legacyContentProgress,
     pageModeProgress,
     segmentLayoutProgress,
+    setPrimaryNavigationTone,
     setTopInsetTone,
     startRankSplitTransition,
     statsDashboardMounted,
@@ -1176,11 +1181,13 @@ function Profile() {
   useFocusEffect(
       React.useCallback(() => {
         setTopInsetTone(isPlayerInfoMode ? "dark" : "light");
+        setPrimaryNavigationTone(isPlayerInfoMode ? "light" : "dark");
 
         return () => {
           setTopInsetTone("light");
+          setPrimaryNavigationTone("dark");
         };
-      }, [isPlayerInfoMode, setTopInsetTone])
+      }, [isPlayerInfoMode, setPrimaryNavigationTone, setTopInsetTone])
   );
 
   const handleStatsDashboardTabChange = React.useCallback(
@@ -3789,7 +3796,7 @@ function Profile() {
           <View
               style={[
                 styles.identityContainer,
-                GLOBAL_STYLES.shadow,
+                SHADOWS.xs,
                 { backgroundColor: "#ffffff", borderColor: COLORS.BORDER, borderWidth: 1 },
               ]}
           >
@@ -3820,9 +3827,6 @@ function Profile() {
                 <Text style={styles.identityLevelText}>
                   {identityDetails.level}
                 </Text>
-              </View>
-              <View style={styles.identityEditBadge}>
-                <Icon name="pencil" size={12} color={COLORS.PURE_WHITE} />
               </View>
             </TouchableOpacity>
             <View style={styles.identityInfo}>
@@ -3895,7 +3899,7 @@ function Profile() {
                         onPress={() => handleOpenExpressionPicker(expression)}
                         style={[
                           styles.sprayCard,
-                          GLOBAL_STYLES.shadow,
+                          SHADOWS.xs,
                           {
                             borderColor: COLORS.BORDER,
                             borderWidth: 1,
@@ -3941,7 +3945,7 @@ function Profile() {
                         onPress={() => handleOpenSprayPicker(spray)}
                         style={[
                           styles.sprayCard,
-                          GLOBAL_STYLES.shadow,
+                          SHADOWS.xs,
                           {
                             borderColor: COLORS.BORDER,
                             borderWidth: 1,
@@ -5169,16 +5173,17 @@ const styles = StyleSheet.create({
     height: 12,
   },
   topHeaderRow: {
+    minHeight: 56,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 6,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   topAvatarButton: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     position: "relative",
   },
   topAvatar: {
@@ -5412,7 +5417,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pageScrollContent: {
-    paddingBottom: 140,
+    paddingBottom: 32,
   },
   pageBody: {
     paddingHorizontal: 16,
@@ -5744,10 +5749,10 @@ const styles = StyleSheet.create({
   },
   segmentContainer: {
     position: "relative",
-    height: 56,
-    borderRadius: 28,
+    height: 50,
+    borderRadius: 25,
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 12,
     marginBottom: 8,
   },
   segmentLayer: {
@@ -5755,19 +5760,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   segmentIndicator: {
     position: "absolute",
     left: 8,
-    top: 8,
-    bottom: 8,
-    borderRadius: 22,
+    top: 6,
+    bottom: 6,
+    borderRadius: 19,
     backgroundColor: COLORS.PURE_WHITE,
   },
   segmentButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 22,
     alignItems: "center",
@@ -5811,17 +5816,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     marginLeft: 4,
-  },
-  identityEditBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(26, 29, 36, 0.86)",
   },
   identityInfo: {
     flex: 1,

@@ -198,7 +198,7 @@ export default function MatchHistoryScreen() {
   }, [hasMoreHistory, hydrating, isDemo, loadMore, matches.length, t, totalMatches, visibleMatchCount]);
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
+    <SafeAreaView style={styles.screen} edges={[]}>
       {/* FlatList chính: hiển thị match history, có header, empty state, footer, refresh, infinite scroll */}
       <FlatList
         data={rows}

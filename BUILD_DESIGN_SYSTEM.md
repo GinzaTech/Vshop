@@ -23,10 +23,12 @@ Không sửa trực tiếp version hoặc signing trong generated native project
 - `BACKGROUND`: nền màn hình.
 - `SURFACE`: card, input và vùng nội dung nổi.
 - `SURFACE_MUTED`: trạng thái phụ, placeholder hoặc nền control nhẹ.
-- `TEXT_PRIMARY` / `TEXT_SECONDARY`: hai cấp độ chữ.
-- `BORDER`: viền mặc định một pixel.
+- `TEXT_PRIMARY` / `TEXT_SECONDARY` / `TEXT_TERTIARY`: ba cấp độ chữ.
+- `BORDER` / `BORDER_STRONG`: viền mặc định và viền cần nhấn nhẹ.
 - `ACCENT` / `ACCENT_DEEP`: nhấn trung tính của ứng dụng.
 - `SUCCESS`, `WARNING`, `WARNING_SURFACE`, `WARNING_BORDER`: semantic state.
+- `STATUS_AWAY`, `STATUS_BUSY`, `STATUS_INFO`: trạng thái presence; luôn đi cùng icon/text.
+- `MODAL_BACKDROP`: backdrop dành riêng cho modal/sheet cần khóa tương tác nền.
 - `VALORANT_RED`, `VALORANT_VIOLET`, `VALORANT_DARK_BLUE`: chỉ dùng khi ngữ cảnh thương hiệu/game yêu cầu.
 - `PURE_WHITE`, `PURE_BLACK`: tương phản tuyệt đối; không thay thế tùy tiện cho text/surface token.
 
@@ -41,18 +43,17 @@ Nếu cần semantic color mới, thêm token có tên mô tả ý nghĩa vào `
 | `RADIUS.button` | button tiêu chuẩn |
 | `RADIUS.chip` | pill, badge và filter chip |
 
+Radius chi tiết có thể dùng `RADIUS.sm/md/lg/xl`; không tạo một radius mới chỉ để chênh 1–2 px.
+
 Component nhỏ đặc thù có thể dùng radius cục bộ, nhưng các primitive mới phải ưu tiên token.
 
-### Typography và spacing
+### Typography, spacing, layout và elevation
 
-VShop hiện chưa có typography/spacing token riêng. Khi thêm screen:
-
-- title màn hình: 26–32, weight 700–900;
-- section title: 17–20, weight 700–800;
-- body: 14–16;
-- caption/meta: 11–13;
-- content padding chính: 20;
-- gap card/control phổ biến: 8, 10, 12, 16, 20 hoặc 24.
+- Dùng `TYPOGRAPHY` cho caption, body, title và display scale.
+- Dùng `SPACING` cho nhịp 4/8/12/16/20/24/32.
+- Dùng `LAYOUT.screenPadding`, `minTouchTarget` và `bottomNavHeight` cho kích thước dùng chung.
+- Card thường dùng `SHADOWS.none/xs/sm`; navigation dùng tối đa `md`; `lg` dành cho modal/sheet.
+- Bottom navigation phải tham gia layout của navigator, không đặt absolute phủ lên screen content.
 
 Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout cụ thể. Khi xuất hiện từ ba lần trở lên, nâng giá trị thành token hoặc primitive.
 
@@ -60,7 +61,7 @@ Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout c
 
 | Primitive | Vai trò |
 |---|---|
-| `GlassCard` | surface có border/shadow thống nhất |
+| `GlassCard` | tonal surface có border và shadow `xs`; không blur mặc định |
 | `ValorantButton` | button chính/phụ với press feedback |
 | `InfoPill` | metric, balance hoặc badge dạng pill |
 | `PageIntro` | title/subtitle đầu màn hình |

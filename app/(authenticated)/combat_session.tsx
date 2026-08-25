@@ -593,6 +593,7 @@ export default function CombatSessionScreen() {
   const loading = useCombatStore((state) => state.loading);
   const fetchSession = useCombatStore((state) => state.fetchSession);
   const [orientationReady, setOrientationReady] = React.useState(false);
+  const [orientationLocked, setOrientationLocked] = React.useState(false);
   const [selectedSubject, setSelectedSubject] = React.useState<string | null>(null);
   const [statsViewMode, setStatsViewMode] =
     React.useState<StatsViewMode>("competitive");
@@ -650,15 +651,20 @@ export default function CombatSessionScreen() {
     React.useCallback(() => {
       let active = true;
       setOrientationReady(false);
+      setOrientationLocked(false);
       void lockScreenOrientation("landscape")
-        .finally(() => {
-          if (active) setOrientationReady(true);
+        .then((locked) => {
+          if (active) {
+            setOrientationLocked(locked);
+            setOrientationReady(true);
+          }
         });
       void loadSnapshot();
 
       return () => {
         active = false;
         setOrientationReady(false);
+        setOrientationLocked(false);
         void lockScreenOrientation("portrait");
       };
     }, [loadSnapshot])
@@ -1278,7 +1284,12 @@ export default function CombatSessionScreen() {
     );
   };
 
-  if (!orientationReady) {
+  // Keep the session shell mounted until the native landscape lock has
+  // actually produced landscape dimensions. Rendering the dense desktop-like
+  // layout during that one-frame rotation was the source of the white band.
+  const landscapeViewportReady = !orientationLocked || width >= height;
+
+  if (!orientationReady || !landscapeViewportReady) {
     return (
       <SafeAreaView style={styles.orientationLoading}>
         <StatusBar hidden />

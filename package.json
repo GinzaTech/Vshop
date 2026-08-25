@@ -1,7 +1,7 @@
 {
   "name": "vshop",
   "main": "index.ts",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "scripts": {
     "start": "expo start",
     "start:perf": "expo start --dev-client --no-dev --minify",

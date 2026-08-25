@@ -16,7 +16,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { BlurView } from "expo-blur";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 
@@ -188,7 +187,7 @@ export default function GalleryWeapon({
         },
       ]}
     >
-      {/* Sweep overlay: hiệu ứng quét khi toggle wishlist (BlurView với tint trắng) */}
+      {/* Sweep overlay: tonal highlight chạy hoàn toàn trên UI thread. */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -196,9 +195,9 @@ export default function GalleryWeapon({
           sweepAnimatedStyle,
         ]}
       >
-        <BlurView intensity={55} tint="light" style={styles.sweepBlur}>
+        <View style={styles.sweepBlur}>
           <View style={styles.sweepTint} />
-        </BlurView>
+        </View>
       </Animated.View>
 
       {/* Header: loại vũ khí + badge "Saved" nếu có trong wishlist */}

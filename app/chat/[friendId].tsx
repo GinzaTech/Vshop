@@ -27,10 +27,13 @@ import {
 } from "~/utils/chat-service";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { COLORS } from "~/constants/DesignSystem";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "~/hooks/useUserStore";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+
+const COMPOSER_MIN_HEIGHT = 48;
+const COMPOSER_MAX_HEIGHT = 120;
 
 /**
  * renderChatMessage — Render một bubble tin nhắn.
@@ -90,7 +93,6 @@ export default function ChatScreen() {
   const friendId = Array.isArray(params.friendId)
     ? params.friendId[0]
     : params.friendId;
-  const insets = useSafeAreaInsets();
   const user = useUserStore((state) => state.user);
   const chatStatus = useChatStore((state) => state.status);
   
@@ -103,17 +105,20 @@ export default function ChatScreen() {
     friendId ? state.messages[friendId] || EMPTY_CHAT_MESSAGES : EMPTY_CHAT_MESSAGES
   );
   const [text, setText] = useState("");                     // Input text
+  const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
   const [sending, setSending] = useState(false);             // Đang gửi
   const [sendError, setSendError] = useState<string | null>(null); // Lỗi gửi
   const historyRequestRef = React.useRef<string | null>(null);     // Chống request history trùng
-  const messageListRef = React.useRef<FlatList>(null);             // Scroll ref
+  const messageListRef = React.useRef<FlatList<ChatMessage>>(null); // Scroll ref
+  const previousMessageCountRef = React.useRef(messages.length);
 
-  // ── Effect 1: Kết nối chat service nếu đang disconnected ──
+  // ── Effect 1: Kết nối hoặc dựng lại chat service nếu socket đang lỗi ──
   React.useEffect(() => {
     if (
       !user.accessToken ||
       !user.entitlementsToken ||
-      chatStatus !== "disconnected"
+      chatStatus !== "disconnected" &&
+      chatStatus !== "error"
     ) {
       return;
     }
@@ -165,6 +170,19 @@ export default function ChatScreen() {
   }, [chatStatus, friend?.jid, friendId, user]);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshChat);
 
+  React.useEffect(() => {
+    if (messages.length === previousMessageCountRef.current) {
+      return;
+    }
+
+    previousMessageCountRef.current = messages.length;
+    const frame = requestAnimationFrame(() => {
+      messageListRef.current?.scrollToEnd({ animated: messages.length > 1 });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [messages.length]);
+
   /**
    * handleSend — Xử lý gửi tin nhắn.
    * Trim text, kiểm tra hợp lệ, gọi sendChatMessage.
@@ -178,6 +196,7 @@ export default function ChatScreen() {
     try {
       sendChatMessage(friendId, message);
       setText(""); // Reset input sau khi gửi
+      setInputHeight(COMPOSER_MIN_HEIGHT);
     } catch (error) {
       setSendError(
         error instanceof Error ? error.message : "Could not send message"
@@ -194,14 +213,23 @@ export default function ChatScreen() {
       : friend.gameName
     : "Loading Riot ID...";
 
+  const canSend = chatStatus === "authenticated" && Boolean(text.trim()) && !sending;
+
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.backButton, pressed && styles.buttonPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          hitSlop={8}
+        >
           <Icon name="arrow-left" size={24} color={COLORS.TEXT_PRIMARY} />
         </Pressable>
         <View style={styles.headerIdentity}>
@@ -226,21 +254,26 @@ export default function ChatScreen() {
       </View>
 
       {/* ── Danh sách tin nhắn ── */}
-      <FlatList
-        ref={messageListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderChatMessage}
-        contentContainerStyle={styles.messageList}
-        refreshControl={
-          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        alwaysBounceVertical
-        onContentSizeChange={() =>
-          messageListRef.current?.scrollToEnd({ animated: messages.length > 1 })
-        }
-        inverted={false}
-      />
+        <FlatList
+          ref={messageListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderChatMessage}
+          style={styles.messageList}
+          contentContainerStyle={styles.messageListContent}
+          ListEmptyComponent={
+            <View style={styles.emptyState} accessibilityLiveRegion="polite">
+              <Text style={styles.emptyStateTitle}>No messages yet</Text>
+              <Text style={styles.emptyStateText}>Start a conversation with this friend.</Text>
+            </View>
+          }
+          refreshControl={
+            <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          alwaysBounceVertical
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          keyboardShouldPersistTaps="handled"
+        />
 
       {/* ── Lỗi gửi tin nhắn ── */}
       {sendError ? (
@@ -248,63 +281,94 @@ export default function ChatScreen() {
       ) : null}
 
       {/* ── Input + Send button ── */}
-      <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View style={styles.inputContainer}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { height: inputHeight }]}
           value={text}
           onChangeText={setText}
+          onContentSizeChange={(event) => {
+            const nextHeight = Math.max(
+              COMPOSER_MIN_HEIGHT,
+              Math.min(COMPOSER_MAX_HEIGHT, event.nativeEvent.contentSize.height),
+            );
+            setInputHeight((currentHeight) =>
+              currentHeight === nextHeight ? currentHeight : nextHeight,
+            );
+          }}
           placeholder="Send a message..."
           placeholderTextColor={COLORS.TEXT_SECONDARY}
-          returnKeyType="send"
-          onSubmitEditing={handleSend}
+          multiline
+          scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}
+          textAlignVertical={inputHeight > COMPOSER_MIN_HEIGHT ? "top" : "center"}
           editable={chatStatus === "authenticated" && !sending}
+          accessibilityLabel="Message"
         />
         <Pressable
-          disabled={chatStatus !== "authenticated" || !text.trim() || sending}
+          disabled={!canSend}
           onPress={handleSend}
+          android_ripple={{ color: COLORS.GLASS_WHITE_DIM, borderless: true }}
           style={({ pressed }) => [
             styles.sendButton,
-            (chatStatus !== "authenticated" || !text.trim() || sending) &&
-              styles.sendButtonDisabled,
+            !canSend && styles.sendButtonDisabled,
             pressed && styles.sendButtonPressed,
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          accessibilityState={{
+            disabled: !canSend,
+          }}
         >
           <Icon name="send" size={20} color={COLORS.PURE_WHITE} />
         </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.BACKGROUND,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
   header: {
+    minHeight: 64,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.BORDER,
     backgroundColor: COLORS.BACKGROUND,
   },
   backButton: {
-    marginRight: 16,
+    width: 44,
+    height: 44,
+    marginRight: 8,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonPressed: {
+    backgroundColor: COLORS.SURFACE_MUTED,
   },
   headerIdentity: {
     flex: 1,
+    minWidth: 0,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
     color: COLORS.TEXT_PRIMARY,
   },
   connectionStatus: {
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 11,
+    fontSize: 13,
     marginTop: 2,
   },
   connectionStatusReady: {
@@ -314,14 +378,36 @@ const styles = StyleSheet.create({
     color: COLORS.WARNING, // Cam: lỗi kết nối
   },
   messageList: {
+    flex: 1,
+    minHeight: 0,
+  },
+  messageListContent: {
     padding: 16,
     flexGrow: 1,
   },
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  emptyStateTitle: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  emptyStateText: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 14,
+    marginTop: 4,
+    textAlign: "center",
+  },
   messageBubble: {
-    maxWidth: "80%",
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 12,
+    maxWidth: "78%",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 14,
+    marginBottom: 8,
   },
   messageBubbleReceived: {
     alignSelf: "flex-start",
@@ -346,27 +432,29 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   inputContainer: {
-    flexDirection: "row",      // Input + nút gửi nằm ngang
+    flexDirection: "row",
+    alignItems: "flex-end",
     padding: 12,
+    gap: 8,
     borderTopWidth: 1,
     borderTopColor: COLORS.BORDER,
     backgroundColor: COLORS.BACKGROUND,
-    alignItems: "center",
   },
   input: {
     flex: 1,
+    minHeight: COMPOSER_MIN_HEIGHT,
+    maxHeight: COMPOSER_MAX_HEIGHT,
     backgroundColor: COLORS.SURFACE_MUTED,
     color: COLORS.TEXT_PRIMARY,
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    marginRight: 12,
     fontSize: 15,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.ACCENT,
     alignItems: "center",
     justifyContent: "center",

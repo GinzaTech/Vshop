@@ -373,7 +373,9 @@
       "hs": "HS%",
       "adr": "ADR",
       "acs": "ACS",
-      "trs": "TRS"
+      "trs": "TRS",
+      "rr_current": "RR hiện tại",
+      "rr_change": "RR thay đổi"
     },
     "result": {
       "win": "Thắng",
@@ -626,6 +628,9 @@
     "title": "Bạn bè",
     "subtitle": "Danh sách bạn bè và trạng thái trực tuyến.",
     "loading": "Đang tải bạn bè...",
+    "connection_error": "Không thể tải danh sách bạn bè Riot",
+    "connection_subtitle": "Hãy kiểm tra kết nối rồi thử lại. Danh sách cũ vẫn được giữ lại khi có thể.",
+    "retry": "Thử lại",
     "empty_title": "Không tìm thấy bạn bè",
     "empty_subtitle": "Hãy thêm bạn bè trong Riot client để thấy họ ở đây.",
     "online": "Trực tuyến",

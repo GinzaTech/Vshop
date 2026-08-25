@@ -1,16 +1,25 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Modal, Portal, Text, useTheme } from "react-native-paper";
+import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { create } from "zustand";
 import { CachedImage as Image } from "~/components/CachedImage";
 
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
 
 interface MediaVideoProps {
   onLoad: () => void;
   uri: string;
 }
+
+const IMAGE_URI_PATTERN = /\.(?:png|jpe?g|webp|avif)(?:[?#].*)?$/i;
 
 function MediaVideo({ onLoad, uri }: MediaVideoProps) {
   const player = useVideoPlayer(uri, (nextPlayer) => {
@@ -25,7 +34,7 @@ function MediaVideo({ onLoad, uri }: MediaVideoProps) {
       nativeControls={false}
       onFirstFrameRender={onLoad}
       player={player}
-      style={styles.media}
+      style={styles.mediaFill}
     />
   );
 }
@@ -74,8 +83,7 @@ export const useMediaPopupStore = create<IStore>((set) => ({
 // Sử dụng react-native-paper Portal + Modal.
 //
 // Local state:
-//   - loading (useState<boolean>): true khi media đang load, khởi tạo true
-//     Dùng để hiển thị "..." trên tab đang active trong lúc load
+//   - loading (useState<boolean>): điều khiển overlay nhỏ trong media frame
 //
 // Hook:
 //   - colors (useTheme): theme màu từ react-native-paper
@@ -96,6 +104,7 @@ function MediaPopup() {
   const hideMediaPopup = useMediaPopupStore((state) => state.hideMediaPopup);
   const [loading, setLoading] = useState(true);
   const { colors } = useTheme();
+  const activeUri = uris[selectedIndex];
 
   useEffect(() => {
     setLoading(true);
@@ -106,7 +115,9 @@ function MediaPopup() {
       <Modal
         visible={uris.length > 0}
         onDismiss={hideMediaPopup}
+        style={styles.modal}
         contentContainerStyle={styles.modalContainer}
+        theme={{ colors: { backdrop: COLORS.MODAL_BACKDROP } }}
       >
         {/*
           ── sheet ──────────────────────────────────────────────────────────────
@@ -123,26 +134,34 @@ function MediaPopup() {
             hoặc video (expo-av Video) nếu không phải ảnh
             Video: shouldPlay, isLooping, isMuted=false, resizeMode CONTAIN
             */}
-          {uris.length > 0 &&
-            (uris[selectedIndex].endsWith(".png") ||
-            uris[selectedIndex].endsWith(".jpg") ? (
-              <Image
-                cacheId={cacheIds[selectedIndex]}
-                style={styles.media}
-                contentFit="contain"
-                source={{ uri: uris[selectedIndex] }}
-                cachePolicy="memory-disk"
-                priority="high"
-                recyclingKey={uris[selectedIndex]}
-                onLoadStart={() => setLoading(true)}
-                onLoad={() => setLoading(false)}
-              />
-            ) : (
-              <MediaVideo
-                uri={uris[selectedIndex]}
-                onLoad={() => setLoading(false)}
-              />
-            ))}
+          <View style={styles.mediaFrame}>
+            {activeUri &&
+              (IMAGE_URI_PATTERN.test(activeUri) ? (
+                <Image
+                  cacheId={cacheIds[selectedIndex]}
+                  style={styles.mediaFill}
+                  contentFit="contain"
+                  source={{ uri: activeUri }}
+                  cachePolicy="memory-disk"
+                  priority="high"
+                  recyclingKey={activeUri}
+                  transition={140}
+                  onLoadStart={() => setLoading(true)}
+                  onLoad={() => setLoading(false)}
+                  onError={() => setLoading(false)}
+                />
+              ) : (
+                <MediaVideo
+                  uri={activeUri}
+                  onLoad={() => setLoading(false)}
+                />
+              ))}
+            {loading ? (
+              <View pointerEvents="none" style={styles.loadingOverlay}>
+                <ActivityIndicator color={COLORS.ACCENT_DEEP} />
+              </View>
+            ) : null}
+          </View>
 
           {/*
             ── footer ───────────────────────────────────────────────────────────
@@ -150,20 +169,46 @@ function MediaPopup() {
             Mỗi tab là một nút tròn đánh số thứ tự, active thì nền đen chữ trắng
             */}
           <View style={styles.footer}>
-            <Text style={[styles.title, { color: colors.onSurface }]}>{text}</Text>
+            <View style={styles.titleRow}>
+              <Text
+                numberOfLines={2}
+                style={[styles.title, { color: colors.onSurface }]}
+              >
+                {text}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close media viewer"
+                hitSlop={8}
+                onPress={hideMediaPopup}
+                style={({ pressed }) => [
+                  styles.closeButton,
+                  pressed && styles.closeButtonPressed,
+                ]}
+              >
+                <Icon name="close" size={22} color={COLORS.TEXT_PRIMARY} />
+              </Pressable>
+            </View>
 
-            <View style={styles.tabs}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabs}
+            >
               {uris.map((uri, index) => {
                 const active = index === selectedIndex;
                 return (
                   <View key={uri} style={styles.tabWrap}>
-                    <TouchableOpacity
-                      activeOpacity={0.85}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Media ${index + 1}`}
+                      accessibilityState={{ selected: active }}
                       onPress={() => setSelectedIndex(index)}
-                      style={[
-                        styles.tabButton,
-                        active && styles.tabButtonActive,
-                      ]}
+                      style={({ pressed }) => [
+                          styles.tabButton,
+                          active && styles.tabButtonActive,
+                          pressed && styles.tabButtonPressed,
+                        ]}
                     >
                       <Text
                         style={[
@@ -171,13 +216,13 @@ function MediaPopup() {
                           active && styles.tabButtonLabelActive,
                         ]}
                       >
-                        {active && loading ? "..." : index + 1}
+                        {index + 1}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 );
               })}
-            </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -187,20 +232,26 @@ function MediaPopup() {
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  modal: {
+    justifyContent: "flex-end",
+  },
   // modalContainer: căn giữa modal, padding ngang 16
   modalContainer: {
-    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: 720,
+    alignSelf: "center",
   },
   // sheet: panel chính, full width, bo góc 28, nền SURFACE, border BORDER
   sheet: {
     width: "100%",
-    borderRadius: 28,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
     backgroundColor: COLORS.SURFACE,
-    padding: 16,
+    padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
+    ...SHADOWS.lg,
   },
   // handle: thanh kéo (drag handle) dạng hình chữ nhật bo tròn, căn giữa
   handle: {
@@ -211,28 +262,54 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.BORDER,
     marginBottom: 14,
   },
-  // media: khung media tỷ lệ 16:9, full width, bo góc card, nền muted
-  media: {
+  mediaFrame: {
     aspectRatio: 16 / 9,
     width: "100%",
     borderRadius: RADIUS.card,
     backgroundColor: COLORS.SURFACE_MUTED,
+    overflow: "hidden",
+  },
+  mediaFill: {
+    ...StyleSheet.absoluteFill,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(236, 238, 240, 0.76)",
   },
   // footer: khoảng cách phía trên cho footer
   footer: {
     marginTop: 14,
+  },
+  titleRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
   },
   // title: tiêu đề popup, 18px, bold 700, viết hoa chữ đầu
   title: {
     fontSize: 18,
     fontWeight: "700",
     textTransform: "capitalize",
+    flex: 1,
+  },
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.chip,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.SURFACE_MUTED,
+  },
+  closeButtonPressed: {
+    opacity: 0.7,
   },
   // tabs: hàng ngang các tab, flex wrap
   tabs: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     marginTop: 12,
+    paddingRight: SPACING.md,
   },
   // tabWrap: wrapper từng tab, margin phải và dưới
   tabWrap: {
@@ -255,6 +332,9 @@ const styles = StyleSheet.create({
   tabButtonActive: {
     backgroundColor: COLORS.PURE_BLACK,
     borderColor: COLORS.PURE_BLACK,
+  },
+  tabButtonPressed: {
+    opacity: 0.72,
   },
   // tabButtonLabel: text tab, primary, bold 700
   tabButtonLabel: {

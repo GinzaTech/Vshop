@@ -125,6 +125,8 @@ export type MatchHistoryItem = {
   acs: number;
   trs?: number;
   trsTierIconUrl?: string;
+  rrAfter?: number;
+  rrChange?: number;
 };
 
 export type DailyMatchSummary = {

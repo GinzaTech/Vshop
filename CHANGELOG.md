@@ -6,6 +6,43 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-08-25
+
+### Fixed
+
+- Removed the authenticated-tab cross-fade that composited the previous screen under the next one and made Android card elevation appear as a blurred grey ghost.
+- Anchored the direct-chat composer to a flexing message list, added keyboard-safe list interaction, and changed Android's native keyboard mode from pan to resize.
+- Deferred Match Session content until its landscape lock has completed and the viewport has settled, preventing the transient white band during rotation.
+- Reworked the launch hand-off: a branded VShop native splash now leads directly into a matching app shell with inline progress and a profile-shaped skeleton; the native image no longer remains while bootstrap work runs.
+- Replaced the red launcher treatment with a slate-grey, enlarged VShop cart mark; raised Android `versionCode` to 83 and iOS `buildNumber` to 35 for the required native release.
+- Startup and foreground recovery now wait for the complete authenticated snapshot (client config, shop, balances, profile warm cache and match history) before presenting the app, and re-open Riot chat after session recovery.
+- Reworked startup into a cache-first flow with a matching light native splash and an immediate app-shell skeleton instead of blocking navigation on the initial Riot sync.
+- Prevented the authenticated bottom navigation from covering scroll content, reduced its shadow/selected target and kept modal interactions above it.
+- Rebuilt the skin media viewer as an accessible bottom sheet with a stronger backdrop, fixed-size loading state, image crossfade and horizontally scrolling variant controls.
+- Corrected duplicated top safe-area padding in Chat, Match Detail and History, and kept the Chat composer above the keyboard and bottom inset.
+- Match-history cards now preserve and show the RR after each competitive match together with the exact RR gain or loss returned by Riot.
+- The Profile navigation now keeps the Loadout view dark with light icons, switches to a light bar with dark icons in Player Info, and leaves the area beneath it transparent.
+- The Friends screen now requests a fresh Riot roster every time it is opened, retries broken chat sockets, preserves cached friends during transient failures, and exposes an explicit retry state.
+- The Store countdown now shares the same row, height and vertical alignment as the All Skins and Wishlist filters.
+- Standardized Profile, Shop, Utilities, Friends and Equipment density, card hierarchy, touch targets and narrow-screen overflow behavior.
+
+### Changed
+
+- Added shared spacing, typography, layout, status-color and elevation tokens; ordinary cards now use a lightweight tonal surface instead of per-card blur.
+
+### Validation
+
+- `pnpm run check` — typecheck and lint passing; 9/9 suites and 84/84 tests passing with 100% measured coverage.
+- Android production export — 2,667 modules and 38 assets bundled successfully.
+- EAS Update production group `83d9d6db-3ac0-4bde-a2ec-dcb544f2d411` published for runtime `4.1.1` before the native runtime bump.
+
+### Build metadata
+
+- App/runtime version: `4.1.2`
+- Android version code: `83`
+- iOS build number: `35`
+- Distribution: EAS production APK and GitHub Release asset `vshop.apk`.
+
 ## [4.1.1 OTA 2] - 2026-08-22
 
 ### Changed
@@ -183,6 +220,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - iOS build number: `30`
 - Production profile: `eas build --profile production --platform android`
 
+[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.2...HEAD
+[4.1.2]: https://github.com/GinzaTech/Vshop/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/GinzaTech/Vshop/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/GinzaTech/Vshop/compare/v4.0.4...v4.1.0
 [4.0.4]: https://github.com/GinzaTech/Vshop/compare/V4.0.3...v4.0.4

@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: 20,
-    paddingBottom: 140,
+    paddingBottom: 32,
   },
   // Header (PageIntro): margin trên 6, dưới 18
   header: {

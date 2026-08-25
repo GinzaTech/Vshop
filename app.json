@@ -2,12 +2,12 @@
   "expo": {
     "name": "VShop",
     "slug": "vshop",
-    "version": "4.1.1",
+    "version": "4.1.2",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "orientation": "default",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon-v2.png",
     "scheme": "vshop",
     "userInterfaceStyle": "automatic",
     "updates": {
@@ -16,11 +16,11 @@
     },
     "ios": {
       "bundleIdentifier": "dev.vasc.vshop",
-      "buildNumber": "33",
+      "buildNumber": "35",
       "supportsTablet": true
     },
     "android": {
-      "softwareKeyboardLayoutMode": "pan",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#2f343b"
@@ -29,7 +29,7 @@
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "package": "com.android.vshop",
-      "versionCode": 81
+      "versionCode": 83
     },
     "web": {
       "bundler": "metro",
@@ -70,9 +70,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash.png",
+          "image": "./assets/images/splash-v3.png",
           "resizeMode": "contain",
-          "backgroundColor": "#2f343b"
+          "backgroundColor": "#f4f6f9"
         }
       ],
       "expo-status-bar",

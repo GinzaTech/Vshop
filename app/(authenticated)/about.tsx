@@ -311,7 +311,7 @@ export default function AboutScreen() {
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.BACKGROUND },
-  content: { padding: 20, paddingBottom: 140 },
+  content: { padding: 20, paddingBottom: 32 },
 
   // Loading
   centered: {

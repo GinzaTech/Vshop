@@ -1,15 +1,14 @@
-// ====== GlassCard – Thẻ kính với hiệu ứng mờ (blur) dạng glassmorphism ======
-// Hiển thị một khối nội dung có nền trong suốt kết hợp hiệu ứng làm mờ phía sau,
-// tạo cảm giác "kính mờ" giống giao diện Valorant / hiện đại.
+// ====== GlassCard – Shared tonal surface ======
+// Tên component được giữ để tương thích; nền dùng surface tĩnh thay vì blur
+// nhằm giảm overdraw và giữ độ tương phản ổn định trên Android.
 
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, ViewProps } from "react-native";
-import { BlurView } from "expo-blur";
 import Animated, {
     FadeInDown,
     ReduceMotion,
 } from "react-native-reanimated";
-import { GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
+import { GLOBAL_STYLES, RADIUS, SHADOWS } from "~/constants/DesignSystem";
 
 /**
  * Định nghĩa props cho component GlassCard.
@@ -19,34 +18,27 @@ import { GLOBAL_STYLES, RADIUS } from "~/constants/DesignSystem";
  * @param style – (tuỳ chọn) Style ghi đè lên khung ngoài của thẻ.
  * @param contentStyle – (tuỳ chọn) Style ghi đè lên vùng chứa nội dung bên trong.
  * @param children – Nội dung ReactNode được render bên trong thẻ.
- * @param intensity – (mặc định 18) Mức độ làm mờ của BlurView (0–100).
- * @param tint    – (mặc định "light") Màu sắc của hiệu ứng mờ: "light" | "dark" | "default".
  */
 interface GlassCardProps extends ViewProps {
     style?: StyleProp<ViewStyle>;
     contentStyle?: StyleProp<ViewStyle>;
     children: React.ReactNode;
-    intensity?: number;
-    tint?: "light" | "dark" | "default";
     animated?: boolean;
 }
 
 /**
  * GlassCard Component
  *
- * - Bọc nội dung bên trong một `View` (container) và một `BlurView` trải đều toàn bộ.
- * - `BlurView` tạo hiệu ứng kính mờ với intensity và tint do người dùng chỉ định.
+ * - Bọc nội dung trong surface có border và shadow cấp `xs`.
  * - `contentStyle` cho phép tuỳ chỉnh padding / layout riêng của phần nội dung.
  *
  * @param props – Xem interface GlassCardProps ở trên.
- * @returns Một View chứa BlurView + nội dung con.
+ * @returns Một tonal surface chứa nội dung con.
  */
 export default function GlassCard({
     style,
     contentStyle,
     children,
-    intensity = 18,
-    tint = "light",
     animated = false,
     ...props
 }: GlassCardProps) {
@@ -57,14 +49,12 @@ export default function GlassCard({
                 style={[styles.container, style]}
                 {...props}
             >
-                <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
                 <View style={[styles.content, contentStyle]}>{children}</View>
             </Animated.View>
         );
     }
     return (
         <View style={[styles.container, style]} {...props}>
-            <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
             <View style={[styles.content, contentStyle]}>{children}</View>
         </View>
     );
@@ -76,7 +66,7 @@ export default function GlassCard({
  * container:
  *   - Kế thừa GLOBAL_STYLES.glassContainer (nền trắng, viền, overflow hidden)
  *   - borderRadius = RADIUS.card (24) – bo góc mềm mại
- *   - Kế thừa GLOBAL_STYLES.shadow – đổ bóng (dùng boxShadow trên web, shadow RN trên mobile)
+ *   - Dùng shadow cấp `xs` để tránh quầng xám quanh card
  *   - flexShrink: 1 – cho phép co lại khi không đủ không gian
  *
  * content:
@@ -87,7 +77,7 @@ const styles = StyleSheet.create({
     container: {
         ...GLOBAL_STYLES.glassContainer,
         borderRadius: RADIUS.card,
-        ...GLOBAL_STYLES.shadow,
+        ...SHADOWS.xs,
         flexShrink: 1,
     },
     content: {

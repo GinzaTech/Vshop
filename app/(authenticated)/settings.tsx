@@ -215,6 +215,9 @@ function Settings() {
       onPress={onPress}
       style={[styles.row, compact && styles.rowCompact]}
       disabled={!onPress}
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: !onPress }}
     >
       <View style={[styles.rowLeft, compact && styles.rowLeftCompact]}>
         <View
@@ -409,7 +412,7 @@ const styles = StyleSheet.create({
   // content – Padding cho ScrollView
   content: {
     padding: 20,
-    paddingBottom: 140,
+    paddingBottom: 32,
   },
   // hero – Container tiêu đề
   hero: {
@@ -434,31 +437,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   // shortcutCard – Một card shortcut
   shortcutCard: {
     width: "48%",
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 24,
+    minHeight: 112,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: RADIUS.card,
     backgroundColor: COLORS.SURFACE,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
   },
   // shortcutIcon – Icon trong card shortcut
   shortcutIcon: {
-    width: 42,
-    height: 42,
+    width: 38,
+    height: 38,
     borderRadius: RADIUS.chip,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.SURFACE_MUTED,
-    marginBottom: 18,
+    marginBottom: 12,
   },
   // shortcutLabel – Label của shortcut
   shortcutLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.TEXT_PRIMARY,
   },
@@ -471,7 +475,7 @@ const styles = StyleSheet.create({
   },
   // card – Margin bottom cho GlassCard
   card: {
-    marginBottom: 22,
+    marginBottom: 20,
   },
   // row – Một hàng trong card settings
   row: {

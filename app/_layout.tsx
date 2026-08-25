@@ -159,8 +159,10 @@ function RootLayout() {
   const topInsetTone = useSystemChromeStore((state) => state.topInsetTone);
   const topInsetProgress = useSharedValue(topInsetTone === "dark" ? 1 : 0);
   const bootstrappedRef = useRef(false);
+  const nativeSplashHiddenRef = useRef(false);
   const touchSequenceRef = useRef(0);
   const [isPreloading, setIsPreloading] = useState(true);
+  const [startupMessage, setStartupMessage] = useState("Preparing your VShop");
   const demoValue = Array.isArray(demo) ? demo[0] : demo;
   const allowMatchDemo =
     __DEV__ &&
@@ -180,6 +182,20 @@ function RootLayout() {
       MOTION_TIMING.standard,
     );
   }, [topInsetProgress, topInsetTone]);
+
+  // The native splash is only a launch hand-off. Once persisted state is
+  // ready, reveal the branded React shell immediately instead of holding the
+  // user on a static grey icon while AsyncStorage/bootstrap work continues.
+  useEffect(() => {
+    if (!hydrated || nativeSplashHiddenRef.current) return;
+
+    const hideTimer = setTimeout(() => {
+      nativeSplashHiddenRef.current = true;
+      void SplashScreen.hideAsync();
+    }, 0);
+
+    return () => clearTimeout(hideTimer);
+  }, [hydrated]);
 
   const topInsetAnimatedStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
@@ -266,55 +282,57 @@ function RootLayout() {
         return;
       }
 
-      // Keep the single bootstrap overlay visible until session recovery and
-      // the initial API/cache synchronization have both settled.
-      if (sessionUser.accessToken && sessionUser.id) {
-        // Hiện loading screen ngay lập tức, ẩn splash
-        await SplashScreen.hideAsync();
+       // Keep the branded shell visible until every core authenticated source
+       // is ready. The user requested a complete, usable app rather than a
+       // cache-first screen that later fails when its APIs are stale.
+       if (sessionUser.accessToken && sessionUser.id) {
+        let syncUser = sessionUser;
+        let retryDelayMs = 1_500;
 
-        try {
-          let syncUser = sessionUser;
-          if (!canResumeUserSession(sessionUser, region)) {
-            syncUser = await renewAuthenticatedSession({
-              ...sessionUser,
-              region,
-            });
-            useUserStore.getState().setUser(syncUser);
-          }
+        while (!cancelled) {
+          try {
+            if (!canResumeUserSession(syncUser, region)) {
+              if (!cancelled) setStartupMessage("Restoring your Riot session");
+              syncUser = await renewAuthenticatedSession({ ...syncUser, region });
+              useUserStore.getState().setUser(syncUser);
+            }
 
-          await Promise.race([
-            syncAllData(syncUser, region),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error("sync_timeout")), 20_000)
-            ),
-          ]);
+            if (!cancelled) setStartupMessage("Loading your VShop data");
+            await syncAllData(syncUser, region);
 
-          if (!cancelled) {
-            router.replace("/profile");
-            setIsPreloading(false);
-          }
-        } catch (error) {
-          const isTimeout = error instanceof Error && error.message === "sync_timeout";
-          const latestToken = useUserStore.getState().user.accessToken;
-          const shouldKeepCachedSession =
-            isTimeout ||
-            isTransientNetworkError(error) ||
-            (!isRiotAuthenticationError(error) &&
-              hasReusableAccessToken(latestToken));
-
-          // Offline/timeout/server tạm lỗi không phải là logout. Giữ nguyên
-          // persisted session để AppWarmup tự recovery khi mạng trở lại.
-          if (shouldKeepCachedSession) {
             if (!cancelled) {
               router.replace("/profile");
               setIsPreloading(false);
             }
-          } else {
-            if (!cancelled) {
-              setUser({ ...defaultUser, region });
-              router.replace("/reauth");
-              setIsPreloading(false);
+            return;
+          } catch (error) {
+            if (cancelled) return;
+
+            if (isRiotAuthenticationError(error)) {
+              try {
+                setStartupMessage("Refreshing your Riot session");
+                syncUser = await renewAuthenticatedSession(
+                  useUserStore.getState().user
+                );
+                useUserStore.getState().setUser(syncUser);
+                continue;
+              } catch (renewError) {
+                if (
+                  !isTransientNetworkError(renewError) &&
+                  (isRiotAuthenticationError(renewError) ||
+                    !hasReusableAccessToken(useUserStore.getState().user.accessToken))
+                ) {
+                  setUser({ ...defaultUser, region });
+                  router.replace("/reauth");
+                  setIsPreloading(false);
+                  return;
+                }
+              }
             }
+
+            setStartupMessage("Waiting for Riot services…");
+            await new Promise<void>((resolve) => setTimeout(resolve, retryDelayMs));
+            retryDelayMs = Math.min(retryDelayMs * 2, 10_000);
           }
         }
         return;
@@ -442,7 +460,7 @@ function RootLayout() {
               zIndex: 1000,
             }}
           >
-            <LoadingScreen message="Loading data..." />
+            <LoadingScreen message={startupMessage} />
           </View>
         ) : null}
       </View>

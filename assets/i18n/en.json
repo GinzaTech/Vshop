@@ -291,7 +291,9 @@
       "hs": "HS%",
       "adr": "ADR",
       "acs": "ACS",
-      "trs": "TRS"
+      "trs": "TRS",
+      "rr_current": "Current RR",
+      "rr_change": "RR change"
     },
     "result": {
       "win": "Win",
@@ -631,6 +633,9 @@
     "title": "Friends",
     "subtitle": "Your friends list and online status.",
     "loading": "Loading friends...",
+    "connection_error": "Could not load Riot friends",
+    "connection_subtitle": "Check your connection and try again. Existing friends stay available when possible.",
+    "retry": "Retry",
     "empty_title": "No friends found",
     "empty_subtitle": "Add friends in the Riot client to see them here.",
     "online": "Online",

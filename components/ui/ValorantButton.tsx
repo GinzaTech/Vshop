@@ -1,5 +1,5 @@
 // ====== ValorantButton – Nút bấm phong cách Valorant ======
-// Hỗ trợ 3 biến thể: primary (đen full), secondary (viền + nền xám), glass (mờ kính).
+// Hỗ trợ 3 biến thể: primary, secondary và glass dạng tonal surface.
 // Tích hợp haptic feedback và flow tracking.
 
 import React from "react";
@@ -8,7 +8,6 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-na
 import * as Haptics from "expo-haptics";                       // Thư viện rung haptic (cảm ứng vật lý)
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { MOTION_SPRING } from "~/constants/Motion";
-import { BlurView } from "expo-blur";                           // Hiệu ứng mờ glassmorphism
 import { flowTracer } from "~/utils/flow-tracer";              // Công cụ theo dõi luồng sự kiện
 
 /**
@@ -19,7 +18,7 @@ import { flowTracer } from "~/utils/flow-tracer";              // Công cụ the
  * @param variant   – (mặc định "primary") "primary" | "secondary" | "glass".
  *                     - primary: nền đen, chữ trắng.
  *                     - secondary: nền SURFACE_MUTED, viền BORDER.
- *                     - glass: nền trong suốt với BlurView mờ.
+ *                     - glass: nền tonal bán trong suốt.
  * @param style     – (tuỳ chọn) Style ghi đè khung ngoài (TouchableOpacity).
  * @param textStyle – (tuỳ chọn) Style ghi đè chữ.
  * @param icon      – (tuỳ chọn) ReactNode hiển thị bên trái chữ.
@@ -37,12 +36,12 @@ interface ValorantButtonProps {
  * ValorantButton Component
  *
  * - Xử lý 3 biến thể với màu nền và viền khác nhau.
- * - Khi variant = "glass", bọc nội dung trong BlurView với độ mờ 20, tint dark.
+ * - Variant "glass" dùng tonal surface để tránh blur/overdraw trên Android.
  * - `handlePress`: track sự kiện qua flowTracer + kích hoạt haptic Light trước khi gọi onPress.
  * - `isGlass` là biến flag kiểm tra variant glass.
  *
  * @param props – Xem interface ValorantButtonProps.
- * @returns TouchableOpacity chứa nội dung nút (có thể bọc BlurView nếu glass).
+ * @returns Nút có phản hồi scale/haptic thống nhất.
  */
 export default function ValorantButton({
     title,
@@ -78,13 +77,13 @@ export default function ValorantButton({
     };
 
     // === Biến trạng thái (tính từ props) ===
-    // `isGlass`: boolean – xác định có dùng BlurView hay không.
+    // `isGlass`: boolean – xác định biến thể tonal glass.
     const isGlass = variant === "glass";
 
     // `backgroundColor`: màu nền theo variant.
     //   primary  → COLORS.PURE_BLACK (đen)
     //   secondary → COLORS.SURFACE_MUTED (xám nhạt)
-    //   glass    → "transparent" (trong suốt – BlurView sẽ đè lên)
+    //   glass    → "transparent" (content dùng tonal surface riêng)
     const backgroundColor =
         variant === "primary"
             ? COLORS.PURE_BLACK
@@ -138,13 +137,7 @@ export default function ValorantButton({
                 }}
                 style={[styles.container, style]}
             >
-                {isGlass ? (
-                    <BlurView intensity={20} tint="dark" style={styles.blur}>
-                        {Content}
-                    </BlurView>
-                ) : (
-                    Content
-                )}
+                {Content}
             </Pressable>
         </Animated.View>
     );
@@ -156,9 +149,6 @@ export default function ValorantButton({
  * container:
  *   - overflow: hidden – đảm bảo bo góc không bị tràn
  *   - borderRadius: RADIUS.button (22)
- *
- * blur:
- *   - borderRadius: RADIUS.button – giữ bo góc cho BlurView
  *
  * contentContainer:
  *   - paddingVertical 14, paddingHorizontal 20
@@ -174,9 +164,6 @@ export default function ValorantButton({
 const styles = StyleSheet.create({
     container: {
         overflow: "hidden",
-        borderRadius: RADIUS.button,
-    },
-    blur: {
         borderRadius: RADIUS.button,
     },
     contentContainer: {

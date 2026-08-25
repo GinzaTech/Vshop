@@ -180,7 +180,7 @@ export default function ContractsScreen() {
           ) : null}
         </View>
         {isComplete ? (
-          <Icon name="check-circle" size={20} color="#4ade80" />
+          <Icon name="check-circle" size={20} color={COLORS.SUCCESS} />
         ) : (
           <View style={styles.missionBarWrap}><View style={[styles.missionBarFill, { width: target && target > 0 ? `${(current / target) * 100}%` : "0%" }]} /></View>
         )}
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   // Màn hình: nền tối
   screen: { flex: 1, backgroundColor: COLORS.BACKGROUND },
   // Nội dung: padding 20, bottom 140
-  content: { padding: 20, paddingBottom: 140 },
+  content: { padding: 20, paddingBottom: 32 },
   // Centered: canh giữa (dùng cho loading)
   centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.BACKGROUND },
   loadingText: { marginTop: 12, color: COLORS.TEXT_SECONDARY, fontSize: 14 },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   missionIcon: { width: 38, height: 38, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.SURFACE_MUTED },
   missionInfo: { flex: 1, minWidth: 0 },
   missionId: { fontSize: 13, fontWeight: "800", color: COLORS.TEXT_PRIMARY },
-  missionComplete: { marginTop: 2, fontSize: 12, color: "#4ade80", fontWeight: "600" },
+  missionComplete: { marginTop: 2, fontSize: 12, color: COLORS.SUCCESS, fontWeight: "600" },
   missionProgress: { marginTop: 2, fontSize: 12, color: COLORS.TEXT_SECONDARY },
   // Thanh progress mission
   missionBarWrap: { width: 80, height: 6, borderRadius: 3, backgroundColor: COLORS.SURFACE_MUTED, overflow: "hidden" },

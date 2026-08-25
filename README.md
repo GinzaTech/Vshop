@@ -39,7 +39,9 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 # English
 
-## Release 4.1.1 highlights
+## Release 4.1.2 highlights
+
+- **Native production release (25 August 2026):** fixes cross-screen ghosting, rebuilds the startup hand-off, keeps Friends/chat connected with a fresh Riot roster on every open, corrects Profile navigation tones, and shows current RR plus match RR changes.
 
 - **Latest production OTA (22 August 2026):** primary tabs now mount on demand, freeze and detach while inactive; More shortcuts and accessory search expose stable accessibility/automation metadata; display-only accessory cards are no longer announced as buttons.
 - **Reliable primary navigation:** Bundle, Shop and More now keep a single Android interaction layer and preserve route parameters.
@@ -232,8 +234,10 @@ available in Expo Go or web builds.
   detail, history, combat, friends and reference screens are registered as
   hidden secondary routes.
 - `RootLayout` enforces portrait globally. `combat_session` temporarily acquires
-  landscape while focused and restores portrait during cleanup. The optional
-  native-module wrapper avoids crashing an older development client.
+  landscape while focused, waits for the landscape viewport before rendering its
+  dense session layout, and restores portrait during cleanup. Android uses
+  `adjustResize` so chat composers remain above the software keyboard. The
+  optional native-module wrapper avoids crashing an older development client.
 - Native/web variations use `.native.ts`, `.web.ts` and provider shims for
   cookies, background fetch and Stripe.
 
@@ -359,7 +363,9 @@ Install via QR code or APK from the Expo dashboard.
 
 # Tiếng Việt
 
-## Điểm nổi bật bản 4.1.1
+## Điểm nổi bật bản 4.1.2
+
+- **Bản native production (25/08/2026):** sửa bóng mờ khi chuyển màn, làm lại luồng khởi động, chủ động tải roster Riot mỗi lần mở Bạn bè để chat ổn định, sửa màu thanh điều hướng Profile và hiển thị RR hiện tại cùng mức RR thay đổi theo trận.
 
 - **OTA production mới nhất (22/08/2026):** tab chính chỉ mount khi dùng, được freeze và detach khi không hoạt động; shortcut trong More và ô tìm phụ kiện có metadata accessibility/automation ổn định; card phụ kiện chỉ hiển thị không còn bị đọc nhầm là nút bấm.
 - **Điều hướng chính ổn định:** Bundle, Shop và More chỉ giữ một lớp tương tác trên Android và bảo toàn tham số route.

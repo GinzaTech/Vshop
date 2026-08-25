@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 140,
+    paddingBottom: 32,
   },
   listContentEmpty: {
     flexGrow: 1,

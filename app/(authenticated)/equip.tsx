@@ -1,6 +1,6 @@
 // ===== Import thư viện =====
 import React from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { Searchbar } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 
@@ -92,15 +92,23 @@ const Equip = () => {
     <View style={styles.container}>
       {/* Searchbar: tìm kiếm trang bị */}
       <Searchbar placeholder={t("equipment_page.search_placeholder")} value={searchQuery}
-        onChangeText={setSearchQuery} style={styles.searchBar} inputStyle={styles.searchInput} iconColor={COLORS.TEXT_SECONDARY} />
+        onChangeText={setSearchQuery} style={styles.searchBar} inputStyle={styles.searchInput}
+        iconColor={COLORS.TEXT_SECONDARY} accessibilityLabel={t("equipment_page.search_placeholder")} />
 
       {/* Tab group: các section (melee, sidearm, smg, ...) */}
-      <View style={styles.tabGroup}>
-        {EQUIPMENT_SECTIONS.map((section, index) => {
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabScroller}
+        contentContainerStyle={styles.tabGroup}
+      >
+        {EQUIPMENT_SECTIONS.map((section) => {
           const isActive = section.key === activeSection;
           return (
             <TouchableOpacity key={section.key}
-              style={[styles.tabButton, isActive && styles.tabButtonActive, index === EQUIPMENT_SECTIONS.length - 1 && { marginRight: 0 }]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              style={[styles.tabButton, isActive && styles.tabButtonActive]}
               onPress={() => handleSectionPress(section.key)} activeOpacity={0.85}>
               <Text
                 style={[
@@ -114,7 +122,7 @@ const Equip = () => {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {/* Danh sách trang bị dạng lưới 2 cột, tối ưu render với các props */}
       <FlatList
@@ -148,17 +156,18 @@ const styles = StyleSheet.create({
   // Header (không dùng)
   header: { paddingHorizontal: 20, paddingTop: 16 },
   // Searchbar: margin ngang 20, trên 18, bo góc 22, nền SURFACE, viền BORDER
-  searchBar: { marginHorizontal: 20, marginTop: 18, borderRadius: 22, backgroundColor: COLORS.SURFACE, borderWidth: 1, borderColor: COLORS.BORDER, elevation: 0 },
+  searchBar: { height: 48, marginHorizontal: 20, marginTop: 16, borderRadius: RADIUS.button, backgroundColor: COLORS.SURFACE, borderWidth: 1, borderColor: COLORS.BORDER, elevation: 0 },
   searchInput: { fontSize: 16, color: COLORS.TEXT_PRIMARY },
   // Hàng tabs section
-  tabGroup: { flexDirection: "row", marginHorizontal: 20, marginTop: 14, marginBottom: 8 },
-  tabButton: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.chip, borderWidth: 1, borderColor: COLORS.BORDER, alignItems: "center", justifyContent: "center", marginRight: 8, backgroundColor: COLORS.SURFACE },
+  tabScroller: { flexGrow: 0, marginTop: 12 },
+  tabGroup: { paddingHorizontal: 20, paddingBottom: 8, gap: 8 },
+  tabButton: { minHeight: 40, minWidth: 84, paddingHorizontal: 14, borderRadius: RADIUS.chip, borderWidth: 1, borderColor: COLORS.BORDER, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.SURFACE },
   tabButtonActive: { backgroundColor: COLORS.PURE_BLACK, borderColor: COLORS.PURE_BLACK },
   tabLabel: { fontSize: 13, fontWeight: "600", color: COLORS.TEXT_SECONDARY },
   tabLabelCompact: { fontSize: 11, lineHeight: 14 },
   tabLabelActive: { color: COLORS.PURE_WHITE },
   // Nội dung danh sách
-  listContent: { paddingHorizontal: 12, paddingBottom: 40, paddingTop: 16 },
+  listContent: { paddingHorizontal: 12, paddingBottom: 32, paddingTop: 8 },
   listColumn: { justifyContent: "space-between" },
   // Empty state
   emptyState: { marginTop: 64, marginHorizontal: 20 },

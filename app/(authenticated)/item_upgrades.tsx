@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
   // content – Padding cho nội dung FlatList, gap 12 giữa các item
   content: {
     padding: 20,
-    paddingBottom: 140,
+    paddingBottom: 32,
     gap: 12,
   },
   // centered – Trung tâm màn hình (dùng cho loading/empty)

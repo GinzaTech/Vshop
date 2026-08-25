@@ -131,26 +131,24 @@ export async function syncAllData(
   useUserStore.getState().setUser(authUser);
 
   // --- Bước 3: Fetch các nguồn còn lại bằng credentials vừa được làm mới ---
-  const [clientConfigResult, matchResult, profileResult] =
-    await Promise.allSettled([
-      getRiotClientConfig(
-        authUser.accessToken,
-        authUser.entitlementsToken
-      ),
-      useMatchStore.getState().fetchMatches(authUser),
-      fetchProfileWarmCache(authUser),
-    ]);
+  const [clientConfig, , profileCache] = await Promise.all([
+    getRiotClientConfig(authUser.accessToken, authUser.entitlementsToken),
+    useMatchStore.getState().fetchMatches(authUser),
+    fetchProfileWarmCache(authUser),
+  ]);
 
-  const clientConfigLoaded =
-    clientConfigResult.status === "fulfilled" &&
-    clientConfigResult.value !== null;
+  if (!clientConfig) {
+    throw new Error("Riot client configuration is unavailable");
+  }
+
+  if (!profileCache) {
+    throw new Error("Profile warm cache is unavailable");
+  }
 
   // Profile warmup is part of the startup sync. Persist its result before
   // navigating to Profile so that screen can render immediately from cache
   // instead of repeating loadout, ownership and MMR requests.
-  if (profileResult.status === "fulfilled" && profileResult.value) {
-    useProfileCacheStore.getState().setProfileCache(profileResult.value);
-  }
+  useProfileCacheStore.getState().setProfileCache(profileCache);
 
   // --- Bước 3: Diff dữ liệu mới vs cache ---
   const shopsChanged =
@@ -190,13 +188,9 @@ export async function syncAllData(
     freshMatches.map((m) => ({ MatchID: m.MatchID }))
   );
 
-  // buildAuthenticatedUser đã đồng bộ shop/balances. Chỉ đánh dấu matches khi
-  // request match thực sự hoàn tất để reconnect có thể retry nếu nó thất bại.
-  markSynced(
-    matchResult.status === "fulfilled"
-      ? ["shop", "balances", "matches"]
-      : ["shop", "balances"]
-  );
+  // Startup/resume only completes after every core source is available. This
+  // prevents a half-valid session from entering the app with dead API actions.
+  markSynced(["shop", "balances", "matches"]);
 
   const report: SyncReport = {
     userChanged,
@@ -205,7 +199,7 @@ export async function syncAllData(
     balancesChanged,
     nameChanged,
     matchesChanged,
-    clientConfigLoaded,
+    clientConfigLoaded: true,
     durationMs: Date.now() - startTime,
   };
 

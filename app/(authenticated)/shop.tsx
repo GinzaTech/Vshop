@@ -92,48 +92,50 @@ function Shop() {
         </View>
       </View>
 
-      {/* Bộ lọc: All / Wishlist */}
-      <View style={styles.chips}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={[styles.chip, mode === "all" && styles.chipActive]}
-          onPress={() => setMode("all")}
-        >
-          <Text style={[styles.chipLabel, mode === "all" && styles.chipLabelActive]}>
-            {t("shop_page.filters.all")}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={[styles.chip, mode === "wishlist" && styles.chipActive]}
-          onPress={() => setMode("wishlist")}
-        >
-          <View style={styles.chipWishlistContent}>
-            <Icon
-              name={mode === "wishlist" ? "heart" : "heart-outline"}
-              size={16}
-              color={mode === "wishlist" ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={[styles.chipLabel, mode === "wishlist" && styles.chipLabelActive]}>
-              {t("shop_page.filters.wishlist")}
+      {/* Bộ lọc và countdown dùng chung baseline để không bị lệch hàng. */}
+      <View style={styles.filterBar}>
+        <View style={styles.filterOptions}>
+          <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityState={{ selected: mode === "all" }}
+            activeOpacity={0.85}
+            style={[styles.chip, mode === "all" && styles.chipActive]}
+            onPress={() => setMode("all")}
+          >
+            <Text style={[styles.chipLabel, mode === "all" && styles.chipLabelActive]}>
+              {t("shop_page.filters.all")}
             </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
 
-      {/* Metric row: balance VP + countdown */}
-      <View style={styles.metricRow}>
-        <InfoPill style={[styles.metricPill, styles.balanceMetricPill]}>
-          <View style={styles.metricValueWrapper}>
-            <Text style={styles.metricIconText}>Ⓢ</Text>
-            <Text style={styles.metricValue}>{user.balances.vp}</Text>
-          </View>
-        </InfoPill>
+          <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityState={{ selected: mode === "wishlist" }}
+            activeOpacity={0.85}
+            style={[styles.chip, mode === "wishlist" && styles.chipActive]}
+            onPress={() => setMode("wishlist")}
+          >
+            <View style={styles.chipWishlistContent}>
+              <Icon
+                name={mode === "wishlist" ? "heart" : "heart-outline"}
+                size={15}
+                color={mode === "wishlist" ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={[styles.chipLabel, mode === "wishlist" && styles.chipLabelActive]}>
+                {t("shop_page.filters.wishlist")}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <InfoPill style={styles.metricPill}>
-          <Icon name="clock-outline" size={18} color={COLORS.TEXT_PRIMARY} style={{ marginRight: 4 }} />
-          <Countdown timestamp={timestamp} />
+          <Icon name="clock-outline" size={15} color={COLORS.TEXT_PRIMARY} />
+          <Countdown
+            timestamp={timestamp}
+            compact
+            showIcon={false}
+            textStyle={styles.countdownText}
+          />
         </InfoPill>
       </View>
 
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: 20,
-    paddingBottom: 140,
+    paddingBottom: 32,
   },
   // headerRow – Hàng header (avatar + balance)
   headerRow: {
@@ -265,16 +267,24 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: COLORS.TEXT_PRIMARY,
   },
-  // chips – Hàng chứa các chip filter
-  chips: {
+  // filterBar – Filter và countdown cùng một hàng, cùng chiều cao.
+  filterBar: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 24,
   },
+  filterOptions: {
+    flexDirection: "row",
+    flexShrink: 1,
+    gap: 6,
+  },
   // chip – Chip filter mặc định
   chip: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: COLORS.SURFACE,
     borderWidth: 1,
@@ -300,17 +310,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  // metricRow – Hàng thông số (balance + countdown)
-  metricRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 28,
-  },
   // metricPill – Pill thông số
   metricPill: {
-    flex: 1,
-    minHeight: 48,
+    minHeight: 44,
+    height: 44,
+    marginLeft: "auto",
+    paddingHorizontal: 10,
+    gap: 4,
     borderRadius: 999,
     shadowColor: COLORS.PURE_BLACK,
     shadowOffset: { width: 0, height: 2 },
@@ -318,35 +324,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  // balanceMetricPill – Pill balance (nền xanh đậm Valorant)
-  balanceMetricPill: {
-    backgroundColor: COLORS.VALORANT_DARK_BLUE,
-    borderColor: "rgba(255,255,255,0.04)",
-  },
-  // metricValueWrapper – Wrapper icon + số VP
-  metricValueWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  // metricIconText – Icon Ⓢ trong metric
-  metricIconText: {
-    fontSize: 12,
-    fontWeight: "900",
-    color: COLORS.PURE_WHITE,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: COLORS.PURE_WHITE,
-    borderRadius: 6,
-    width: 14,
-    height: 14,
-    textAlign: "center",
-    lineHeight: 12,
-  },
-  // metricValue – Số VP
-  metricValue: {
-    color: COLORS.PURE_WHITE,
-    fontWeight: "800",
-    fontSize: 16,
+  countdownText: {
+    fontSize: 11,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
   },
   // todayShopHeader – Header "Today's shop"
   todayShopHeader: {

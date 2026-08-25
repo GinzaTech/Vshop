@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     margin: 6,        // Khoảng cách giữa các card
   },
   card: {
-    minHeight: 248,
+    minHeight: 220,
     borderRadius: RADIUS.card,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   visualFrame: {
     width: "100%",
-    height: 142,
+    height: 128,
     borderRadius: RADIUS.button,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
@@ -216,12 +216,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   content: {
-    minHeight: 76,
+    minHeight: 70,
     paddingHorizontal: 4,
     paddingTop: 12,
   },
   title: {
-    minHeight: 40,
+    minHeight: 38,
     color: COLORS.TEXT_PRIMARY,
     fontSize: 15,
     fontWeight: "700",

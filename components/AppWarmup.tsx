@@ -25,7 +25,8 @@ import {
   renewAuthenticatedSession,
   shouldProactivelyRefreshToken,
 } from "~/utils/auth-session";
-import { fullBackgroundSync, refreshShopAndBalances } from "~/utils/app-sync";
+import { refreshShopAndBalances } from "~/utils/app-sync";
+import { syncAllData } from "~/utils/data-sync";
 import { getEntitlementsToken } from "~/utils/valorant-api";
 import {
   isRiotAuthenticationError,
@@ -234,7 +235,6 @@ export default function AppWarmup() {
       if (recoveryInFlight) return recoveryInFlight;
 
       const recoveryTask = (async () => {
-        const wasConnected = lastConnected;
         const network = await getNetworkProfile({ force: true });
         lastConnected = network.isConnected;
         if (!network.isConnected || cancelled) return;
@@ -285,11 +285,24 @@ export default function AppWarmup() {
               : recoveredUser;
 
           store.setUser(nextUser);
-          await fullBackgroundSync(
-            mustRenewAccessToken ||
-              wasConnected === false ||
-              reason !== "foreground"
-          );
+          // A process resumed after a long background interval can have a
+          // live-looking token but stale sockets/config. Rebuild the complete
+          // authenticated snapshot before allowing later actions to use it.
+          await syncAllData(nextUser, nextUser.region);
+
+          if (
+            Platform.OS !== "web" &&
+            NativeModules.TcpSockets &&
+            useChatStore.getState().status === "disconnected"
+          ) {
+            const refreshedUser = useUserStore.getState().user;
+            await initChatService(
+              refreshedUser.accessToken,
+              refreshedUser.entitlementsToken,
+              refreshedUser.region,
+              refreshedUser.id
+            );
+          }
           lastSuccessfulRecoveryAt = Date.now();
 
           if (__DEV__) {

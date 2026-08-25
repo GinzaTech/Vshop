@@ -51,6 +51,14 @@ const Metric = ({ label, value }: MetricProps) => (
   </View>
 );
 
+const formatRr = (value: number | undefined) =>
+  value === undefined ? "--" : `${value} RR`;
+
+const formatRrChange = (value: number | undefined) => {
+  if (value === undefined) return "--";
+  return `${value > 0 ? "+" : ""}${value} RR`;
+};
+
 function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -67,7 +75,18 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
     : isWin
       ? t("match_ui.result.win")
       : t("match_ui.result.loss");
-  const accessibilityLabel = `${resultLabel}, ${match.mapName}, ${match.teamScore} to ${match.opponentScore}, ${match.kills} kills, ${match.deaths} deaths, ${match.assists} assists`;
+  const hasRankedRating =
+    match.rrAfter !== undefined || match.rrChange !== undefined;
+  const rrChangeColor =
+    match.rrChange === undefined || match.rrChange === 0
+      ? MATCH_COLORS.textMuted
+      : match.rrChange > 0
+        ? MATCH_COLORS.win
+        : MATCH_COLORS.loss;
+  const rrSummary = hasRankedRating
+    ? `, ${t("match_ui.metrics.rr_current")} ${formatRr(match.rrAfter)}, ${t("match_ui.metrics.rr_change")} ${formatRrChange(match.rrChange)}`
+    : "";
+  const accessibilityLabel = `${resultLabel}, ${match.mapName}, ${match.teamScore} to ${match.opponentScore}, ${match.kills} kills, ${match.deaths} deaths, ${match.assists} assists${rrSummary}`;
 
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(
@@ -157,8 +176,21 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
             >
               {match.mapName}
             </Text>
-            <Text style={styles.metaLabel}>{t("match_ui.metrics.acs")}</Text>
-            <Text style={styles.metaValue}>{formatMetric(match.acs)}</Text>
+            {hasRankedRating ? (
+              <View style={styles.rrBlock}>
+                <Text style={styles.metaLabel}>{t("match_ui.metrics.rr_current")}</Text>
+                <Text style={styles.metaValue}>{formatRr(match.rrAfter)}</Text>
+                <Text style={styles.rrChangeLabel}>{t("match_ui.metrics.rr_change")}</Text>
+                <Text style={[styles.rrChangeValue, { color: rrChangeColor }]}>
+                  {formatRrChange(match.rrChange)}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.rrBlock}>
+                <Text style={styles.metaLabel}>{t("match_ui.metrics.acs")}</Text>
+                <Text style={styles.metaValue}>{formatMetric(match.acs)}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -337,6 +369,21 @@ const styles = StyleSheet.create({
     color: MATCH_COLORS.textPrimary,
     fontSize: 12,
     fontWeight: "800",
+  },
+  rrBlock: {
+    marginTop: MATCH_SPACING.sm,
+    alignItems: "flex-end",
+  },
+  rrChangeLabel: {
+    marginTop: MATCH_SPACING.xs,
+    color: MATCH_COLORS.textMuted,
+    fontSize: 9,
+    fontWeight: "700",
+  },
+  rrChangeValue: {
+    marginTop: 1,
+    fontSize: 12,
+    fontWeight: "900",
   },
   metricsRow: {
     flexDirection: "row",

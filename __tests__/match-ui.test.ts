@@ -2,6 +2,7 @@ import type { MatchHistoryRecord } from "~/types/match-ui";
 import {
   createMatchAssetCatalog,
   enrichMatchHistoryAssets,
+  toMatchHistoryItem,
 } from "~/utils/match-ui";
 
 jest.mock("~/utils/valorant-assets", () => ({
@@ -101,5 +102,23 @@ describe("enrichMatchHistoryAssets", () => {
     const [unchanged] = enrichMatchHistoryAssets([enriched], catalog);
 
     expect(unchanged).toBe(enriched);
+  });
+});
+
+describe("toMatchHistoryItem", () => {
+  it("preserves current RR and the RR change for a competitive match", () => {
+    const item = toMatchHistoryItem({
+      ...cachedRecord,
+      stats: {
+        ...cachedRecord.stats!,
+        rrAfter: 62,
+        rrEarned: -16,
+      },
+    });
+
+    expect(item).toMatchObject({
+      rrAfter: 62,
+      rrChange: -16,
+    });
   });
 });

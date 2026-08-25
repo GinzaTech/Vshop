@@ -17,14 +17,14 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Reanimated, {
   interpolate,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup from "~/components/popups/MediaPopup";
-import { COLORS, GLOBAL_STYLES } from "~/constants/DesignSystem";
+import { COLORS, SHADOWS } from "~/constants/DesignSystem";
+import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import { flowTracer } from "~/utils/flow-tracer";
 import { MOTION_TIMING } from "~/constants/Motion";
@@ -93,6 +93,9 @@ export const PRIMARY_TAB_SCREEN_OPTIONS = {
 export function FloatingTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
+  const primaryNavigationTone = useSystemChromeStore(
+    (chrome) => chrome.primaryNavigationTone,
+  );
   const hasNightMarketItems = useUserStore(
     ({ user }) => user.shops.nightMarket.length > 0
   );
@@ -141,11 +144,13 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
   // ── Sliding tab indicator ──
   // Mỗi tab dùng flex: 1 nên chia đều content width; indicator dịch chuyển theo index.
   const TAB_PADDING_H = 18; // = paddingHorizontal của expandedTabContent
-  const INDICATOR_SIZE = 50; // khớp với tabIconWrap (50x50)
-  const COLLAPSED_BAR_SIZE = 74;
-  const EXPANDED_BAR_HEIGHT = 82;
-  const expandedBarWidth = Math.round(
-    viewportWidth * (hasNightMarketItems ? 0.88 : 0.78)
+  const INDICATOR_SIZE = 44;
+  const COLLAPSED_BAR_SIZE = 62;
+  const EXPANDED_BAR_HEIGHT = 68;
+  const expandedBarWidth = Math.min(
+    560,
+    viewportWidth - 24,
+    Math.round(viewportWidth * (hasNightMarketItems ? 0.88 : 0.78))
   );
   const collapsedTranslateX = Math.max(
     0,
@@ -248,12 +253,16 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
       style={[
         styles.tabBarWrap,
         Platform.OS === "web" && styles.tabBarWrapWeb,
-        { paddingBottom: Math.max(insets.bottom, 12) },
+        {
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
+        },
       ]}
     >
       <Reanimated.View
         style={[
           styles.tabBarFrame,
+          primaryNavigationTone === "light" && styles.tabBarFrameLight,
           Platform.OS === "web" && styles.tabBarWeb,
           tabBarAnimatedStyle,
         ]}
@@ -269,7 +278,11 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
             {/* Sliding indicator phía sau tab đang active */}
             <Reanimated.View
               pointerEvents="none"
-              style={[styles.tabIndicator, indicatorAnimatedStyle]}
+              style={[
+                styles.tabIndicator,
+                primaryNavigationTone === "light" && styles.tabIndicatorLight,
+                indicatorAnimatedStyle,
+              ]}
             />
             {visibleRoutes.map((route: any) => {
               const routeIndex = state.routes.findIndex(
@@ -348,7 +361,11 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
                       style={[
                         styles.tabIconWrap,
                         focused && styles.tabIconWrapActive,
-                        pressed && !focused && styles.tabIconWrapPressed,
+                        pressed &&
+                          !focused &&
+                          (primaryNavigationTone === "light"
+                            ? styles.tabIconWrapPressedLight
+                            : styles.tabIconWrapPressed),
                       ]}
                     >
                       <Icon
@@ -357,7 +374,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
                         color={
                           focused
                             ? COLORS.PURE_BLACK
-                            : pressed
+                            : primaryNavigationTone === "light" || pressed
                               ? COLORS.TEXT_PRIMARY
                               : COLORS.PURE_WHITE
                         }
@@ -386,6 +403,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
               }}
               style={({ pressed }) => [
                 styles.collapsedTabButton,
+                primaryNavigationTone === "light" && styles.collapsedTabButtonLight,
                 pressed && styles.collapsedTabButtonPressed,
               ]}
             >
@@ -421,7 +439,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
  */
 function Layout() {
   const { t } = useTranslation();
-  const reduceMotionEnabled = useReducedMotion();
 
   return (
     <>
@@ -432,9 +449,14 @@ function Layout() {
         detachInactiveScreens
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
-          animation: reduceMotionEnabled ? "none" : "fade",
+          // A cross-fade keeps the previous tab composited underneath the
+          // next one for several frames. On Android that makes card elevation
+          // look like a grey/blurred ghost when moving Profile <-> Store.
+          // Tabs now switch atomically; local loading states own their motion.
+          animation: "none",
           headerShown: false,
           tabBarShowLabel: false,
+          sceneStyle: { backgroundColor: COLORS.BACKGROUND },
         }}
       >
         {/* ── Tab chính ── */}
@@ -612,21 +634,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.BACKGROUND,
   },
   tabBarWrap: {
-    position: "absolute", // Nổi phía trên nội dung
-    left: 0,
+    position: "absolute",
     right: 0,
     bottom: 0,
+    left: 0,
     alignItems: "center",
+    backgroundColor: "transparent",
   },
   tabBarWrapWeb: {
     pointerEvents: "none", // Web: không chặn click bên dưới
   } as any,
   tabBarFrame: {
-    borderRadius: 32,
+    borderRadius: 28,
     backgroundColor: COLORS.PURE_BLACK,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
-    ...GLOBAL_STYLES.shadow,
+    ...SHADOWS.md,
+  },
+  tabBarFrameLight: {
+    backgroundColor: COLORS.PURE_WHITE,
+    borderColor: COLORS.BORDER_STRONG,
+    ...SHADOWS.xs,
   },
   tabBarClip: {
     flex: 1,
@@ -657,6 +685,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: COLORS.PURE_WHITE,
   },
+  collapsedTabButtonLight: {
+    backgroundColor: COLORS.SURFACE_MUTED,
+  },
   collapsedTabButtonPressed: {
     transform: [{ scale: 0.96 }],
   },
@@ -664,34 +695,40 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 24,
+    borderRadius: 22,
     paddingVertical: 1,
   },
   tabButtonPressed: {
     opacity: 0.98,
   },
   tabIconWrap: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
   tabIconWrapPressed: {
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  tabIconWrapPressedLight: {
+    backgroundColor: "rgba(17,24,28,0.08)",
   },
   tabIconWrapActive: {
     backgroundColor: COLORS.PURE_WHITE, // Nền trắng cho tab đang active
   },
   tabIndicator: {
     position: "absolute",
-    top: 15, // căn theo tabIconWrap (paddingVertical 14 + tabButton padding 1)
+    top: 12,
     left: 18, // = paddingHorizontal, căn lề với content box
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "rgba(255,255,255,0.14)",
+  },
+  tabIndicatorLight: {
+    backgroundColor: COLORS.SURFACE_MUTED,
   },
 });
 
