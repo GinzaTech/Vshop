@@ -110,6 +110,24 @@ const FALLBACK_COMPETITIVE_TIER_NAMES: Record<number, string> = {
   27: "Radiant",
 };
 
+type CompetitiveSeasonInfo = {
+  Rank?: unknown;
+  CompetitiveTier?: unknown;
+  SeasonHighestCompetitiveTier?: unknown;
+  NumberOfWins?: unknown;
+  NumberOfWinsWithPlacements?: unknown;
+  NumberOfGames?: unknown;
+  NumberOfLosses?: unknown;
+  NumberOfDraws?: unknown;
+  WinsByTier?: Record<string, number> | null;
+};
+
+type CompetitiveQueueSkill = {
+  CompetitiveTier?: unknown;
+  HighestCompetitiveTier?: unknown;
+  SeasonalInfoBySeasonID?: Record<string, CompetitiveSeasonInfo>;
+};
+
 /**
  * getSessionAuthKey - Tạo khóa định danh duy nhất cho session của user
  * @param {typeof defaultUser} user - Đối tượng user
@@ -231,22 +249,24 @@ const resolveTierName = (
  * getCompetitiveQueueSkill - Lấy thông tin kỹ năng competitive từ kết quả MMR
  * Xử lấy dữ liệu từ nhiều cấu trúc queue khác nhau
  * @param {CompetitiveMMRResponse} mmrResult - Kết quả MMR từ API
- * @returns {any | null} Dữ liệu competitive queue, hoặc null nếu không có
+ * @returns Dữ liệu competitive queue, hoặc null nếu không có
  */
-const getCompetitiveQueueSkill = (mmrResult: CompetitiveMMRResponse) => {
+const getCompetitiveQueueSkill = (
+  mmrResult: CompetitiveMMRResponse,
+): CompetitiveQueueSkill | null => {
   const queueSkills = mmrResult?.QueueSkills;
   if (!queueSkills || typeof queueSkills !== "object") {
     return null;
   }
 
   // Thử lấy trực tiếp key "competitive"
-  const directCompetitive = (queueSkills as Record<string, any>).competitive;
+  const directCompetitive = queueSkills.competitive;
   if (directCompetitive) {
     return directCompetitive;
   }
 
   // Tìm queue có tên chứa "competitive"
-  const competitiveEntry = Object.entries(queueSkills as Record<string, any>).find(
+  const competitiveEntry = Object.entries(queueSkills).find(
     ([queueName, queueData]) =>
       queueName.toLocaleLowerCase("en-US").includes("competitive") &&
       queueData &&
@@ -259,7 +279,7 @@ const getCompetitiveQueueSkill = (mmrResult: CompetitiveMMRResponse) => {
 
   // Fallback: tìm queue có SeasonalInfoBySeasonID
   return (
-    Object.values(queueSkills as Record<string, any>).find(
+    Object.values(queueSkills).find(
       (queueData) =>
         queueData &&
         typeof queueData === "object" &&
@@ -290,9 +310,9 @@ const getTierLookup = () => {
     : [];
 
   // Duyệt qua từng season competitive tier và xây dựng lookup
-  competitiveTierSeasons.forEach((season: any) => {
+  competitiveTierSeasons.forEach((season) => {
     const tiers = Array.isArray(season?.tiers) ? season.tiers : [];
-    tiers.forEach((tier: any) => {
+    tiers.forEach((tier) => {
       const numberTier = Number(tier?.tier);
       if (!Number.isFinite(numberTier) || numberTier <= 0 || tierLookup.has(numberTier)) {
         return;
@@ -356,13 +376,13 @@ export function buildCompetitiveRankSummary(
 
   // Lấy dữ liệu competitive queue và thông tin cập nhật gần nhất
   const competitiveData = getCompetitiveQueueSkill(mmrResult);
-  const latestCompetitiveUpdate = (mmrResult as any)?.LatestCompetitiveUpdate;
+  const latestCompetitiveUpdate = mmrResult.LatestCompetitiveUpdate;
   const seasonalInfo =
     competitiveData?.SeasonalInfoBySeasonID &&
     typeof competitiveData.SeasonalInfoBySeasonID === "object"
       ? competitiveData.SeasonalInfoBySeasonID
       : {};
-  const seasonValues = Object.values(seasonalInfo) as any[];
+  const seasonValues = Object.values(seasonalInfo);
 
   // Xác định thứ hạng hiện tại
   const currentTier =
@@ -370,7 +390,7 @@ export function buildCompetitiveRankSummary(
     toRankTier(competitiveData?.CompetitiveTier);
 
   // Xác định thứ hạng cao nhất từ tất cả mùa giải
-  const peakFromSeasons = seasonValues.reduce<number>((max, season: any) => {
+  const peakFromSeasons = seasonValues.reduce<number>((max, season) => {
     const seasonPeak = Math.max(
       toRankTier(season?.Rank) ?? 0,
       toRankTier(season?.CompetitiveTier) ?? 0,

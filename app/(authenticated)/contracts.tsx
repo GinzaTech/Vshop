@@ -32,6 +32,8 @@ type ContractDefinition = {
   content?: { relationType?: string; relationUuid?: string; }; // Liên kết với agent
 };
 
+type ContractMission = ContractsResponse["Missions"][number];
+
 // Tiền tố ID để phân biệt battle pass và event pass
 const BATTLEPASS_CONTRACT_PREFIX = "79cf2ea0-";
 const EVENTPASS_CONTRACT_PREFIXES = ["c3a4c9e0-"];
@@ -82,7 +84,7 @@ export default function ContractsScreen() {
   const getAgentForContract = (contractId: string) => {
     const definition = contractDefinitions.find((item) => item.uuid === contractId);
     const relationUuid = definition?.content?.relationUuid;
-    return agents.find((agent: any) => agent.uuid === contractId || (relationUuid && agent.uuid === relationUuid));
+    return agents.find((agent) => agent.uuid === contractId || (relationUuid && agent.uuid === relationUuid));
   };
 
   // getContractDefinition: tìm definition của contract theo ID
@@ -161,7 +163,7 @@ export default function ContractsScreen() {
   };
 
   // renderMission: render một mission row (icon, ID, progress bar, complete badge)
-  const renderMission = (mission: any) => {
+  const renderMission = (mission: ContractMission) => {
     const target = Object.values(mission.Objectives)[0] as number | undefined; // Mục tiêu cần đạt
     const current = 0;                                                          // Tiến độ hiện tại (luôn 0 - chưa tracking)
     const isComplete = mission.Complete;                                        // Đã hoàn thành?

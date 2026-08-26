@@ -29,6 +29,31 @@ import { useUserStore } from "~/hooks/useUserStore";
 import { flowTracer } from "~/utils/flow-tracer";
 import { MOTION_TIMING } from "~/constants/Motion";
 
+type FloatingRoute = {
+  key: string;
+  name: string;
+  params?: unknown;
+};
+
+type FloatingTabBarProps = {
+  state: {
+    index: number;
+    routes: FloatingRoute[];
+  };
+  descriptors: Record<
+    string,
+    { options?: { tabBarAccessibilityLabel?: string } }
+  >;
+  navigation: {
+    emit: (event: {
+      type: "tabPress";
+      target: string;
+      canPreventDefault: true;
+    }) => { defaultPrevented: boolean };
+    navigate: (routeName: string) => void;
+  };
+};
+
 /**
  * PRIMARY_ROUTES — Định nghĩa các tab chính hiển thị trên thanh điều hướng.
  * Key: tên route, value: { icon (tên MaterialCommunityIcons), label (text hiển thị) }.
@@ -90,7 +115,7 @@ export const PRIMARY_TAB_SCREEN_OPTIONS = {
  *
  * @returns {JSX.Element | null} Thanh tab hoặc null nếu route không phải primary.
  */
-export function FloatingTabBar({ state, descriptors, navigation }: any) {
+export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
   const primaryNavigationTone = useSystemChromeStore(
@@ -131,12 +156,12 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
   // Lọc và sắp xếp các route primary (tính trước để dùng cho sliding indicator)
   const visibleRoutes = state.routes
     .filter(
-      (route: any) =>
+      (route) =>
         route.name in PRIMARY_ROUTES &&
         (route.name !== "night_market" || hasNightMarketItems)
     )
     .sort(
-      (left: any, right: any) =>
+      (left, right) =>
         PRIMARY_ROUTE_ORDER.indexOf(left.name as (typeof PRIMARY_ROUTE_ORDER)[number]) -
         PRIMARY_ROUTE_ORDER.indexOf(right.name as (typeof PRIMARY_ROUTE_ORDER)[number])
     );
@@ -158,7 +183,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
   );
   const activeVisibleIndex = Math.max(
     0,
-    visibleRoutes.findIndex((route: any) => route.key === activeRoute?.key)
+    visibleRoutes.findIndex((route) => route.key === activeRoute?.key)
   );
   const tabButtonWidth =
     visibleRoutes.length > 0
@@ -284,9 +309,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
                 indicatorAnimatedStyle,
               ]}
             />
-            {visibleRoutes.map((route: any) => {
+            {visibleRoutes.map((route) => {
               const routeIndex = state.routes.findIndex(
-                (item: any) => item.key === route.key
+                (item) => item.key === route.key
               );
               const focused = state.index === routeIndex;
               const { icon } = PRIMARY_ROUTES[route.name];
@@ -658,7 +683,7 @@ const styles = StyleSheet.create({
   },
   tabBarWrapWeb: {
     pointerEvents: "none", // Web: không chặn click bên dưới
-  } as any,
+  },
   tabBarFrame: {
     borderRadius: 28,
     backgroundColor: COLORS.PURE_BLACK,
@@ -691,7 +716,7 @@ const styles = StyleSheet.create({
   },
   tabBarWeb: {
     pointerEvents: "auto",
-  } as any,
+  },
   collapsedTabButton: {
     width: 58,
     height: 58,

@@ -42,11 +42,13 @@ type XMPPClientOptions = {
   xmppRegion: string;         // Region của XMPP (vd: na, eu, ap, ...)
 };
 
+type XmppSocket = ReturnType<typeof TcpSocket.connectTLS>;
+
 // Export class XMPPClient - Client XMPP dùng giao thức chat của Riot Games
 // Kết nối qua TCP TLS tới server XMPP, xác thực bằng RSO+PAS token, hỗ trợ chat 1-1 và phòng nhóm
 export class XMPPClient {
   // Socket TCP kết nối đến server XMPP
-  private client: any = null;
+  private client: XmppSocket | null = null;
   // Token RSO cho xác thực
   private rsoToken: string;
   // Token PAS cho xác thực chat
@@ -127,8 +129,8 @@ export class XMPPClient {
         port: 5223,                // Cổng XMPP chuẩn (có TLS)
         // Always validate Riot's certificate chain. Disabling this turns the
         // bearer-token XMPP connection into a trivial network MITM target.
-        rejectUnauthorized: true,
-      } as any,
+        tlsCheckValidity: true,
+      },
       () => {
         // Callback khi kết nối thành công
         if (__DEV__) {
@@ -145,7 +147,7 @@ export class XMPPClient {
     // Xử lý dữ liệu đến: gộp vào buffer và xử lý
     const socket = this.client;
 
-    socket.on("data", (data: any) => {
+    socket.on("data", (data) => {
       const text = data.toString();
       if (XMPP_VERBOSE_LOGGING) {
         console.log("[XMPP] RX", this.redact(text));   // Log dữ liệu nhận được (đã che token)
@@ -155,7 +157,7 @@ export class XMPPClient {
     });
 
     // Xử lý lỗi socket
-    socket.on("error", (error: any) => {
+    socket.on("error", (error) => {
       this.markSocketFailed(socket, error);
     });
 
@@ -625,7 +627,7 @@ export class XMPPClient {
     }
   }
 
-  private markSocketFailed(socket: any, error: unknown) {
+  private markSocketFailed(socket: XmppSocket, error: unknown) {
     if (this.client !== socket) return;
 
     if (__DEV__) {

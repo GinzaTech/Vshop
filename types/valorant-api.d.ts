@@ -178,38 +178,40 @@ interface PreGamePlayerResponse {
 // ---------------------------------------------------------------------------
 // Lock Character
 // ---------------------------------------------------------------------------
+interface PreGameTeam {
+  TeamID: "Blue" | "Red" | string;
+  Players: {
+    Subject: string;
+    CharacterID: string;
+    CharacterSelectionState: "" | "selected" | "locked";
+    PregamePlayerState: "joined";
+    CompetitiveTier: number;
+    PlayerIdentity: {
+      Subject: string;
+      PlayerCardID: string;
+      PlayerTitleID: string;
+      AccountLevel: number;
+      PreferredLevelBorderID: string | "";
+      Incognito: boolean;
+      HideAccountLevel: boolean;
+    };
+    SeasonalBadgeInfo: {
+      SeasonID: string | "";
+      NumberOfWins: number;
+      WinsByTier: null;
+      Rank: number;
+      LeaderboardRank: number;
+    };
+    IsCaptain: boolean;
+  }[];
+}
+
 interface LockCharacterResponse {
   ID: string;
   Version: number;
-  Teams: {
-    TeamID: "Blue" | "Red" | string;
-    Players: {
-      Subject: string;
-      CharacterID: string;
-      CharacterSelectionState: "" | "selected" | "locked";
-      PregamePlayerState: "joined";
-      CompetitiveTier: number;
-      PlayerIdentity: {
-        Subject: string;
-        PlayerCardID: string;
-        PlayerTitleID: string;
-        AccountLevel: number;
-        PreferredLevelBorderID: string | "";
-        Incognito: boolean;
-        HideAccountLevel: boolean;
-      };
-      SeasonalBadgeInfo: {
-        SeasonID: string | "";
-        NumberOfWins: number;
-        WinsByTier: null;
-        Rank: number;
-        LeaderboardRank: number;
-      };
-      IsCaptain: boolean;
-    }[];
-  }[];
-  AllyTeam: any;
-  EnemyTeam: any;
+  Teams: PreGameTeam[];
+  AllyTeam: PreGameTeam | null;
+  EnemyTeam: PreGameTeam | null;
   ObserverSubjects: unknown[];
   MatchCoaches: unknown[];
   EnemyTeamSize: number;

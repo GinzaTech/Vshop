@@ -1,5 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import axios, {
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
+} from "axios";
 import { Platform } from "react-native";
 
 type TraceEventType =
@@ -75,6 +78,28 @@ type FlowTrace = {
   events: TraceEvent[];
   createdAt: string;
 };
+
+type TracedAxiosConfig = InternalAxiosRequestConfig & {
+  flowTraceStartTime?: number;
+  metadata?: { startTime?: number };
+};
+
+type TracedAxiosError = {
+  message?: string;
+  config?: TracedAxiosConfig;
+  response?: {
+    status?: number;
+    statusText?: string;
+    headers?: unknown;
+    data?: unknown;
+  };
+};
+
+type StorageCallback = (error?: Error | null) => void;
+type StorageValueCallback = (
+  error?: Error | null,
+  value?: string | null,
+) => void;
 
 const sensitiveKeys = new Set([
   "password",
@@ -332,7 +357,8 @@ class FlowTracer {
     this.axiosInstalled = true;
 
     axios.interceptors.request.use((config) => {
-      (config as any).flowTraceStartTime = Date.now();
+      const tracedConfig = config as TracedAxiosConfig;
+      tracedConfig.flowTraceStartTime = Date.now();
       const request = buildAxiosRequestTrace(config);
       this.track({
         type: "API_REQUEST",
@@ -347,8 +373,8 @@ class FlowTracer {
     axios.interceptors.response.use(
       (response) => {
         const startedAt =
-          (response.config as any).flowTraceStartTime ||
-          (response.config as any).metadata?.startTime;
+          (response.config as TracedAxiosConfig).flowTraceStartTime ||
+          (response.config as TracedAxiosConfig).metadata?.startTime;
         this.track({
           type: "API_RESPONSE",
           label: `${response.status} ${response.config.url || ""}`,
@@ -371,34 +397,40 @@ class FlowTracer {
 
         return response;
       },
-      (error) => {
+      (error: unknown) => {
+        const tracedError =
+          typeof error === "object" && error !== null
+            ? (error as TracedAxiosError)
+            : {};
         const startedAt =
-          (error.config as any)?.flowTraceStartTime ||
-          (error.config as any)?.metadata?.startTime;
+          tracedError.config?.flowTraceStartTime ||
+          tracedError.config?.metadata?.startTime;
         this.track({
           type: "API_ERROR",
-          label: `${error.response?.status || "ERR"} ${error.config?.url || error.message}`,
+          label: `${tracedError.response?.status || "ERR"} ${tracedError.config?.url || tracedError.message || String(error)}`,
           durationMs: startedAt ? Date.now() - startedAt : undefined,
           status: "error",
           input: {
-            request: error.config ? buildAxiosRequestTrace(error.config) : undefined,
+            request: tracedError.config
+              ? buildAxiosRequestTrace(tracedError.config)
+              : undefined,
           },
           output: {
             response: {
-              status: error.response?.status,
-              statusText: error.response?.statusText,
-              headers: normalizeHeaders(error.response?.headers),
-              url: error.config?.url,
+              status: tracedError.response?.status,
+              statusText: tracedError.response?.statusText,
+              headers: normalizeHeaders(tracedError.response?.headers),
+              url: tracedError.config?.url,
               responseSize: getPayloadSize(
-                error.response?.data,
-                error.response?.headers
+                tracedError.response?.data,
+                tracedError.response?.headers
               ),
-              data: error.response?.data,
+              data: tracedError.response?.data,
             },
           },
           error: {
-            message: error.message || String(error),
-            code: error.response?.status,
+            message: tracedError.message || String(error),
+            code: tracedError.response?.status,
           },
           tool: "Axios",
         });
@@ -488,7 +520,7 @@ class FlowTracer {
     const originalSetItem = storage.setItem.bind(storage);
     const originalRemoveItem = storage.removeItem.bind(storage);
 
-    storage.getItem = async (key: string, callback?: any) => {
+    storage.getItem = async (key: string, callback?: StorageValueCallback) => {
       const value = await originalGetItem(key);
       this.track({
         type: "STORAGE_READ",
@@ -505,7 +537,7 @@ class FlowTracer {
       return value;
     };
 
-    storage.setItem = async (key: string, value: string, callback?: any) => {
+    storage.setItem = async (key: string, value: string, callback?: StorageCallback) => {
       this.track({
         type: "STORAGE_WRITE",
         label: `AsyncStorage.setItem('${key}')`,
@@ -520,7 +552,7 @@ class FlowTracer {
       callback?.(null);
     };
 
-    storage.removeItem = async (key: string, callback?: any) => {
+    storage.removeItem = async (key: string, callback?: StorageCallback) => {
       this.track({
         type: "STORAGE_WRITE",
         label: `AsyncStorage.removeItem('${key}')`,
@@ -547,7 +579,7 @@ function sanitizeForTrace(value: unknown) {
   return maskSensitiveData(summarizeValue(value));
 }
 
-function buildAxiosRequestTrace(config: any) {
+function buildAxiosRequestTrace(config: AxiosRequestConfig) {
   return {
     method: String(config.method || "GET").toUpperCase(),
     baseURL: config.baseURL,

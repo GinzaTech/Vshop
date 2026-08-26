@@ -5,11 +5,11 @@ import { COLORS, RADIUS } from "~/constants/DesignSystem";
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.PURE_WHITE,
   },
   statsBackground: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "#000000",
+    backgroundColor: COLORS.PURE_BLACK,
   },
   profilePager: {
     flex: 1,
@@ -148,7 +148,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: RADIUS.chip,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: COLORS.ON_DARK_BORDER,
   },
   heroRegionText: {
     fontSize: 11,
@@ -183,7 +183,7 @@ export const styles = StyleSheet.create({
   heroSubtitle: {
     fontSize: 14,
     lineHeight: 20,
-    color: "rgba(255,255,255,0.78)",
+    color: COLORS.ON_DARK_TEXT,
   },
   heroSubtitleViewport: {
     overflow: "hidden",
@@ -200,7 +200,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: RADIUS.chip,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: COLORS.ON_DARK_BORDER,
   },
   heroMetaText: {
     marginLeft: 6,
@@ -226,7 +226,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 18,
     borderWidth: 1,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: COLORS.ON_DARK_BORDER,
   },
   heroStatLabelRow: {
     flexDirection: "row",
@@ -253,7 +253,7 @@ export const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.72)",
   },
   playerStatLabel: {
-    color: "rgba(255,255,255,0.78)",
+    color: COLORS.ON_DARK_TEXT,
   },
   heroStatValue: {
     marginTop: 8,

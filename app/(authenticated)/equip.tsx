@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import GalleryEquip from "~/components/GalleryEquip";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import { EQUIPMENT_SECTIONS, getCollectionBySection, sortEquipItems, buildEquipDisplayList, sanitizeQuery } from "~/components/popups/equipHelpers";
+import { EQUIPMENT_SECTIONS, getCollectionBySection, sortEquipItems, buildEquipDisplayList, sanitizeQuery, type EquipmentSectionKey } from "~/components/popups/equipHelpers";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
@@ -14,7 +14,6 @@ import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { fullBackgroundSync } from "~/utils/app-sync";
 
 // EquipmentSectionKey: kiểu key cho các section (VD: "melee", "sidearm", ...)
-type EquipmentSectionKey = (typeof EQUIPMENT_SECTIONS)[number]["key"];
 // EquipmentDisplayItem: kiểu item hiển thị trong danh sách
 type EquipmentDisplayItem = ReturnType<typeof buildEquipDisplayList>[number];
 

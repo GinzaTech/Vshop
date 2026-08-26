@@ -18,7 +18,16 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps extracted domain modules within reviewable budgets", () => {
-    expect(lineCount("utils/valorant-api.ts")).toBeLessThanOrEqual(2_000);
+    expect(lineCount("utils/valorant-api.ts")).toBeLessThanOrEqual(30);
+    expect(lineCount("services/riot/account-api.ts")).toBeLessThanOrEqual(220);
+    expect(lineCount("services/riot/loadout-api.ts")).toBeLessThanOrEqual(380);
+    expect(lineCount("services/riot/match-api.ts")).toBeLessThanOrEqual(450);
+    expect(lineCount("services/riot/combat-api.ts")).toBeLessThanOrEqual(650);
+    expect(lineCount("services/riot/progression-api.ts")).toBeLessThanOrEqual(330);
+    expect(lineCount("features/profile/ProfileScreen.tsx")).toBeLessThanOrEqual(3_750);
+    expect(lineCount("features/profile/ProfileEquipmentSections.tsx")).toBeLessThanOrEqual(300);
+    expect(lineCount("features/profile/ProfilePickerModal.tsx")).toBeLessThanOrEqual(950);
+    expect(lineCount("features/profile/ProfileSegmentedControl.tsx")).toBeLessThanOrEqual(180);
     expect(lineCount("features/combat/CombatSessionScreen.tsx")).toBeLessThanOrEqual(1_500);
     expect(lineCount("features/combat/session-insights.ts")).toBeLessThanOrEqual(600);
     expect(lineCount("features/profile/profile-loadout.ts")).toBeLessThanOrEqual(350);

@@ -4,7 +4,7 @@ All notable changes to VShop are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses semantic app versions with independent Android and iOS build numbers.
 
-## [4.1.4] - 2026-08-26
+## [4.1.4] - 2026-08-27
 
 ### Security
 
@@ -17,6 +17,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Reliability
 
+- Deduplicated concurrent party-chat joins, reused authenticated Riot XMPP rooms and added the Riot local party-chat fallback so repeated Combat refreshes cannot create overlapping MUC requests. Stale presence data is no longer used when the authoritative Combat snapshot confirms that the account is not in a party.
+- Made Combat refresh account-scoped and request-owned: concurrent refreshes are deduplicated, stale responses cannot overwrite a newly selected account, and transient failures keep the last usable snapshot.
+- Bounded the OAuth WebView cookie-banner polling loop and cleaned up transient copy-feedback timers when Combat or Crosshair unmounts.
 - Updated all Expo SDK 57 packages to their compatible patch releases and enabled OTA checks on normal production launches.
 - Classified Riot rate limits and upstream 5xx responses as recoverable, prevented permanent startup failures from retrying forever and required initial match synchronization to report a usable result.
 - Preserved large in-flight Riot XMPP roster stanzas instead of trimming them mid-response, so Friends can recover and load accounts with large friend lists after launch or foreground reconnects.
@@ -26,6 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Centered the skin media viewer above Bundle details, separated upgrade-level and chroma selectors, and classified CDN media explicitly so image URLs no longer depend on file extensions.
 - Removed the duplicated in-page title from Leaderboard while keeping the navigation header and all season/search controls unchanged.
 - Reused the Store skin-card renderer in the Skin Gallery and aligned Equipment cards to the same visual hierarchy, while preserving preview, wishlist and equipment-category behavior.
 - Made Gallery search treat regular-expression characters as plain text and tolerate skins without level metadata instead of crashing or indexing a missing level.
@@ -33,6 +37,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Tooling
 
+- Split the legacy Riot API implementation into request-context, account, loadout, match, combat and progression services while retaining `utils/valorant-api.ts` as a compatibility facade. Split Profile's account picker, equipment/expression sections and segmented navigation out of `ProfileScreen`, with size budgets preventing either monolith from returning.
+- Removed unsafe application-level `any` usage from the audited navigation, profile cache, equipment, API logging/tracing and XMPP paths; centralized repeated Profile dark-surface colors in the design system.
+- Pinned every GitHub Action to an immutable commit and added an independent Android native prebuild/Gradle compile job in addition to the existing JS bundle export gate.
 - Fixed GitHub Actions pnpm/Node setup, added Expo Doctor and an Android production export gate, expanded critical-helper coverage, and added a `production-store` AAB profile while preserving the existing production APK profile.
 - Added `rn-flow-visualizer` to the pnpm workspace, removed its stale npm lockfile and runtime logs, aligned its React peer versions and verified its production build independently.
 - Converted Profile and Combat Session routes into thin feature entry points; extracted their styles, loadout comparison rules, combat insight calculations, Riot response types and Storefront parser into independently testable modules with enforced size budgets.
@@ -43,7 +50,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Validation
 
 - Local Android native prebuild and arm64 debug compilation completed successfully with New Architecture, Hermes, SecureStore, MMKV/Nitro, Riot TCP chat and Expo Updates autolinked.
-- `pnpm run check` passed TypeScript, ESLint and 24/24 Jest suites (152/152 tests). App-wide statement coverage is now reported honestly at 8.57% from all routes, components, features, hooks, services and utilities, with ratcheted critical-domain thresholds; Expo Doctor passed 21/21 checks. Android export bundled 2,674 modules and 38 assets: 9.72 MB total, 7.24 MB Hermes bytecode and a 1.25 MB largest asset, all within enforced budgets.
+- `pnpm run check` passed TypeScript, ESLint and 26/26 Jest suites (157/157 tests). App-wide coverage is now reported honestly at 9.16% statements and 9.51% lines from all routes, components, features, hooks, services and utilities, with Combat store at 78% statements and the request deduper at 92% statements; Expo Doctor passed 21/21 checks. Android export bundled 2,685 modules and 38 assets: 9.73 MB total, 7.26 MB Hermes bytecode and a 1.25 MB largest asset, all within enforced budgets.
 - Installed the signed development APK on a Redmi K60 and verified Bundle layering, Store filters/timer, Profile tabs, every read-only More route, Friends search, direct-chat keyboard behavior and API/XMPP recovery after backgrounding. No fatal Android or React Native runtime error was observed.
 - Full automated, device and release validation results are recorded by the release workflow before production publication.
 

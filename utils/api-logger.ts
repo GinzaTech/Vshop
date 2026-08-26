@@ -2,6 +2,27 @@
 import * as FileSystem from "expo-file-system/legacy";
 // Import Platform từ react-native để kiểm tra platform (web, ios, android)
 import { Platform } from "react-native";
+import {
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from "axios";
+
+type TimedAxiosConfig = InternalAxiosRequestConfig & {
+  metadata?: { startTime?: number };
+};
+
+type TimedAxiosResponse<T = unknown> = Omit<AxiosResponse<T>, "config"> & {
+  config: TimedAxiosConfig;
+};
+
+type AxiosLikeError = {
+  message?: string;
+  config?: TimedAxiosConfig;
+  response?: {
+    status?: number;
+    statusText?: string;
+  };
+};
 
 // Đường dẫn thư mục chứa file log API
 const LOG_DIR = FileSystem.cacheDirectory + "api-logs/";
@@ -137,7 +158,7 @@ export function logApiCall(entry: LogEntry) {
  * @param config - Cấu hình Axios request
  * @returns config - Trả về chính config để chain interceptor
  */
-export function logAxiosRequest(config: any) {
+export function logAxiosRequest<T extends TimedAxiosConfig>(config: T): T {
   const entry: LogEntry = {
     ts: new Date().toISOString(),
     method: config.method?.toUpperCase(),
@@ -154,10 +175,9 @@ export function logAxiosRequest(config: any) {
  * @param response - Đối tượng response từ Axios
  * @returns response - Trả về chính response để chain interceptor
  */
-export function logAxiosResponse(response: any) {
+export function logAxiosResponse<T>(response: TimedAxiosResponse<T>) {
   const contentLength = Number(
-    response.headers?.["content-length"] ??
-      response.headers?.get?.("content-length")
+    response.headers?.["content-length"]
   );
   const entry: LogEntry = {
     ts: new Date().toISOString(),
@@ -184,19 +204,23 @@ export function logAxiosResponse(response: any) {
  * @param error - Đối tượng lỗi từ Axios
  * @returns Promise.reject(error) - Trả về Promise bị reject để chain interceptor
  */
-export function logAxiosError(error: any) {
-  const requestStartedAt = error.config?.metadata?.startTime;
+export function logAxiosError(error: unknown) {
+  const axiosError =
+    typeof error === "object" && error !== null
+      ? (error as AxiosLikeError)
+      : null;
+  const requestStartedAt = axiosError?.config?.metadata?.startTime;
   const entry: LogEntry = {
     ts: new Date().toISOString(),
-    method: error.config?.method?.toUpperCase(),
-    url: error.config?.url || "",
-    status: error.response?.status,
-    statusText: error.response?.statusText,
+    method: axiosError?.config?.method?.toUpperCase(),
+    url: axiosError?.config?.url || "",
+    status: axiosError?.response?.status,
+    statusText: axiosError?.response?.statusText,
     durationMs:
       typeof requestStartedAt === "number"
         ? Math.max(0, Date.now() - requestStartedAt)
         : undefined,
-    error: error.message || String(error),
+    error: axiosError?.message || String(error),
   };
   logApiCall(entry);
   return Promise.reject(error);

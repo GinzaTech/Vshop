@@ -11,7 +11,10 @@ describe("core journey automation and accessibility contracts", () => {
     ["app/(authenticated)/equip.tsx", "equipment-tab-${section.key}"],
     ["app/(authenticated)/gallery.tsx", 'testID="gallery-search-input"'],
     ["app/(authenticated)/shop.tsx", 'testID="shop-filter-all"'],
-    ["features/profile/ProfileScreen.tsx", "profile-tab-${tab.value}"],
+    [
+      "features/profile/ProfileSegmentedControl.tsx",
+      "profile-tab-${tab.value}",
+    ],
     ["components/LoadingScreen.tsx", 'testID="startup-retry-button"'],
   ])("keeps a stable selector in %s", (file, selector) => {
     expect(read(file)).toContain(selector);

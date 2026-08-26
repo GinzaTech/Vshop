@@ -42,6 +42,7 @@ import {
   disablePartyInviteCode,
   generatePartyInviteCode,
   joinPartyByCode,
+  type PartyResponse,
   removeFromParty,
 } from "~/utils/valorant-api";
 import {
@@ -163,7 +164,7 @@ function PartyChatPanel({
   currentUser: { id: string; name: string; TagLine: string }; // Thông tin user hiện tại
   onRefreshSession?: () => Promise<{
     partyId: string | null;
-    party: any | null;
+    party: PartyResponse | null;
   } | void>;  // Callback refresh session khi cần
 }) {
   // Lấy dữ liệu từ chat store
@@ -179,6 +180,10 @@ function PartyChatPanel({
   const [loading, setLoading] = React.useState(false);               // Đang tải party chat
   const [sending, setSending] = React.useState(false);               // Đang gửi tin nhắn
   const [error, setError] = React.useState<string | null>(null);      // Lỗi chat
+  const partyLoadRef = React.useRef<{
+    key: string;
+    promise: Promise<void>;
+  } | null>(null);
   // sortedMessages: tin nhắn đã được sắp xếp theo thời gian (memoized)
   const sortedMessages = React.useMemo(
     () => sortChatMessagesByTime(messages),
@@ -231,89 +236,128 @@ function PartyChatPanel({
     const allowPresenceFallback =
       override?.allowPresenceFallback ?? !hasExplicitPartyId;
     const tryDiscovery = override?.tryDiscovery ?? false;
+    const loadKey = [
+      currentUser.id,
+      resolvedPartyId || "no-party",
+      resolvedRoomName || "no-room",
+      tryDiscovery ? "discover" : "default",
+    ].join(":");
 
-    if (!resolvedPartyId) {
-      useChatStore.getState().setPartyChatRoom(null);
-      if (!tryDiscovery) {
-        setError(null);
-        return;
-      }
+    if (partyLoadRef.current?.key === loadKey) {
+      return partyLoadRef.current.promise;
+    }
 
-      setError("Looking for Valorant party presence...");
-      try {
-        const localRoom = await loadLocalPartyChat();
-        if (localRoom) {
+    let loadTask!: Promise<void>;
+    loadTask = (async () => {
+
+      if (!resolvedPartyId) {
+        useChatStore.getState().setPartyChatRoom(null);
+        if (!tryDiscovery) {
           setError(null);
           return;
         }
-      } catch (localError) {
-        if (__DEV__) console.log("[combat] Failed to load local party chat", localError);
-      }
 
-      try {
-        await watchOwnPartyPresence({
-          accessToken,
-          entitlementsToken,
-          region,
-          userId: currentUser.id,
-        });
-      } catch (presenceError) {
-        if (__DEV__) console.log("[combat] Failed to watch XMPP party presence", presenceError);
-        setError("Join or create a party to use party chat.");
-      }
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      await joinPartyXmppChat({
-        accessToken,
-        entitlementsToken,
-        region,
-        partyId: resolvedPartyId,
-        userId: currentUser.id,
-        roomName: resolvedRoomName,
-      });
-    } catch (chatError) {
-      const isPartyTokenError =
-        chatError instanceof Error &&
-        chatError.message.includes("party chat token");
-
-      if (isPartyTokenError) {
-        useChatStore.getState().setPartyChatRoom(null);
-      }
-
-      if (
-        allowPresenceFallback &&
-        presencePartyId &&
-        presencePartyId !== resolvedPartyId &&
-        isPartyTokenError
-      ) {
+        setError("Looking for Valorant party presence...");
         try {
-          await joinPartyXmppChat({
+          const localRoom = await loadLocalPartyChat();
+          if (localRoom) {
+            setError(null);
+            return;
+          }
+        } catch (localError) {
+          if (__DEV__) console.log("[combat] Failed to load local party chat", localError);
+        }
+
+        try {
+          await watchOwnPartyPresence({
             accessToken,
             entitlementsToken,
             region,
-            partyId: presencePartyId,
             userId: currentUser.id,
-            roomName: resolvedRoomName,
           });
-          return;
-        } catch (fallbackError) {
-          useChatStore.getState().setCurrentPartyId(null);
-          useChatStore.getState().setPartyChatRoom(null);
-          if (__DEV__) console.log("[combat] Failed to join XMPP party chat with presence party", fallbackError);
+        } catch (presenceError) {
+          if (__DEV__) console.log("[combat] Failed to watch XMPP party presence", presenceError);
+          setError("Join or create a party to use party chat.");
         }
+        return;
       }
-      if (__DEV__) console.log("[combat] Failed to join XMPP party chat", chatError);
-      setError(
-        isPartyTokenError
-          ? "Party chat room expired or unavailable. Refresh session or join/create a Valorant party."
-          : chatError instanceof Error ? chatError.message : "Could not join party chat.",
-      );
+
+      setLoading(true);
+      setError(null);
+      try {
+        await joinPartyXmppChat({
+          accessToken,
+          entitlementsToken,
+          region,
+          partyId: resolvedPartyId,
+          userId: currentUser.id,
+          roomName: resolvedRoomName,
+        });
+      } catch (chatError) {
+        const isPartyTokenError =
+          chatError instanceof Error &&
+          chatError.message.includes("party chat token");
+
+        // Riot can briefly return 404 for the MUC token after a party changed.
+        // The local Riot Client chat endpoint, when configured, remains a valid
+        // read/write fallback and avoids presenting a dead party chat panel.
+        try {
+          const localRoom = await loadLocalPartyChat();
+          if (localRoom) {
+            setError(null);
+            return;
+          }
+        } catch (localError) {
+          if (__DEV__) console.log("[combat] Local party chat fallback unavailable", localError);
+        }
+
+        if (isPartyTokenError) {
+          useChatStore.getState().setPartyChatRoom(null);
+        }
+        // Presence is only a discovery fallback. When the current combat
+        // snapshot already supplied a party ID, retrying a different presence
+        // ID produces duplicate failing MUC requests and hides the true state.
+        if (
+          allowPresenceFallback &&
+          !partyId &&
+          presencePartyId &&
+          presencePartyId !== resolvedPartyId &&
+          isPartyTokenError
+        ) {
+          try {
+            await joinPartyXmppChat({
+              accessToken,
+              entitlementsToken,
+              region,
+              partyId: presencePartyId,
+              userId: currentUser.id,
+              roomName: resolvedRoomName,
+            });
+            return;
+          } catch (fallbackError) {
+            useChatStore.getState().setCurrentPartyId(null);
+            useChatStore.getState().setPartyChatRoom(null);
+            if (__DEV__) console.log("[combat] Failed to join XMPP party chat with presence party", fallbackError);
+          }
+        }
+        if (__DEV__) console.log("[combat] Failed to join XMPP party chat", chatError);
+        setError(
+          isPartyTokenError
+            ? "Party chat is temporarily unavailable. Pull to refresh after the party finishes syncing."
+            : chatError instanceof Error ? chatError.message : "Could not join party chat.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    partyLoadRef.current = { key: loadKey, promise: loadTask };
+    try {
+      await loadTask;
     } finally {
-      setLoading(false);
+      if (partyLoadRef.current?.promise === loadTask) {
+        partyLoadRef.current = null;
+      }
     }
   }, [accessToken, currentUser.id, entitlementsToken, loadLocalPartyChat, partyId, presencePartyId, region, roomName]);
 
@@ -495,6 +539,14 @@ export default function Combat() {
   const [partyReadyLoading, setPartyReadyLoading] = React.useState(false);      // Đang xử lý ready state
   const [copied, setCopied] = React.useState(false);                            // Đã copy code (hiện badge)
   const partyReadyRequestRef = React.useRef(false);                             // Ref chống gửi request ready trùng lặp
+  const copiedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    [],
+  );
 
   // Lấy các hàm và dữ liệu từ hook useCombat
   const {
@@ -524,7 +576,7 @@ export default function Combat() {
   // === Các biến dẫn xuất từ sessionSnapshot ===
   const activeMapId =
     sessionSnapshot.pregameMatch?.MapID || sessionSnapshot.currentGameMatch?.MapID; // ID map đang chơi
-  const mapInfo = assets.maps?.find((map: any) => map.mapUrl === activeMapId);       // Thông tin map
+  const mapInfo = assets.maps?.find((map) => map.mapUrl === activeMapId);       // Thông tin map
   const rawQueueLabel =
     sessionSnapshot.pregameMatch?.QueueID ||                                        // Queue ID từ pregame
     sessionSnapshot.currentGameMatch?.MatchmakingData?.QueueID ||                   // Queue ID từ game live
@@ -686,7 +738,11 @@ export default function Combat() {
     if (!code) return;
     await Clipboard.setStringAsync(code);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => {
+      copiedTimerRef.current = null;
+      setCopied(false);
+    }, 1500);
   }, [sessionSnapshot.party?.InviteCode]);
 
   // handleTogglePartyReady: toggle trạng thái ready của member trong party

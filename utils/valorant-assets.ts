@@ -24,6 +24,7 @@ export type CompetitiveTierAsset = {
   tierName?: string;
   smallIcon?: string;
   largeIcon?: string;
+  rankTriangleDownIcon?: string;
 };
 
 export type CompetitiveTierSet = {

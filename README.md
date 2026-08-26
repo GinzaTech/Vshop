@@ -375,7 +375,7 @@ Install via QR code or APK from the Expo dashboard.
 - **Điều hướng chính ổn định:** Bundle, Shop và More chỉ giữ một lớp tương tác trên Android và bảo toàn tham số route.
 - **Profile tương thích web:** phần xuất ảnh dùng media-library native đã được tách khỏi trình render web tĩnh.
 - **Runtime mới:** nâng lên Expo SDK 57, React Native 0.86, React 19, Reanimated 4 và Zustand 5.
-- **Kiến trúc API an toàn hơn:** Riot/public API dùng client tách biệt, endpoint registry có type, validation, contract test và smoke test chỉ đọc. Profile và Combat Session là route mỏng dùng feature module; CI tách coverage toàn ứng dụng khỏi threshold nghiêm ngặt của domain quan trọng.
+- **Kiến trúc API an toàn hơn:** Riot/public API dùng client tách biệt; API Riot được chia thành các service account, loadout, match, combat và progression sau một facade tương thích mỏng. Endpoint registry có type, validation, contract test và smoke test chỉ đọc. Profile và Combat Session là route mỏng dùng feature module; account picker và segmented navigation của Profile cũng được test/tái sử dụng độc lập.
 - **Kéo để tải lại toàn ứng dụng:** các màn dữ liệu, empty state, Phiên đấu và chat đều hỗ trợ refresh, đồng thời chặn request trùng.
 - **Đầy đủ lịch sử bảng xếp hạng:** chọn được mọi Act đã bắt đầu, có nhãn Episode/Act, sắp xếp mới nhất và chống response cũ ghi đè.
 - **Animation mượt và nhất quán:** timing/spring dùng token chung, chạy tương tác trên UI thread và tôn trọng Reduce Motion.

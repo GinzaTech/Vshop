@@ -1,5 +1,5 @@
 // ===== Import thư viện =====
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
@@ -61,8 +61,16 @@ export default function CrosshairDatabase() {
   const [search, setSearch] = useState("");                                  // Từ khóa tìm kiếm
   const [activeCategory, setActiveCategory] = useState<string>("All");       // Category đang lọc
   const [copiedName, setCopiedName] = useState<string | null>(null);         // Tên crosshair vừa copy (hiển thị badge)
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
+
+  useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    [],
+  );
 
   // categories: danh sách category để lọc
   const categories: { value: string; label: string }[] = [
@@ -86,7 +94,11 @@ export default function CrosshairDatabase() {
     if (selected.name === item.name) {
       await Clipboard.setStringAsync(item.code);
       setCopiedName(item.name);
-      setTimeout(() => setCopiedName(null), 2000); // Ẩn badge "Copied!" sau 2s
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => {
+        copiedTimerRef.current = null;
+        setCopiedName(null);
+      }, 2000);
       return;
     }
     setSelected(item);

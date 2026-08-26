@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  type ViewStyle,
   View,
 } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
@@ -206,7 +207,7 @@ function Bundles() {
 
 const modalCardShadow =
   Platform.OS === "web"
-    ? ({ boxShadow: "0px 10px 16px rgba(0, 0, 0, 0.34)" } as any)
+    ? ({ boxShadow: "0px 10px 16px rgba(0, 0, 0, 0.34)" } satisfies ViewStyle)
     : {
         shadowColor: COLORS.PURE_BLACK,
         shadowOffset: { width: 0, height: 10 },

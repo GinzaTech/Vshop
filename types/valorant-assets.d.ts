@@ -124,7 +124,7 @@ interface ValorantBundle {
   useAdditionalContext: boolean;
   displayIcon: string;
   displayIcon2: string;
-  logoIcon?: any;
+  logoIcon?: string;
   verticalPromoImage?: string;
   assetPath: string;
 }

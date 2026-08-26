@@ -82,20 +82,22 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     const media = [
       ...(item.levels ?? []).map((level) => ({
         cacheId: `skin-level:${level.uuid}:media`,
+        group: "level" as const,
+        kind: level.streamedVideo ? ("video" as const) : ("image" as const),
+        label: level.displayName,
         uri: level.streamedVideo || level.displayIcon || "",
       })),
       ...(item.chromas ?? []).map((chroma) => ({
         cacheId: `skin-chroma:${chroma.uuid}:media`,
+        group: "chroma" as const,
+        kind: chroma.streamedVideo ? ("video" as const) : ("image" as const),
+        label: chroma.displayName,
         uri: chroma.streamedVideo || chroma.fullRender || "",
       })),
     ].filter((entry) => Boolean(entry.uri));
 
     if (media.length > 0) {
-      showMediaPopup(
-        media.map((entry) => entry.uri),
-        item.displayName,
-        media.map((entry) => entry.cacheId)
-      );
+      showMediaPopup(media, item.displayName);
     }
   }, [item.chromas, item.displayName, item.levels, showMediaPopup]);
 

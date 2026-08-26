@@ -10,7 +10,35 @@ export const EQUIPMENT_SECTIONS = [
   { key: "sprays", labelKey: "equip_page.sections.sprays" },
   { key: "cards", labelKey: "equip_page.sections.cards" },
   { key: "titles", labelKey: "equip_page.sections.titles" },
-];
+] as const;
+
+export type EquipmentSectionKey =
+  (typeof EQUIPMENT_SECTIONS)[number]["key"];
+
+type EquipmentAsset = {
+  uuid: string;
+  displayName: string;
+  titleText?: string;
+  category?: string;
+  displayIcon?: string;
+  fullTransparentIcon?: string;
+  fullIcon?: string;
+  smallArt?: string;
+  largeArt?: string;
+  levels?: {
+    uuid: string;
+    displayName: string;
+    displayIcon?: string;
+  }[];
+};
+
+export type EquipmentDisplayItem = {
+  id: string;
+  displayName: string;
+  subtitle: string;
+  item: EquipmentAsset;
+  section: EquipmentSectionKey;
+};
 
 // ─── sanitizeQuery ─────────────────────────────────────────────────────────────
 // Vệ sinh chuỗi tìm kiếm: trim, loại bỏ ký tự đặc biệt, chuyển về lower case.
@@ -33,7 +61,9 @@ export const sanitizeQuery = (value: string | undefined | null) => {
 // Tham số:
 //   - section: string – tên section ("sprays", "cards", "titles", "buddies")
 // Return: mảng các item tương ứng (mặc định buddies nếu không match)
-export const getCollectionBySection = (section: string) => {
+export const getCollectionBySection = (
+  section: EquipmentSectionKey,
+): EquipmentAsset[] => {
   const assets = getAssets();
 
   switch (section) {
@@ -57,7 +87,10 @@ export const getCollectionBySection = (section: string) => {
 //   - items: any[] – mảng item cần lọc
 //   - query: string – từ khoá tìm kiếm
 // Return: mảng item đã lọc (hoặc items gốc nếu query rỗng)
-export const filterEquipItems = (items: any[], query: string) => {
+export const filterEquipItems = <T extends EquipmentAsset>(
+  items: readonly T[],
+  query: string,
+) => {
   const normalized = sanitizeQuery(query);
   if (!normalized) return items;
 
@@ -82,7 +115,7 @@ export const filterEquipItems = (items: any[], query: string) => {
 // Tham số:
 //   - items: any[] – mảng item cần sắp xếp
 // Return: mảng mới đã được sort (không mutate mảng gốc)
-export const sortEquipItems = (items: any[]) => {
+export const sortEquipItems = <T extends EquipmentAsset>(items: readonly T[]) => {
   return [...items].sort((a, b) => {
     const valueA = (a.displayName ?? a.titleText ?? "").toLowerCase();
     const valueB = (b.displayName ?? b.titleText ?? "").toLowerCase();
@@ -104,7 +137,10 @@ export const sortEquipItems = (items: any[]) => {
 //     - "buddies": level[0].displayName
 //     - "sprays": category hoặc level[0].displayName
 //     - "cards": "" (rỗng)
-export const mapToDisplayItem = (item: any, section: string) => {
+export const mapToDisplayItem = (
+  item: EquipmentAsset,
+  section: EquipmentSectionKey,
+): EquipmentDisplayItem => {
   const id = item.uuid ?? item.levels?.[0]?.uuid ?? `${section}-${item.displayName}`;
   let subtitle = "";
 
@@ -140,7 +176,10 @@ export const mapToDisplayItem = (item: any, section: string) => {
 //   - items: any[] – mảng item gốc
 //   - section: string – danh mục
 // Return: mảng display item đã qua mapToDisplayItem
-export const buildEquipDisplayList = (items: any[], section: string) =>
+export const buildEquipDisplayList = (
+  items: readonly EquipmentAsset[],
+  section: EquipmentSectionKey,
+) =>
   items.map((item) => mapToDisplayItem(item, section));
 
 // ─── getEquipmentImage ─────────────────────────────────────────────────────────
@@ -154,7 +193,7 @@ export const buildEquipDisplayList = (items: any[], section: string) =>
 //   - sprays: displayIcon > fullTransparentIcon > fullIcon
 //   - titles: displayIcon
 //   - buddies: displayIcon > level[0].displayIcon
-export const getEquipmentImage = (displayItem: any) => {
+export const getEquipmentImage = (displayItem: EquipmentDisplayItem) => {
   const { item, section } = displayItem;
 
   if (!item) return null;

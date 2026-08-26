@@ -71,6 +71,11 @@ import { MOTION_TIMING } from "~/constants/Motion";
 import { markAppInteractive } from "~/utils/startup-performance";
 import { hasUsableStartupCache } from "~/utils/startup-cache";
 
+type CustomHeaderProps = {
+  options: { title?: string };
+  navigation: { goBack: () => void };
+};
+
 const AnimatedSafeAreaView = Animated.createAnimatedComponent(SafeAreaView);
 
 /**
@@ -114,13 +119,13 @@ SplashScreen.preventAutoHideAsync();
  * @param {Object} options - Options từ expo-router (chứa title).
  * @param {Object} navigation - Đối tượng navigation (chứa goBack).
  */
-const CustomHeader = ({ options, navigation }: any) => (
+const CustomHeader = ({ options, navigation }: CustomHeaderProps) => (
   <Appbar.Header
     style={{ backgroundColor: CombinedAppTheme.colors.background, elevation: 0 }}
   >
     <Appbar.BackAction color={CombinedAppTheme.colors.text} onPress={navigation.goBack} />
     <Appbar.Content
-      title={options.title}
+      title={options.title ?? ""}
       titleStyle={{ color: CombinedAppTheme.colors.text }}
     />
   </Appbar.Header>

@@ -263,9 +263,11 @@ export default function LoginWebView({
         }}
         // Inject JavaScript để ẩn cookie banner Osano
         injectedJavaScriptBeforeContentLoaded={`(function() {
+              let attempts = 0;
+              const maxAttempts = 250;
               const deleteCookieBanner = () => {
                 if (document.getElementsByClassName('osano-cm-window').length > 0) document.getElementsByClassName('osano-cm-window')[0].style = "display:none;";
-                else setTimeout(deleteCookieBanner, 10)
+                else if (attempts++ < maxAttempts) setTimeout(deleteCookieBanner, 20);
               }
               deleteCookieBanner();
             })();`}

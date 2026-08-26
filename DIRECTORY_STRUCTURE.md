@@ -44,11 +44,18 @@ Vshop/
 │   │   └── clients.ts           client tách biệt cho Riot/public/telemetry
 │   ├── riot/
 │   │   ├── client.ts            interceptor, auth invalidation, API logging
-│   │   └── endpoints.ts         registry URL có type + validation
+│   │   ├── endpoints.ts         registry URL có type + validation
+│   │   ├── request-context.ts   headers, auth context và debug redaction
+│   │   ├── account-api.ts       player identity, names và account data
+│   │   ├── loadout-api.ts       inventory, loadout và storefront
+│   │   ├── match-api.ts         history, MMR và match details
+│   │   ├── combat-api.ts        party, pregame và coregame
+│   │   └── progression-api.ts   contracts, content và leaderboard
 │   └── valorant/
 │       └── public-api.ts        facade duy nhất cho valorant-api.com
 ├── utils/                       domain helpers, cache, sync và compatibility
-│   ├── valorant-api.ts          facade Riot API hiện hữu
+│   ├── valorant-api.ts          facade tương thích re-export Riot services
+│   ├── valorant-user.ts         default user/session shape
 │   ├── valorant-assets.ts       cache + orchestration asset
 │   ├── auth-session.ts          tạo/khôi phục session
 │   ├── session-events.ts        phân loại lỗi auth/network
@@ -97,6 +104,8 @@ Màn hình có empty state không được thay `FlatList` bằng card tĩnh. Đ
 ### Riot authenticated API
 
 `services/riot/endpoints.ts` là nguồn duy nhất cho toàn bộ URL Riot. Registry hiện có contract test cho mọi endpoint, bao gồm storefront, wallet, loadout, match, pregame/coregame, party, contracts, leaderboard và auth services.
+
+`utils/valorant-api.ts` chỉ là facade tương thích cho các consumer hiện hữu. Phần triển khai được chia theo domain trong `services/riot/*-api.ts`; code mới nên import service domain trực tiếp khi không cần giữ compatibility.
 
 `services/riot/client.ts` cài interceptor đúng một lần trên một Axios instance riêng:
 

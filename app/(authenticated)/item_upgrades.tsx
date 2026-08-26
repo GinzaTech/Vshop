@@ -133,7 +133,7 @@ export default function ItemUpgradesScreen() {
 
       if (skin) {
         // Trường hợp 2: item là một level (cấp độ) của skin
-        const level = skin.levels?.find((item: any) => item.uuid === itemId);
+        const level = skin.levels?.find((item) => item.uuid === itemId);
         if (level) {
           return {
             name: level.displayName || skin.displayName || shortId(itemId),
@@ -143,7 +143,7 @@ export default function ItemUpgradesScreen() {
         }
 
         // Trường hợp 3: item là một chroma (biến thể màu) của skin
-        const chroma = skin.chromas?.find((item: any) => item.uuid === itemId);
+        const chroma = skin.chromas?.find((item) => item.uuid === itemId);
         if (chroma) {
           return {
             name: chroma.displayName || skin.displayName || shortId(itemId),
@@ -259,7 +259,7 @@ export default function ItemUpgradesScreen() {
             {t("item_upgrades_page.sidegrade_title")}
           </Text>
         </View>
-        {sidegrade.Options.map((opt: any) => {
+        {sidegrade.Options.map((opt) => {
           const isSelected = selected === opt.OptionID;
           const reward = opt.Rewards?.[0];
           const rewardMeta = reward

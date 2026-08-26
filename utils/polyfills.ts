@@ -29,6 +29,8 @@ if (typeof Promise.allSettled !== "function") {
             ({ status: "rejected" as const, reason }) as PromiseRejectedResult
         )
       )
-    ) as any;
+    ) as unknown as Promise<{
+      -readonly [K in keyof T]: PromiseSettledResult<Awaited<T[K]>>;
+    }>;
   };
 }

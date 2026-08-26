@@ -9,7 +9,17 @@ import {
   getPreGamePlayer,
   PartyResponse,
   getPlayerNames,
+  defaultUser,
 } from "~/utils/valorant-api";
+
+type CombatUser = Pick<
+  typeof defaultUser,
+  "accessToken" | "entitlementsToken" | "id" | "region"
+>;
+
+type PreGameMatchResponse = NonNullable<
+  Awaited<ReturnType<typeof getPreGameMatch>>
+>;
 
 // --- Kiểu dữ liệu cho snapshot trạng thái chiến đấu hiện tại ---
 // state: trạng thái phiên (idle: không có gì, pregame: đang chờ, live: đang đánh)
@@ -23,7 +33,7 @@ export type CombatSessionSnapshot = {
   state: "idle" | "pregame" | "live";
   matchId: string | null;
   partyId: string | null;
-  pregameMatch: any | null; // LockCharacterResponse
+  pregameMatch: PreGameMatchResponse | null;
   currentGameMatch: CurrentGameMatchResponse | null;
   party: PartyResponse | null;
   namesBySubject: Record<string, string>;
@@ -49,8 +59,15 @@ interface CombatState {
   snapshot: CombatSessionSnapshot;
   loading: boolean;
   lastUpdated: number;
-  fetchSession: (user: any) => Promise<CombatSessionSnapshot>;
+  sessionKey: string | null;
+  fetchSession: (user: CombatUser) => Promise<CombatSessionSnapshot>;
 }
+
+let latestCombatRequestId = 0;
+const combatRequests = new Map<string, Promise<CombatSessionSnapshot>>();
+
+const getCombatSessionKey = (user: CombatUser) =>
+  `${user.region.toLowerCase()}|${user.id.toLowerCase()}`;
 
 // --- Tạo Zustand store cho Combat ---
 // Khởi tạo: snapshot rỗng, loading = false, lastUpdated = 0
@@ -63,6 +80,8 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   loading: false,
   /** Timestamp cập nhật gần nhất */
   lastUpdated: 0,
+  /** Phiên sở hữu snapshot hiện tại; ngăn dữ liệu tài khoản cũ bị giữ lại. */
+  sessionKey: null,
 
   /** Lấy dữ liệu phiên chiến đấu từ Riot API
    * @param user - đối tượng user chứa token, region, id
@@ -71,14 +90,31 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   fetchSession: async (user) => {
     // Nếu thiếu token hoặc thông tin user -> reset về rỗng và thoát
     if (!user.accessToken || !user.entitlementsToken || !user.region || !user.id) {
-      set({ snapshot: EMPTY_SESSION, loading: false });
+      latestCombatRequestId += 1;
+      set({ snapshot: EMPTY_SESSION, loading: false, sessionKey: null });
       return EMPTY_SESSION;
     }
 
-    // Bắt đầu loading
-    set({ loading: true });
+    const sessionKey = getCombatSessionKey(user);
+    const pendingRequest = combatRequests.get(sessionKey);
+    if (pendingRequest) {
+      return pendingRequest;
+    }
 
-    try {
+    const requestId = ++latestCombatRequestId;
+    const currentState = get();
+    set({
+      loading: true,
+      sessionKey,
+      snapshot:
+        currentState.sessionKey && currentState.sessionKey !== sessionKey
+          ? EMPTY_SESSION
+          : currentState.snapshot,
+    });
+
+    let request!: Promise<CombatSessionSnapshot>;
+    request = (async () => {
+      try {
       // Gọi song song 3 API để lấy thông tin cơ bản của user trong party/pregame/live
       const [partyPlayer, pregamePlayer, currentGamePlayer] = await Promise.all([
         getPartyPlayer(user.accessToken, user.entitlementsToken, user.region, user.id),
@@ -119,8 +155,8 @@ export const useCombatStore = create<CombatState>((set, get) => ({
         new Set(
           [
             ...(party?.Members || []).map((member) => member.Subject),
-            ...(pregameMatch?.AllyTeam?.Players || []).map((player: any) => player.Subject),
-            ...(pregameMatch?.EnemyTeam?.Players || []).map((player: any) => player.Subject),
+            ...(pregameMatch?.AllyTeam?.Players || []).map((player) => player.Subject),
+            ...(pregameMatch?.EnemyTeam?.Players || []).map((player) => player.Subject),
             ...(currentGameMatch?.Players || []).map((player) => player.Subject),
           ]
             .filter((subject): subject is string => Boolean(subject))
@@ -173,13 +209,31 @@ export const useCombatStore = create<CombatState>((set, get) => ({
             };
 
       // Cập nhật store và trả về snapshot
-      set({ snapshot: nextSnapshot, loading: false, lastUpdated: Date.now() });
+      if (requestId === latestCombatRequestId) {
+        set({
+          snapshot: nextSnapshot,
+          loading: false,
+          lastUpdated: Date.now(),
+          sessionKey,
+        });
+      }
       return nextSnapshot;
-    } catch (error) {
-      // Khi có lỗi, reset về rỗng và log cảnh báo
-      if (__DEV__) console.warn("[useCombatStore] Failed to fetch session", error);
-      set({ snapshot: EMPTY_SESSION, loading: false });
-      return EMPTY_SESSION;
-    }
+      } catch (error) {
+        // Lỗi mạng tạm thời không được xóa snapshot tốt đang hiển thị.
+        if (__DEV__) console.warn("[useCombatStore] Failed to fetch session", error);
+        if (requestId === latestCombatRequestId) {
+          set({ loading: false });
+          return get().snapshot;
+        }
+        return EMPTY_SESSION;
+      } finally {
+        if (combatRequests.get(sessionKey) === request) {
+          combatRequests.delete(sessionKey);
+        }
+      }
+    })();
+
+    combatRequests.set(sessionKey, request);
+    return request;
   },
 }));

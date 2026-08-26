@@ -12,6 +12,12 @@ jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
   },
 );
 
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => ({ chromas: "Chromas", levels: "Levels" })[key] ?? key,
+  }),
+}));
+
 jest.mock("expo-video", () => ({
   useVideoPlayer: () => ({ play: jest.fn() }),
   VideoView: () => null,
@@ -39,7 +45,25 @@ describe("MediaPopup", () => {
     act(() => {
       useMediaPopupStore
         .getState()
-        .showMediaPopup(["https://example.com/skin.png"], "Skin");
+        .showMediaPopup(
+          [
+            {
+              cacheId: "level-one",
+              group: "level",
+              kind: "image",
+              label: "Level 1",
+              uri: "https://example.com/skin.png",
+            },
+            {
+              cacheId: "chroma-one",
+              group: "chroma",
+              kind: "image",
+              label: "Red",
+              uri: "https://example.com/red.png",
+            },
+          ],
+          "Skin",
+        );
     });
 
     act(() => {
@@ -53,6 +77,16 @@ describe("MediaPopup", () => {
     expect(
       renderer.root.findByProps({ accessibilityLabel: "Close media viewer" }),
     ).toBeDefined();
+    expect(renderer.root.findByProps({ testID: "media-tab-level-0" }))
+      .toBeDefined();
+    expect(renderer.root.findByProps({ testID: "media-tab-chroma-0" }))
+      .toBeDefined();
+
+    act(() => {
+      renderer.root.findByProps({ testID: "media-tab-chroma-0" }).props.onPress();
+    });
+
+    expect(useMediaPopupStore.getState().selectedIndex).toBe(1);
 
     act(() => useMediaPopupStore.getState().hideMediaPopup());
 

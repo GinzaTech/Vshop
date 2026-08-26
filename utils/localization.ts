@@ -122,7 +122,7 @@ const langDetector = {
    * detect - Phát hiện ngôn ngữ ưu tiên từ bộ nhớ, nếu không có thì từ cài đặt thiết bị
    * @param {Function} callback - Hàm callback nhận mã ngôn ngữ đã phát hiện
    */
-  detect: async (callback: any) => {
+  detect: async (callback: (language: string) => void) => {
     // Kiểm tra ngôn ngữ đã lưu trong bộ nhớ
     const result = await getStoredItem("language");
     if (result) {

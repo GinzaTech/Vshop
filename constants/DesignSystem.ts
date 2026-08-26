@@ -59,6 +59,8 @@ export const COLORS = {
   GLASS_WHITE: "rgba(255, 255, 255, 0.85)",
   GLASS_WHITE_DIM: "rgba(17, 24, 28, 0.08)",
   GLASS_BORDER: "rgba(0, 0, 0, 0.06)",
+  ON_DARK_BORDER: "rgba(255, 255, 255, 0.12)",
+  ON_DARK_TEXT: "rgba(255, 255, 255, 0.78)",
 };
 
 /**

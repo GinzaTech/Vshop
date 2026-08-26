@@ -194,7 +194,7 @@ export function collectCatalogImageUrls() {
   const urls: (string | null | undefined)[] = [];
 
   // Thu thập URL ảnh bản đồ
-  assets.maps.forEach((map: any) => {
+  assets.maps.forEach((map) => {
     urls.push(map.listViewIcon || map.displayIcon);
   });
 

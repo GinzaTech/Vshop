@@ -53,10 +53,13 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
       item.levels
         .map((level) => ({
           cacheId: `skin-level:${level.uuid}:media`,
+          group: "level" as const,
+          kind: level.streamedVideo ? ("video" as const) : ("image" as const),
+          label: level.displayName,
           uri: level.streamedVideo || level.displayIcon,
         }))
         .filter(
-          (entry): entry is { cacheId: string; uri: string } =>
+          (entry): entry is typeof entry & { uri: string } =>
             Boolean(entry.uri)
         ),
     [item.levels]
@@ -120,14 +123,10 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
   }, [item.displayName, t]);
 
   // handlePress: Callback mở popup preview media khi nhấn vào card
-  // Nếu có mediaEntries, gọi showMediaPopup với danh sách URI, tên item, và cacheId
+  // Nếu có mediaEntries, mở popup với metadata đầy đủ của từng cấp skin.
   const handlePress = React.useCallback(() => {
     if (mediaEntries.length > 0) {
-      showMediaPopup(
-        mediaEntries.map((entry) => entry.uri),
-        item.displayName,
-        mediaEntries.map((entry) => entry.cacheId)
-      );
+      showMediaPopup(mediaEntries, item.displayName);
     }
   }, [item.displayName, mediaEntries, showMediaPopup]);
 

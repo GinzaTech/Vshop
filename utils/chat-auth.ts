@@ -3,6 +3,12 @@ import { riotApiClient as axios } from "~/services/riot/client";
 // Import jwtDecode để decode JWT token
 import { jwtDecode } from "jwt-decode";
 
+type ValorantPasClaims = {
+  affinities?: {
+    chat?: string;
+  };
+};
+
 /**
  * Public API: Lấy PAS (Platform Authentication Service) Token cho chat.
  * PAS Token là JWT dùng để xác thực với dịch vụ chat của Riot.
@@ -44,7 +50,7 @@ export async function getChatAffinity(accessToken: string, idToken: string): Pro
     });
     
     // res.data thường là một JWT
-    const decoded = jwtDecode<any>(res.data);
+    const decoded = jwtDecode<ValorantPasClaims>(res.data);
     return decoded?.affinities?.chat || "us1";
   } catch (error) {
     if (__DEV__) console.error("Lỗi khi lấy Chat Affinity, fallback về us1", error);

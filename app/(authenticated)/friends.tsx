@@ -172,7 +172,12 @@ export default function FriendsScreen() {
       // Pressable: khi nhấn vào → mở chat với bạn đó
       <Pressable
         style={({ pressed }) => [styles.friendRow, pressed && styles.friendRowPressed]}
-        onPress={() => router.push(`/chat/${item.id}` as any)}
+        onPress={() =>
+          router.push({
+            pathname: "/chat/[friendId]",
+            params: { friendId: item.id },
+          })
+        }
         accessibilityRole="button"
         accessibilityLabel={`${displayName}, ${item.status ? item.status : t(stateInfo.label)}`}
       >

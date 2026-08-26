@@ -2,6 +2,7 @@
 import { XMPPClient } from "./xmpp-client";
 // Import chat store (zustand) để quản lý trạng thái chat
 import { useChatStore } from "./chat-store";
+import { createRequestDeduper } from "./request-deduper";
 // Import các hàm API Valorant liên quan đến chat
 import {
   getPASToken,
@@ -48,6 +49,10 @@ const initializingConnectionKeys = new Set<string>();
 let rosterRefreshPromise: Promise<void> | null = null;
 // Tăng sau mỗi roster response, kể cả roster rỗng, để phân biệt response mới.
 let rosterRevision = 0;
+// Một effect có thể chạy lại khi party presence vừa tới, trong khi request MUC
+// trước vẫn còn chờ. Chia sẻ đúng request đó để không bắn hai GET muctoken cho
+// cùng một party/session.
+const partyJoinRequests = createRequestDeduper<string>();
 
 /**
  * Chuẩn hóa friend ID từ JID (Jabber ID) hoặc PUUID.
@@ -683,37 +688,49 @@ export async function joinPartyXmppChat({
   roomName?: string | null;
 }) {
   currentUserId = normalizeFriendId(userId);
-  await ensureChatService(accessToken, entitlementsToken, region, userId);
+  const requestKey = `${activeConnectionKey ?? "connecting"}:${partyId}`;
+  return partyJoinRequests.run(requestKey, async () => {
+    await ensureChatService(accessToken, entitlementsToken, region, userId);
 
-  if (__DEV__) {
-    console.log("[XMPP] Joining party chat", {
-      partyId,
-      region,
-      roomName,
-    });
-  }
+    const chatState = useChatStore.getState();
+    if (
+      roomName &&
+      chatState.partyChatRoom === roomName &&
+      chatState.status === "authenticated"
+    ) {
+      return roomName;
+    }
 
-  // Lấy MUC token và chờ xác thực song song
-  const [mucToken] = await Promise.all([
-    getPartyMucToken(accessToken, entitlementsToken, region, partyId),
-    waitForChatAuthentication(),
-  ]);
-  const room = mucToken?.Room || roomName;
-  if (!mucToken?.Token) {
-    throw new Error(`Could not get party chat token for party ${partyId}`);
-  }
-  if (!room) {
-    throw new Error("Could not join party chat room");
-  }
+    if (__DEV__) {
+      console.log("[XMPP] Joining party chat", {
+        partyId,
+        region,
+        roomName,
+      });
+    }
 
-  const client = xmppClientInstance;
-  if (!client || useChatStore.getState().status === "error") {
-    throw new Error("Party chat connection is not available");
-  }
+    // Lấy MUC token và chờ xác thực song song.
+    const [mucToken] = await Promise.all([
+      getPartyMucToken(accessToken, entitlementsToken, region, partyId),
+      waitForChatAuthentication(),
+    ]);
+    const room = mucToken?.Room || roomName;
+    if (!mucToken?.Token) {
+      throw new Error(`Could not get party chat token for party ${partyId}`);
+    }
+    if (!room) {
+      throw new Error("Could not join party chat room");
+    }
 
-  client.joinRoom(room, mucToken.Token, userId);
-  useChatStore.getState().setPartyChatRoom(room);
-  return room;
+    const client = xmppClientInstance;
+    if (!client || useChatStore.getState().status === "error") {
+      throw new Error("Party chat connection is not available");
+    }
+
+    client.joinRoom(room, mucToken.Token, userId);
+    useChatStore.getState().setPartyChatRoom(room);
+    return room;
+  });
 }
 
 /**
@@ -763,6 +780,7 @@ export function disconnectChatService() {
   rosterNameResolveKey = null;
   rosterRefreshPromise = null;
   rosterRevision = 0;
+  partyJoinRequests.clear();
   currentUserId = null;
   useChatStore.getState().resetChatSession();
 }
