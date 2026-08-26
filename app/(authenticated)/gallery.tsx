@@ -86,8 +86,15 @@ function Gallery() {
       {/* Search bar */}
       <View style={styles.searchBar}>
         <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
-        <TextInput value={searchQuery} onChangeText={setSearchQuery}
-          placeholder={t("gallery_page.search_placeholder")} placeholderTextColor={COLORS.TEXT_SECONDARY} style={styles.searchInput} />
+        <TextInput
+          testID="gallery-search-input"
+          accessibilityLabel={t("gallery_page.search_placeholder")}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder={t("gallery_page.search_placeholder")}
+          placeholderTextColor={COLORS.TEXT_SECONDARY}
+          style={styles.searchInput}
+        />
       </View>
 
       {/* Chips filter: All / Wishlist */}
@@ -98,7 +105,12 @@ function Gallery() {
         ].map((item) => {
           const active = item.key === filter;
           return (
-            <TouchableOpacity key={item.key} onPress={() => setFilter(item.key as "all" | "wishlist")}
+            <TouchableOpacity
+              key={item.key}
+              testID={`gallery-filter-${item.key}`}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              onPress={() => setFilter(item.key as "all" | "wishlist")}
               activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{item.label}</Text>
             </TouchableOpacity>

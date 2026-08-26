@@ -37,13 +37,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added `rn-flow-visualizer` to the pnpm workspace, removed its stale npm lockfile and runtime logs, aligned its React peer versions and verified its production build independently.
 - Converted Profile and Combat Session routes into thin feature entry points; extracted their styles, loadout comparison rules, combat insight calculations, Riot response types and Storefront parser into independently testable modules with enforced size budgets.
 - Added truthful app-wide coverage reporting and a ratcheted baseline alongside higher thresholds for critical domain modules. CI now rejects any new production advisory unless its exact ID and transitive Expo/Metro constraint are documented.
-- Added stable automation selectors to primary navigation and the Store, Profile, Friends and Equipment journeys. CI now enforces Android export budgets for total payload, Hermes bytecode and the largest packaged asset.
+- Added stable automation selectors to primary navigation and the Store, Profile, Friends, Equipment and Gallery journeys. CI now enforces Android export budgets for total payload, Hermes bytecode and the largest packaged asset.
 - `react-native-tcp-socket` remains the required raw Riot XMPP transport. Expo Doctor's directory-metadata warning is explicitly excluded; TLS chat must remain in the native release smoke checklist until the package publishes New Architecture metadata.
 
 ### Validation
 
 - Local Android native prebuild and arm64 debug compilation completed successfully with New Architecture, Hermes, SecureStore, MMKV/Nitro, Riot TCP chat and Expo Updates autolinked.
-- `pnpm run check` passed TypeScript, ESLint and 24/24 Jest suites (151/151 tests). App-wide statement coverage is now reported honestly at 8.57% from all routes, components, features, hooks, services and utilities, with ratcheted critical-domain thresholds; Expo Doctor passed 21/21 checks. Android export bundled 2,674 modules and 38 assets: 9.72 MB total, 7.24 MB Hermes bytecode and a 1.25 MB largest asset, all within enforced budgets.
+- `pnpm run check` passed TypeScript, ESLint and 24/24 Jest suites (152/152 tests). App-wide statement coverage is now reported honestly at 8.57% from all routes, components, features, hooks, services and utilities, with ratcheted critical-domain thresholds; Expo Doctor passed 21/21 checks. Android export bundled 2,674 modules and 38 assets: 9.72 MB total, 7.24 MB Hermes bytecode and a 1.25 MB largest asset, all within enforced budgets.
 - Installed the signed development APK on a Redmi K60 and verified Bundle layering, Store filters/timer, Profile tabs, every read-only More route, Friends search, direct-chat keyboard behavior and API/XMPP recovery after backgrounding. No fatal Android or React Native runtime error was observed.
 - Full automated, device and release validation results are recorded by the release workflow before production publication.
 

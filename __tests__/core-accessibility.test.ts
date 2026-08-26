@@ -9,6 +9,7 @@ describe("core journey automation and accessibility contracts", () => {
     ["app/(authenticated)/_layout.tsx", "primary-tab-${route.name}"],
     ["app/(authenticated)/friends.tsx", 'testID="friends-search-input"'],
     ["app/(authenticated)/equip.tsx", "equipment-tab-${section.key}"],
+    ["app/(authenticated)/gallery.tsx", 'testID="gallery-search-input"'],
     ["app/(authenticated)/shop.tsx", 'testID="shop-filter-all"'],
     ["features/profile/ProfileScreen.tsx", "profile-tab-${tab.value}"],
     ["components/LoadingScreen.tsx", 'testID="startup-retry-button"'],
@@ -29,4 +30,3 @@ describe("core journey automation and accessibility contracts", () => {
     );
   });
 });
-
