@@ -14,6 +14,7 @@ module.exports = {
     "utils/riot-auth-navigation.ts",
     "utils/storage-migration.ts",
     "utils/xmpp-buffer.ts",
+    "utils/gallery-filter.ts",
   ],
   coveragePathIgnorePatterns: [
     "/node_modules/",

@@ -13,6 +13,11 @@ import PageIntro from "~/components/ui/PageIntro";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { fullBackgroundSync } from "~/utils/app-sync";
+import {
+  getGalleryWishlistId,
+  matchesGalleryQuery,
+  normalizeGalleryQuery,
+} from "~/utils/gallery-filter";
 
 // useDebounceValue: custom hook debounce giá trị string
 // value: giá trị đầu vào, delay: thời gian debounce (ms)
@@ -38,7 +43,6 @@ function Gallery() {
   const debouncedQuery = useDebounceValue(searchQuery, 100);
 
   const skinIds = useWishlistStore((state) => state.skinIds);
-  const toggleSkin = useWishlistStore((state) => state.toggleSkin);                     // Wishlist store
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
@@ -46,21 +50,32 @@ function Gallery() {
   // Lọc theo: query (tên skin), có contentTier, wishlist (nếu filter = "wishlist")
   // Map thêm field onWishlist, sort wishlist items lên đầu
   const gallerySkins = React.useMemo(() => {
+    const normalizedQuery = normalizeGalleryQuery(debouncedQuery);
+
     return getAssets()
       .skins.filter((skin) => {
-        const matchesQuery = skin.displayName.match(new RegExp(debouncedQuery.replace(/[&/\\#,+()$~%.^'":*?<>{}]/g, ""), "i"));
+        const wishlistId = getGalleryWishlistId(skin);
+        const matchesQuery = matchesGalleryQuery(skin, normalizedQuery);
         const matchesTier = skin.contentTierUuid;
-        const matchesWishlist = filter === "all" || skinIds.includes(skin.levels[0].uuid);
+        const matchesWishlist =
+          filter === "all" ||
+          (wishlistId !== null && skinIds.includes(wishlistId));
         return Boolean(matchesQuery && matchesTier && matchesWishlist);
       })
-      .map((item) => ({ ...item, onWishlist: skinIds.includes(item.levels[0].uuid) }))
+      .map((item) => {
+        const wishlistId = getGalleryWishlistId(item);
+        return {
+          ...item,
+          onWishlist: wishlistId !== null && skinIds.includes(wishlistId),
+        };
+      })
       .sort((a, b) => a.onWishlist === b.onWishlist ? 0 : a.onWishlist ? -1 : 1);
   }, [debouncedQuery, filter, skinIds]);
 
   // renderItem: render một item skin (memoized)
   const renderItem = React.useCallback(
-    ({ item }: { item: GalleryItem }) => <GalleryWeapon item={item} toggleFromWishlist={toggleSkin} />,
-    [toggleSkin]
+    ({ item }: { item: GalleryItem }) => <GalleryWeapon item={item} />,
+    []
   );
 
   return (

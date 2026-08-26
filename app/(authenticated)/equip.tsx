@@ -1,6 +1,6 @@
 // ===== Import thư viện =====
 import React from "react";
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { Searchbar } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 
@@ -96,12 +96,7 @@ const Equip = () => {
         iconColor={COLORS.TEXT_SECONDARY} accessibilityLabel={t("equipment_page.search_placeholder")} />
 
       {/* Tab group: các section (melee, sidearm, smg, ...) */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabScroller}
-        contentContainerStyle={styles.tabGroup}
-      >
+      <View style={styles.tabGroup} accessibilityRole="tablist">
         {EQUIPMENT_SECTIONS.map((section) => {
           const isActive = section.key === activeSection;
           return (
@@ -111,6 +106,7 @@ const Equip = () => {
               style={[styles.tabButton, isActive && styles.tabButtonActive]}
               onPress={() => handleSectionPress(section.key)} activeOpacity={0.85}>
               <Text
+                numberOfLines={2}
                 style={[
                   styles.tabLabel,
                   section.key === "cards" && styles.tabLabelCompact,
@@ -122,7 +118,7 @@ const Equip = () => {
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
 
       {/* Danh sách trang bị dạng lưới 2 cột, tối ưu render với các props */}
       <FlatList
@@ -159,9 +155,8 @@ const styles = StyleSheet.create({
   searchBar: { height: 48, marginHorizontal: 20, marginTop: 16, borderRadius: RADIUS.button, backgroundColor: COLORS.SURFACE, borderWidth: 1, borderColor: COLORS.BORDER, elevation: 0 },
   searchInput: { fontSize: 16, color: COLORS.TEXT_PRIMARY },
   // Hàng tabs section
-  tabScroller: { flexGrow: 0, marginTop: 12 },
-  tabGroup: { paddingHorizontal: 20, paddingBottom: 8, gap: 8 },
-  tabButton: { minHeight: 40, minWidth: 84, paddingHorizontal: 14, borderRadius: RADIUS.chip, borderWidth: 1, borderColor: COLORS.BORDER, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.SURFACE },
+  tabGroup: { minHeight: 60, marginTop: 12, paddingHorizontal: 20, paddingBottom: 8, gap: 8, alignItems: "stretch", flexDirection: "row" },
+  tabButton: { flex: 1, minHeight: 40, paddingHorizontal: 6, borderRadius: RADIUS.chip, borderWidth: 1, borderColor: COLORS.BORDER, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.SURFACE },
   tabButtonActive: { backgroundColor: COLORS.PURE_BLACK, borderColor: COLORS.PURE_BLACK },
   tabLabel: { fontSize: 13, fontWeight: "600", color: COLORS.TEXT_SECONDARY },
   tabLabelCompact: { fontSize: 11, lineHeight: 14 },

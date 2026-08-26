@@ -131,13 +131,18 @@ const GalleryEquipComponent = ({
         </View>
 
         <View style={styles.content}>
+          <Text style={styles.eyebrow} numberOfLines={1}>
+            {categoryLabel}
+          </Text>
           <Text style={styles.title} numberOfLines={2}>
             {displayName}
           </Text>
           {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.subtitle} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            </View>
           ) : null}
         </View>
       </View>
@@ -152,11 +157,10 @@ const styles = StyleSheet.create({
     margin: 6,        // Khoảng cách giữa các card
   },
   card: {
-    minHeight: 220,
-    borderRadius: RADIUS.card,
+    flex: 1,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
-    padding: 10,
     backgroundColor: COLORS.SURFACE,
     overflow: "hidden",
   },
@@ -166,14 +170,13 @@ const styles = StyleSheet.create({
   },
   visualFrame: {
     width: "100%",
-    height: 128,
-    borderRadius: RADIUS.button,
-    borderWidth: 1,
+    aspectRatio: 1.45,
+    borderBottomWidth: 1,
     borderColor: COLORS.BORDER,
     backgroundColor: COLORS.SURFACE_MUTED,
     alignItems: "center",
     justifyContent: "center",
-    padding: 14,
+    padding: 12,
     overflow: "hidden",
   },
   cardVisualFrame: {
@@ -182,7 +185,7 @@ const styles = StyleSheet.create({
   titleVisualFrame: {
     backgroundColor: COLORS.ACCENT_DEEP,
     paddingHorizontal: 18,
-    paddingTop: 38,
+    paddingTop: 34,
   },
   titleArtwork: {
     color: COLORS.PURE_WHITE,
@@ -193,45 +196,60 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     position: "absolute",
-    left: 10,
-    top: 10,
-    maxWidth: "82%",
-    minHeight: 28,
+    left: 8,
+    top: 8,
+    maxWidth: "72%",
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    borderRadius: RADIUS.chip,
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 4,
     backgroundColor: COLORS.PURE_BLACK,
   },
   categoryLabel: {
     flexShrink: 1,
     color: COLORS.PURE_WHITE,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+    fontSize: 9,
+    fontWeight: "900",
   },
   categoryLabelCompact: {
     fontSize: 10,
     letterSpacing: 0,
   },
   content: {
-    minHeight: 70,
-    paddingHorizontal: 4,
-    paddingTop: 12,
+    paddingHorizontal: 10,
+    paddingTop: 9,
+    paddingBottom: 10,
+  },
+  eyebrow: {
+    marginBottom: 3,
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 10,
+    fontWeight: "600",
   },
   title: {
-    minHeight: 38,
+    minHeight: 34,
+    marginBottom: 8,
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 15,
-    fontWeight: "700",
-    lineHeight: 20,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
+  },
+  metaRow: {
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE_MUTED,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
   subtitle: {
-    marginTop: 4,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    lineHeight: 17,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 11,
+    fontWeight: "700",
   },
 });
 

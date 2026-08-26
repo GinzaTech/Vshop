@@ -25,6 +25,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Fixed
 
 - Removed the duplicated in-page title from Leaderboard while keeping the navigation header and all season/search controls unchanged.
+- Reused the Store skin-card renderer in the Skin Gallery and aligned Equipment cards to the same visual hierarchy, while preserving preview, wishlist and equipment-category behavior.
+- Made Gallery search treat regular-expression characters as plain text and tolerate skins without level metadata instead of crashing or indexing a missing level.
+- Restored the four Equipment category tabs on Android, prevented saved Gallery cards from vibrating merely because they mounted and made shared card motion respect the system Reduce Motion setting.
 
 ### Tooling
 
@@ -34,7 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Validation
 
 - Local Android native prebuild and arm64 debug compilation completed successfully with New Architecture, Hermes, SecureStore, MMKV/Nitro, Riot TCP chat and Expo Updates autolinked.
-- `pnpm run check` passed TypeScript, ESLint and 16/16 Jest suites (119/119 tests); Expo Doctor passed 21/21 checks, Android export bundled 2,664 modules and 38 assets, and the public API smoke test passed all 13 endpoints.
+- `pnpm run check` passed TypeScript, ESLint and 17/17 Jest suites (122/122 tests); Expo Doctor passed 21/21 checks, Android export bundled 2,665 modules and 38 assets, and the public API smoke test passed all 13 endpoints.
 - Installed the signed development APK on a Redmi K60 and verified Bundle layering, Store filters/timer, Profile tabs, every read-only More route, Friends search, direct-chat keyboard behavior and API/XMPP recovery after backgrounding. No fatal Android or React Native runtime error was observed.
 - Full automated, device and release validation results are recorded by the release workflow before production publication.
 

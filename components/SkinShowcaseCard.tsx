@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
+  useReducedMotion,
   withSpring,
   withSequence,
   withTiming,
@@ -26,8 +27,8 @@ import { MOTION_SPRING, MOTION_TIMING } from "~/constants/Motion";
 //   - variant: "store" | "bundle" – ảnh hưởng đến text hiển thị loại vũ khí
 
 interface SkinShowcaseCardProps {
-  item: SkinShopItem;
-  variant?: "store" | "bundle";
+  item: SkinShopItem | GalleryItem;
+  variant?: "store" | "bundle" | "gallery";
 }
 
 // ─── SkinShowcaseCard ──────────────────────────────────────────────────────────
@@ -51,10 +52,15 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
 }: SkinShowcaseCardProps) {
   const { t } = useTranslation();
   const showMediaPopup = useMediaPopupStore((state) => state.showMediaPopup);
-  const skinIds = useWishlistStore((state) => state.skinIds);
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
   const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
+  const reduceMotion = useReducedMotion();
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wishlistId = item.levels?.[0]?.uuid ?? item.uuid;
+  const isFavorited = useWishlistStore((state) =>
+    state.skinIds.includes(wishlistId)
+  );
+  const previousFavoritedRef = useRef(isFavorited);
 
   const scale = useSharedValue(1);
   const badgeScale = useSharedValue(0);
@@ -93,25 +99,26 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     }
   }, [item.chromas, item.displayName, item.levels, showMediaPopup]);
 
-  // useMemo: isFavorited
-  //   - Kiểm tra xem level đầu tiên của skin có nằm trong danh sách yêu thích không
-  //   - Phụ thuộc: [item.levels, skinIds]
-  const isFavorited = useMemo(
-    () => (item.levels?.length ? skinIds.includes(item.levels[0].uuid) : false),
-    [item.levels, skinIds]
-  );
-
   useEffect(() => {
     if (isFavorited) {
-      badgeScale.value = withSequence(
-        withSpring(1.2, MOTION_SPRING.press),
-        withSpring(1, MOTION_SPRING.settle),
-      );
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      badgeScale.value = reduceMotion
+        ? 1
+        : withSequence(
+            withSpring(1.2, MOTION_SPRING.press),
+            withSpring(1, MOTION_SPRING.settle),
+          );
+      if (!previousFavoritedRef.current) {
+        void Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success
+        );
+      }
     } else {
-      badgeScale.value = withTiming(0, MOTION_TIMING.fast);
+      badgeScale.value = reduceMotion
+        ? 0
+        : withTiming(0, MOTION_TIMING.fast);
     }
-  }, [badgeScale, isFavorited]);
+    previousFavoritedRef.current = isFavorited;
+  }, [badgeScale, isFavorited, reduceMotion]);
 
   // useMemo: tier
   //   - Lấy thông tin hiển thị của content tier (màu sắc, nhãn, ...)
@@ -155,6 +162,15 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     );
   }, [item.displayName, t, variant]);
 
+  const itemPrice = "price" in item ? item.price : undefined;
+  const footer = useMemo(() => {
+    if (variant === "gallery") {
+      return `${t("chromas")} ${item.chromas?.length ?? 0}`;
+    }
+
+    return typeof itemPrice === "number" ? String(itemPrice) : "--";
+  }, [item.chromas, itemPrice, t, variant]);
+
   // useCallback: handleCardPress
   //   - Xử lý sự kiện nhấn vào card
   //   - Double-tap: nếu timeout đã tồn tại (click trước đó trong 220ms) =>
@@ -165,7 +181,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
       previewTimeoutRef.current = null;
-      toggleSkin(item.levels?.[0]?.uuid ?? item.uuid);
+      toggleSkin(wishlistId);
       return;
     }
 
@@ -173,7 +189,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       previewTimeoutRef.current = null;
       handlePreviewPress();
     }, 220);
-  }, [handlePreviewPress, item.levels, item.uuid, toggleSkin]);
+  }, [handlePreviewPress, toggleSkin, wishlistId]);
 
   // useEffect: cleanup timeout khi component unmount
   //   - Tránh memory leak nếu người dùng rời đi trước khi timeout chạy
@@ -192,10 +208,14 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         accessibilityLabel={item.displayName}
         onPress={handleCardPress}
         onPressIn={() => {
-          scale.value = withSpring(0.97, MOTION_SPRING.press);
+          scale.value = reduceMotion
+            ? 1
+            : withSpring(0.97, MOTION_SPRING.press);
         }}
         onPressOut={() => {
-          scale.value = withSpring(1, MOTION_SPRING.settle);
+          scale.value = reduceMotion
+            ? 1
+            : withSpring(1, MOTION_SPRING.settle);
         }}
         style={[
           styles.card,
@@ -237,7 +257,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
           contentFit="contain"
           cachePolicy="memory-disk"
           priority="low"
-          transition={120}
+          transition={reduceMotion ? 0 : 120}
           recyclingKey={item.uuid}
         />
       </View>
@@ -267,12 +287,14 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
               },
             ]}
           >
-            <CurrencyIcon
-              icon="vp"
-              style={[styles.currencyIcon, { tintColor: tier.text }]}
-            />
+            {variant !== "gallery" ? (
+              <CurrencyIcon
+                icon="vp"
+                style={[styles.currencyIcon, { tintColor: tier.text }]}
+              />
+            ) : null}
             <Text style={[styles.priceText, { color: tier.text }]}>
-              {item.price}
+              {footer}
             </Text>
           </View>
         </View>

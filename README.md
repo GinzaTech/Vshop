@@ -43,6 +43,7 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 - **Security and recovery release (26 August 2026):** encrypts Riot sessions and saved accounts with a Keystore/Keychain-protected key, validates Riot chat TLS certificates, restricts OAuth navigation, checks OTA updates on normal launch and recovers transient Riot/network failures without discarding good cached data.
 - **Large friend-list recovery:** preserves an incomplete Riot roster until its closing XMPP stanza arrives, preventing large rosters from timing out after launch or foreground recovery.
+- **Consistent collection cards:** Equipment and the Skin Gallery now use the Store card hierarchy while retaining their existing filters, media preview and wishlist interactions.
 
 - **Latest production OTA (22 August 2026):** primary tabs now mount on demand, freeze and detach while inactive; More shortcuts and accessory search expose stable accessibility/automation metadata; display-only accessory cards are no longer announced as buttons.
 - **Reliable primary navigation:** Bundle, Shop and More now keep a single Android interaction layer and preserve route parameters.
