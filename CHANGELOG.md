@@ -12,7 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Enabled XMPP certificate-chain validation, restricted chat hosts to Riot-owned domains and restricted OAuth WebView top-level navigation to Riot/PlayValorant HTTPS origins.
 - Disabled Android cloud backup for app data, removed the overlay permission and limited MediaLibrary access to photos instead of requesting video/audio access that VShop does not use.
 - Updated Axios to 1.19.0 and its production `form-data` dependency to 4.0.6.
-- Moved pnpm settings to `pnpm-workspace.yaml`, upgraded the pinned package manager to pnpm 11.24.0 and overrode all compatible patched transitive dependency versions. The remaining audit entries are Expo/Metro tooling constraints: `image-size` currently has no patched release, while forcing major versions of `fast-xml-parser` or `uuid` would violate their parent package contracts.
+- Moved pnpm settings to `pnpm-workspace.yaml`, upgraded the pinned package manager to pnpm 11.24.0 and overrode all compatible patched transitive dependency versions. The remaining production audit entries are Expo/Metro tooling constraints: `image-size` currently has no patched release, while forcing major versions of `fast-xml-parser` or `uuid` would violate their parent package contracts.
 
 ### Reliability
 
@@ -32,6 +32,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Tooling
 
 - Fixed GitHub Actions pnpm/Node setup, added Expo Doctor and an Android production export gate, expanded critical-helper coverage, and added a `production-store` AAB profile while preserving the existing production APK profile.
+- Added `rn-flow-visualizer` to the pnpm workspace, removed its stale npm lockfile and runtime logs, aligned its React peer versions and verified its production build independently.
 - `react-native-tcp-socket` remains the required raw Riot XMPP transport. Expo Doctor's directory-metadata warning is explicitly excluded; TLS chat must remain in the native release smoke checklist until the package publishes New Architecture metadata.
 
 ### Validation
