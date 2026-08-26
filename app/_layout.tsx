@@ -68,6 +68,7 @@ import {
   isTransientNetworkError,
 } from "~/utils/session-events";
 import { MOTION_TIMING } from "~/constants/Motion";
+import { markAppInteractive } from "~/utils/startup-performance";
 
 const AnimatedSafeAreaView = Animated.createAnimatedComponent(SafeAreaView);
 
@@ -255,6 +256,7 @@ function RootLayout() {
 
     if (allowMatchDemo) {
       setIsPreloading(false);
+      markAppInteractive("match-demo");
       void SplashScreen.hideAsync();
       return;
     }
@@ -277,6 +279,7 @@ function RootLayout() {
         if (!cancelled) {
           router.replace("/setup");
           setIsPreloading(false);
+          markAppInteractive("setup");
         }
         await SplashScreen.hideAsync();
         return;
@@ -288,6 +291,7 @@ function RootLayout() {
        if (sessionUser.accessToken && sessionUser.id) {
         let syncUser = sessionUser;
         let retryDelayMs = 1_500;
+        let permanentFailureCount = 0;
 
         while (!cancelled) {
           try {
@@ -299,10 +303,12 @@ function RootLayout() {
 
             if (!cancelled) setStartupMessage("Loading your VShop data");
             await syncAllData(syncUser, region);
+            permanentFailureCount = 0;
 
             if (!cancelled) {
               router.replace("/profile");
               setIsPreloading(false);
+              markAppInteractive("profile");
             }
             return;
           } catch (error) {
@@ -317,17 +323,40 @@ function RootLayout() {
                 useUserStore.getState().setUser(syncUser);
                 continue;
               } catch (renewError) {
+                if (isTransientNetworkError(renewError)) {
+                  setStartupMessage("Waiting for Riot services…");
+                  await new Promise<void>((resolve) =>
+                    setTimeout(resolve, retryDelayMs)
+                  );
+                  retryDelayMs = Math.min(retryDelayMs * 2, 10_000);
+                  continue;
+                }
                 if (
-                  !isTransientNetworkError(renewError) &&
-                  (isRiotAuthenticationError(renewError) ||
-                    !hasReusableAccessToken(useUserStore.getState().user.accessToken))
+                  isRiotAuthenticationError(renewError) ||
+                  !hasReusableAccessToken(
+                    useUserStore.getState().user.accessToken
+                  )
                 ) {
                   setUser({ ...defaultUser, region });
                   router.replace("/reauth");
                   setIsPreloading(false);
+                  markAppInteractive("reauth");
                   return;
                 }
               }
+            }
+
+            if (!isTransientNetworkError(error)) {
+              permanentFailureCount += 1;
+              if (permanentFailureCount >= 3) {
+                setUser({ ...defaultUser, region });
+                router.replace("/reauth");
+                setIsPreloading(false);
+                markAppInteractive("reauth");
+                return;
+              }
+            } else {
+              permanentFailureCount = 0;
             }
 
             setStartupMessage("Waiting for Riot services…");
@@ -343,6 +372,7 @@ function RootLayout() {
         setUser({ ...defaultUser, region });
         router.replace("/reauth");
         setIsPreloading(false);
+        markAppInteractive("reauth");
       }
       await SplashScreen.hideAsync();
     };

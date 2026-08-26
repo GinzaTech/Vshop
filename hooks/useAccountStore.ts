@@ -7,7 +7,7 @@ import {
   type SavedAccount,
   upsertSavedAccount,
 } from "~/utils/saved-accounts";
-import { appStorage } from "~/utils/storage";
+import { secureAppStorage } from "~/utils/storage";
 
 interface AccountState {
   accounts: SavedAccount[];
@@ -88,7 +88,7 @@ export const useAccountStore = create<AccountState>()(
     {
       name: "saved-riot-accounts",
       version: 1,
-      storage: createJSONStorage(() => appStorage),
+      storage: createJSONStorage(() => secureAppStorage),
       partialize: (state) => ({
         accounts: state.accounts,
         activeAccountId: state.activeAccountId,

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { defaultUser } from "~/utils/valorant-api";
 import { shouldAcceptSessionUpdate } from "~/utils/saved-accounts";
-import { appStorage } from "~/utils/storage";
+import { secureAppStorage } from "~/utils/storage";
 
 // --- Định nghĩa store quản lý thông tin user (phiên đăng nhập) ---
 // user: đối tượng user hiện tại (token, region, id...) — mặc định là defaultUser
@@ -51,7 +51,7 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: "user-session",
-      storage: createJSONStorage(() => appStorage),
+      storage: createJSONStorage(() => secureAppStorage),
       /** Chỉ lưu trường user xuống storage */
       partialize: (state) => ({ user: state.user }),
       /** Sau khi rehydrate từ storage, đánh dấu hydrated = true */

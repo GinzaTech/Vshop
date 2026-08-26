@@ -65,11 +65,18 @@ describe("session event classification", () => {
     expect(isTransientNetworkError({ message })).toBe(true);
   });
 
-  test("does not treat HTTP responses or unknown errors as transient", () => {
+  test.each([408, 425, 429, 500, 503])(
+    "recognizes recoverable HTTP status %s",
+    (status) => {
+      expect(isTransientNetworkError({ response: { status } })).toBe(true);
+    }
+  );
+
+  test("does not treat permanent HTTP responses or unknown errors as transient", () => {
     expect(
       isTransientNetworkError({
         code: "ERR_NETWORK",
-        response: { status: 503 },
+        response: { status: 400 },
       })
     ).toBe(false);
     expect(isTransientNetworkError(new Error("Unexpected failure"))).toBe(false);

@@ -145,6 +145,11 @@ export async function syncAllData(
     throw new Error("Profile warm cache is unavailable");
   }
 
+  const matchStateAfterSync = useMatchStore.getState();
+  if (matchStateAfterSync.error && matchStateAfterSync.lastUpdated === 0) {
+    throw new Error(matchStateAfterSync.error);
+  }
+
   // Profile warmup is part of the startup sync. Persist its result before
   // navigating to Profile so that screen can render immediately from cache
   // instead of repeating loadout, ownership and MMR requests.

@@ -4,6 +4,7 @@
  * Cho phép user "Thử lại" (reset state) hoặc "Về Trang chủ".
  */
 import React from "react";
+import * as Sentry from "@sentry/react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -27,6 +28,13 @@ class ErrorBoundaryImpl extends React.Component<ErrorBoundaryProps, ErrorBoundar
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack ?? "unavailable",
+        },
+      },
+    });
     if (__DEV__) {
       console.error("[ErrorBoundary]", error, errorInfo.componentStack);
     }

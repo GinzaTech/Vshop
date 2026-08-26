@@ -54,8 +54,13 @@ export const isTransientNetworkError = (value: unknown): boolean => {
   const error = value as HttpErrorLike | undefined;
   const code = String(error?.code || "").toUpperCase();
   const message = String(error?.message || "").toLowerCase();
+  const status = getHttpStatus(value);
 
-  if (getHttpStatus(value) !== null) return false;
+  // Rate limits, request timeouts and upstream outages are recoverable and
+  // should retain the current session/cache instead of forcing a login.
+  if (status !== null) {
+    return status === 408 || status === 425 || status === 429 || status >= 500;
+  }
 
   return (
     code === "ERR_NETWORK" ||

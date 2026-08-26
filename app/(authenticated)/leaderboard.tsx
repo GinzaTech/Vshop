@@ -311,11 +311,6 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header: tiêu đề */}
-      <View style={styles.headerContent}>
-        <Text style={styles.title}>{t("leaderboard_page.title")}</Text>
-      </View>
-
       {/* Dải chọn mùa giải (season chips) */}
       {seasons.length > 0 && (
         <View style={styles.seasonRow}>
@@ -432,18 +427,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     color: COLORS.TEXT_SECONDARY,
     fontSize: 14,
-  },
-  // headerContent – Padding cho header
-  headerContent: {
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 12,
-  },
-  // title – Tiêu đề màn hình
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: COLORS.TEXT_PRIMARY,
   },
   // subtitle – Phụ đề
   subtitle: {

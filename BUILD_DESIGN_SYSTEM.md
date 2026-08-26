@@ -117,6 +117,7 @@ Yêu cầu Node `>=22.13.0`, JDK 17 và pnpm theo repository.
 ```bash
 pnpm install --frozen-lockfile
 pnpm run check
+pnpm dlx expo-doctor@1.20.3
 pnpm run test:api
 pnpm exec expo export --platform android --output-dir .expo-production-check
 ```
@@ -144,6 +145,13 @@ Profile `production` trong `eas.json` tạo APK trên channel `production`:
 pnpm dlx eas-cli@latest build --profile production --platform android
 ```
 
+Profile `production-store` tạo AAB có thể phân phối theo ABI qua Play Store mà
+không thay thế APK GitHub hiện tại:
+
+```bash
+pnpm dlx eas-cli@latest build --profile production-store --platform android
+```
+
 Để chạy không tương tác trên CI, cấu hình `EXPO_TOKEN` trong secret manager và thêm `--non-interactive`. Signing credential phải do EAS hoặc release keystore hợp lệ quản lý; không phát hành output `assembleRelease` nếu Gradle đang dùng `debug.keystore`.
 
 Sau khi build:
@@ -151,7 +159,7 @@ Sau khi build:
 1. tải APK từ EAS dashboard/build URL;
 2. kiểm tra package `com.android.vshop`, version name/code và chữ ký;
 3. cài sạch trên thiết bị thật;
-4. kiểm tra login, shop, profile, refresh, match history, chat và update channel;
+4. kiểm tra login, shop, profile, refresh, match history, TLS chat và update channel;
 5. phát hành GitHub Release nếu smoke test đạt.
 
 ## 10. Artifact policy

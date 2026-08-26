@@ -6,7 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from "react-native";
+import { Linking, StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from "react-native";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useAccountStore } from "~/hooks/useAccountStore";
 import { getAccessTokenFromUri, getIdTokenFromUri } from "~/utils/misc";
@@ -20,6 +20,7 @@ import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { fetchProfileWarmCache } from "~/utils/profile-cache";
 import { disconnectChatService } from "~/utils/chat-service";
+import { isAllowedRiotAuthNavigation } from "~/utils/riot-auth-navigation";
 
 // URL đăng nhập Riot OAuth2
 const LOGIN_URL =
@@ -193,7 +194,12 @@ export default function LoginWebView({
         style={styles.webView}
         // User agent giả Android Chrome để tránh bị chặn
         userAgent="Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Mobile Safari/537.36"
-        originWhitelist={["*"]}
+        originWhitelist={[
+          "https://*.riotgames.com",
+          "https://riotgames.com",
+          "https://*.playvalorant.com",
+          "https://playvalorant.com",
+        ]}
         javaScriptEnabled
         domStorageEnabled
         sharedCookiesEnabled
@@ -202,6 +208,18 @@ export default function LoginWebView({
         cacheEnabled
         source={{
           uri: LOGIN_URL,
+        }}
+        onShouldStartLoadWithRequest={(request) => {
+          if (isAllowedRiotAuthNavigation(request.url)) return true;
+
+          if (/^https?:\/\//i.test(request.url)) {
+            void Linking.openURL(request.url).catch((error: unknown) => {
+              if (__DEV__) {
+                console.warn("[LoginWebView] Could not open external URL", error);
+              }
+            });
+          }
+          return false;
         }}
         // Theo dõi navigation để bắt callback auth
         onNavigationStateChange={(state) => {

@@ -2,6 +2,7 @@
 import TcpSocket from "react-native-tcp-socket";
 // Import NativeModules để kiểm tra module native TcpSockets có khả dụng không, Platform để kiểm tra OS
 import { NativeModules, Platform } from "react-native";
+import { trimXmppBuffer } from "./xmpp-buffer";
 
 // Kiểu trạng thái kết nối XMPP: disconnected (ngắt kết nối) | connecting (đang kết nối) | authenticated (đã xác thực) | error (lỗi)
 type ConnectionState = "disconnected" | "connecting" | "authenticated" | "error";
@@ -95,7 +96,14 @@ export class XMPPClient {
     this.rsoToken = options.rsoToken;
     this.pasToken = options.pasToken;
     this.entitlementsToken = options.entitlementsToken;
-    this.host = options.host;
+    const normalizedHost = options.host.trim().toLowerCase().replace(/\.$/, "");
+    if (
+      !normalizedHost.endsWith(".riotgames.com") &&
+      !normalizedHost.endsWith(".pvp.net")
+    ) {
+      throw new Error("Refusing to connect to an untrusted Riot chat host");
+    }
+    this.host = normalizedHost;
     this.xmppDomain = `${options.xmppRegion}.pvp.net`;   // Domain = region + ".pvp.net"
   }
 
@@ -117,7 +125,9 @@ export class XMPPClient {
       {
         host: this.host,
         port: 5223,                // Cổng XMPP chuẩn (có TLS)
-        rejectUnauthorized: false,  // Chấp nhận chứng chỉ tự ký (self-signed) của Riot
+        // Always validate Riot's certificate chain. Disabling this turns the
+        // bearer-token XMPP connection into a trivial network MITM target.
+        rejectUnauthorized: true,
       } as any,
       () => {
         // Callback khi kết nối thành công
@@ -389,10 +399,8 @@ export class XMPPClient {
     this.processMessages();
     this.processPresence();
 
-    // Giới hạn buffer (tránh tràn bộ nhớ)
-    if (this.buffer.length > 50000) {
-      this.buffer = this.buffer.slice(-10000);
-    }
+    // Giới hạn buffer nhưng không cắt một roster lớn đang được nhận dở.
+    this.buffer = trimXmppBuffer(this.buffer);
   }
 
   // Phương thức private: kiểm tra buffer có chứa success SASL không

@@ -25,7 +25,7 @@ const BASE_TTL = {
 } as const;
 
 // ===== Export SYNC_TTL (adaptive based on network) =====
-export const SYNC_TTL = { ...BASE_TTL };
+export const SYNC_TTL: Record<keyof typeof BASE_TTL, number> = { ...BASE_TTL };
 
 // Cellular multiplier: tăng TTL x2 trên 4G để giảm API calls
 const CELLULAR_TTL_MULTIPLIER = 2;
@@ -38,7 +38,7 @@ async function adaptTtlForNetwork(): Promise<void> {
     const net = await getNetworkProfile();
     if (net.isCellular) {
       (Object.keys(BASE_TTL) as (keyof typeof BASE_TTL)[]).forEach((key) => {
-        (SYNC_TTL as any)[key] = BASE_TTL[key] * CELLULAR_TTL_MULTIPLIER;
+      SYNC_TTL[key] = BASE_TTL[key] * CELLULAR_TTL_MULTIPLIER;
       });
     }
   } catch { /* ignore */ }

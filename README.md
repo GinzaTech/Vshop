@@ -39,9 +39,10 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 # English
 
-## Release 4.1.3 highlights
+## Release 4.1.4 highlights
 
-- **Native production release (25 August 2026):** adds saved Riot accounts with fast switching in More, adds Friends search and resilient roster/chat recovery, keeps the chat composer and send button above the keyboard, shows compact per-match RR changes, and fixes Bundle skin videos appearing underneath the “show all skins” sheet.
+- **Security and recovery release (26 August 2026):** encrypts Riot sessions and saved accounts with a Keystore/Keychain-protected key, validates Riot chat TLS certificates, restricts OAuth navigation, checks OTA updates on normal launch and recovers transient Riot/network failures without discarding good cached data.
+- **Large friend-list recovery:** preserves an incomplete Riot roster until its closing XMPP stanza arrives, preventing large rosters from timing out after launch or foreground recovery.
 
 - **Latest production OTA (22 August 2026):** primary tabs now mount on demand, freeze and detach while inactive; More shortcuts and accessory search expose stable accessibility/automation metadata; display-only accessory cards are no longer announced as buttons.
 - **Reliable primary navigation:** Bundle, Shop and More now keep a single Android interaction layer and preserve route parameters.
@@ -75,7 +76,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 | **Framework** | React Native 0.86 + Expo SDK 57 |
 | **Routing** | Expo Router (file-based) |
 | **State** | Zustand 5 + persist middleware |
-| **Storage** | MMKV (sync, ultra-fast) + AsyncStorage fallback |
+| **Storage** | MMKV cache + AES-256 MMKV session storage with a Keychain/Keystore-protected key; AsyncStorage migration/fallback |
 | **Animations** | react-native-reanimated 4.5 with centralized motion tokens |
 | **UI** | react-native-paper, custom glassmorphism design system |
 | **i18n** | react-i18next (18 languages) |
@@ -103,7 +104,7 @@ responses before they reach the UI.
 | **Screens and components** | Route orchestration, user interaction and presentation; no persistent transport ownership | `app/`, `components/` |
 | **Domain state** | User session, match history, profile warm cache, combat snapshot, wishlist and feature state | `hooks/`, `utils/chat-store.ts` |
 | **Services** | Riot HTTP calls, RSO session construction, XMPP, synchronization, asset loading and image prefetch | `utils/` |
-| **Persistence** | Zustand persistence over MMKV on native, AsyncStorage fallback, and `localStorage` on web | `utils/storage.ts` |
+| **Persistence** | Zustand cache persistence over MMKV; Riot sessions use encrypted MMKV on native and tab-scoped `sessionStorage` on web | `utils/storage.ts` |
 | **Contracts and assets** | Riot DTOs, normalized match UI types, design tokens, images and 18 translation bundles | `types/`, `constants/`, `assets/` |
 
 ### Startup and authentication
@@ -115,12 +116,13 @@ flowchart TD
   C -- "No" --> D["/setup"]
   C -- "Yes" --> E{"Reusable RSO token?"}
   E -- "No" --> F["/reauth"]
-  E -- "Yes" --> G["LoadingScreen + 20 s bootstrap budget"]
+  E -- "Yes" --> G["LoadingScreen + authenticated core sync"]
   G --> H["Wave 1: RiotClientConfig"]
   H --> I["Wave 2: authenticated user, matches and profile cache in parallel"]
   I --> J["Diff and persist changed domain data"]
   J --> K["/profile"]
-  G -- "Timeout" --> K
+  G -- "Temporary network/upstream error" --> G
+  G -- "Repeated permanent failure" --> F
   G -- "Authentication failure" --> F
   K --> L["AppWarmup starts delayed background work"]
 ```
@@ -130,16 +132,13 @@ flowchart TD
 2. `RootLayout` resolves the region from AsyncStorage and the persisted user.
    A missing region enters setup; a missing or near-expiry token enters RSO
    reauthentication.
-3. A resumable session calls `syncAllData` with a 20-second UI budget. Client
-   configuration is loaded first because feature and chat affinity data depend
-   on it.
-4. The second wave runs `buildAuthenticatedUser`, initial match synchronization
-   and profile warmup concurrently. Authentication is the only fatal branch;
-   match/profile failures can fall back to their caches.
-5. A timeout opens the cached Profile instead of blocking startup; it does not
-   cancel the sync already in flight, so a late result may still refresh the
-   stores. A real authentication failure clears the invalid session while
-   preserving the selected region and routes to `/reauth`.
+3. A resumable session calls `syncAllData` and keeps the existing branded
+   loading shell visible until client config, authenticated user data, initial
+   match state and profile warm cache are usable.
+4. Network timeouts, rate limits and Riot 5xx responses retain the session and
+   retry with bounded backoff. Authentication failures renew the RSO session.
+5. Repeated permanent contract/configuration failures route to `/reauth`
+   instead of leaving the loading shell in an endless retry loop.
 
 The authenticated shell mounts `AppWarmup`, which deliberately staggers work:
 shop/balance refresh after 3 seconds, match refresh after 5.2 seconds on Wi-Fi
@@ -363,9 +362,10 @@ Install via QR code or APK from the Expo dashboard.
 
 # Tiếng Việt
 
-## Điểm nổi bật bản 4.1.3
+## Điểm nổi bật bản 4.1.4
 
-- **Bản native production (25/08/2026):** thêm danh sách tài khoản Riot đã đăng nhập và chuyển nhanh trong More, thêm tìm kiếm bạn bè cùng cơ chế phục hồi roster/chat, giữ khung chat và nút gửi phía trên bàn phím, thu gọn RR theo trận, đồng thời sửa video skin trong Bundle bị nằm dưới lớp “xem toàn bộ skin”.
+- **Bản bảo mật và phục hồi (26/08/2026):** mã hoá phiên Riot và tài khoản đã lưu bằng khoá được Keystore/Keychain bảo vệ, xác thực chứng chỉ TLS của Riot chat, giới hạn điều hướng OAuth, kiểm tra OTA khi mở app bình thường và phục hồi lỗi Riot/mạng tạm thời mà không xoá cache tốt.
+- **Khôi phục danh sách bạn bè lớn:** giữ nguyên roster Riot đang nhận dở cho tới khi stanza XMPP đóng hoàn chỉnh, tránh timeout sau khi mở app hoặc quay lại từ nền.
 
 - **OTA production mới nhất (22/08/2026):** tab chính chỉ mount khi dùng, được freeze và detach khi không hoạt động; shortcut trong More và ô tìm phụ kiện có metadata accessibility/automation ổn định; card phụ kiện chỉ hiển thị không còn bị đọc nhầm là nút bấm.
 - **Điều hướng chính ổn định:** Bundle, Shop và More chỉ giữ một lớp tương tác trên Android và bảo toàn tham số route.
@@ -399,7 +399,7 @@ Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHA
 | **Framework** | React Native 0.86 + Expo SDK 57 |
 | **Routing** | Expo Router (file-based) |
 | **State** | Zustand 5 + persist middleware |
-| **Storage** | MMKV (đồng bộ, siêu nhanh) + AsyncStorage fallback |
+| **Storage** | MMKV cho cache + MMKV AES-256 cho session với khóa được bảo vệ bởi Keychain/Keystore; tự migrate/fallback AsyncStorage |
 | **Animation** | react-native-reanimated 4.5 và motion token tập trung |
 | **UI** | react-native-paper, design system glassmorphism tùy chỉnh |
 | **Đa ngôn ngữ** | react-i18next (18 ngôn ngữ) |
@@ -427,7 +427,7 @@ dữ liệu tới UI.
 | **Màn hình và component** | Điều phối route, tương tác và hiển thị; không sở hữu transport lâu dài | `app/`, `components/` |
 | **Domain state** | Session người dùng, lịch sử đấu, profile warm cache, combat snapshot, wishlist và feature state | `hooks/`, `utils/chat-store.ts` |
 | **Service** | Riot HTTP, dựng RSO session, XMPP, đồng bộ, tải asset và preload ảnh | `utils/` |
-| **Lưu trữ** | Zustand persist qua MMKV trên native, fallback AsyncStorage và `localStorage` trên web | `utils/storage.ts` |
+| **Lưu trữ** | Cache Zustand qua MMKV; Riot session dùng MMKV mã hóa trên native và `sessionStorage` theo tab trên web | `utils/storage.ts` |
 | **Contract và asset** | Riot DTO, kiểu match UI đã chuẩn hóa, design token, hình ảnh và 18 bộ ngôn ngữ | `types/`, `constants/`, `assets/` |
 
 ### Khởi động và xác thực
@@ -439,12 +439,13 @@ flowchart TD
   C -- "Chưa" --> D["/setup"]
   C -- "Có" --> E{"RSO token còn dùng được?"}
   E -- "Không" --> F["/reauth"]
-  E -- "Có" --> G["LoadingScreen + ngân sách bootstrap 20 giây"]
+  E -- "Có" --> G["LoadingScreen + đồng bộ core đã xác thực"]
   G --> H["Wave 1: RiotClientConfig"]
   H --> I["Wave 2: user, trận đấu và profile cache chạy song song"]
   I --> J["Diff và persist domain có thay đổi"]
   J --> K["/profile"]
-  G -- "Timeout" --> K
+  G -- "Lỗi mạng/upstream tạm thời" --> G
+  G -- "Lỗi vĩnh viễn lặp lại" --> F
   G -- "Lỗi xác thực" --> F
   K --> L["AppWarmup khởi động tác vụ nền có delay"]
 ```
@@ -453,15 +454,13 @@ flowchart TD
    tới khi cờ `hydrated` được bật.
 2. `RootLayout` lấy region từ AsyncStorage và user đã lưu. Thiếu region thì vào
    setup; thiếu token hoặc token gần hết hạn thì vào luồng RSO reauthentication.
-3. Session có thể dùng lại sẽ chạy `syncAllData` với giới hạn chờ UI 20 giây.
-   Client config được tải trước vì feature và chat affinity phụ thuộc dữ liệu này.
-4. Wave thứ hai chạy song song `buildAuthenticatedUser`, đồng bộ trận ban đầu và
-   warmup Profile. Chỉ lỗi xác thực là lỗi chặn; Profile hoặc Match có thể dùng
-   cache cũ nếu API riêng lẻ thất bại.
-5. Nếu quá 20 giây, app mở Profile từ cache thay vì giữ màn hình loading; tiến
-   trình sync đang chạy không bị hủy nên response tới muộn vẫn có thể refresh
-   store. Nếu xác thực thực sự sai, session bị reset nhưng region vẫn được giữ
-   để chuyển sang `/reauth`.
+3. Session có thể dùng lại sẽ chạy `syncAllData` và giữ loading shell hiện tại
+   cho đến khi client config, authenticated user, match state ban đầu và Profile
+   warm cache dùng được.
+4. Timeout mạng, rate limit và Riot 5xx giữ nguyên session/cache rồi retry với
+   backoff có giới hạn. Lỗi xác thực sẽ thử dựng lại RSO session.
+5. Lỗi contract/config vĩnh viễn lặp lại sẽ chuyển `/reauth` thay vì để loading
+   shell retry vô hạn.
 
 Sau khi đăng nhập, `AppWarmup` chủ động giãn các tác vụ: refresh shop/số dư sau
 3 giây, refresh match sau 5,2 giây trên Wi-Fi hoặc 7,8 giây trên mạng di động,

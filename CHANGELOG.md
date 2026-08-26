@@ -4,7 +4,46 @@ All notable changes to VShop are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses semantic app versions with independent Android and iOS build numbers.
 
-## [Unreleased]
+## [4.1.4] - 2026-08-26
+
+### Security
+
+- Migrated Riot session and saved-account persistence from plaintext AsyncStorage/localStorage to AES-256 MMKV on native, with its key protected by Android Keystore/iOS Keychain and automatic migration of existing sessions. Web sessions now use tab-scoped `sessionStorage`.
+- Enabled XMPP certificate-chain validation, restricted chat hosts to Riot-owned domains and restricted OAuth WebView top-level navigation to Riot/PlayValorant HTTPS origins.
+- Disabled Android cloud backup for app data, removed the overlay permission and limited MediaLibrary access to photos instead of requesting video/audio access that VShop does not use.
+- Updated Axios to 1.19.0 and its production `form-data` dependency to 4.0.6.
+- Moved pnpm settings to `pnpm-workspace.yaml`, upgraded the pinned package manager to pnpm 11.24.0 and overrode all compatible patched transitive dependency versions. The remaining audit entries are Expo/Metro tooling constraints: `image-size` currently has no patched release, while forcing major versions of `fast-xml-parser` or `uuid` would violate their parent package contracts.
+
+### Reliability
+
+- Updated all Expo SDK 57 packages to their compatible patch releases and enabled OTA checks on normal production launches.
+- Classified Riot rate limits and upstream 5xx responses as recoverable, prevented permanent startup failures from retrying forever and required initial match synchronization to report a usable result.
+- Preserved large in-flight Riot XMPP roster stanzas instead of trimming them mid-response, so Friends can recover and load accounts with large friend lists after launch or foreground reconnects.
+- Added explicit Sentry release/environment metadata and render-error capture without collecting default PII.
+- Added a production `app.start_to_interactive` distribution metric for the first usable route without including account identifiers.
+
+### Fixed
+
+- Removed the duplicated in-page title from Leaderboard while keeping the navigation header and all season/search controls unchanged.
+
+### Tooling
+
+- Fixed GitHub Actions pnpm/Node setup, added Expo Doctor and an Android production export gate, expanded critical-helper coverage, and added a `production-store` AAB profile while preserving the existing production APK profile.
+- `react-native-tcp-socket` remains the required raw Riot XMPP transport. Expo Doctor's directory-metadata warning is explicitly excluded; TLS chat must remain in the native release smoke checklist until the package publishes New Architecture metadata.
+
+### Validation
+
+- Local Android native prebuild and arm64 debug compilation completed successfully with New Architecture, Hermes, SecureStore, MMKV/Nitro, Riot TCP chat and Expo Updates autolinked.
+- `pnpm run check` passed TypeScript, ESLint and 16/16 Jest suites (119/119 tests); Expo Doctor passed 21/21 checks, Android export bundled 2,664 modules and 38 assets, and the public API smoke test passed all 13 endpoints.
+- Installed the signed development APK on a Redmi K60 and verified Bundle layering, Store filters/timer, Profile tabs, every read-only More route, Friends search, direct-chat keyboard behavior and API/XMPP recovery after backgrounding. No fatal Android or React Native runtime error was observed.
+- Full automated, device and release validation results are recorded by the release workflow before production publication.
+
+### Build metadata
+
+- App/runtime version: `4.1.4`
+- Android version code: `85`
+- iOS build number: `37`
+- Distribution targets: EAS development APK, production OTA, production APK and `production-store` AAB.
 
 ## [4.1.3] - 2026-08-25
 
@@ -250,7 +289,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - iOS build number: `30`
 - Production profile: `eas build --profile production --platform android`
 
-[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.3...HEAD
+[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.4...HEAD
+[4.1.4]: https://github.com/GinzaTech/Vshop/compare/v4.1.3...v4.1.4
 [4.1.3]: https://github.com/GinzaTech/Vshop/compare/v4.1.2...v4.1.3
 [4.1.2]: https://github.com/GinzaTech/Vshop/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/GinzaTech/Vshop/compare/v4.1.0...v4.1.1
