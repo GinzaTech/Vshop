@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  ViewProps,
   ViewStyle,
 } from "react-native";
 
@@ -19,7 +20,7 @@ import { COLORS, RADIUS } from "~/constants/DesignSystem";
  * @param children – Nội dung bên trong pill: có thể là string, number hoặc ReactNode.
  * @param style    – (tuỳ chọn) Style ghi đè khung ngoài.
  */
-interface InfoPillProps {
+interface InfoPillProps extends Omit<ViewProps, "style"> {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
@@ -39,7 +40,7 @@ interface InfoPillProps {
  * @param props – Xem interface InfoPillProps.
  * @returns Một View dạng pill chứa các thành phần con đã được chuẩn hoá.
  */
-export default function InfoPill({ children, style }: InfoPillProps) {
+export default function InfoPill({ children, style, ...viewProps }: InfoPillProps) {
   // Biến `normalizedChildren`: Xử lý children để đảm bảo tất cả đều render được.
   const normalizedChildren = React.Children.toArray(children) // Chuyển children → mảng
     .filter((child) => child != null)                         // Bỏ null / undefined
@@ -57,7 +58,7 @@ export default function InfoPill({ children, style }: InfoPillProps) {
       )
     );
 
-  return <View style={[styles.pill, style]}>{normalizedChildren}</View>;
+  return <View {...viewProps} style={[styles.pill, style]}>{normalizedChildren}</View>;
 }
 
 /**

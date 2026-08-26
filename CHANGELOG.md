@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Migrated Riot session and saved-account persistence from plaintext AsyncStorage/localStorage to AES-256 MMKV on native, with its key protected by Android Keystore/iOS Keychain and automatic migration of existing sessions. Web sessions now use tab-scoped `sessionStorage`.
 - Enabled XMPP certificate-chain validation, restricted chat hosts to Riot-owned domains and restricted OAuth WebView top-level navigation to Riot/PlayValorant HTTPS origins.
 - Disabled Android cloud backup for app data, removed the overlay permission and limited MediaLibrary access to photos instead of requesting video/audio access that VShop does not use.
+- Removed the direct Android battery-optimization exemption permission. The wishlist warning now opens the system's general battery settings and fails safely when that settings activity is unavailable.
 - Updated Axios to 1.19.0 and its production `form-data` dependency to 4.0.6.
 - Moved pnpm settings to `pnpm-workspace.yaml`, upgraded the pinned package manager to pnpm 11.24.0 and overrode all compatible patched transitive dependency versions. The remaining production audit entries are Expo/Metro tooling constraints: `image-size` currently has no patched release, while forcing major versions of `fast-xml-parser` or `uuid` would violate their parent package contracts.
 
@@ -21,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Preserved large in-flight Riot XMPP roster stanzas instead of trimming them mid-response, so Friends can recover and load accounts with large friend lists after launch or foreground reconnects.
 - Added explicit Sentry release/environment metadata and render-error capture without collecting default PII.
 - Added a production `app.start_to_interactive` distribution metric for the first usable route without including account identifiers.
+- Added explicit startup recovery controls after transient Riot failures: retry immediately, or enter with a recent account-matched cache only after a previous complete core sync. Cache-marker persistence is best-effort and cannot block a successful startup.
 
 ### Fixed
 
@@ -33,12 +35,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Fixed GitHub Actions pnpm/Node setup, added Expo Doctor and an Android production export gate, expanded critical-helper coverage, and added a `production-store` AAB profile while preserving the existing production APK profile.
 - Added `rn-flow-visualizer` to the pnpm workspace, removed its stale npm lockfile and runtime logs, aligned its React peer versions and verified its production build independently.
+- Converted Profile and Combat Session routes into thin feature entry points; extracted their styles, loadout comparison rules, combat insight calculations, Riot response types and Storefront parser into independently testable modules with enforced size budgets.
+- Added truthful app-wide coverage reporting and a ratcheted baseline alongside higher thresholds for critical domain modules. CI now rejects any new production advisory unless its exact ID and transitive Expo/Metro constraint are documented.
+- Added stable automation selectors to primary navigation and the Store, Profile, Friends and Equipment journeys. CI now enforces Android export budgets for total payload, Hermes bytecode and the largest packaged asset.
 - `react-native-tcp-socket` remains the required raw Riot XMPP transport. Expo Doctor's directory-metadata warning is explicitly excluded; TLS chat must remain in the native release smoke checklist until the package publishes New Architecture metadata.
 
 ### Validation
 
 - Local Android native prebuild and arm64 debug compilation completed successfully with New Architecture, Hermes, SecureStore, MMKV/Nitro, Riot TCP chat and Expo Updates autolinked.
-- `pnpm run check` passed TypeScript, ESLint and 17/17 Jest suites (122/122 tests); Expo Doctor passed 21/21 checks, Android export bundled 2,665 modules and 38 assets, and the public API smoke test passed all 13 endpoints.
+- `pnpm run check` passed TypeScript, ESLint and 24/24 Jest suites (151/151 tests). App-wide statement coverage is now reported honestly at 8.57% from all routes, components, features, hooks, services and utilities, with ratcheted critical-domain thresholds; Expo Doctor passed 21/21 checks. Android export bundled 2,674 modules and 38 assets: 9.72 MB total, 7.24 MB Hermes bytecode and a 1.25 MB largest asset, all within enforced budgets.
 - Installed the signed development APK on a Redmi K60 and verified Bundle layering, Store filters/timer, Profile tabs, every read-only More route, Friends search, direct-chat keyboard behavior and API/XMPP recovery after backgrounding. No fatal Android or React Native runtime error was observed.
 - Full automated, device and release validation results are recorded by the release workflow before production publication.
 

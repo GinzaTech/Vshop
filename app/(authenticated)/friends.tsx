@@ -55,6 +55,7 @@ export default function FriendsScreen() {
     navigation.setOptions({
       headerRight: () => (
         <Pressable
+          testID="friends-search-toggle"
           onPress={() => {
             setSearchVisible((visible) => {
               if (visible) setSearchQuery("");
@@ -195,6 +196,7 @@ export default function FriendsScreen() {
         <View style={styles.searchBar}>
           <Icon name="magnify" size={22} color={COLORS.TEXT_SECONDARY} />
           <TextInput
+            testID="friends-search-input"
             autoFocus
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -208,6 +210,7 @@ export default function FriendsScreen() {
           />
           {searchQuery ? (
             <Pressable
+              testID="friends-search-clear"
               onPress={() => setSearchQuery("")}
               style={({ pressed }) => [
                 styles.clearSearchButton,
@@ -261,6 +264,7 @@ export default function FriendsScreen() {
                 </Text>
                 {loadError ? (
                   <Pressable
+                    testID="friends-retry-button"
                     style={({ pressed }) => [
                       styles.retryButton,
                       pressed && styles.friendRowPressed,

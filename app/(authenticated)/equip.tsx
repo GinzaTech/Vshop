@@ -91,7 +91,7 @@ const Equip = () => {
   return (
     <View style={styles.container}>
       {/* Searchbar: tìm kiếm trang bị */}
-      <Searchbar placeholder={t("equipment_page.search_placeholder")} value={searchQuery}
+      <Searchbar testID="equipment-search-input" placeholder={t("equipment_page.search_placeholder")} value={searchQuery}
         onChangeText={setSearchQuery} style={styles.searchBar} inputStyle={styles.searchInput}
         iconColor={COLORS.TEXT_SECONDARY} accessibilityLabel={t("equipment_page.search_placeholder")} />
 
@@ -101,6 +101,7 @@ const Equip = () => {
           const isActive = section.key === activeSection;
           return (
             <TouchableOpacity key={section.key}
+              testID={`equipment-tab-${section.key}`}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               style={[styles.tabButton, isActive && styles.tabButtonActive]}

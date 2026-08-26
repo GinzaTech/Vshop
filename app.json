@@ -27,11 +27,9 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#2f343b"
       },
-      "permissions": [
-        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
-      ],
       "blockedPermissions": [
-        "android.permission.SYSTEM_ALERT_WINDOW"
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "package": "com.android.vshop",
       "versionCode": 85

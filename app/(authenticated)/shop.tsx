@@ -96,6 +96,7 @@ function Shop() {
       <View style={styles.filterBar}>
         <View style={styles.filterOptions}>
           <TouchableOpacity
+            testID="shop-filter-all"
             accessibilityRole="tab"
             accessibilityState={{ selected: mode === "all" }}
             activeOpacity={0.85}
@@ -108,6 +109,7 @@ function Shop() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            testID="shop-filter-wishlist"
             accessibilityRole="tab"
             accessibilityState={{ selected: mode === "wishlist" }}
             activeOpacity={0.85}
@@ -128,7 +130,7 @@ function Shop() {
           </TouchableOpacity>
         </View>
 
-        <InfoPill style={styles.metricPill}>
+        <InfoPill testID="shop-refresh-countdown" style={styles.metricPill}>
           <Icon name="clock-outline" size={15} color={COLORS.TEXT_PRIMARY} />
           <Countdown
             timestamp={timestamp}

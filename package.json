@@ -13,9 +13,12 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:ci": "jest --ci --runInBand --coverage",
+    "test:ci": "jest --config jest.full.config.js --ci --runInBand --coverage",
+    "test:critical": "jest --ci --runInBand --coverage",
     "test:api": "node scripts/smoke-api.mjs",
-    "check": "pnpm run typecheck && pnpm run lint && pnpm run test:ci"
+    "audit:prod": "node scripts/audit-production.mjs",
+    "check:export-budget": "node scripts/check-export-budget.mjs",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run test:ci && pnpm run audit:prod"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.13",

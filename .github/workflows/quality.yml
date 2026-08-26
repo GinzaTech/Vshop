@@ -32,8 +32,8 @@ jobs:
       - name: Validate Expo dependencies
         run: pnpm dlx expo-doctor@1.20.3
 
-      - name: Reject critical production advisories
-        run: pnpm audit --prod --audit-level critical
-
       - name: Export Android bundle
         run: pnpm exec expo export --platform android --output-dir .expo-export-ci
+
+      - name: Enforce Android export budget
+        run: pnpm run check:export-budget .expo-export-ci

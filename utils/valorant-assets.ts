@@ -10,6 +10,27 @@ import * as FileSystem from "expo-file-system/legacy";
 // Import hàm lấy network profile và mapWithConcurrency (chạy đồng thời có giới hạn)
 import { getNetworkProfile, mapWithConcurrency } from "./network";
 
+export type ValorantMapAsset = {
+  uuid?: string;
+  displayName?: string;
+  mapUrl?: string;
+  listViewIcon?: string;
+  splash?: string;
+  displayIcon?: string;
+};
+
+export type CompetitiveTierAsset = {
+  tier?: number;
+  tierName?: string;
+  smallIcon?: string;
+  largeIcon?: string;
+};
+
+export type CompetitiveTierSet = {
+  uuid?: string;
+  tiers?: CompetitiveTierAsset[];
+};
+
 // Thiết lập timeout mặc định cho axios: 15 giây
 
 // Kiểu dữ liệu lưu trữ toàn bộ assets của Valorant (vũ khí, skin, buddy, spray, card, title, map, ...)
@@ -23,8 +44,8 @@ type StoredAssets = {
   flex: ValorantFlexAccessory[];      // Danh sách flex (vật phẩm khoe)
   cards: ValorantCardAccessory[];     // Danh sách thẻ người chơi
   titles: ValorantTitleAccessory[];   // Danh sách title (danh hiệu)
-  maps: any[];                        // Danh sách bản đồ (dùng any vì chưa định nghĩa type)
-  competitiveTiers: any[];            // Danh sách tier xếp hạng
+  maps: ValorantMapAsset[];
+  competitiveTiers: CompetitiveTierSet[];
 };
 
 // Kiểu dữ liệu lưu trữ thông tin các agent (nhân vật) Valorant
@@ -263,8 +284,8 @@ async function loadAssetsInternal() {
       flex: flex as ValorantFlexAccessory[],
       cards: cards as ValorantCardAccessory[],
       titles: titles as ValorantTitleAccessory[],
-      maps: maps as any[],
-      competitiveTiers: competitiveTiers as any[],
+      maps: maps as ValorantMapAsset[],
+      competitiveTiers: competitiveTiers as CompetitiveTierSet[],
     };
 
     // Ghi cache ra file
@@ -462,9 +483,9 @@ export async function fetchPlayerTitles(language?: string) {
 // Export hàm fetch danh sách bản đồ từ API
 // Parameters:
 //   - language: ngôn ngữ
-// Returns: Promise<any[]>
+// Returns: map metadata
 export async function fetchMaps(language?: string) {
-  return getValorantApiData<any[]>("maps", {
+  return getValorantApiData<ValorantMapAsset[]>("maps", {
     language: language ?? getVAPILang(),
   });
 }
@@ -472,9 +493,9 @@ export async function fetchMaps(language?: string) {
 // Export hàm fetch danh sách competitive tiers từ API
 // Parameters:
 //   - language: ngôn ngữ
-// Returns: Promise<any[]>
+// Returns: competitive tier sets
 export async function fetchCompetitiveTiers(language?: string) {
-  return getValorantApiData<any[]>("competitivetiers", {
+  return getValorantApiData<CompetitiveTierSet[]>("competitivetiers", {
     language: language ?? getVAPILang(),
   });
 }

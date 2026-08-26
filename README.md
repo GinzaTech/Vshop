@@ -49,7 +49,7 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 - **Reliable primary navigation:** Bundle, Shop and More now keep a single Android interaction layer and preserve route parameters.
 - **Web-safe profile export:** native media-library code is isolated from the web static renderer.
 - **Modern runtime:** upgraded to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
-- **Safer API architecture:** Riot/public traffic now uses isolated clients, a typed endpoint registry, validation, contract tests and read-only smoke tests.
+- **Safer API architecture:** Riot/public traffic now uses isolated clients, a typed endpoint registry, validation, contract tests and read-only smoke tests. Profile and Combat Session are thin routes backed by feature modules, while CI reports app-wide coverage separately from stricter critical-domain thresholds.
 - **Refresh everywhere:** authenticated data screens, empty states, Match Session and chat support pull-to-refresh with duplicate-request protection.
 - **Complete leaderboard history:** every started Act can be selected, with Episode/Act labels, newest-first ordering and stale-response protection.
 - **Smoother motion:** shared timing/spring tokens keep high-frequency interaction animation on the UI thread and respect system Reduce Motion.
@@ -123,6 +123,7 @@ flowchart TD
   I --> J["Diff and persist changed domain data"]
   J --> K["/profile"]
   G -- "Temporary network/upstream error" --> G
+  G -- "Recent complete account cache" --> M["Optional cached profile + stale-data warning"]
   G -- "Repeated permanent failure" --> F
   G -- "Authentication failure" --> F
   K --> L["AppWarmup starts delayed background work"]
@@ -137,7 +138,9 @@ flowchart TD
    loading shell visible until client config, authenticated user data, initial
    match state and profile warm cache are usable.
 4. Network timeouts, rate limits and Riot 5xx responses retain the session and
-   retry with bounded backoff. Authentication failures renew the RSO session.
+   retry with bounded backoff. The loading shell exposes immediate retry and,
+   only after a previous complete account-matched sync within 72 hours, an
+   explicit cached-data fallback. Authentication failures renew the RSO session.
 5. Repeated permanent contract/configuration failures route to `/reauth`
    instead of leaving the loading shell in an endless retry loop.
 
@@ -372,7 +375,7 @@ Install via QR code or APK from the Expo dashboard.
 - **Điều hướng chính ổn định:** Bundle, Shop và More chỉ giữ một lớp tương tác trên Android và bảo toàn tham số route.
 - **Profile tương thích web:** phần xuất ảnh dùng media-library native đã được tách khỏi trình render web tĩnh.
 - **Runtime mới:** nâng lên Expo SDK 57, React Native 0.86, React 19, Reanimated 4 và Zustand 5.
-- **Kiến trúc API an toàn hơn:** Riot/public API dùng client tách biệt, endpoint registry có type, validation, contract test và smoke test chỉ đọc.
+- **Kiến trúc API an toàn hơn:** Riot/public API dùng client tách biệt, endpoint registry có type, validation, contract test và smoke test chỉ đọc. Profile và Combat Session là route mỏng dùng feature module; CI tách coverage toàn ứng dụng khỏi threshold nghiêm ngặt của domain quan trọng.
 - **Kéo để tải lại toàn ứng dụng:** các màn dữ liệu, empty state, Phiên đấu và chat đều hỗ trợ refresh, đồng thời chặn request trùng.
 - **Đầy đủ lịch sử bảng xếp hạng:** chọn được mọi Act đã bắt đầu, có nhãn Episode/Act, sắp xếp mới nhất và chống response cũ ghi đè.
 - **Animation mượt và nhất quán:** timing/spring dùng token chung, chạy tương tác trên UI thread và tôn trọng Reduce Motion.

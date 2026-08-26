@@ -296,6 +296,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
               return (
                 <Pressable
                   key={route.key}
+                  testID={`primary-tab-${route.name}`}
                   accessibilityRole="button"
                   accessibilityLabel={
                     options.tabBarAccessibilityLabel ??
@@ -398,6 +399,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
               ]}
             >
             <Pressable
+              testID="primary-navigation-expand"
               accessibilityRole="button"
               accessibilityLabel="Expand navigation"
               delayLongPress={600}

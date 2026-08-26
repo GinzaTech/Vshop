@@ -4,7 +4,7 @@
  */
 import React from "react";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -17,9 +17,19 @@ import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
 
 type LoadingScreenProps = {
   message?: string;
+  showRecoveryActions?: boolean;
+  canUseCachedData?: boolean;
+  onRetry?: () => void;
+  onUseCachedData?: () => void;
 };
 
-export default function LoadingScreen({ message = "Loading" }: LoadingScreenProps) {
+export default function LoadingScreen({
+  message = "Loading",
+  showRecoveryActions = false,
+  canUseCachedData = false,
+  onRetry,
+  onUseCachedData,
+}: LoadingScreenProps) {
   const reduceMotion = useReducedMotion();
   const pulse = useSharedValue(1);
 
@@ -59,6 +69,37 @@ export default function LoadingScreen({ message = "Loading" }: LoadingScreenProp
         <ActivityIndicator size={14} color={COLORS.ACCENT_DEEP} />
         <Text style={styles.statusText}>{message}</Text>
       </View>
+
+      {showRecoveryActions ? (
+        <View style={styles.recoveryPanel} accessibilityLiveRegion="polite">
+          <Text style={styles.recoveryText}>
+            Riot services are unavailable. VShop will keep retrying automatically.
+          </Text>
+          <View style={styles.recoveryActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading VShop data"
+              testID="startup-retry-button"
+              onPress={onRetry}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>Retry now</Text>
+            </Pressable>
+            {canUseCachedData ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open VShop with cached data"
+                accessibilityHint="Cached data may be out of date"
+                testID="startup-use-cache-button"
+                onPress={onUseCachedData}
+                style={styles.cacheButton}
+              >
+                <Text style={styles.cacheButtonText}>Use cached data</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
 
       <Animated.View style={[styles.skeleton, skeletonAnimatedStyle]}>
         <View style={styles.profileCard}>
@@ -128,6 +169,54 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_SECONDARY,
     fontSize: 13,
     fontWeight: "600",
+  },
+  recoveryPanel: {
+    width: "100%",
+    maxWidth: 720,
+    alignSelf: "center",
+    marginTop: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE,
+  },
+  recoveryText: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  recoveryActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  retryButton: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.chip,
+    backgroundColor: COLORS.PURE_BLACK,
+  },
+  retryButtonText: {
+    color: COLORS.PURE_WHITE,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  cacheButton: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.chip,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE_MUTED,
+  },
+  cacheButtonText: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 13,
+    fontWeight: "700",
   },
   skeleton: {
     width: "100%",

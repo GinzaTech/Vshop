@@ -1,17 +1,32 @@
 // Import axios để thực hiện HTTP requests đến API Riot Games
 import { riotApiClient as axios } from "~/services/riot/client";
-import {
-  buildRiotApiUrl,
-  type RiotEndpointName,
-} from "~/services/riot/endpoints";
+import { buildRiotApiUrl } from "~/services/riot/endpoints";
 // Import jwtDecode để giải mã JWT token lấy thông tin user
 import { jwtDecode } from "jwt-decode";
 // Import các hàm tiện ích: normalize shard, enum tiền tệ, enum loại item
-import { VCurrencies, VItemTypes } from "./misc";
+import { VCurrencies } from "./misc";
 // Import https-browserify để tạo HTTPS agent với ciphers tùy chỉnh (dùng cho reAuth)
 import https from "https-browserify";
 // Import hàm fetch bundle, getAssetLookups và getAssets từ module assets
-import { fetchBundle, getAssetLookups, getAssets } from "./valorant-assets";
+import { getAssets } from "./valorant-assets";
+import type {
+  CompetitiveMMRResponse,
+  CurrentGameMatchResponse,
+  OwnedItemsResponse,
+  PartyResponse,
+  PlayerLoadoutExpression,
+  PlayerLoadoutResponse,
+  ValorantSessionResponse,
+} from "~/services/riot/api-types";
+export type {
+  CompetitiveMMRResponse,
+  CurrentGameMatchResponse,
+  OwnedItemsResponse,
+  PartyResponse,
+  PlayerLoadoutExpression,
+  PlayerLoadoutResponse,
+  ValorantSessionResponse,
+} from "~/services/riot/api-types";
 // Import các hàm log cho axios request/response/error
 
 // Thiết lập timeout mặc định cho axios: 10 giây (giảm từ 15s để fail-fast trên 4G)
@@ -79,45 +94,6 @@ const playerNameCache = new Map<
 // đang chạy, kể cả khi danh sách subject của chúng chỉ trùng một phần.
 const playerNameRequests = new Map<string, Promise<void>>();
 
-
-// Export interface phản hồi loadout (trang bị) của người chơi từ API Riot
-export interface PlayerLoadoutResponse {
-  SourceApiVersion?: "v2" | "v3";   // Phiên bản API (v2 cũ hoặc v3 mới)
-  Subject: string;                    // UUID của người chơi
-  Version: number;                    // Phiên bản loadout
-  Guns: {                            // Danh sách vũ khí và skin đã trang bị
-    ID: string;                       // UUID vũ khí
-    CharmInstanceID?: string;         // UUID instance của charm (nếu có)
-    CharmID?: string;                 // UUID charm
-    CharmLevelID?: string;            // UUID cấp độ charm
-    SkinID: string;                   // UUID skin đã chọn
-    SkinLevelID: string;              // UUID cấp độ skin
-    ChromaID: string;                 // UUID chroma (màu sắc)
-    Attachments: unknown[];           // Các đính kèm khác
-  }[];
-  Sprays: {                          // Danh sách spray đã trang bị
-    EquipSlotID: string;              // ID slot trang bị
-    SprayID: string;                  // UUID spray
-    SprayLevelID: string | null;      // UUID cấp độ spray hoặc null
-  }[];
-  ActiveExpressions?: PlayerLoadoutExpression[];  // Biểu cảm đang kích hoạt (v3)
-  DynamicOptions?: Record<string, unknown>;        // Tùy chọn động (v3)
-  Identity: {                        // Thông tin định danh người chơi
-    PlayerCardID: string;             // UUID thẻ người chơi
-    PlayerTitleID: string;            // UUID danh hiệu
-    AccountLevel: number;             // Cấp độ tài khoản
-    PreferredLevelBorderID: string;   // UUID viền cấp độ ưa thích
-    HideAccountLevel: boolean;        // Ẩn cấp độ tài khoản?
-  };
-  Incognito: boolean;                 // Chế độ ẩn danh?
-}
-
-// Export interface biểu cảm (expression) của người chơi
-export interface PlayerLoadoutExpression {
-  TypeID: string;    // Loại biểu cảm
-  AssetID: string;   // UUID asset biểu cảm
-}
-
 // Type nội bộ cho phản hồi loadout v3 (không có Sprays, thay bằng ActiveExpressions và DynamicOptions)
 type PlayerLoadoutV3Response = Omit<PlayerLoadoutResponse, "Sprays"> & {
   ActiveExpressions: PlayerLoadoutExpression[];
@@ -172,130 +148,6 @@ const isUsablePlayerLoadoutV3 = (
     Boolean(loadout.Identity)
   );
 };
-
-// Export interface phản hồi danh sách item đã sở hữu (entitlements)
-export interface OwnedItemsResponse {
-  Subject?: string;                    // UUID người chơi
-  ItemTypeID?: string;                 // Loại item
-  Entitlements?: {                    // Danh sách entitlement (cách cũ)
-    TypeID?: string;
-    ItemID: string;
-    InstanceID?: string;
-  }[];
-  EntitlementsByTypes?: {             // Danh sách entitlement theo loại (cách mới)
-    ItemTypeID: string;
-    Entitlements: {
-      TypeID: string;
-      ItemID: string;
-      InstanceID?: string;
-    }[];
-  }[];
-}
-
-// Export interface phản hồi thông tin MMR (rank) competitive
-export interface CompetitiveMMRResponse {
-  Subject?: string;                    // UUID người chơi
-  QueueSkills?: {                     // Kỹ năng theo queue
-    competitive?: {                   // Queue competitive
-      CompetitiveTier?: number;        // Tier hiện tại (số)
-      HighestCompetitiveTier?: number;  // Tier cao nhất từng đạt
-      SeasonalInfoBySeasonID?: Record<  // Thông tin theo season
-        string,
-        {
-          Rank?: number;
-          CompetitiveTier?: number;
-          RankedRating?: number;         // Điểm Ranked Rating (RR)
-          NumberOfWins?: number;
-          NumberOfWinsWithPlacements?: number;
-          NumberOfGames?: number;
-          NumberOfLosses?: number;
-          NumberOfDraws?: number;
-          WinsByTier?: Record<string, number> | null; // Số trận thắng theo tier
-          SeasonHighestCompetitiveTier?: number;
-        }
-      >;
-    };
-  };
-  LatestCompetitiveUpdate?: {         // Cập nhật competitive gần nhất
-    SeasonID?: string;
-    TierAfterUpdate?: number;
-    TierBeforeUpdate?: number;
-    RankedRatingAfterUpdate?: number;
-    MatchStartTime?: number;
-  };
-}
-
-// Export interface phản hồi session Valorant (thông tin phiên chơi)
-export interface ValorantSessionResponse {
-  subject?: string;                    // UUID người chơi
-  clientVersion?: string;              // Phiên bản Riot client
-  clientPlatformInfo?: {               // Thông tin nền tảng
-    platformType?: string;
-    platformOS?: string;
-    platformOSVersion?: string;
-    platformChipset?: string;
-    platformDevice?: string;
-  };
-  [key: string]: any;                  // Các trường khác
-}
-
-// Export interface phản hồi trận đấu đang diễn ra (current game)
-export interface CurrentGameMatchResponse {
-  MatchID: string;
-  Version: number;
-  State: string;
-  MapID: string;
-  ModeID: string;
-  ProvisioningFlow: string;
-  GamePodID: string;
-  AllMUCName: string;
-  TeamMUCName: string;
-  TeamVoiceID: string;
-  TeamMatchToken: string;
-  IsReconnectable: boolean;
-  ConnectionDetails?: {
-    GameServerHosts: string[];
-    GameServerHost: string;
-    GameServerPort: number;
-    GameClientHash: number;
-    PlayerKey: string;
-  };
-  Players: {
-    Subject: string;
-    TeamID: string;
-    CharacterID: string;
-    PlayerIdentity?: {
-      Subject: string;
-      PlayerCardID: string;
-      PlayerTitleID: string;
-      AccountLevel: number;
-      PreferredLevelBorderID: string;
-      Incognito: boolean;
-      HideAccountLevel: boolean;
-    };
-    SeasonalBadgeInfo?: {
-      SeasonID: string;
-      NumberOfWins: number;
-      Rank: number;
-      LeaderboardRank: number;
-    };
-    IsCoach: boolean;
-    IsAssociated: boolean;
-    [key: string]: any;
-  }[];
-  [key: string]: any;
-}
-
-// Export interface phản hồi party (nhóm)
-export interface PartyResponse {
-  ID: string;                          // UUID party
-  Members: {                          // Danh sách thành viên
-    Subject: string;
-    IsReady: boolean;
-    [key: string]: any;
-  }[];
-  [key: string]: any;
-}
 
 // Export hàm trích xuất danh sách ItemID từ response OwnedItemsResponse
 // Xử lý cả hai định dạng cũ (Entitlements) và mới (EntitlementsByTypes)
@@ -401,7 +253,7 @@ const extraHeaders = () => ({
 // Returns: Promise<string> entitlements token
 export async function getEntitlementsToken(accessToken: string) {
   const res = await axios.request<EntitlementResponse>({
-    url: getUrl({ name: "entitlements" }),
+    url: buildRiotApiUrl({ name: "entitlements" }),
     method: "POST",
     headers: {
       ...extraHeaders(),
@@ -419,7 +271,7 @@ export async function getEntitlementsToken(accessToken: string) {
 //   - accessToken: JWT token cần giải mã
 // Returns: string UUID người dùng
 export function getUserId(accessToken: string) {
-  const data = jwtDecode(accessToken) as any;
+  const data = jwtDecode<{ sub: string }>(accessToken);
   return data.sub;
 }
 
@@ -466,7 +318,7 @@ export async function getShop(
   userId: string
 ) {
   const res = await axios.request<StorefrontResponse>({
-    url: getUrl({ name: "storefront", region: region, userId: userId }),
+    url: buildRiotApiUrl({ name: "storefront", region: region, userId: userId }),
     method: "POST",
     headers: {
       ...extraHeaders(),
@@ -479,340 +331,7 @@ export async function getShop(
   return res.data;
 }
 
-const BUNDLE_ASSET_FALLBACKS: Record<
-  string,
-  { displayName: string; displayIcon?: string }
-> = {
-  // Patch 13.02 reached Riot's storefront before valorant-api.com. These
-  // entries are only used while the upstream metadata endpoint returns 404.
-  "4d368017-4f98-1e89-dbec-31abd2533eb9": {
-    displayName: "Neo Frontier",
-    displayIcon: "https://i.ytimg.com/vi/iYfYrsd09lo/maxresdefault.jpg",
-  },
-  "8d29f5fe-402a-94ee-2d67-e29b97dda6f4": {
-    displayName: "Neo Frontier",
-    displayIcon: "https://i.ytimg.com/vi/iYfYrsd09lo/maxresdefault.jpg",
-  },
-};
-
-const BUNDLE_ITEM_NAME_FALLBACKS: Record<string, string> = {
-  "a5e0e761-472c-8287-2514-26a1c88f4d08": "Neo Frontier Lasso",
-  "349bd9e2-479f-49a9-b70b-38aca900e11a": "Neo Frontier Weapon #1",
-  "af1619fa-42c0-31e3-cfaf-edaed2b1a055": "Neo Frontier Weapon #2",
-  "5e5a435f-4a0d-0320-39c9-3fbe8ff65ae2": "Neo Frontier Player Card #1",
-  "e9a3d874-4893-b17a-00ca-0b88017f7919": "Neo Frontier Player Card #2",
-  "5d3cde59-4d50-e54b-9126-d7bfac8d18bc": "Neo Frontier Spray",
-};
-
-const getFallbackBundleItemName = (
-  itemId: string,
-  typeId: string,
-  itemIndex: number
-) => {
-  const configuredName = BUNDLE_ITEM_NAME_FALLBACKS[itemId];
-  if (configuredName) return configuredName;
-
-  const position = itemIndex + 1;
-
-  if (typeId === VItemTypes.SkinLevel || typeId === VItemTypes.SkinChroma) {
-    return `Skin #${position}`;
-  }
-  if (typeId === VItemTypes.Spray) return `Spray #${position}`;
-  if (typeId === VItemTypes.Flex) return `Flex #${position}`;
-  if (typeId === VItemTypes.PlayerCard) return `Player Card #${position}`;
-  if (typeId === VItemTypes.PlayerTitle) return `Player Title #${position}`;
-  if (typeId === VItemTypes.Buddy) return `Gun Buddy #${position}`;
-
-  return `Bundle Item #${position}`;
-};
-
-const createFallbackBundleAsset = (
-  bundle: BundleSchema,
-  items: (SkinShopItem | AccessoryShopItem)[],
-  bundleIndex: number
-): ValorantBundle => {
-  const configuredFallback = BUNDLE_ASSET_FALLBACKS[bundle.DataAssetID];
-  const firstNamedItem = items.find(
-    (item) =>
-      item.displayName &&
-      !/^(Skin|Spray|Flex|Player Card|Player Title|Gun Buddy|Bundle Item) #\d+$/.test(
-        item.displayName
-      )
-  );
-  const firstItemImage = items.find((item) => item.displayIcon)?.displayIcon;
-
-  return {
-    uuid: bundle.DataAssetID || bundle.ID,
-    displayName:
-      configuredFallback?.displayName ||
-      firstNamedItem?.displayName ||
-      `Bundle #${bundleIndex + 1}`,
-    description: "",
-    useAdditionalContext: false,
-    displayIcon: configuredFallback?.displayIcon || firstItemImage || "",
-    displayIcon2: configuredFallback?.displayIcon || firstItemImage || "",
-    assetPath: "",
-  };
-};
-
-// Export hàm parse dữ liệu shop từ StorefrontResponse thành cấu trúc có tổ chức
-// Chia shop thành: main (4 skin chính), bundles, night market, accessory (phụ kiện)
-// Parameters:
-//   - shop: StorefrontResponse từ API
-//   - cachedBundles: danh sách bundle đã cache (tránh fetch lại)
-// Returns: object chứa main, bundles, nightMarket, accessory, remainingSecs
-export async function parseShop(
-  shop: StorefrontResponse,
-  cachedBundles: BundleShopItem[] = []
-) {
-  /* SHOP CHÍNH (4 SKIN HÀNG NGÀY) */
-  let singleItemStoreOffers = shop.SkinsPanelLayout.SingleItemStoreOffers;
-  let main: SkinShopItem[] = [];
-  // Lấy các lookup map từ assets
-  const {
-    skinByAnyId,     // Map UUID -> ValorantSkin (bao gồm level và chroma UUID)
-    buddyByAnyId,    // Map UUID -> ValorantBuddyAccessory
-    sprayById,       // Map UUID -> spray
-    flexById,        // Map UUID -> flex
-    cardById,        // Map UUID -> card
-    titleById,       // Map UUID -> title
-  } = getAssetLookups();
-
-  // Duyệt từng offer trong shop chính
-  for (let mainIndex = 0; mainIndex < singleItemStoreOffers.length; mainIndex++) {
-    const offer = singleItemStoreOffers[mainIndex];
-
-    // Tra UUID của offer để tìm skin tương ứng
-    const skin = skinByAnyId.get(offer.OfferID);
-
-    if (skin) {
-      main[mainIndex] = {
-        ...skin,                    // Thông tin skin (tên, icon, ...)
-        price: offer.Cost[VCurrencies.VP],  // Giá bằng VP
-      };
-    }
-  }
-
-  /* BUNDLE (GÓI SẢN PHẨM) */
-  const bundles: BundleShopItem[] = [];
-  // Xử lý featured bundles (có thể là mảng hoặc object đơn)
-  const featuredBundles = shop.FeaturedBundle.Bundles?.length
-    ? shop.FeaturedBundle.Bundles
-    : shop.FeaturedBundle.Bundle
-      ? [shop.FeaturedBundle.Bundle]
-      : [];
-  // Tạo map bundle từ cache để tra nhanh
-  const cachedBundleById = new Map(
-    cachedBundles.map((bundle) => [bundle.uuid, bundle])
-  );
-
-  // Luôn thử API trước. Cache persisted chỉ là fallback để metadata tạm thời
-  // vẫn có thể được thay thế ngay khi valorant-api.com cập nhật patch mới.
-  const bundleResults = await Promise.all(
-    featuredBundles.map(async (bundle) => {
-      const bundleAsset =
-        (await fetchBundle(bundle.DataAssetID)) ||
-        cachedBundleById.get(bundle.DataAssetID) ||
-        null;
-      return { bundle, bundleAsset };
-    })
-  );
-
-  // Parse từng bundle: xác định loại item, lấy thông tin hiển thị
-  for (let bundleIndex = 0; bundleIndex < bundleResults.length; bundleIndex++) {
-    const { bundle, bundleAsset } = bundleResults[bundleIndex];
-    const allItems: (SkinShopItem | AccessoryShopItem)[] = [];
-
-    for (let itemIndex = 0; itemIndex < bundle.Items.length; itemIndex++) {
-      const item = bundle.Items[itemIndex];
-      const uuid = item.Item.ItemID;
-      const typeId = item.Item.ItemTypeID;
-      const price = item.BasePrice;
-      const fallbackItemName = getFallbackBundleItemName(uuid, typeId, itemIndex);
-
-      // Skin level hoặc chroma
-      if (typeId === VItemTypes.SkinLevel || typeId === VItemTypes.SkinChroma) {
-        const skin = skinByAnyId.get(uuid);
-        if (skin) {
-          allItems.push({ ...skin, price } as SkinShopItem);
-        } else {
-          allItems.push({
-            uuid,
-            displayName: fallbackItemName,
-            themeUuid: "",
-            assetPath: "",
-            chromas: [],
-            levels: [],
-            price,
-          } as SkinShopItem);
-        }
-      // Spray
-      } else if (typeId === VItemTypes.Spray) {
-        const spray = sprayById.get(uuid);
-        if (spray) {
-          allItems.push({
-            uuid: spray.uuid,
-            displayName: spray.displayName,
-            displayIcon: spray.displayIcon || spray.fullTransparentIcon,
-            price,
-          });
-        } else {
-          allItems.push({ uuid, displayName: fallbackItemName, price });
-        }
-      // Flex
-      } else if (typeId === VItemTypes.Flex) {
-        const flex = flexById.get(uuid);
-        allItems.push({
-          uuid: flex?.uuid || uuid,
-          displayName: flex?.displayName || "Flex",
-          displayIcon: flex?.displayIcon,
-          price,
-        });
-      // Player card
-      } else if (typeId === VItemTypes.PlayerCard) {
-        const card = cardById.get(uuid);
-        if (card) {
-          allItems.push({
-            uuid: card.uuid,
-            displayName: card.displayName,
-            displayIcon: card.displayIcon || card.largeArt,
-            price,
-          });
-        } else {
-          allItems.push({ uuid, displayName: fallbackItemName, price });
-        }
-      // Player title
-      } else if (typeId === VItemTypes.PlayerTitle) {
-        const title = titleById.get(uuid);
-        if (title) {
-          allItems.push({
-            uuid: title.uuid,
-            displayName: title.displayName,
-            price,
-          });
-        } else {
-          allItems.push({ uuid, displayName: fallbackItemName, price });
-        }
-      // Buddy
-      } else if (typeId === VItemTypes.Buddy) {
-        const buddy = buddyByAnyId.get(uuid);
-        if (buddy) {
-          allItems.push({
-            uuid: buddy.uuid,
-            displayName: buddy.displayName,
-            displayIcon: buddy.levels?.[0]?.displayIcon || buddy.displayIcon,
-            price,
-          });
-        } else {
-          allItems.push({ uuid, displayName: fallbackItemName, price });
-        }
-      } else {
-        allItems.push({ uuid, displayName: fallbackItemName, price });
-      }
-    }
-
-    const resolvedBundleAsset =
-      bundleAsset ||
-      createFallbackBundleAsset(bundle, allItems, bundleIndex);
-    const discountedPrice =
-      bundle.TotalDiscountedCost?.[VCurrencies.VP] ??
-      bundle.Items.reduce((total, item) => total + item.DiscountedPrice, 0);
-
-    // Ưu tiên tổng giá chính thức từ Storefront, fallback sang tổng từng item.
-    bundles.push({
-      ...resolvedBundleAsset,
-      price: discountedPrice,
-      items: allItems,
-    });
-  }
-
-  /* NIGHT MARKET (CHỢ ĐÊM) */
-  let nightMarket: NightMarketItem[] = [];
-  if (shop.BonusStore) {
-    const bonusStore = shop.BonusStore.BonusStoreOffers;
-    for (let k = 0; k < bonusStore.length; k++) {
-      let itemid = bonusStore[k].Offer.Rewards[0].ItemID;
-      const skin = skinByAnyId.get(itemid);
-      if (!skin) continue;
-
-      nightMarket.push({
-        ...skin,
-        price: bonusStore[k].Offer.Cost[VCurrencies.VP],           // Giá gốc
-        discountedPrice: bonusStore[k].DiscountCosts[VCurrencies.VP], // Giá sau giảm
-        discountPercent: bonusStore[k].DiscountPercent,               // % giảm giá
-      });
-    }
-  }
-
-  /* ACCESSORY SHOP (PHỤ KIỆN) */
-  let accessoryStore = shop.AccessoryStore.AccessoryStoreOffers;
-  let accessory: AccessoryShopItem[] = [];
-  for (let accessoryIndex = 0; accessoryIndex < accessoryStore.length; accessoryIndex++) {
-    const accessoryItem = accessoryStore[accessoryIndex].Offer;
-
-    // Xác định loại item từ rewardId
-    const rewardId = accessoryItem.Rewards[0].ItemID;
-    const buddy = buddyByAnyId.get(rewardId);
-    const card = cardById.get(rewardId);
-    const title = titleById.get(rewardId);
-    const spray = sprayById.get(rewardId);
-    const flex = flexById.get(rewardId);
-
-    if (buddy) {
-      accessory[accessoryIndex] = {
-        uuid: buddy.levels[0].uuid,
-        displayName: buddy.displayName,
-        displayIcon: buddy.levels[0].displayIcon,
-        price: accessoryItem.Cost[VCurrencies.KC],  // Phụ kiện tính bằng KC
-      };
-    } else if (card) {
-      accessory[accessoryIndex] = {
-        uuid: card.uuid,
-        displayName: card.displayName,
-        displayIcon: card.displayIcon || card.largeArt,
-        price: accessoryItem.Cost[VCurrencies.KC],
-      };
-    } else if (title) {
-      accessory[accessoryIndex] = {
-        uuid: title.uuid,
-        displayName: title.displayName,
-        price: accessoryItem.Cost[VCurrencies.KC],
-      };
-    } else if (spray) {
-      accessory[accessoryIndex] = {
-        uuid: spray.uuid,
-        displayName: spray.displayName,
-        displayIcon: spray.displayIcon || spray.fullTransparentIcon,
-        price: accessoryItem.Cost[VCurrencies.KC],
-      };
-    } else if (flex) {
-      accessory[accessoryIndex] = {
-        uuid: flex.uuid,
-        displayName: flex.displayName,
-        displayIcon: flex.displayIcon,
-        price: accessoryItem.Cost[VCurrencies.KC],
-      };
-    }
-  }
-
-  // Trả về kết quả đã parse, lọc bỏ các phần tử undefined/null
-  return {
-    main: main.filter(Boolean),
-    bundles,
-    nightMarket,
-    accessory: accessory.filter(Boolean),
-    remainingSecs: {                              // Thời gian còn lại (giây)
-      main:
-        shop.SkinsPanelLayout.SingleItemOffersRemainingDurationInSeconds ?? 0,
-      bundles: featuredBundles.map(
-        (bundle) => bundle.DurationRemainingInSeconds
-      ),
-      nightMarket: shop.BonusStore?.BonusStoreRemainingDurationInSeconds ?? 0,
-      accessory:
-        shop.AccessoryStore.AccessoryStoreRemainingDurationInSeconds ?? 0,
-    },
-  };
-}
+export { parseShop } from "~/services/riot/storefront-parser";
 
 // Export hàm lấy số dư các loại tiền tệ của người dùng
 // Gọi API wallet
@@ -829,7 +348,7 @@ export async function getBalances(
   userId: string
 ) {
   const res = await axios.request<WalletResponse>({
-    url: getUrl({ name: "wallet", region: region, userId: userId }),
+    url: buildRiotApiUrl({ name: "wallet", region: region, userId: userId }),
     method: "GET",
     headers: {
       ...extraHeaders(),
@@ -861,7 +380,7 @@ export async function getProgress(
   userId: string
 ) {
   const res = await axios.request<AccountXPResponse>({
-    url: getUrl({ name: "playerxp", region: region, userId: userId }),
+    url: buildRiotApiUrl({ name: "playerxp", region: region, userId: userId }),
     method: "GET",
     headers: {
       ...extraHeaders(),
@@ -922,7 +441,7 @@ export async function getMatchID(
   region: string,
   userId: string) {
   const res = await axios.request<PreGamePlayerResponse>({
-    url: getUrl({ name: "matchID", region: region, userId: userId }),
+    url: buildRiotApiUrl({ name: "matchID", region: region, userId: userId }),
     method: "GET",
     headers: {
       ...extraHeaders(),
@@ -948,7 +467,7 @@ export async function lockAgent(
   const matchId = await getMatchID(accesstoken, entitlementsToken, region, userId);
 
   const res = await axios.request<LockCharacterResponse>({
-    url: getUrl({ name: "lock", region: region, matchId: matchId, agentId: agentId }),
+    url: buildRiotApiUrl({ name: "lock", region: region, matchId: matchId, agentId: agentId }),
     method: "POST",
     headers: {
       ...extraHeaders(),
@@ -962,7 +481,7 @@ export async function lockAgent(
 // Export hàm thoát pregame lobby
 // Parameters:
 //   - accesstoken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<any>
+// Returns: response payload or null
 export async function quitPreGameLobby(
   accesstoken: string,
   entitlementsToken: string,
@@ -970,7 +489,7 @@ export async function quitPreGameLobby(
   userId: string) {
   const matchId = await getMatchID(accesstoken, entitlementsToken, region, userId);
   const res = await axios.request({
-    url: getUrl({ name: "quit", region: region, matchId: matchId }),
+    url: buildRiotApiUrl({ name: "quit", region: region, matchId: matchId }),
     method: "POST",
     headers: {
       ...extraHeaders(),
@@ -1041,7 +560,7 @@ async function requestPlayerLoadout(
   // Thử API v3 trước
   const currentResponse = await axios
     .request<PlayerLoadoutV3Response>({
-      url: getUrl({ name: "player-v3", region, userId }),
+      url: buildRiotApiUrl({ name: "player-v3", region, userId }),
       method: "GET",
       validateStatus: () => true,
       headers,
@@ -1072,7 +591,7 @@ async function requestPlayerLoadout(
   // Fallback về API v2
   const legacyResponse = await axios
     .request<PlayerLoadoutResponse>({
-      url: getUrl({ name: "player", region, userId }),
+      url: buildRiotApiUrl({ name: "player", region, userId }),
       method: "GET",
       validateStatus: () => true,
       headers,
@@ -1116,7 +635,7 @@ export async function updatePlayerLoadout(
   loadout: PlayerLoadoutResponse
 ): Promise<PlayerLoadoutResponse> {
   const res = await axios.request<PlayerLoadoutResponse>({
-    url: getUrl({ name: "player", region, userId }),
+    url: buildRiotApiUrl({ name: "player", region, userId }),
     method: "PUT",
     headers: {
       ...extraHeaders(),
@@ -1157,7 +676,7 @@ export async function updatePlayerLoadoutV3(
   loadout: PlayerLoadoutResponse
 ): Promise<PlayerLoadoutResponse> {
   const res = await axios.request<PlayerLoadoutV3Response>({
-    url: getUrl({ name: "player-v3", region, userId }),
+    url: buildRiotApiUrl({ name: "player-v3", region, userId }),
     method: "PUT",
     validateStatus: () => true,
     headers: {
@@ -1239,7 +758,7 @@ export async function ownedItems(
   itemTypeId: string
 ) {
   const res = await axios.request<OwnedItemsResponse>({
-    url: getUrl({
+    url: buildRiotApiUrl({
       name: "owned-items",
       region,
       userId,
@@ -1275,7 +794,7 @@ export async function playerMatchHistory(
     params,
   });
   const res = await axios.request<MatchHistoryResponse>({
-    url: getUrl({ name: "match-history", region: region, userId: userId }),
+    url: buildRiotApiUrl({ name: "match-history", region: region, userId: userId }),
     method: "GET",
     headers: {
       ...extraHeaders(),
@@ -1307,7 +826,7 @@ export async function getValorantSession(
   userId: string
 ) {
   const res = await axios.request<ValorantSessionResponse>({
-    url: getUrl({ name: "session", region, userId }),
+    url: buildRiotApiUrl({ name: "session", region, userId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -1415,7 +934,7 @@ async function requestCompetitiveMMR(
 ): Promise<CompetitiveMMRResult> {
   // Hàm nội bộ thực hiện request MMR
   const requestMmr = () => axios.request<CompetitiveMMRResponse>({
-    url: getUrl({ name: "mmr", region: region, userId: userId }),
+    url: buildRiotApiUrl({ name: "mmr", region: region, userId: userId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -1482,7 +1001,7 @@ export async function matchDetails(
     matchId,
   });
   const res = await axios.request<MatchDetailsResponse>({
-    url: getUrl({ name: "match-details", region: region, matchId: matchId }),
+    url: buildRiotApiUrl({ name: "match-details", region: region, matchId: matchId }),
     method: "GET",
     headers: {
       ...extraHeaders(),
@@ -1500,47 +1019,6 @@ export async function matchDetails(
   });
   logValorantApiResponse(`MatchDetails ${matchId}`, res.data);
   return res.data;
-}
-
-// Hàm nội bộ: xây dựng URL đầy đủ cho các API endpoint của Riot
-// Dựa trên tên endpoint, region (shard), và các tham số cần thiết
-// Parameters:
-//   - name: tên endpoint (tra trong URLS map)
-//   - region: khu vực (na, eu, ap, ...)
-//   - userId: UUID người dùng
-//   - matchId: UUID trận đấu
-//   - agentId: UUID agent
-//   - itemTypeId: UUID loại item
-//   - code: mã mời party
-// Returns: URL hoàn chỉnh dạng string
-function getUrl({
-  name,
-  region,
-  userId,
-  matchId,
-  agentId,
-  itemTypeId,
-  code,
-}: {
-  name: RiotEndpointName;
-  region?: string | null;
-  userId?: string | null;
-  matchId?: string | null;
-  agentId?: string | null;
-  itemTypeId?: string | null;
-  code?: string | null;
-}) {
-  // Chuẩn hóa shard từ region
-  return buildRiotApiUrl({
-    name,
-    region,
-    userId,
-    matchId,
-    agentId,
-    itemTypeId,
-    code,
-  });
-  // Map chứa tất cả các API endpoints
 }
 
 // ---------------------------------------------------------------------------
@@ -1567,7 +1045,7 @@ export async function getCompetitiveUpdates(
   });
 
   const res = await axios.request<CompetitiveUpdatesResponse>({
-    url: getUrl({ name: "competitive-updates", region, userId }),
+    url: buildRiotApiUrl({ name: "competitive-updates", region, userId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -1630,7 +1108,7 @@ export async function getPlayerNames(
     if (subjectsToFetch.length > 0) {
       const request = axios
         .request<PlayerName[]>({
-          url: getUrl({ name: "name", region }),
+          url: buildRiotApiUrl({ name: "name", region }),
           method: "PUT",
           headers: {
             ...extraHeaders(),
@@ -1703,7 +1181,7 @@ export async function getPreGamePlayer(
   userId: string
 ): Promise<{ Subject: string; MatchID: string; Version: number } | null> {
   const res = await axios.request<PreGamePlayerResponse>({
-    url: getUrl({ name: "pregame-player", region, userId }),
+    url: buildRiotApiUrl({ name: "pregame-player", region, userId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -1727,7 +1205,7 @@ export async function getPreGameMatch(
   matchId: string
 ): Promise<LockCharacterResponse | null> {
   const res = await axios.request<LockCharacterResponse>({
-    url: getUrl({ name: "pregame-match", region, matchId }),
+    url: buildRiotApiUrl({ name: "pregame-match", region, matchId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -1743,17 +1221,17 @@ export async function getPreGameMatch(
 // Parameters:
 //   - accessToken, entitlementsToken, userId, region: thông tin xác thực
 //   - agentId: UUID agent muốn chọn
-// Returns: Promise<any>
+// Returns: response payload or null
 export async function selectAgent(
   accessToken: string,
   entitlementsToken: string,
   userId: string,
   region: string,
   agentId: string
-): Promise<any> {
+): Promise<unknown> {
   const matchId = await getMatchID(accessToken, entitlementsToken, region, userId);
   const res = await axios.request({
-    url: getUrl({ name: "select-agent", region, matchId, agentId }),
+    url: buildRiotApiUrl({ name: "select-agent", region, matchId, agentId }),
     method: "POST",
     validateStatus: () => true,
     headers: {
@@ -1779,7 +1257,7 @@ export async function getCurrentGamePlayer(
   userId: string
 ): Promise<{ Subject: string; MatchID: string; Version: number } | null> {
   const res = await axios.request<{ Subject: string; MatchID: string; Version: number }>({
-    url: getUrl({ name: "coregame-player", region, userId }),
+    url: buildRiotApiUrl({ name: "coregame-player", region, userId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -1803,7 +1281,7 @@ export async function getCurrentGameMatch(
   matchId: string
 ): Promise<CurrentGameMatchResponse | null> {
   const res = await axios.request<CurrentGameMatchResponse>({
-    url: getUrl({ name: "coregame-match", region, matchId }),
+    url: buildRiotApiUrl({ name: "coregame-match", region, matchId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -1827,9 +1305,11 @@ export async function getPartyPlayer(
   entitlementsToken: string,
   region: string,
   userId: string
-): Promise<{ CurrentPartyID: string; [key: string]: any } | null> {
-  const url = getUrl({ name: "party-player", region, userId });
-  const res = await axios.request<{ CurrentPartyID: string; [key: string]: any }>({
+): Promise<({ CurrentPartyID: string } & Record<string, unknown>) | null> {
+  const url = buildRiotApiUrl({ name: "party-player", region, userId });
+  const res = await axios.request<
+    { CurrentPartyID: string } & Record<string, unknown>
+  >({
     url,
     method: "GET",
     validateStatus: () => true,
@@ -1862,7 +1342,7 @@ export async function getParty(
   region: string,
   partyId: string
 ): Promise<PartyResponse | null> {
-  const url = getUrl({ name: "party", region, matchId: partyId });  // tái sử dụng matchId slot để truyền partyId
+  const url = buildRiotApiUrl({ name: "party", region, matchId: partyId });  // tái sử dụng matchId slot để truyền partyId
   const res = await axios.request<PartyResponse>({
     url,
     method: "GET",
@@ -1898,7 +1378,7 @@ export async function getPartyMucToken(
   region: string,
   partyId: string
 ): Promise<PartyChatTokenResponse | null> {
-  const url = getUrl({ name: "party-muc-token", region, matchId: partyId });
+  const url = buildRiotApiUrl({ name: "party-muc-token", region, matchId: partyId });
   const res = await axios.request<PartyChatTokenResponse>({
     url,
     method: "GET",
@@ -1909,13 +1389,17 @@ export async function getPartyMucToken(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  const responseData = res.data as any;
+  const responseData: PartyChatTokenResponse | { message?: string; errorCode?: string } =
+    res.data;
   // Che token trong log
   const logData =
     responseData && typeof responseData === "object"
       ? {
           ...responseData,
-          Token: responseData.Token ? "[redacted]" : responseData.Token,
+          Token:
+            "Token" in responseData && responseData.Token
+              ? "[redacted]"
+              : undefined,
         }
       : responseData;
   if (API_DEBUG_LOGGING) console.log("[party-muc-token] response", {
@@ -1926,8 +1410,8 @@ export async function getPartyMucToken(
   });
   if (res.status !== 200) {
     const message =
-      responseData?.message ||
-      responseData?.errorCode ||
+      ("message" in responseData ? responseData.message : undefined) ||
+      ("errorCode" in responseData ? responseData.errorCode : undefined) ||
       `HTTP ${res.status}`;
     throw new Error(`Could not get party chat token (${res.status}: ${message})`);
   }
@@ -1948,7 +1432,7 @@ export async function setPartyReady(
   ready: boolean
 ): Promise<PartyResponse | null> {
   const res = await axios.request<PartyResponse>({
-    url: getUrl({ name: "party-ready", region, matchId: partyId, userId }),
+    url: buildRiotApiUrl({ name: "party-ready", region, matchId: partyId, userId }),
     method: "POST",
     validateStatus: () => true,
     headers: {
@@ -1973,7 +1457,7 @@ export async function generatePartyInviteCode(
   partyId: string
 ): Promise<PartyResponse | null> {
   const res = await axios.request<PartyResponse>({
-    url: getUrl({ name: "party-invite-code", region, matchId: partyId }),
+    url: buildRiotApiUrl({ name: "party-invite-code", region, matchId: partyId }),
     method: "POST",
     validateStatus: () => true,
     headers: {
@@ -1997,7 +1481,7 @@ export async function disablePartyInviteCode(
   partyId: string
 ): Promise<PartyResponse | null> {
   const res = await axios.request<PartyResponse>({
-    url: getUrl({ name: "party-invite-code", region, matchId: partyId }),
+    url: buildRiotApiUrl({ name: "party-invite-code", region, matchId: partyId }),
     method: "DELETE",
     validateStatus: () => true,
     headers: {
@@ -2019,9 +1503,11 @@ export async function joinPartyByCode(
   entitlementsToken: string,
   region: string,
   inviteCode: string
-): Promise<{ CurrentPartyID?: string; [key: string]: any } | null> {
-  const res = await axios.request<{ CurrentPartyID?: string; [key: string]: any }>({
-    url: getUrl({
+): Promise<({ CurrentPartyID?: string } & Record<string, unknown>) | null> {
+  const res = await axios.request<
+    { CurrentPartyID?: string } & Record<string, unknown>
+  >({
+    url: buildRiotApiUrl({
       name: "party-join-by-code",
       region,
       code: encodeURIComponent(inviteCode),
@@ -2052,7 +1538,7 @@ export async function getContracts(
   userId: string
 ): Promise<ContractsResponse | null> {
   const res = await axios.request<ContractsResponse>({
-    url: getUrl({ name: "contracts", region, userId }),
+    url: buildRiotApiUrl({ name: "contracts", region, userId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2084,7 +1570,7 @@ export async function activateContract(
   contractId: string
 ): Promise<ContractsResponse | null> {
   const res = await axios.request<ContractsResponse>({
-    url: getUrl({ name: "activate-contract", region, userId, itemTypeId: contractId }),
+    url: buildRiotApiUrl({ name: "activate-contract", region, userId, itemTypeId: contractId }),
     method: "POST",
     validateStatus: () => true,
     headers: {
@@ -2115,7 +1601,7 @@ export async function getItemUpgrades(
   region: string
 ): Promise<ItemUpgradesResponse | null> {
   const res = await axios.request<ItemUpgradesResponse>({
-    url: getUrl({ name: "item-upgrades", region }),
+    url: buildRiotApiUrl({ name: "item-upgrades", region }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2141,7 +1627,7 @@ export async function getContent(
 ): Promise<ContentResponse | null> {
   logValorantApiDebug("Content request", { region });
   const res = await axios.request<ContentResponse>({
-    url: getUrl({ name: "content", region }),
+    url: buildRiotApiUrl({ name: "content", region }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2176,7 +1662,7 @@ export async function getLeaderboard(
   params?: { startIndex?: number; size?: number; query?: string }
 ): Promise<LeaderboardResponse | null> {
   const res = await axios.request<LeaderboardResponse>({
-    url: getUrl({ name: "leaderboard", region, itemTypeId: seasonId }),
+    url: buildRiotApiUrl({ name: "leaderboard", region, itemTypeId: seasonId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2202,7 +1688,7 @@ export async function getConfig(
   region: string
 ): Promise<ConfigResponse | null> {
   const res = await axios.request<ConfigResponse>({
-    url: getUrl({ name: "config", region }),
+    url: buildRiotApiUrl({ name: "config", region }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2227,7 +1713,7 @@ export async function getPenalties(
   region: string
 ): Promise<PenaltiesResponse | null> {
   const res = await axios.request<PenaltiesResponse>({
-    url: getUrl({ name: "penalties", region }),
+    url: buildRiotApiUrl({ name: "penalties", region }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2250,7 +1736,7 @@ export async function getPlayerInfo(
   accessToken: string
 ): Promise<PlayerInfoResponse | null> {
   const res = await axios.request<PlayerInfoResponse>({
-    url: getUrl({ name: "playerinfo" }),
+    url: buildRiotApiUrl({ name: "playerinfo" }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2273,7 +1759,7 @@ export async function getRiotGeo(
   idToken: string
 ): Promise<RiotGeoResponse | null> {
   const res = await axios.request<RiotGeoResponse>({
-    url: getUrl({ name: "riotgeo" }),
+    url: buildRiotApiUrl({ name: "riotgeo" }),
     method: "PUT",
     validateStatus: () => true,
     headers: {
@@ -2296,7 +1782,7 @@ export async function getPASToken(
   accessToken: string
 ): Promise<string | null> {
   const res = await axios.request<string>({
-    url: getUrl({ name: "pastoken" }),
+    url: buildRiotApiUrl({ name: "pastoken" }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2319,7 +1805,7 @@ export async function getRiotClientConfig(
   entitlementsToken: string
 ): Promise<RiotClientConfigResponse | null> {
   const res = await axios.request<RiotClientConfigResponse>({
-    url: getUrl({ name: "riotclientconfig" }),
+    url: buildRiotApiUrl({ name: "riotclientconfig" }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2345,7 +1831,7 @@ export async function getPregameLoadouts(
   matchId: string
 ): Promise<PregameLoadoutsResponse | null> {
   const res = await axios.request<PregameLoadoutsResponse>({
-    url: getUrl({ name: "pregame-loadouts", region, matchId }),
+    url: buildRiotApiUrl({ name: "pregame-loadouts", region, matchId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2372,7 +1858,7 @@ export async function getCurrentGameLoadouts(
   matchId: string
 ): Promise<CurrentGameLoadoutsResponse | null> {
   const res = await axios.request<CurrentGameLoadoutsResponse>({
-    url: getUrl({ name: "coregame-loadouts", region, matchId }),
+    url: buildRiotApiUrl({ name: "coregame-loadouts", region, matchId }),
     method: "GET",
     validateStatus: () => true,
     headers: {
@@ -2391,15 +1877,15 @@ export async function getCurrentGameLoadouts(
 // Parameters:
 //   - accessToken, entitlementsToken, region: thông tin xác thực
 //   - matchId: UUID trận đấu
-// Returns: Promise<any>
+// Returns: response payload or null
 export async function quitCurrentGame(
   accessToken: string,
   entitlementsToken: string,
   region: string,
   matchId: string
-): Promise<any> {
+): Promise<unknown> {
   const res = await axios.request({
-    url: getUrl({ name: "coregame-quit", region, matchId }),
+    url: buildRiotApiUrl({ name: "coregame-quit", region, matchId }),
     method: "POST",
     validateStatus: () => true,
     headers: {
@@ -2425,7 +1911,7 @@ export async function removeFromParty(
   userId: string
 ): Promise<void> {
   const res = await axios.request({
-    url: getUrl({ name: "party-remove", region, userId }),
+    url: buildRiotApiUrl({ name: "party-remove", region, userId }),
     method: "DELETE",
     validateStatus: () => true,
     headers: {
@@ -2455,7 +1941,7 @@ export async function enterMatchmakingQueue(
   partyId: string
 ): Promise<PartyResponse | null> {
   const res = await axios.request<PartyResponse>({
-    url: getUrl({ name: "party-join-queue", region, matchId: partyId }),
+    url: buildRiotApiUrl({ name: "party-join-queue", region, matchId: partyId }),
     method: "POST",
     validateStatus: () => true,
     headers: {
@@ -2483,7 +1969,7 @@ export async function leaveMatchmakingQueue(
   partyId: string
 ): Promise<PartyResponse | null> {
   const res = await axios.request<PartyResponse>({
-    url: getUrl({ name: "party-leave-queue", region, matchId: partyId }),
+    url: buildRiotApiUrl({ name: "party-leave-queue", region, matchId: partyId }),
     method: "POST",
     validateStatus: () => true,
     headers: {

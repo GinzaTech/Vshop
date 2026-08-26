@@ -10,13 +10,13 @@ import { isBatteryOptimizationEnabledAsync } from "expo-battery";
 import { startActivityAsync, ActivityAction } from "expo-intent-launcher";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { AppState, Platform } from "react-native";
-import * as Application from "expo-application";
 import { COLORS } from "~/constants/DesignSystem";
 
 /**
  * BatteryOptimizationWarning – Component hiển thị cảnh báo tối ưu pin
  * Chỉ hoạt động trên Android, kiểm tra trạng thái tối ưu pin khi app focus,
- * cho phép người dùng yêu cầu tắt tối ưu pin cho ứng dụng
+ * cho phép người dùng mở trang cài đặt tối ưu pin chung. Ứng dụng không yêu
+ * cầu quyền miễn trừ trực tiếp vì quyền đó không phù hợp với một companion app.
  */
 export default function BatteryOptimizationWarning() {
   // State: có đang bị tối ưu pin không?
@@ -32,10 +32,10 @@ export default function BatteryOptimizationWarning() {
   useEffect(() => {
     if (Platform.OS !== "android") return;
 
-    checkBatteryOptimizations();
+    void checkBatteryOptimizations();
 
     const sub = AppState.addEventListener("focus", () => {
-      checkBatteryOptimizations();
+      void checkBatteryOptimizations();
     });
 
     return () => {
@@ -47,20 +47,27 @@ export default function BatteryOptimizationWarning() {
    * checkBatteryOptimizations – Kiểm tra trạng thái tối ưu pin hiện tại
    */
   const checkBatteryOptimizations = async () => {
-    const enabled = await isBatteryOptimizationEnabledAsync();
-    setBatteryOptimizationEnabled(enabled);
+    try {
+      const enabled = await isBatteryOptimizationEnabledAsync();
+      setBatteryOptimizationEnabled(enabled);
+    } catch {
+      setBatteryOptimizationEnabled(false);
+    }
   };
 
   /**
-   * requestIgnoreBatteryOptimizations – Mở settings Android để người dùng
-   * tắt tối ưu pin cho app này
+   * openBatteryOptimizationSettings – Mở danh sách cài đặt chung để người
+   * dùng tự quyết định, không gửi yêu cầu miễn trừ trực tiếp cho VShop.
    */
-  const requestIgnoreBatteryOptimizations = async () => {
-    await startActivityAsync(
-      ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-      { data: `package:${Application.applicationId}` }
-    );
-    await checkBatteryOptimizations();
+  const openBatteryOptimizationSettings = async () => {
+    try {
+      await startActivityAsync(
+        ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+      );
+      await checkBatteryOptimizations();
+    } catch {
+      setBatteryOptimizationEnabled(false);
+    }
   };
 
   return (
@@ -77,7 +84,7 @@ export default function BatteryOptimizationWarning() {
       actions={[
         {
           label: t("battery_optimization_warning.action"),
-          onPress: () => requestIgnoreBatteryOptimizations(),
+          onPress: () => openBatteryOptimizationSettings(),
         },
       ]}
       icon={({ color, size }) => (

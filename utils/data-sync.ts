@@ -17,6 +17,7 @@ import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { markSynced } from "./app-sync";
 import { getRiotClientConfig } from "./valorant-api";
+import { markStartupCacheReady } from "./startup-cache";
 
 // ===== Types =====
 
@@ -196,6 +197,7 @@ export async function syncAllData(
   // Startup/resume only completes after every core source is available. This
   // prevents a half-valid session from entering the app with dead API actions.
   markSynced(["shop", "balances", "matches"], authUser);
+  await markStartupCacheReady(authUser);
 
   const report: SyncReport = {
     userChanged,

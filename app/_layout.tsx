@@ -29,7 +29,7 @@ import {
   DefaultTheme as NavigationTheme,
   ThemeProvider,
 } from "expo-router/react-navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar, View, type GestureResponderEvent } from "react-native";
 import * as SystemUI from "expo-system-ui";
 import Animated, {
@@ -69,6 +69,7 @@ import {
 } from "~/utils/session-events";
 import { MOTION_TIMING } from "~/constants/Motion";
 import { markAppInteractive } from "~/utils/startup-performance";
+import { hasUsableStartupCache } from "~/utils/startup-cache";
 
 const AnimatedSafeAreaView = Animated.createAnimatedComponent(SafeAreaView);
 
@@ -162,8 +163,15 @@ function RootLayout() {
   const bootstrappedRef = useRef(false);
   const nativeSplashHiddenRef = useRef(false);
   const touchSequenceRef = useRef(0);
+  const startupWaitResolverRef = useRef<
+    ((action: "retry" | "cache") => void) | null
+  >(null);
   const [isPreloading, setIsPreloading] = useState(true);
   const [startupMessage, setStartupMessage] = useState("Preparing your VShop");
+  const [startupRecovery, setStartupRecovery] = useState({
+    visible: false,
+    canUseCachedData: false,
+  });
   const demoValue = Array.isArray(demo) ? demo[0] : demo;
   const allowMatchDemo =
     __DEV__ &&
@@ -171,6 +179,14 @@ function RootLayout() {
     (pathname === "/history" || pathname.startsWith("/match_details/"));
   const isCombatSessionRoute =
     pathname === "/combat_session" || pathname.endsWith("/combat_session");
+
+  const requestStartupRetry = useCallback(() => {
+    startupWaitResolverRef.current?.("retry");
+  }, []);
+
+  const requestCachedStartup = useCallback(() => {
+    startupWaitResolverRef.current?.("cache");
+  }, []);
 
   useEffect(() => {
     const topInsetColor =
@@ -293,6 +309,43 @@ function RootLayout() {
         let retryDelayMs = 1_500;
         let permanentFailureCount = 0;
 
+        const waitForRecovery = async () => {
+          const canUseCachedData = await hasUsableStartupCache(syncUser);
+          if (cancelled) return true;
+
+          setStartupRecovery({ visible: true, canUseCachedData });
+          const action = await new Promise<"auto" | "retry" | "cache">(
+            (resolve) => {
+              let settled = false;
+              const finish = (result: "auto" | "retry" | "cache") => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                startupWaitResolverRef.current = null;
+                resolve(result);
+              };
+              const timer = setTimeout(() => finish("auto"), retryDelayMs);
+              startupWaitResolverRef.current = (result) => finish(result);
+            }
+          );
+
+          if (cancelled) return true;
+          setStartupRecovery({ visible: false, canUseCachedData: false });
+
+          if (action === "cache" && canUseCachedData) {
+            router.replace("/profile");
+            setIsPreloading(false);
+            markAppInteractive("profile-cached");
+            return true;
+          }
+          if (action === "retry") {
+            retryDelayMs = 1_500;
+          } else {
+            retryDelayMs = Math.min(retryDelayMs * 2, 10_000);
+          }
+          return false;
+        };
+
         while (!cancelled) {
           try {
             if (!canResumeUserSession(syncUser, region)) {
@@ -304,6 +357,7 @@ function RootLayout() {
             if (!cancelled) setStartupMessage("Loading your VShop data");
             await syncAllData(syncUser, region);
             permanentFailureCount = 0;
+            setStartupRecovery({ visible: false, canUseCachedData: false });
 
             if (!cancelled) {
               router.replace("/profile");
@@ -325,10 +379,7 @@ function RootLayout() {
               } catch (renewError) {
                 if (isTransientNetworkError(renewError)) {
                   setStartupMessage("Waiting for Riot services…");
-                  await new Promise<void>((resolve) =>
-                    setTimeout(resolve, retryDelayMs)
-                  );
-                  retryDelayMs = Math.min(retryDelayMs * 2, 10_000);
+                  if (await waitForRecovery()) return;
                   continue;
                 }
                 if (
@@ -360,8 +411,7 @@ function RootLayout() {
             }
 
             setStartupMessage("Waiting for Riot services…");
-            await new Promise<void>((resolve) => setTimeout(resolve, retryDelayMs));
-            retryDelayMs = Math.min(retryDelayMs * 2, 10_000);
+            if (await waitForRecovery()) return;
           }
         }
         return;
@@ -381,6 +431,8 @@ function RootLayout() {
 
     return () => {
       cancelled = true; // Cleanup: tránh setState sau khi unmount
+      startupWaitResolverRef.current?.("retry");
+      startupWaitResolverRef.current = null;
     };
   }, [allowMatchDemo, hydrated, router, setUser]);
 
@@ -490,7 +542,13 @@ function RootLayout() {
               zIndex: 1000,
             }}
           >
-            <LoadingScreen message={startupMessage} />
+            <LoadingScreen
+              message={startupMessage}
+              showRecoveryActions={startupRecovery.visible}
+              canUseCachedData={startupRecovery.canUseCachedData}
+              onRetry={requestStartupRetry}
+              onUseCachedData={requestCachedStartup}
+            />
           </View>
         ) : null}
       </View>
