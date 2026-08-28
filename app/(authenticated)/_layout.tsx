@@ -2,11 +2,19 @@
 // Sử dụng Tab Navigator (expo-router Tabs) với FloatingTabBar tùy chỉnh.
 // Bao gồm AppWarmup (khởi tạo dữ liệu nền) và MediaPopup (popup media toàn app).
 
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import { Tabs } from "expo-router";
 import type { BottomTabNavigationOptions } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
 import {
+  Dimensions,
   Platform,
   Pressable,
   StyleSheet,
@@ -22,6 +30,7 @@ import Reanimated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup from "~/components/popups/MediaPopup";
@@ -29,10 +38,8 @@ import { COLORS, SHADOWS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import { flowTracer } from "~/utils/flow-tracer";
-import {
-  MOTION_DURATION,
-  MOTION_TIMING,
-} from "~/constants/Motion";
+import { runWhenIdle } from "~/utils/idle-task";
+import { MOTION_DURATION, MOTION_TIMING } from "~/constants/Motion";
 
 type FloatingRoute = {
   key: string;
@@ -56,6 +63,7 @@ type FloatingTabBarProps = {
       canPreventDefault: true;
     }) => { defaultPrevented: boolean };
     navigate: (routeName: string) => void;
+    preload?: (routeName: string) => void;
   };
 };
 
@@ -85,41 +93,56 @@ const PRIMARY_ROUTE_ORDER = [
   "settings",
 ] as const;
 
-export const PRIMARY_TAB_SCREEN_OPTIONS = {
-  lazy: true,
-  freezeOnBlur: true,
-} as const;
-
 type TabSceneInterpolator = NonNullable<
   BottomTabNavigationOptions["sceneStyleInterpolator"]
 >;
 
+export const PRIMARY_TAB_SLIDE_DISTANCE = Dimensions.get("window").width;
+
 const primaryTabSceneInterpolator: TabSceneInterpolator = ({ current }) => ({
   sceneStyle: {
-    // Fade through the solid navigation background instead of compositing
-    // both pages at once. The short zero-opacity interval prevents elevated
-    // cards on the previous page from becoming a grey ghost on Android.
-    opacity: current.progress.interpolate({
-      inputRange: [-1, -0.45, 0, 0.45, 1],
-      outputRange: [0, 0, 1, 0, 0],
-    }),
+    opacity: 1,
+    transform: [
+      {
+        translateX: current.progress.interpolate({
+          inputRange: [-1, 0, 1],
+          outputRange: [
+            -PRIMARY_TAB_SLIDE_DISTANCE,
+            0,
+            PRIMARY_TAB_SLIDE_DISTANCE,
+          ],
+        }),
+      },
+    ],
   },
 });
 
 export const PRIMARY_TAB_SCREEN_TRANSITION = {
-  animation: "fade",
+  animation: "shift",
   sceneStyleInterpolator: primaryTabSceneInterpolator,
   transitionSpec: {
     animation: "timing",
     config: {
-      duration: MOTION_DURATION.standard,
-      easing: MOTION_TIMING.standard.easing,
+      duration: MOTION_DURATION.emphasized,
+      easing: MOTION_TIMING.emphasized.easing,
     },
   },
 } satisfies Pick<
   BottomTabNavigationOptions,
   "animation" | "sceneStyleInterpolator" | "transitionSpec"
 >;
+
+export const PRIMARY_TAB_SCREEN_OPTIONS = {
+  lazy: true,
+  freezeOnBlur: false,
+  ...PRIMARY_TAB_SCREEN_TRANSITION,
+} as const;
+
+export const PRIMARY_TAB_REDUCED_MOTION_OPTIONS = {
+  lazy: true,
+  freezeOnBlur: false,
+  animation: "none",
+} as const;
 
 /**
  * FloatingTabBar — Thanh tab nổi (floating) tùy chỉnh.
@@ -151,9 +174,14 @@ export const PRIMARY_TAB_SCREEN_TRANSITION = {
  *
  * @returns {JSX.Element | null} Thanh tab hoặc null nếu route không phải primary.
  */
-export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBarProps) {
+export function FloatingTabBar({
+  state,
+  descriptors,
+  navigation,
+}: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
+  const reduceMotionEnabled = useReducedMotion();
   const primaryNavigationTone = useSystemChromeStore(
     (chrome) => chrome.primaryNavigationTone,
   );
@@ -163,8 +191,14 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
   const [collapsed, setCollapsed] = useState(false);
   const collapseProgress = useSharedValue(1); // 1 = mở, 0 = thu gọn
   const moreLongPressHandledRef = useRef(false);
+  const preloadedRouteNamesRef = useRef(new Set<string>());
   const indicatorTranslateX = useSharedValue(0);
+  const transitionInProgressRef = useRef(false);
   const activeRoute = state.routes[state.index];
+
+  const unlockTabTransition = useCallback(() => {
+    transitionInProgressRef.current = false;
+  }, []);
 
   // Track khi tab bar chuyển từ hidden → visible (Back từ sub-screen)
   // Khi visible lại → indicator JUMP trực tiếp, không animate
@@ -188,19 +222,26 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
     );
   }, [collapseProgress, collapsed]);
 
-
   // Lọc và sắp xếp các route primary (tính trước để dùng cho sliding indicator)
-  const visibleRoutes = state.routes
-    .filter(
-      (route) =>
-        route.name in PRIMARY_ROUTES &&
-        (route.name !== "night_market" || hasNightMarketItems)
-    )
-    .sort(
-      (left, right) =>
-        PRIMARY_ROUTE_ORDER.indexOf(left.name as (typeof PRIMARY_ROUTE_ORDER)[number]) -
-        PRIMARY_ROUTE_ORDER.indexOf(right.name as (typeof PRIMARY_ROUTE_ORDER)[number])
-    );
+  const visibleRoutes = useMemo(
+    () =>
+      state.routes
+        .filter(
+          (route) =>
+            route.name in PRIMARY_ROUTES &&
+            (route.name !== "night_market" || hasNightMarketItems),
+        )
+        .sort(
+          (left, right) =>
+            PRIMARY_ROUTE_ORDER.indexOf(
+              left.name as (typeof PRIMARY_ROUTE_ORDER)[number],
+            ) -
+            PRIMARY_ROUTE_ORDER.indexOf(
+              right.name as (typeof PRIMARY_ROUTE_ORDER)[number],
+            ),
+        ),
+    [hasNightMarketItems, state.routes],
+  );
 
   // ── Sliding tab indicator ──
   // Mỗi tab dùng flex: 1 nên chia đều content width; indicator dịch chuyển theo index.
@@ -230,12 +271,35 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
     (tabButtonWidth - INDICATOR_SIZE) / 2;
 
   useEffect(() => {
+    if (!navigation.preload) return;
+
+    // Chuẩn bị các scene nặng sau khi frame hiện tại rảnh. Khi người dùng
+    // bấm tab, React không còn phải mount cả page trên đường animation.
+    const idleTask = runWhenIdle(() => {
+      for (const route of visibleRoutes) {
+        if (
+          route.key === activeRoute?.key ||
+          preloadedRouteNamesRef.current.has(route.name)
+        ) {
+          continue;
+        }
+        navigation.preload?.(route.name);
+        preloadedRouteNamesRef.current.add(route.name);
+      }
+    });
+
+    return idleTask.cancel;
+  }, [activeRoute?.key, navigation, visibleRoutes]);
+
+  useEffect(() => {
     if (!isPrimaryRoute) return;
     if (shouldJump.value) {
       indicatorTranslateX.value = indicatorTargetX;
       shouldJump.value = false;
       return;
     }
+    // onPress đã khởi động indicator cùng lúc với scene transition.
+    if (transitionInProgressRef.current) return;
     indicatorTranslateX.value = withTiming(
       indicatorTargetX,
       MOTION_TIMING.standard,
@@ -303,7 +367,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
       transform: [{ translateX: indicatorTranslateX.value }],
     };
   });
-
   // Nếu route hiện tại không phải primary → ẩn tab bar
   if (!(activeRoute?.name in PRIMARY_ROUTES)) {
     return null;
@@ -375,6 +438,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
                       : undefined
                   }
                   onPress={() => {
+                    if (transitionInProgressRef.current) return;
+
                     if (moreLongPressHandledRef.current) {
                       moreLongPressHandledRef.current = false;
                       return;
@@ -411,6 +476,29 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
                         input: { from: activeRoute.name, to: route.name },
                         tool: "React Navigation",
                       });
+
+                      if (reduceMotionEnabled) {
+                        navigation.navigate(route.name);
+                        return;
+                      }
+
+                      const targetVisibleIndex = Math.max(
+                        0,
+                        visibleRoutes.findIndex(
+                          (visibleRoute) => visibleRoute.key === route.key,
+                        ),
+                      );
+                      const targetIndicatorX =
+                        targetVisibleIndex * tabButtonWidth +
+                        (tabButtonWidth - INDICATOR_SIZE) / 2;
+                      transitionInProgressRef.current = true;
+                      indicatorTranslateX.value = withTiming(
+                        targetIndicatorX,
+                        MOTION_TIMING.emphasized,
+                        () => {
+                          scheduleOnRN(unlockTabTransition);
+                        },
+                      );
                       navigation.navigate(route.name);
                     }
                   }}
@@ -513,6 +601,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
 function Layout() {
   const { t } = useTranslation();
   const reduceMotionEnabled = useReducedMotion();
+  const primaryTabScreenOptions = reduceMotionEnabled
+    ? PRIMARY_TAB_REDUCED_MOTION_OPTIONS
+    : PRIMARY_TAB_SCREEN_OPTIONS;
 
   return (
     <>
@@ -520,39 +611,36 @@ function Layout() {
       <Tabs
         initialRouteName="profile"
         backBehavior="history"
-        detachInactiveScreens
+        detachInactiveScreens={Platform.OS !== "android"}
         tabBar={(props) => <FloatingTabBar {...props} />}
-        screenOptions={({ route }) => ({
-          // Tab chính fade qua nền đặc, không trượt ngang và không chồng hai
-          // trang bán trong suốt nên tránh cả cú giật lẫn bóng mờ Android.
-          ...(reduceMotionEnabled || !(route.name in PRIMARY_ROUTES)
-            ? { animation: "none" as const }
-            : PRIMARY_TAB_SCREEN_TRANSITION),
+        screenOptions={{
+          // Tab chính nhận opaque transform transition từ options riêng;
+          // các route không khai báo animation vẫn dùng mặc định tức thời.
           headerShown: false,
           tabBarShowLabel: false,
           sceneStyle: { backgroundColor: COLORS.BACKGROUND },
-        })}
+        }}
       >
         {/* ── Tab chính ── */}
         <Tabs.Screen
           name="bundles"
-          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("bundles") }}
+          options={{ ...primaryTabScreenOptions, title: t("bundles") }}
         />
         <Tabs.Screen
           name="shop"
-          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("shop") }}
+          options={{ ...primaryTabScreenOptions, title: t("shop") }}
         />
         <Tabs.Screen
           name="night_market"
-          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("nightmarket") }}
+          options={{ ...primaryTabScreenOptions, title: t("nightmarket") }}
         />
         <Tabs.Screen
           name="profile"
-          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("profile") }}
+          options={{ ...primaryTabScreenOptions, title: t("profile") }}
         />
         <Tabs.Screen
           name="settings"
-          options={{ ...PRIMARY_TAB_SCREEN_OPTIONS, title: t("settings") }}
+          options={{ ...primaryTabScreenOptions, title: t("settings") }}
         />
 
         {/* ── Tab phụ (href: null → ẩn khỏi tab bar) ── */}

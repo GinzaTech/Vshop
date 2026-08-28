@@ -4,6 +4,28 @@ All notable changes to VShop are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses semantic app versions with independent Android and iOS build numbers.
 
+## [Unreleased]
+
+## [4.1.4 OTA 1] - 2026-08-29
+
+### Fixed
+
+- Reworked primary tabs into a 360 ms full-width opaque left/right transition synchronized with the floating indicator. Android keeps preloaded primary scenes attached and unfrozen so the navigator no longer mounts or reattaches a heavy page while its native transform is running.
+- Blocked repeated tab presses until the current transition completes and preserved an instant transition when the operating system enables Reduce Motion.
+
+### Validation
+
+- `pnpm run check` — TypeScript and ESLint passed; 26/26 Jest suites and 159/159 tests passed; the documented transitive production-advisory policy passed.
+- Android production export — 2,686 modules and 38 assets bundled successfully.
+- Warmed Bundle, Store, Profile and More navigation on a connected Redmi K60 development build measured 11 ms at the 50th percentile and 15 ms at the 90th percentile, with 7.72% janky frames and no missed vsync. The full-width transition was also frame-reviewed without opacity ghosts.
+
+### Build metadata
+
+- App/runtime version: `4.1.4`
+- Android version code: `85`
+- iOS build number: `37`
+- Distribution: EAS Update channel `production`; no native metadata change.
+
 ## [4.1.4] - 2026-08-28
 
 ### Security
@@ -29,7 +51,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
-- Replaced the abrupt primary-tab swap with a 220 ms fade-through transition over the solid app background, synchronized the floating active indicator and preserved an atomic fallback for Reduce Motion. This removes the sideways jump without bringing back Android elevation ghosts from overlapping screens.
+- Replaced the abrupt primary-tab swap with a 220 ms fade-through transition over the solid app background, synchronized the floating active indicator and preserved an atomic fallback for Reduce Motion.
 - Made the Profile hero, player-information card and otherwise empty content areas drive the same collapsible header gesture, while horizontal skin and collection gestures remain available.
 - Centered the skin media viewer above Bundle details, separated upgrade-level and chroma selectors, and classified CDN media explicitly so image URLs no longer depend on file extensions.
 - Removed the duplicated in-page title from Leaderboard while keeping the navigation header and all season/search controls unchanged.
@@ -54,7 +76,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Local Android native prebuild and arm64 debug compilation completed successfully with New Architecture, Hermes, SecureStore, MMKV/Nitro, Riot TCP chat and Expo Updates autolinked.
 - `pnpm run check` passed TypeScript, ESLint and 26/26 Jest suites (158/158 tests). App-wide coverage is reported from all routes, components, features, hooks, services and utilities; Expo Doctor previously passed 21/21 checks. The current Android export bundled 2,686 modules and 38 assets successfully.
 - Installed the signed development APK on a Redmi K60 and verified Bundle layering, Store filters/timer, Profile tabs, every read-only More route, Friends search, direct-chat keyboard behavior and API/XMPP recovery after backgrounding. No fatal Android or React Native runtime error was observed.
-- Re-verified the warmed Bundle, Store, Profile and More transition loop on the connected Redmi: the fade-through started with the moving active indicator, produced no horizontal page jump or elevation ghost and measured 12 ms at the 50th percentile and 22 ms at the 90th percentile in the development build.
+- Re-verified the warmed Bundle, Store, Profile and More transition loop on the connected Redmi: the fade-through started with the moving active indicator and measured 12 ms at the 50th percentile and 22 ms at the 90th percentile in the development build.
 - Full automated, device and release validation results are recorded by the release workflow before production publication.
 
 ### Build metadata

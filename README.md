@@ -45,8 +45,8 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 - **Large friend-list recovery:** preserves an incomplete Riot roster until its closing XMPP stanza arrives, preventing large rosters from timing out after launch or foreground recovery.
 - **Consistent collection cards:** Equipment and the Skin Gallery now use the Store card hierarchy while retaining their existing filters, media preview and wishlist interactions.
 
-- **Latest production OTA (28 August 2026):** primary tabs now mount on demand, freeze and detach while inactive; Profile supports vertical collapse gestures from its hero and empty areas; navigation uses the ghost-free fade-through motion described below.
-- **Reliable primary navigation:** Bundle, Store, Profile and More now use a short fade-through over the solid app background, so the active indicator and page change feel continuous without sideways jumps or overlapping Android elevation ghosts.
+- **Latest production OTA (29 August 2026):** primary tabs are preloaded and kept attached on Android for a full-width opaque horizontal transition; Profile supports vertical collapse gestures from its hero and empty areas.
+- **Reliable primary navigation:** Bundle, Store, Profile and More stay prepared and attached on Android, then slide left/right across the full viewport with a 360 ms opaque native transition synchronized with the floating indicator. This avoids mount/reattach stutter, faded components and Android elevation ghosts.
 - **Natural Profile scrolling:** vertical drags from the player card and empty content areas collapse the Profile header, while horizontal skin and collection gestures keep their existing behavior.
 - **Web-safe profile export:** native media-library code is isolated from the web static renderer.
 - **Modern runtime:** upgraded to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
@@ -372,8 +372,8 @@ Install via QR code or APK from the Expo dashboard.
 - **Bản bảo mật và phục hồi (26/08/2026):** mã hoá phiên Riot và tài khoản đã lưu bằng khoá được Keystore/Keychain bảo vệ, xác thực chứng chỉ TLS của Riot chat, giới hạn điều hướng OAuth, kiểm tra OTA khi mở app bình thường và phục hồi lỗi Riot/mạng tạm thời mà không xoá cache tốt.
 - **Khôi phục danh sách bạn bè lớn:** giữ nguyên roster Riot đang nhận dở cho tới khi stanza XMPP đóng hoàn chỉnh, tránh timeout sau khi mở app hoặc quay lại từ nền.
 
-- **OTA production mới nhất (28/08/2026):** tab chính chỉ mount khi dùng, được freeze và detach khi không hoạt động; Profile kéo dọc được từ hero và khoảng trống; thanh điều hướng dùng fade-through không tạo bóng mờ như mô tả bên dưới.
-- **Điều hướng chính ổn định:** Bundle, Store, Profile và More chuyển trang bằng fade-through ngắn qua nền đặc, giúp vòng chọn và nội dung chạy liền mạch mà không giật ngang hoặc chồng bóng elevation trên Android.
+- **OTA production mới nhất (29/08/2026):** tab chính được preload và giữ attached trên Android để chuyển ngang toàn màn hình mà không làm mờ component; Profile kéo dọc được từ hero và khoảng trống.
+- **Điều hướng chính ổn định:** Bundle, Store, Profile và More được preload và giữ attached trên Android, sau đó trượt trái/phải hết chiều rộng màn hình trong 360 ms bằng native transform opaque đồng bộ với vòng chọn thanh nổi. Cách này tránh giật do mount/reattach, component mờ và bóng elevation.
 - **Cuộn Profile tự nhiên:** kéo dọc từ bảng người chơi và các khoảng trống đều thu gọn header, còn thao tác kéo ngang skin và bộ sưu tập vẫn giữ nguyên.
 - **Profile tương thích web:** phần xuất ảnh dùng media-library native đã được tách khỏi trình render web tĩnh.
 - **Runtime mới:** nâng lên Expo SDK 57, React Native 0.86, React 19, Reanimated 4 và Zustand 5.

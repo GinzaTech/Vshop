@@ -4,8 +4,10 @@ import TestRenderer, { act } from "react-test-renderer";
 
 import {
   FloatingTabBar,
+  PRIMARY_TAB_REDUCED_MOTION_OPTIONS,
   PRIMARY_TAB_SCREEN_OPTIONS,
   PRIMARY_TAB_SCREEN_TRANSITION,
+  PRIMARY_TAB_SLIDE_DISTANCE,
 } from "~/app/(authenticated)/_layout";
 import { COLORS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
@@ -55,6 +57,13 @@ jest.mock("react-native-reanimated", () => {
   };
 });
 
+jest.mock("react-native-worklets", () => ({
+  scheduleOnRN: (
+    callback: (...args: unknown[]) => unknown,
+    ...args: unknown[]
+  ) => callback(...args),
+}));
+
 jest.mock("~/components/AppWarmup", () =>
   function MockAppWarmup() {
     return null;
@@ -96,24 +105,49 @@ const getButton = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
   );
 
 describe("FloatingTabBar", () => {
-  it("mounts primary screens on demand and freezes inactive tabs", () => {
-    expect(PRIMARY_TAB_SCREEN_OPTIONS).toEqual({
-      lazy: true,
-      freezeOnBlur: true,
-    });
+  it("keeps Android scenes ready for the horizontal transition", () => {
+    expect(PRIMARY_TAB_SCREEN_OPTIONS.lazy).toBe(true);
+    expect(PRIMARY_TAB_SCREEN_OPTIONS.freezeOnBlur).toBe(false);
+    expect(PRIMARY_TAB_SCREEN_OPTIONS.animation).toBe("shift");
   });
 
-  it("uses a fade-through transition without horizontal shifting", () => {
-    expect(PRIMARY_TAB_SCREEN_TRANSITION.animation).toBe("fade");
-    expect(PRIMARY_TAB_SCREEN_TRANSITION.transitionSpec.config.duration).toBe(
-      220,
+  it("moves scenes left and right without changing opacity", () => {
+    const interpolateProgress = jest.fn(() => 16);
+    const transitionStyle = PRIMARY_TAB_SCREEN_TRANSITION.sceneStyleInterpolator(
+      {
+        current: {
+          progress: { interpolate: interpolateProgress },
+        },
+      } as unknown as Parameters<
+        typeof PRIMARY_TAB_SCREEN_TRANSITION.sceneStyleInterpolator
+      >[0],
     );
+
+    expect(PRIMARY_TAB_SCREEN_TRANSITION.transitionSpec.config.duration).toBe(
+      360,
+    );
+    expect(transitionStyle).toEqual({
+      sceneStyle: {
+        opacity: 1,
+        transform: [{ translateX: 16 }],
+      },
+    });
+    expect(interpolateProgress).toHaveBeenCalledWith({
+      inputRange: [-1, 0, 1],
+      outputRange: [
+        -PRIMARY_TAB_SLIDE_DISTANCE,
+        0,
+        PRIMARY_TAB_SLIDE_DISTANCE,
+      ],
+    });
+    expect(PRIMARY_TAB_REDUCED_MOTION_OPTIONS.animation).toBe("none");
   });
 
   const renderTabBar = () => {
     const navigation = {
       emit: jest.fn(() => ({ defaultPrevented: false })),
       navigate: jest.fn(),
+      preload: jest.fn(),
     };
     let renderer!: TestRenderer.ReactTestRenderer;
 
@@ -145,6 +179,18 @@ describe("FloatingTabBar", () => {
       canPreventDefault: true,
     });
     expect(navigation.navigate).toHaveBeenCalledWith(route);
+  });
+
+  it("ignores repeated tab presses while the scene transition is running", () => {
+    const { navigation, renderer } = renderTabBar();
+    const shopButton = getButton(renderer, "shop");
+
+    act(() => {
+      shopButton.props.onPress();
+      shopButton.props.onPress();
+    });
+
+    expect(navigation.navigate).toHaveBeenCalledTimes(1);
   });
 
   it("keeps only one interactive layer mounted while collapsing", () => {
