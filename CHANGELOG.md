@@ -4,7 +4,7 @@ All notable changes to VShop are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses semantic app versions with independent Android and iOS build numbers.
 
-## [4.1.4] - 2026-08-27
+## [4.1.4] - 2026-08-28
 
 ### Security
 
@@ -29,6 +29,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Replaced the abrupt primary-tab swap with a 220 ms fade-through transition over the solid app background, synchronized the floating active indicator and preserved an atomic fallback for Reduce Motion. This removes the sideways jump without bringing back Android elevation ghosts from overlapping screens.
+- Made the Profile hero, player-information card and otherwise empty content areas drive the same collapsible header gesture, while horizontal skin and collection gestures remain available.
 - Centered the skin media viewer above Bundle details, separated upgrade-level and chroma selectors, and classified CDN media explicitly so image URLs no longer depend on file extensions.
 - Removed the duplicated in-page title from Leaderboard while keeping the navigation header and all season/search controls unchanged.
 - Reused the Store skin-card renderer in the Skin Gallery and aligned Equipment cards to the same visual hierarchy, while preserving preview, wishlist and equipment-category behavior.
@@ -50,8 +52,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Validation
 
 - Local Android native prebuild and arm64 debug compilation completed successfully with New Architecture, Hermes, SecureStore, MMKV/Nitro, Riot TCP chat and Expo Updates autolinked.
-- `pnpm run check` passed TypeScript, ESLint and 26/26 Jest suites (157/157 tests). App-wide coverage is now reported honestly at 9.16% statements and 9.51% lines from all routes, components, features, hooks, services and utilities, with Combat store at 78% statements and the request deduper at 92% statements; Expo Doctor passed 21/21 checks. Android export bundled 2,685 modules and 38 assets: 9.73 MB total, 7.26 MB Hermes bytecode and a 1.25 MB largest asset, all within enforced budgets.
+- `pnpm run check` passed TypeScript, ESLint and 26/26 Jest suites (158/158 tests). App-wide coverage is reported from all routes, components, features, hooks, services and utilities; Expo Doctor previously passed 21/21 checks. The current Android export bundled 2,686 modules and 38 assets successfully.
 - Installed the signed development APK on a Redmi K60 and verified Bundle layering, Store filters/timer, Profile tabs, every read-only More route, Friends search, direct-chat keyboard behavior and API/XMPP recovery after backgrounding. No fatal Android or React Native runtime error was observed.
+- Re-verified the warmed Bundle, Store, Profile and More transition loop on the connected Redmi: the fade-through started with the moving active indicator, produced no horizontal page jump or elevation ghost and measured 12 ms at the 50th percentile and 22 ms at the 90th percentile in the development build.
 - Full automated, device and release validation results are recorded by the release workflow before production publication.
 
 ### Build metadata

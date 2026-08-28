@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { Tabs } from "expo-router";
+import type { BottomTabNavigationOptions } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
 import {
   Platform,
@@ -17,6 +18,7 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Reanimated, {
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -27,7 +29,10 @@ import { COLORS, SHADOWS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import { flowTracer } from "~/utils/flow-tracer";
-import { MOTION_TIMING } from "~/constants/Motion";
+import {
+  MOTION_DURATION,
+  MOTION_TIMING,
+} from "~/constants/Motion";
 
 type FloatingRoute = {
   key: string;
@@ -85,6 +90,37 @@ export const PRIMARY_TAB_SCREEN_OPTIONS = {
   freezeOnBlur: true,
 } as const;
 
+type TabSceneInterpolator = NonNullable<
+  BottomTabNavigationOptions["sceneStyleInterpolator"]
+>;
+
+const primaryTabSceneInterpolator: TabSceneInterpolator = ({ current }) => ({
+  sceneStyle: {
+    // Fade through the solid navigation background instead of compositing
+    // both pages at once. The short zero-opacity interval prevents elevated
+    // cards on the previous page from becoming a grey ghost on Android.
+    opacity: current.progress.interpolate({
+      inputRange: [-1, -0.45, 0, 0.45, 1],
+      outputRange: [0, 0, 1, 0, 0],
+    }),
+  },
+});
+
+export const PRIMARY_TAB_SCREEN_TRANSITION = {
+  animation: "fade",
+  sceneStyleInterpolator: primaryTabSceneInterpolator,
+  transitionSpec: {
+    animation: "timing",
+    config: {
+      duration: MOTION_DURATION.standard,
+      easing: MOTION_TIMING.standard.easing,
+    },
+  },
+} satisfies Pick<
+  BottomTabNavigationOptions,
+  "animation" | "sceneStyleInterpolator" | "transitionSpec"
+>;
+
 /**
  * FloatingTabBar — Thanh tab nổi (floating) tùy chỉnh.
  *
@@ -104,8 +140,8 @@ export const PRIMARY_TAB_SCREEN_OPTIONS = {
  * Animation (Reanimated, chạy trên UI thread):
  * - Khi collapsed = true: thanh thu gọn thành nút tròn nhỏ (74×74), dịch chuyển sang phải.
  * - Khi collapsed = false: thanh mở rộng full width với tất cả tab.
- * - Sliding indicator theo tab active bằng interpolate + withTiming.
- * - collapseProgress dùng Easing.inOut(cubic), duration 340ms (collapse) / 420ms (expand).
+ * - Sliding indicator theo tab active bằng timing trên UI thread.
+ * - collapseProgress dùng motion token và tôn trọng Reduce Motion của hệ điều hành.
  *
  * Logic:
  * - Tab "night_market" chỉ hiện nếu hasNightMarketItems === true.
@@ -303,6 +339,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
             {/* Sliding indicator phía sau tab đang active */}
             <Reanimated.View
               pointerEvents="none"
+              testID="primary-tab-indicator"
               style={[
                 styles.tabIndicator,
                 primaryNavigationTone === "light" && styles.tabIndicatorLight,
@@ -386,10 +423,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
                     <View
                       style={[
                         styles.tabIconWrap,
-                        focused &&
-                          (primaryNavigationTone === "light"
-                            ? styles.tabIconWrapActiveLight
-                            : styles.tabIconWrapActive),
                         pressed &&
                           !focused &&
                           (primaryNavigationTone === "light"
@@ -479,6 +512,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
  */
 function Layout() {
   const { t } = useTranslation();
+  const reduceMotionEnabled = useReducedMotion();
 
   return (
     <>
@@ -488,16 +522,16 @@ function Layout() {
         backBehavior="history"
         detachInactiveScreens
         tabBar={(props) => <FloatingTabBar {...props} />}
-        screenOptions={{
-          // A cross-fade keeps the previous tab composited underneath the
-          // next one for several frames. On Android that makes card elevation
-          // look like a grey/blurred ghost when moving Profile <-> Store.
-          // Tabs now switch atomically; local loading states own their motion.
-          animation: "none",
+        screenOptions={({ route }) => ({
+          // Tab chính fade qua nền đặc, không trượt ngang và không chồng hai
+          // trang bán trong suốt nên tránh cả cú giật lẫn bóng mờ Android.
+          ...(reduceMotionEnabled || !(route.name in PRIMARY_ROUTES)
+            ? { animation: "none" as const }
+            : PRIMARY_TAB_SCREEN_TRANSITION),
           headerShown: false,
           tabBarShowLabel: false,
           sceneStyle: { backgroundColor: COLORS.BACKGROUND },
-        }}
+        })}
       >
         {/* ── Tab chính ── */}
         <Tabs.Screen
@@ -755,12 +789,6 @@ const styles = StyleSheet.create({
   tabIconWrapPressedLight: {
     backgroundColor: "rgba(17,24,28,0.08)",
   },
-  tabIconWrapActive: {
-    backgroundColor: COLORS.PURE_WHITE, // Nền trắng cho tab đang active
-  },
-  tabIconWrapActiveLight: {
-    backgroundColor: COLORS.PURE_BLACK,
-  },
   tabIndicator: {
     position: "absolute",
     top: 12,
@@ -768,7 +796,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: COLORS.PURE_WHITE,
   },
   tabIndicatorLight: {
     backgroundColor: COLORS.PURE_BLACK,

@@ -8,6 +8,7 @@
 
 import React from "react";
 import { useFocusEffect } from "expo-router";
+import { GestureDetector } from "react-native-gesture-handler";
 import {
   FlatList,
   LayoutChangeEvent,
@@ -101,6 +102,10 @@ import { styles } from "~/features/profile/profile-screen.styles";
 import { CompactProfileSkinCard } from "~/features/profile/CompactProfileSkinCard";
 import { ProfilePickerModal } from "~/features/profile/ProfilePickerModal";
 import { ProfileSegmentedControl } from "~/features/profile/ProfileSegmentedControl";
+import {
+  PROFILE_STICKY_SEGMENT_HEIGHT,
+  useProfileCollapsibleHeader,
+} from "~/features/profile/useProfileCollapsibleHeader";
 import {
   ProfileExpressionSection,
   ProfileIdentitySection,
@@ -2291,11 +2296,18 @@ function Profile() {
       viewportWidth,
     ]
   );
-
   const setPagerGestureEnabled = React.useCallback((enabled: boolean) => {
     profilePagerRef.current?.setNativeProps({ scrollEnabled: enabled });
   }, [profilePagerRef]);
-
+  const {
+    bodyAnimatedStyle: collapsibleBodyAnimatedStyle,
+    contentPanGesture: profileContentPanGesture,
+    handleContentScroll: handleProfileContentScroll,
+    handleHeaderLayout,
+    headerAnimatedStyle: collapsibleHeaderAnimatedStyle,
+    headerHeight: collapsibleHeaderHeight,
+    panGesture: profileHeaderPanGesture,
+  } = useProfileCollapsibleHeader();
   const skinWhitespacePagerPanResponder = React.useMemo(
       () =>
           PanResponder.create({
@@ -3341,7 +3353,11 @@ function Profile() {
   );
 
   const renderPageHeader = () => (
-      <>
+      <GestureDetector gesture={profileHeaderPanGesture}>
+        <Animated.View
+            onLayout={handleHeaderLayout}
+            style={[styles.profilePageHeader, collapsibleHeaderAnimatedStyle]}
+        >
         <View style={styles.topHeaderRow}>
           <TouchableOpacity
               accessibilityRole="button"
@@ -3403,7 +3419,8 @@ function Profile() {
         statsSegmentLayerAnimatedStyle={statsSegmentLayerAnimatedStyle}
         tabItems={tabItems}
       />
-      </>
+        </Animated.View>
+      </GestureDetector>
   );
 
   const renderCollectionControls = () => (
@@ -3534,7 +3551,6 @@ function Profile() {
                     renderItem={renderSkinListItem}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.profileSkinRow}
-                    nestedScrollEnabled
                     onTouchStart={() => setPagerGestureEnabled(false)}
                     onTouchEnd={() => setPagerGestureEnabled(true)}
                     onTouchCancel={() => setPagerGestureEnabled(true)}
@@ -3596,12 +3612,14 @@ function Profile() {
         ) : (
             <View style={styles.profilePageSwipeZone} />
         )}
-        <FlatList
+        <Animated.FlatList
             style={styles.pageScroll}
             data={profileListRowsByTab[tab]}
             keyExtractor={(item) => item.key}
             renderItem={renderProfileListRow}
             contentContainerStyle={styles.pageScrollContent}
+            onScroll={handleProfileContentScroll}
+            scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -3633,7 +3651,17 @@ function Profile() {
             style={[styles.statsBackground, pageBackgroundAnimatedStyle]}
         />
         {renderPageHeader()}
-        <View style={styles.profileBodyStack}>
+        <GestureDetector gesture={profileContentPanGesture}>
+          <Animated.View
+            style={[
+              styles.profileBodyStack,
+              collapsibleHeaderHeight > 0 && styles.profileBodyStackCollapsible,
+              collapsibleHeaderHeight > 0 && {
+                top: PROFILE_STICKY_SEGMENT_HEIGHT,
+              },
+              collapsibleHeaderHeight > 0 && collapsibleBodyAnimatedStyle,
+            ]}
+        >
           <Animated.View
               pointerEvents={isPlayerInfoMode ? "none" : "auto"}
               accessibilityElementsHidden={isPlayerInfoMode}
@@ -3686,7 +3714,8 @@ function Profile() {
                 />
               </Animated.View>
           ) : null}
-        </View>
+          </Animated.View>
+        </GestureDetector>
         <ProfilePickerModal
           activeWeaponChroma={activeWeaponChroma}
           handleDismissPicker={handleDismissPicker}

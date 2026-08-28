@@ -5,6 +5,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import {
   FloatingTabBar,
   PRIMARY_TAB_SCREEN_OPTIONS,
+  PRIMARY_TAB_SCREEN_TRANSITION,
 } from "~/app/(authenticated)/_layout";
 import { COLORS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
@@ -102,6 +103,13 @@ describe("FloatingTabBar", () => {
     });
   });
 
+  it("uses a fade-through transition without horizontal shifting", () => {
+    expect(PRIMARY_TAB_SCREEN_TRANSITION.animation).toBe("fade");
+    expect(PRIMARY_TAB_SCREEN_TRANSITION.transitionSpec.config.duration).toBe(
+      220,
+    );
+  });
+
   const renderTabBar = () => {
     const navigation = {
       emit: jest.fn(() => ({ defaultPrevented: false })),
@@ -170,12 +178,15 @@ describe("FloatingTabBar", () => {
 
     try {
       const { renderer } = renderTabBar();
-      const profileIcon = renderer.root.find(
+      const profileIcon = renderer.root.findAll(
         (node) => node.props.name === "account-circle-outline",
-      );
+      )[0];
+      const indicator = renderer.root.findByProps({
+        testID: "primary-tab-indicator",
+      });
 
       expect(profileIcon.props.color).toBe(COLORS.PURE_WHITE);
-      expect(StyleSheet.flatten(profileIcon.parent?.props.style)).toMatchObject({
+      expect(StyleSheet.flatten(indicator.props.style)).toMatchObject({
         backgroundColor: COLORS.PURE_BLACK,
       });
     } finally {

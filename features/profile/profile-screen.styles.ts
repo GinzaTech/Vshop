@@ -6,6 +6,7 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.PURE_WHITE,
+    overflow: "hidden",
   },
   statsBackground: {
     ...StyleSheet.absoluteFill,
@@ -17,6 +18,16 @@ export const styles = StyleSheet.create({
   profileBodyStack: {
     flex: 1,
     position: "relative",
+  },
+  profileBodyStackCollapsible: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 1,
+  },
+  profilePageHeader: {
+    zIndex: 2,
   },
   profileBodyLayer: {
     ...StyleSheet.absoluteFill,

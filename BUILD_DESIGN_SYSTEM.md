@@ -54,6 +54,7 @@ Component nhỏ đặc thù có thể dùng radius cục bộ, nhưng các primi
 - Dùng `LAYOUT.screenPadding`, `minTouchTarget` và `bottomNavHeight` cho kích thước dùng chung.
 - Card thường dùng `SHADOWS.none/xs/sm`; navigation dùng tối đa `md`; `lg` dành cho modal/sheet.
 - Bottom navigation phải tham gia layout của navigator, không đặt absolute phủ lên screen content.
+- Chuyển tab chính dùng fade-through qua nền đặc và token motion chung; không slide ngang hoặc cross-fade hai scene có elevation. Khi Reduce Motion bật, chuyển tab phải diễn ra tức thời.
 
 Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout cụ thể. Khi xuất hiện từ ba lần trở lên, nâng giá trị thành token hoặc primitive.
 
