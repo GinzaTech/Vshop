@@ -4,6 +4,7 @@ import TestRenderer, { act } from "react-test-renderer";
 
 import {
   FloatingTabBar,
+  createPrimaryTabScreenOptions,
   PRIMARY_TAB_REDUCED_MOTION_OPTIONS,
   PRIMARY_TAB_SCREEN_OPTIONS,
   PRIMARY_TAB_SCREEN_TRANSITION,
@@ -141,6 +142,24 @@ describe("FloatingTabBar", () => {
       ],
     });
     expect(PRIMARY_TAB_REDUCED_MOTION_OPTIONS.animation).toBe("none");
+  });
+
+  it("uses the current viewport width for resized scene transitions", () => {
+    const interpolateProgress = jest.fn(() => 20);
+    const resizedOptions = createPrimaryTabScreenOptions(720);
+
+    resizedOptions.sceneStyleInterpolator({
+      current: {
+        progress: { interpolate: interpolateProgress },
+      },
+    } as unknown as Parameters<
+      typeof resizedOptions.sceneStyleInterpolator
+    >[0]);
+
+    expect(interpolateProgress).toHaveBeenCalledWith({
+      inputRange: [-1, 0, 1],
+      outputRange: [-720, 0, 720],
+    });
   });
 
   const renderTabBar = () => {

@@ -124,11 +124,15 @@ export default function CrosshairDatabase() {
           <View style={styles.searchBar}>
             <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
             <TextInput style={styles.input} placeholder={t("crosshair_page.search_placeholder")}
+              accessibilityLabel={t("crosshair_page.search_placeholder")}
               placeholderTextColor={COLORS.TEXT_SECONDARY} value={search} onChangeText={setSearch} />
           </View>
           <View style={styles.tabs}>
             {categories.map((category) => (
               <TouchableOpacity key={category.value} onPress={() => setActiveCategory(category.value)}
+                accessibilityRole="tab"
+                accessibilityLabel={category.label}
+                accessibilityState={{ selected: activeCategory === category.value }}
                 style={[styles.tab, activeCategory === category.value && styles.tabActive]}>
                 <Text style={[styles.tabText, activeCategory === category.value && styles.tabTextActive]}>{category.label}</Text>
               </TouchableOpacity>
@@ -144,7 +148,14 @@ export default function CrosshairDatabase() {
             const isSelected = selected.name === item.name;
             const isCopied = copiedName === item.name;
             return (
-              <TouchableOpacity style={styles.cardContainer} activeOpacity={0.85} onPress={() => handlePress(item)}>
+              <TouchableOpacity
+                style={styles.cardContainer}
+                activeOpacity={0.85}
+                onPress={() => handlePress(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.name}, ${item.team}`}
+                accessibilityState={{ selected: isSelected }}
+              >
                 <GlassCard style={[styles.card, isSelected && styles.cardSelected]}>
                   <View style={styles.cardTop}>
                     <Text style={styles.cardName}>{item.name}</Text>

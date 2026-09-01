@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Countdown from "~/components/Countdown";
 import ShopItem from "~/components/ShopItem";
@@ -24,6 +25,7 @@ import InfoPill from "~/components/ui/InfoPill";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { refreshShopAndBalances } from "~/utils/app-sync";
+import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
 
 const CONTENT_PADDING = 20;
 const GRID_GAP = 12;
@@ -36,6 +38,7 @@ const GRID_GAP = 12;
 function Shop() {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const user = useUserStore((state) => state.user);
   const [mode, setMode] = React.useState<"all" | "wishlist">("all");
   const skinIds = useWishlistStore((state) => state.skinIds);
@@ -64,7 +67,10 @@ function Shop() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: getPrimaryTabContentBottomPadding(insets.bottom) },
+      ]}
       refreshControl={
         <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }

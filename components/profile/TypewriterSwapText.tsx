@@ -2,6 +2,7 @@ import React from "react";
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -40,14 +41,23 @@ function TypewriterSwapText({
   const targetTextRef = React.useRef(text);
   const previousTextRef = React.useRef(text);
   const cursorOpacity = useSharedValue(1);
+  const reduceMotionEnabled = useReducedMotion();
 
   React.useEffect(() => {
+    if (reduceMotionEnabled) {
+      previousTextRef.current = text;
+      targetTextRef.current = text;
+      setDisplayedText(text);
+      setPhase("idle");
+      return;
+    }
+
     if (previousTextRef.current === text) return;
 
     previousTextRef.current = text;
     targetTextRef.current = text;
     setPhase("deleting");
-  }, [text]);
+  }, [reduceMotionEnabled, text]);
 
   React.useEffect(() => {
     if (phase === "idle") return;
@@ -92,7 +102,8 @@ function TypewriterSwapText({
     typingSpeed,
   ]);
 
-  const cursorVisible = showCursor && phase !== "idle";
+  const cursorVisible =
+    !reduceMotionEnabled && showCursor && phase !== "idle";
 
   React.useEffect(() => {
     cancelAnimation(cursorOpacity);

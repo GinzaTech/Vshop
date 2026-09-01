@@ -14,7 +14,10 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { BlurTargetView, BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 import { Modal, Portal, useTheme } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import BundleImage from "~/components/BundleImage";
 import BundleItem from "~/components/BundleItem";
@@ -28,6 +31,8 @@ import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { refreshShopAndBalances } from "~/utils/app-sync";
+import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
+import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 
 // Component Bundles: hiển thị danh sách các bundle (gói hàng) trong shop
 // Cho phép xem thông tin bundle và các item bên trong qua modal
@@ -35,6 +40,7 @@ function Bundles() {
   // Hook dịch thuật đa ngôn ngữ
   const { t } = useTranslation();
   const paperTheme = useTheme();
+  const insets = useSafeAreaInsets();
   const transparentModalTheme = React.useMemo(
     () => ({
       ...paperTheme,
@@ -50,12 +56,20 @@ function Bundles() {
   // State: bundle đang được chọn để xem chi tiết (null = không có modal)
   const [selectedBundle, setSelectedBundle] =
     React.useState<BundleShopItem | null>(null);
+  const setPrimaryNavigationAccessibilityHidden = useSystemChromeStore(
+    (chrome) => chrome.setPrimaryNavigationAccessibilityHidden,
+  );
   const blurTargetRef = React.useRef<View | null>(null);
   const refreshShop = React.useCallback(
     () => refreshShopAndBalances(true),
     []
   );
   const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
+
+  React.useEffect(() => {
+    setPrimaryNavigationAccessibilityHidden(Boolean(selectedBundle));
+    return () => setPrimaryNavigationAccessibilityHidden(false);
+  }, [selectedBundle, setPrimaryNavigationAccessibilityHidden]);
 
   // dismissBundle: đóng modal chi tiết bundle bằng cách set selectedBundle về null
   const dismissBundle = React.useCallback(() => {
@@ -67,7 +81,10 @@ function Bundles() {
     return (
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: getPrimaryTabContentBottomPadding(insets.bottom) },
+        ]}
         refreshControl={
           <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -92,10 +109,20 @@ function Bundles() {
   return (
     <>
       {/* ScrollView chính: cuộn dọc, nền tối */}
-      <BlurTargetView ref={blurTargetRef} style={styles.blurTarget}>
+      <BlurTargetView
+        ref={blurTargetRef}
+        style={styles.blurTarget}
+        accessibilityElementsHidden={Boolean(selectedBundle)}
+        importantForAccessibility={
+          selectedBundle ? "no-hide-descendants" : "auto"
+        }
+      >
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: getPrimaryTabContentBottomPadding(insets.bottom) },
+        ]}
         refreshControl={
           <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -140,7 +167,11 @@ function Bundles() {
           theme={transparentModalTheme}
         >
           {selectedBundle ? (
-            <>
+            <View
+              accessibilityViewIsModal
+              importantForAccessibility="yes"
+              style={styles.modalA11yRoot}
+            >
               <BlurView
                 pointerEvents="none"
                 blurTarget={blurTargetRef}
@@ -197,7 +228,7 @@ function Bundles() {
                   />
                 </ScrollView>
               </SafeAreaView>
-            </>
+            </View>
           ) : null}
         </Modal>
       </Portal>
@@ -268,6 +299,9 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  modalA11yRoot: {
+    flex: 1,
   },
   modalDim: {
     ...StyleSheet.absoluteFill,

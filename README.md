@@ -39,6 +39,13 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 # English
 
+## Release 4.1.5 highlights
+
+- **Cleaner Combat flow:** removes the Party Chat pager while preserving party codes, join/leave controls, ready state and agent selection.
+- **Truthful direct-chat presence:** chat headers now show the selected friend as `Online` or `Offline` instead of reporting only the Riot socket state.
+- **Polished floating navigation:** selected icons are centered precisely, full-width horizontal transitions adapt to the live viewport and primary pages keep their final content above the floating bar.
+- **Accessibility and readability:** Bundle modals isolate background controls correctly, Reduce Motion is respected and small match/Profile labels now use a readable minimum size.
+
 ## Release 4.1.4 highlights
 
 - **Security and recovery release (26 August 2026):** encrypts Riot sessions and saved accounts with a Keystore/Keychain-protected key, validates Riot chat TLS certificates, restricts OAuth navigation, checks OTA updates on normal launch and recovers transient Riot/network failures without discarding good cached data.
@@ -66,7 +73,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 | **Profile** | Loadout editor, Collection browser, Rare+ collection image export, animated Act record and player-performance cards |
 | **Match History** | Cached history, season metrics, daily summaries, landscape scoreboard, economy, weapon statistics, opponent matchups and round timeline |
 | **Combat** | Live pregame/session information, party management, silent leave-party action, agent select and real-time match board |
-| **Social** | Friends list with presence, resilient 1:1 Riot XMPP messaging and party chat |
+| **Social** | Friends list with presence and resilient 1:1 Riot XMPP messaging |
 | **Reference** | Skin gallery, equipment browser, agent database, crosshair codes, leaderboard |
 | **Performance** | Offline-first MMKV cache, delta sync, gzip compression, adaptive TTL on 4G |
 | **UX** | Animated loading screen, skeleton shimmer, press-scale cards, sliding tab indicator, screen transitions |
@@ -213,15 +220,15 @@ Party player + pregame player + current-game player (parallel)
   -> combat and combat_session screens subscribe to the same Zustand state
 ```
 
-**Friends and party chat**
+**Friends and direct chat**
 
 ```text
 RSO token -> PAS token + chat affinity
   -> TLS socket :5223
   -> SASL X-Riot-RSO-PAS
   -> resource bind + XMPP session + entitlements
-  -> roster, presence, direct messages and party MUC
-  -> normalized chat store -> Friends / direct chat / party chat UI
+  -> roster, presence and direct messages
+  -> normalized chat store -> Friends / direct chat UI
 ```
 
 The XMPP service is a singleton guarded against duplicate initialization.
@@ -366,6 +373,13 @@ Install via QR code or APK from the Expo dashboard.
 ---
 
 # Tiếng Việt
+
+## Điểm nổi bật bản 4.1.5
+
+- **Combat gọn hơn:** bỏ trang vuốt Chat tổ đội nhưng vẫn giữ mã tổ đội, tham gia/rời đội, trạng thái sẵn sàng và chọn đặc vụ.
+- **Presence chat chính xác:** tiêu đề chat riêng hiển thị người bạn đang `Online` hoặc `Offline`, thay vì chỉ báo trạng thái socket Riot.
+- **Thanh điều hướng hoàn thiện:** icon được căn chính giữa vòng tròn, chuyển cảnh ngang thích ứng với kích thước màn hình hiện tại và nội dung cuối trang không còn bị thanh nổi che.
+- **Dễ dùng hơn:** modal Bundle tách đúng lớp accessibility, Reduce Motion được tôn trọng và chữ nhỏ trong lịch sử đấu/Profile đã được tăng lên mức dễ đọc.
 
 ## Điểm nổi bật bản 4.1.4
 
@@ -533,15 +547,15 @@ Party player + pregame player + current-game player (song song)
   -> combat và combat_session cùng subscribe một Zustand state
 ```
 
-**Bạn bè và party chat**
+**Bạn bè và chat riêng**
 
 ```text
 RSO token -> PAS token + chat affinity
   -> TLS socket :5223
   -> SASL X-Riot-RSO-PAS
   -> bind resource + XMPP session + entitlements
-  -> roster, presence, tin nhắn riêng và party MUC
-  -> chat store đã chuẩn hóa -> UI Bạn bè / chat riêng / party chat
+  -> roster, presence và tin nhắn riêng
+  -> chat store đã chuẩn hóa -> UI Bạn bè / chat riêng
 ```
 
 XMPP service là singleton và có khóa chống khởi tạo socket trùng. Khi socket

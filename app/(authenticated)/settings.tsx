@@ -24,6 +24,7 @@ import * as Clipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import { useAccountStore } from "~/hooks/useAccountStore";
@@ -51,6 +52,7 @@ import {
   toSavedAccount,
   type SavedAccount,
 } from "~/utils/saved-accounts";
+import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
 
 /**
  * Settings – Component chính hiển thị trang cài đặt
@@ -60,6 +62,7 @@ import {
 function Settings() {
   const { t } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   // User store: thông tin user + hàm reset
   const user = useUserStore((state) => state.user);
   const resetUser = useUserStore((state) => state.resetUser);
@@ -351,7 +354,10 @@ function Settings() {
     <>
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: getPrimaryTabContentBottomPadding(insets.bottom) },
+        ]}
         refreshControl={
           <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

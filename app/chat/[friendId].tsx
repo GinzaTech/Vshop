@@ -34,6 +34,7 @@ import {
 import { useUserStore } from "~/hooks/useUserStore";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { useTranslation } from "react-i18next";
 
 const COMPOSER_MIN_HEIGHT = 48;
 const COMPOSER_MAX_HEIGHT = 120;
@@ -91,6 +92,7 @@ function renderChatMessage({ item }: ListRenderItemInfo<ChatMessage>) {
  * @returns {JSX.Element} Màn hình chat.
  */
 export default function ChatScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   // Đọc friendId từ URL params
   const params = useLocalSearchParams<{ friendId: string | string[] }>();
@@ -202,9 +204,8 @@ export default function ChatScreen() {
       setText(""); // Reset input sau khi gửi
       setInputHeight(COMPOSER_MIN_HEIGHT);
     } catch (error) {
-      setSendError(
-        error instanceof Error ? error.message : "Could not send message"
-      );
+      if (__DEV__) console.warn("[chat] Could not send message", error);
+      setSendError(t("chat_page.send_failed"));
     } finally {
       setSending(false);
     }
@@ -215,9 +216,12 @@ export default function ChatScreen() {
     ? friend.tagLine
       ? `${friend.gameName}#${friend.tagLine}`
       : friend.gameName
-    : "Loading Riot ID...";
+    : t("chat_page.loading_identity");
 
   const canSend = chatStatus === "authenticated" && Boolean(text.trim()) && !sending;
+  const friendIsOnline =
+    chatStatus === "authenticated" &&
+    Boolean(friend && friend.show !== "offline");
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
@@ -232,7 +236,7 @@ export default function ChatScreen() {
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.buttonPressed]}
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={t("chat_page.back")}
           hitSlop={8}
         >
           <Icon name="arrow-left" size={24} color={COLORS.TEXT_PRIMARY} />
@@ -241,19 +245,16 @@ export default function ChatScreen() {
           <Text style={styles.headerTitle} numberOfLines={1}>
             {displayName}
           </Text>
-          {/* Trạng thái kết nối */}
+          {/* Trạng thái hiện diện của người bạn */}
           <Text
             style={[
               styles.connectionStatus,
-              chatStatus === "authenticated" && styles.connectionStatusReady,
-              chatStatus === "error" && styles.connectionStatusError,
+              friendIsOnline && styles.connectionStatusReady,
             ]}
           >
-            {chatStatus === "authenticated"
-              ? "Riot chat connected"
-              : chatStatus === "error"
-                ? "Reconnecting to Riot chat..."
-                : "Connecting to Riot chat..."}
+            {friendIsOnline
+              ? t("chat_page.online")
+              : t("chat_page.offline")}
           </Text>
         </View>
       </View>
@@ -269,8 +270,8 @@ export default function ChatScreen() {
             contentContainerStyle={styles.messageListContent}
             ListEmptyComponent={
               <View style={styles.emptyState} accessibilityLiveRegion="polite">
-                <Text style={styles.emptyStateTitle}>No messages yet</Text>
-                <Text style={styles.emptyStateText}>Start a conversation with this friend.</Text>
+                <Text style={styles.emptyStateTitle}>{t("chat_page.empty_title")}</Text>
+                <Text style={styles.emptyStateText}>{t("chat_page.empty_subtitle")}</Text>
               </View>
             }
             refreshControl={
@@ -303,13 +304,13 @@ export default function ChatScreen() {
               currentHeight === nextHeight ? currentHeight : nextHeight,
             );
           }}
-          placeholder="Send a message..."
+          placeholder={t("chat_page.message_placeholder")}
           placeholderTextColor={COLORS.TEXT_SECONDARY}
           multiline
           scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}
           textAlignVertical={inputHeight > COMPOSER_MIN_HEIGHT ? "top" : "center"}
           editable={chatStatus === "authenticated" && !sending}
-          accessibilityLabel="Message"
+          accessibilityLabel={t("chat_page.message_label")}
         />
         <Pressable
           disabled={!canSend}
@@ -320,7 +321,7 @@ export default function ChatScreen() {
             pressed && styles.sendButtonPressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Send message"
+          accessibilityLabel={t("chat_page.send")}
           accessibilityState={{
             disabled: !canSend,
           }}
@@ -388,10 +389,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   connectionStatusReady: {
-    color: COLORS.SUCCESS, // Xanh lá: đã kết nối
-  },
-  connectionStatusError: {
-    color: COLORS.WARNING, // Cam: lỗi kết nối
+    color: COLORS.SUCCESS,
   },
   messageRegion: {
     flex: 1,

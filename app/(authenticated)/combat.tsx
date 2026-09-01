@@ -10,10 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { CachedImage as Image } from "~/components/CachedImage";
@@ -74,21 +71,19 @@ const ROLES = [
   { id: "Sentinel", name: "Sentinel", icon: require("../../assets/images/Sentinel.png") },
 ];
 
-// COMBAT_PANELS: danh sách các panel có thể chuyển đổi (agents, party-chat)
-const COMBAT_PANELS = ["agents", "party-chat"] as const;
-
 // getChatSenderName: lấy tên hiển thị của người gửi tin nhắn trong party chat
 // senderId: ID người gửi, friends: danh sách bạn bè, currentUser: thông tin user hiện tại
 // Trả về: tên người gửi dạng "name#tag" hoặc "name" hoặc "Party"
 const getChatSenderName = (
   senderId: string,
   friends: Record<string, ChatFriend>,
-  currentUser: { id: string; name: string; TagLine: string }
+  currentUser: { id: string; name: string; TagLine: string },
+  fallbackLabels: { me: string; party: string },
 ) => {
   if (senderId === "me" || senderId === currentUser.id) {
     return currentUser.TagLine
       ? `${currentUser.name}#${currentUser.TagLine}`
-      : currentUser.name || "Me";
+      : currentUser.name || fallbackLabels.me;
   }
 
   const friend = friends[senderId];
@@ -96,7 +91,9 @@ const getChatSenderName = (
     return friend.tagLine ? `${friend.gameName}#${friend.tagLine}` : friend.gameName;
   }
 
-  return senderId.length > 12 ? senderId.slice(0, 8) : senderId || "Party";
+  return senderId.length > 12
+    ? senderId.slice(0, 8)
+    : senderId || fallbackLabels.party;
 };
 
 // sortChatMessagesByTime: sắp xếp mảng tin nhắn theo thời gian tăng dần
@@ -147,7 +144,7 @@ const toPartyChatMessage = (
 
 // Component PartyChatPanel: bảng chat cho party (nhóm)
 // Cho phép gửi/nhận tin nhắn qua XMPP hoặc local chat
-function PartyChatPanel({
+export function PartyChatPanel({
   partyId,
   roomName,
   accessToken,
@@ -167,6 +164,7 @@ function PartyChatPanel({
     party: PartyResponse | null;
   } | void>;  // Callback refresh session khi cần
 }) {
+  const { t } = useTranslation();
   // Lấy dữ liệu từ chat store
   const partyRoom = useChatStore((state) => state.partyChatRoom);      // Room chat đang hoạt động
   const chatStatus = useChatStore((state) => state.status);            // Trạng thái kết nối chat
@@ -257,7 +255,7 @@ function PartyChatPanel({
           return;
         }
 
-        setError("Looking for Valorant party presence...");
+        setError(t("combat_page.chat.looking_presence"));
         try {
           const localRoom = await loadLocalPartyChat();
           if (localRoom) {
@@ -277,7 +275,7 @@ function PartyChatPanel({
           });
         } catch (presenceError) {
           if (__DEV__) console.log("[combat] Failed to watch XMPP party presence", presenceError);
-          setError("Join or create a party to use party chat.");
+          setError(t("combat_page.chat.join_required"));
         }
         return;
       }
@@ -343,8 +341,8 @@ function PartyChatPanel({
         if (__DEV__) console.log("[combat] Failed to join XMPP party chat", chatError);
         setError(
           isPartyTokenError
-            ? "Party chat is temporarily unavailable. Pull to refresh after the party finishes syncing."
-            : chatError instanceof Error ? chatError.message : "Could not join party chat.",
+            ? t("combat_page.chat.temporarily_unavailable")
+            : t("combat_page.chat.join_failed"),
         );
       } finally {
         setLoading(false);
@@ -359,7 +357,7 @@ function PartyChatPanel({
         partyLoadRef.current = null;
       }
     }
-  }, [accessToken, currentUser.id, entitlementsToken, loadLocalPartyChat, partyId, presencePartyId, region, roomName]);
+  }, [accessToken, currentUser.id, entitlementsToken, loadLocalPartyChat, partyId, presencePartyId, region, roomName, t]);
 
   // refreshPartyChat: làm mới kết nối party chat bằng cách gọi onRefreshSession
   // sau đó load lại party chat với thông tin mới
@@ -411,12 +409,12 @@ function PartyChatPanel({
     } catch (chatError) {
       if (__DEV__) console.warn("[combat] Failed to send XMPP party chat message", chatError);
       setError(
-        chatError instanceof Error ? chatError.message : "Could not send party chat.",
+        t("combat_page.chat.send_failed"),
       );
     } finally {
       setSending(false);
     }
-  }, [chatInput, currentUser.id, partyRoom]);
+  }, [chatInput, currentUser.id, partyRoom, t]);
 
   // Các biến trạng thái dẫn xuất cho UI
   const isLocalPartyRoom = Boolean(partyRoom && fromLocalPartyRoom(partyRoom)); // Có phải local room?
@@ -425,10 +423,10 @@ function PartyChatPanel({
   const canTypeMessage = chatReady && !sending && !loading;                      // Có thể gõ?
   const sendDisabled = !canTypeMessage || !chatInput.trim();                      // Disable nút send?
   const chatPlaceholder = canTypeMessage                                         // Placeholder input
-    ? "Message party"
+    ? t("combat_page.chat.message_placeholder")
     : hasParty && (loading || chatStatus === "connecting")
-      ? "Connecting to party chat..."
-      : "Join a party first";
+      ? t("combat_page.chat.connecting")
+      : t("combat_page.chat.join_first");
 
   return (
     // KeyboardAvoidingView: tránh bàn phím che mất chat (chỉ iOS)
@@ -439,10 +437,16 @@ function PartyChatPanel({
       {/* Header panel: tiêu đề "Party chat" + nút refresh */}
       <View style={styles.partyChatHeader}>
         <View>
-          <Text style={styles.partyChatEyebrow}>XMPP chat</Text>
-          <Text style={styles.partyChatTitle}>Party chat</Text>
+          <Text style={styles.partyChatEyebrow}>{t("combat_page.xmpp_chat")}</Text>
+          <Text style={styles.partyChatTitle}>{t("combat_page.party_chat")}</Text>
         </View>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t("combat_page.chat.refresh")}
+          accessibilityState={{
+            busy: loading || partyRefreshing,
+            disabled: loading || partyRefreshing,
+          }}
           activeOpacity={0.75}
           disabled={loading || partyRefreshing}
           onPress={onRefreshPartyChat}
@@ -470,7 +474,10 @@ function PartyChatPanel({
           return (
             <View style={[styles.chatBubble, mine ? styles.chatBubbleMine : styles.chatBubbleOther]}>
               <Text style={[styles.chatSender, mine ? styles.chatSenderMine : null]} numberOfLines={1}>
-                {getChatSenderName(item.from, friends, currentUser)}
+                {getChatSenderName(item.from, friends, currentUser, {
+                  me: t("combat_page.me"),
+                  party: t("combat_page.party"),
+                })}
               </Text>
               <Text style={[styles.chatBody, mine ? styles.chatBodyMine : null]}>
                 {item.body}
@@ -481,7 +488,7 @@ function PartyChatPanel({
         ListEmptyComponent={
           <View style={styles.chatEmptyState}>
             <Text style={styles.chatEmptyText}>
-              {loading ? "Joining party chat..." : "No party messages yet."}
+              {loading ? t("combat_page.chat.joining") : t("combat_page.chat.empty")}
             </Text>
           </View>
         }
@@ -508,8 +515,12 @@ function PartyChatPanel({
           returnKeyType="send"
           onSubmitEditing={handleSendChat}
           style={styles.chatInput}
+          accessibilityLabel={t("combat_page.chat.message_placeholder")}
         />
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t("combat_page.chat.send")}
+          accessibilityState={{ disabled: sendDisabled, busy: sending }}
           activeOpacity={0.75}
           disabled={sendDisabled}
           onPress={handleSendChat}
@@ -523,17 +534,15 @@ function PartyChatPanel({
 }
 
 // Component Combat (mặc định export): trang chính cho combat
-// Hiển thị thông tin session, party code, chọn agent, party chat
+// Hiển thị thông tin session, party code và chọn agent
 export default function Combat() {
   const { t } = useTranslation();                          // Hook dịch thuật
   const router = useRouter();                               // Router để điều hướng
   const user = useUserStore((state) => state.user);         // Thông tin user (từ store)
   const assets = getAssets();                                // Assets game (map, agent,...)
-  const { width } = useWindowDimensions();                   // Kích thước màn hình
 
   // State quản lý
   const [joinCode, setJoinCode] = React.useState("");                          // Mã mời đang nhập
-  const [activePanelIndex, setActivePanelIndex] = React.useState(0);           // Panel đang active (0: agents, 1: party-chat)
   const [partyCodeLoading, setPartyCodeLoading] = React.useState(false);        // Đang xử lý party code
   const [quitPartyLoading, setQuitPartyLoading] = React.useState(false);        // Đang rời party
   const [partyReadyLoading, setPartyReadyLoading] = React.useState(false);      // Đang xử lý ready state
@@ -601,18 +610,6 @@ export default function Combat() {
     customMode: sessionSnapshot.party?.CustomGameData?.Settings?.Mode,
     customPartySize: sessionSnapshot.party?.CustomGameData?.MaxPartySize,
   });
-  const panelWidth = Math.max(width - 54, 280);  // Chiều rộng panel (dùng cho paging)
-
-  // handlePanelScrollEnd: xác định panel nào đang được xem sau khi scroll ngang
-  const handlePanelScrollEnd = React.useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      setActivePanelIndex(
-        Math.round(event.nativeEvent.contentOffset.x / panelWidth),
-      );
-    },
-    [panelWidth],
-  );
-
   // handleLockPress: xử lý khi nhấn nút Lock (chọn agent)
   // Nếu chưa chọn agent → alert, nếu lock thành công → chuyển sang combat_session
   const handleLockPress = React.useCallback(async () => {
@@ -645,11 +642,11 @@ export default function Combat() {
       await loadSessionSnapshot();
     } catch (error) {
       if (__DEV__) console.warn("[combat] Failed to generate party code", error);
-      Alert.alert("Party code", "Could not generate party invite code.");
+      Alert.alert(t("combat_page.party_code"), t("combat_page.errors.generate_code"));
     } finally {
       setPartyCodeLoading(false);
     }
-  }, [loadSessionSnapshot, sessionSnapshot.partyId, user.accessToken, user.entitlementsToken, user.region]);
+  }, [loadSessionSnapshot, sessionSnapshot.partyId, t, user.accessToken, user.entitlementsToken, user.region]);
 
   // handleDisableCode: vô hiệu hóa mã mời party hiện tại
   const handleDisableCode = React.useCallback(async () => {
@@ -663,11 +660,11 @@ export default function Combat() {
       await loadSessionSnapshot();
     } catch (error) {
       if (__DEV__) console.warn("[combat] Failed to disable party code", error);
-      Alert.alert("Party code", "Could not disable party invite code.");
+      Alert.alert(t("combat_page.party_code"), t("combat_page.errors.disable_code"));
     } finally {
       setPartyCodeLoading(false);
     }
-  }, [loadSessionSnapshot, sessionSnapshot.partyId, user.accessToken, user.entitlementsToken, user.region]);
+  }, [loadSessionSnapshot, sessionSnapshot.partyId, t, user.accessToken, user.entitlementsToken, user.region]);
 
   // handleJoinByCode: tham gia party bằng mã mời
   const handleJoinByCode = React.useCallback(async () => {
@@ -681,7 +678,7 @@ export default function Combat() {
       );
 
       if (!joined) {
-        Alert.alert("Party code", "Invalid or expired party invite code.");
+        Alert.alert(t("combat_page.party_code"), t("combat_page.errors.invalid_code"));
         return;
       }
 
@@ -689,11 +686,11 @@ export default function Combat() {
       await loadSessionSnapshot();
     } catch (error) {
       if (__DEV__) console.warn("[combat] Failed to join party by code", error);
-      Alert.alert("Party code", "Could not join party with this code.");
+      Alert.alert(t("combat_page.party_code"), t("combat_page.errors.join_code"));
     } finally {
       setPartyCodeLoading(false);
     }
-  }, [joinCode, loadSessionSnapshot, user.accessToken, user.entitlementsToken, user.region]);
+  }, [joinCode, loadSessionSnapshot, t, user.accessToken, user.entitlementsToken, user.region]);
 
   // Thực hiện rời party hiện tại rồi tải lại snapshot.
   const quitCurrentParty = React.useCallback(async () => {
@@ -711,7 +708,7 @@ export default function Combat() {
       await loadSessionSnapshot();
     } catch (error) {
       if (__DEV__) console.warn("[combat] Failed to leave party", error);
-      Alert.alert("Quit party", "Could not leave the current party.");
+      Alert.alert(t("combat_page.actions.quit_party"), t("combat_page.errors.quit_party"));
     } finally {
       setQuitPartyLoading(false);
     }
@@ -719,6 +716,7 @@ export default function Combat() {
     loadSessionSnapshot,
     quitPartyLoading,
     sessionSnapshot.partyId,
+    t,
     user.accessToken,
     user.entitlementsToken,
     user.id,
@@ -755,13 +753,13 @@ export default function Combat() {
     try {
       const updatedParty = await togglePartyReadyState();
       if (!updatedParty) {
-        Alert.alert("Party", "Could not update ready state.");
+        Alert.alert(t("combat_page.party_code"), t("combat_page.errors.ready_state"));
       }
     } finally {
       partyReadyRequestRef.current = false;
       setPartyReadyLoading(false);
     }
-  }, [sessionSnapshot.partyId, togglePartyReadyState]);
+  }, [sessionSnapshot.partyId, t, togglePartyReadyState]);
 
   // handleOpenCombatSession: mở trang combat_session nếu session không idle
   const handleOpenCombatSession = React.useCallback(() => {
@@ -786,7 +784,7 @@ export default function Combat() {
                 {/* Phần text bên trái: trạng thái session, tên map, queue */}
                 <View style={styles.sessionHeaderCopy}>
                   <Text style={styles.sessionEyebrow}>
-                    {isIdleSession ? "Combat" : sessionStateLabel}
+                    {isIdleSession ? t("combat") : sessionStateLabel}
                   </Text>
                   {!isIdleSession ? (
                     <>
@@ -832,7 +830,7 @@ export default function Combat() {
         {/* Card Party code: tạo, copy, disable mã mời + join bằng mã */}
         <GlassCard style={styles.partyCodeCard} contentStyle={styles.partyCodeContent}>
           <View style={styles.partyCodeHeader}>
-            <Text style={styles.partyCodeTitle}>Party code</Text>
+            <Text style={styles.partyCodeTitle}>{t("combat_page.party_code")}</Text>
             <View style={styles.partyCodeHeaderActions}>
               {/* Nút Ready/Unready */}
               {sessionSnapshot.partyId ? (
@@ -864,13 +862,25 @@ export default function Combat() {
               ) : null}
               {/* Nút Generate/Refresh code */}
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={
+                  sessionSnapshot.party?.InviteCode
+                    ? t("combat_page.actions.refresh")
+                    : t("combat_page.actions.generate")
+                }
+                accessibilityState={{
+                  disabled: !sessionSnapshot.partyId || partyCodeLoading,
+                  busy: partyCodeLoading,
+                }}
                 activeOpacity={0.75}
                 style={[styles.partyCodeHeaderButton, (!sessionSnapshot.partyId || partyCodeLoading) && styles.partyCodeHeaderButtonDisabled]}
                 disabled={!sessionSnapshot.partyId || partyCodeLoading}
                 onPress={handleGenerateCode}
               >
                 <Text style={[styles.partyCodeHeaderButtonText, (!sessionSnapshot.partyId || partyCodeLoading) && styles.partyCodeHeaderButtonTextDisabled]}>
-                  {sessionSnapshot.party?.InviteCode ? "Refresh" : "Generate"}
+                  {sessionSnapshot.party?.InviteCode
+                    ? t("combat_page.actions.refresh")
+                    : t("combat_page.actions.generate")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -880,12 +890,18 @@ export default function Combat() {
           <View style={styles.partyCodeBody}>
             <View style={styles.currentCodeRow}>
               <Text style={styles.currentCodeText} numberOfLines={1}>
-                {sessionSnapshot.party?.InviteCode || "No active code"}
+                {sessionSnapshot.party?.InviteCode || t("combat_page.no_active_code")}
               </Text>
               {sessionSnapshot.party?.InviteCode ? (
                 <>
                   <View style={styles.copyButtonWrap}>
-                    <TouchableOpacity activeOpacity={0.75} style={styles.smallIconButton} onPress={handleCopyCode}>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={t("combat_page.copy_code")}
+                      activeOpacity={0.75}
+                      style={styles.smallIconButton}
+                      onPress={handleCopyCode}
+                    >
                       <Icon name="content-copy" size={15} color={COLORS.TEXT_PRIMARY} />
                     </TouchableOpacity>
                     {copied ? (
@@ -895,11 +911,19 @@ export default function Combat() {
                         style={styles.copiedBadge}
                       >
                         <Icon name="check-circle-outline" size={14} color={COLORS.SUCCESS} />
-                        <Text style={styles.copiedText}>Copied!</Text>
+                        <Text style={styles.copiedText}>{t("combat_page.copied")}</Text>
                       </Animated.View>
                     ) : null}
                   </View>
-                  <TouchableOpacity activeOpacity={0.75} style={styles.smallIconButton} disabled={partyCodeLoading} onPress={handleDisableCode}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t("combat_page.disable_code")}
+                    accessibilityState={{ disabled: partyCodeLoading }}
+                    activeOpacity={0.75}
+                    style={styles.smallIconButton}
+                    disabled={partyCodeLoading}
+                    onPress={handleDisableCode}
+                  >
                     <Icon name="link-off" size={15} color={COLORS.WARNING} />
                   </TouchableOpacity>
                 </>
@@ -908,22 +932,29 @@ export default function Combat() {
             <View style={styles.joinCodeRow}>
               <TextInput
                 value={joinCode} onChangeText={setJoinCode}
-                placeholder="Enter invite code" placeholderTextColor={COLORS.TEXT_SECONDARY}
+                placeholder={t("combat_page.invite_code_placeholder")} placeholderTextColor={COLORS.TEXT_SECONDARY}
+                accessibilityLabel={t("combat_page.invite_code_placeholder")}
                 autoCapitalize="characters" autoCorrect={false}
                 returnKeyType="join" onSubmitEditing={handleJoinByCode}
                 style={styles.joinCodeInput}
               />
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t("combat_page.actions.join")}
+                accessibilityState={{
+                  disabled: !joinCode.trim() || partyCodeLoading,
+                  busy: partyCodeLoading,
+                }}
                 activeOpacity={0.75}
                 disabled={!joinCode.trim() || partyCodeLoading}
                 onPress={handleJoinByCode}
                 style={[styles.joinCodeButton, (!joinCode.trim() || partyCodeLoading) ? styles.joinCodeButtonDisabled : null]}
               >
-                <Text style={styles.joinCodeButtonText}>Join</Text>
+                <Text style={styles.joinCodeButtonText}>{t("combat_page.actions.join")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 accessibilityRole="button"
-                accessibilityLabel="Quit party"
+                accessibilityLabel={t("combat_page.actions.quit_party")}
                 accessibilityState={{
                   busy: quitPartyLoading,
                   disabled: !sessionSnapshot.partyId || quitPartyLoading,
@@ -942,70 +973,46 @@ export default function Combat() {
                 ) : (
                   <Icon name="logout-variant" size={15} color={COLORS.WARNING} />
                 )}
-                <Text style={styles.quitPartyButtonText}>Quit party</Text>
+                <Text style={styles.quitPartyButtonText}>{t("combat_page.actions.quit_party")}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </GlassCard>
 
-        {/* Module agent: chứa FlatList với 2 panel (agents / party-chat) */}
+        {/* Module chọn vai trò và Agent */}
         <View style={styles.agentModule}>
-          {/* Nhãn panel indicator */}
-          <View style={styles.panelLabelRow}>
-            <Text style={[styles.panelLabel, activePanelIndex === 0 ? styles.panelLabelActive : null]}>Agents</Text>
-            <Icon name="chevron-right" size={17} color={COLORS.TEXT_SECONDARY} />
-            <Text style={[styles.panelLabel, activePanelIndex === 1 ? styles.panelLabelActive : null]}>Party chat</Text>
-          </View>
+          <Text style={styles.agentModuleTitle}>{t("combat_page.agents")}</Text>
 
-          {/* FlatList ngang với paging: chuyển giữa agents và party-chat */}
-          <FlatList
-            data={COMBAT_PANELS}
-            horizontal pagingEnabled bounces={false}
-            keyExtractor={(item) => item}
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handlePanelScrollEnd}
-            style={styles.panelPager}
-            renderItem={({ item }) => (
-              <View style={[styles.panelPage, { width: panelWidth }]}>
-                {item === "agents" ? (
-                  <>
-                    {/* Thanh chọn role */}
-                    <View style={styles.roleSelectorWrap}>
-                      {ROLES.map((role) => (
-                        <TouchableOpacity
-                          key={role.id}
-                          style={[styles.roleBtn, selectedRole === role.id && styles.roleBtnSelected]}
-                          onPress={() => filterByRole(role.id)}
-                        >
-                          <Image source={role.icon} style={styles.roleIcon} contentFit="contain" />
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                    {/* Lưới agent */}
-                    <View style={styles.gridWrap}>
-                      <AgentGrid
-                        agents={filteredAgents}
-                        onAgentPress={handleAgentPress}
-                        selectedAgentId={selectedAgent?.uuid}
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                      />
-                    </View>
-                  </>
-                ) : (
-                  <PartyChatPanel
-                    partyId={sessionSnapshot.partyId}
-                    roomName={sessionSnapshot.party?.MUCName}
-                    accessToken={user.accessToken}
-                    entitlementsToken={user.entitlementsToken}
-                    region={user.region}
-                    onRefreshSession={loadSessionSnapshot}
-                    currentUser={{ id: user.id, name: user.name, TagLine: user.TagLine }}
-                  />
-                )}
-              </View>
-            )}
-          />
+          <View style={styles.roleSelectorWrap}>
+            {ROLES.map((role) => (
+              <TouchableOpacity
+                key={role.id}
+                accessibilityRole="button"
+                accessibilityLabel={t(role.id)}
+                accessibilityState={{ selected: selectedRole === role.id }}
+                style={[
+                  styles.roleBtn,
+                  selectedRole === role.id && styles.roleBtnSelected,
+                ]}
+                onPress={() => filterByRole(role.id)}
+              >
+                <Image
+                  source={role.icon}
+                  style={styles.roleIcon}
+                  contentFit="contain"
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.gridWrap}>
+            <AgentGrid
+              agents={filteredAgents}
+              onAgentPress={handleAgentPress}
+              selectedAgentId={selectedAgent?.uuid}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+            />
+          </View>
         </View>
 
         {/* Footer: nút Cancel + Lock agent */}
@@ -1101,15 +1108,9 @@ const styles = StyleSheet.create({
   quitPartyButton: { minHeight: 38, minWidth: 92, paddingHorizontal: 10, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: "rgba(229, 72, 77, 0.10)", borderWidth: 1, borderColor: COLORS.WARNING },
   quitPartyButtonDisabled: { opacity: 0.45 },
   quitPartyButtonText: { color: COLORS.WARNING, fontSize: 11, fontWeight: "800" },
-  // Module chứa agent panel + party chat panel
+  // Module chọn Agent
   agentModule: { flex: 1, minHeight: 0, borderRadius: 24, padding: 10, backgroundColor: COLORS.SURFACE, borderWidth: 1, borderColor: COLORS.BORDER, marginBottom: 12 },
-  // Hàng nhãn panel (Agents > Party chat)
-  panelLabelRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 8 },
-  panelLabel: { color: COLORS.TEXT_SECONDARY, fontSize: 12, fontWeight: "800" },
-  panelLabelActive: { color: COLORS.TEXT_PRIMARY },
-  // FlatList ngang paging
-  panelPager: { flex: 1 },
-  panelPage: { flex: 1, paddingRight: 1 },
+  agentModuleTitle: { color: COLORS.TEXT_PRIMARY, fontSize: 12, fontWeight: "800", marginBottom: 8 },
   // Wrap lưới agent
   gridWrap: { flex: 1, minHeight: 0 },
   // Footer: 2 nút Cancel + Lock

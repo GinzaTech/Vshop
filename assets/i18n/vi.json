@@ -455,13 +455,25 @@
   },
   "crosshair_page": {
     "copied": "Đã sao chép",
-    "search_placeholder": "Search player or team...",
+    "search_placeholder": "Tìm người chơi hoặc đội...",
     "categories": {
-      "all": "All",
-      "pro": "Pro",
-      "content": "Content",
-      "fun": "Fun"
+      "all": "Tất cả",
+      "pro": "Chuyên nghiệp",
+      "content": "Nhà sáng tạo",
+      "fun": "Giải trí"
     }
+  },
+  "chat_page": {
+    "back": "Quay lại",
+    "loading_identity": "Đang tải Riot ID...",
+    "online": "Online",
+    "offline": "Offline",
+    "empty_title": "Chưa có tin nhắn",
+    "empty_subtitle": "Hãy bắt đầu trò chuyện với người bạn này.",
+    "message_placeholder": "Nhập tin nhắn...",
+    "message_label": "Tin nhắn",
+    "send": "Gửi tin nhắn",
+    "send_failed": "Không thể gửi tin nhắn"
   },
   "profile_page": {
     "act_wins": "Thắng",
@@ -550,6 +562,39 @@
     "lock_failed_title": "Khóa thất bại",
     "lock_failed_message": "Hiện không thể khóa đặc vụ đó.",
     "party_chat_solo_unavailable": "Chat tổ đội chỉ khả dụng khi có người chơi khác trong tổ đội của bạn.",
+    "party_code": "Mã tổ đội",
+    "no_active_code": "Chưa có mã hoạt động",
+    "invite_code_placeholder": "Nhập mã mời",
+    "copied": "Đã sao chép!",
+    "copy_code": "Sao chép mã tổ đội",
+    "disable_code": "Vô hiệu hóa mã tổ đội",
+    "me": "Tôi",
+    "party": "Tổ đội",
+    "agents": "Đặc vụ",
+    "party_chat": "Chat tổ đội",
+    "xmpp_chat": "Chat XMPP",
+    "chat": {
+      "looking_presence": "Đang tìm trạng thái tổ đội VALORANT...",
+      "join_required": "Hãy tham gia hoặc tạo tổ đội để sử dụng chat.",
+      "temporarily_unavailable": "Chat tổ đội tạm thời không khả dụng. Hãy kéo để làm mới sau khi tổ đội đồng bộ xong.",
+      "join_failed": "Không thể tham gia chat tổ đội.",
+      "send_failed": "Không thể gửi tin nhắn tổ đội.",
+      "message_placeholder": "Nhắn cho tổ đội",
+      "connecting": "Đang kết nối chat tổ đội...",
+      "join_first": "Hãy tham gia tổ đội trước",
+      "joining": "Đang tham gia chat tổ đội...",
+      "empty": "Chưa có tin nhắn tổ đội.",
+      "refresh": "Làm mới chat tổ đội",
+      "send": "Gửi tin nhắn tổ đội"
+    },
+    "errors": {
+      "generate_code": "Không thể tạo mã mời tổ đội.",
+      "disable_code": "Không thể vô hiệu hóa mã mời tổ đội.",
+      "invalid_code": "Mã mời tổ đội không hợp lệ hoặc đã hết hạn.",
+      "join_code": "Không thể tham gia tổ đội bằng mã này.",
+      "quit_party": "Không thể rời tổ đội hiện tại.",
+      "ready_state": "Không thể cập nhật trạng thái sẵn sàng."
+    },
     "actions": {
       "cancel": "Hủy",
       "lock": "Khóa đặc vụ",
@@ -557,7 +602,10 @@
       "refresh": "Làm mới",
       "ready": "Sẵn sàng",
       "unready": "Bỏ sẵn sàng",
-      "view_match": "Chi tiết"
+      "view_match": "Chi tiết",
+      "generate": "Tạo mã",
+      "join": "Tham gia",
+      "quit_party": "Rời tổ đội"
     }
   },
   "combat_session_page": {
@@ -627,6 +675,7 @@
     "search_placeholder": "Tìm theo tên người chơi...",
     "rank_label": "Hạng",
     "player": "Người chơi",
+    "player_count": "{{count}} người chơi",
     "rr": "RR",
     "wins": "Thắng",
     "tier_icon": "Cấp",

@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   relativeTime: {
     flex: 1,
     color: MATCH_COLORS.textMuted,
-    fontSize: 9,
+    fontSize: 10,
   },
   score: {
     marginTop: 2,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   kdaLabel: {
     marginTop: MATCH_SPACING.xs,
     color: MATCH_COLORS.textMuted,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
   },
   kdaValue: {
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   placementLabel: {
     marginTop: MATCH_SPACING.md,
     color: MATCH_COLORS.textMuted,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
   },
   placementValue: {
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   mode: {
     maxWidth: "100%",
     color: MATCH_COLORS.textSecondary,
-    fontSize: 9,
+    fontSize: 10,
   },
   mapName: {
     maxWidth: "100%",
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   metaLabel: {
     marginTop: MATCH_SPACING.md,
     color: MATCH_COLORS.textMuted,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
   },
   metaValue: {
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     color: MATCH_COLORS.textMuted,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
   },
   metricValue: {

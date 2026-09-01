@@ -1146,7 +1146,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: STATS_COLORS.textMuted,
     fontFamily: MONO_FONT,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "600",
     letterSpacing: 0.6,
     fontVariant: ["tabular-nums"],
@@ -1187,7 +1187,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     color: STATS_COLORS.accent,
     fontFamily: MONO_FONT,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "800",
     letterSpacing: 0.55,
   },
@@ -1217,7 +1217,7 @@ const styles = StyleSheet.create({
   metricLabel: {
     color: STATS_COLORS.textMuted,
     fontFamily: MONO_FONT,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1,
   },
@@ -1245,7 +1245,7 @@ const styles = StyleSheet.create({
   tableTabText: {
     color: STATS_COLORS.textMuted,
     fontFamily: MONO_FONT,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.9,
   },
@@ -1326,7 +1326,7 @@ const styles = StyleSheet.create({
   tableValue: {
     color: STATS_COLORS.neutral,
     fontFamily: MONO_FONT,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
     textAlign: "right",
     fontVariant: ["tabular-nums"],
@@ -1340,7 +1340,7 @@ const styles = StyleSheet.create({
   emptyStateText: {
     color: STATS_COLORS.textMuted,
     fontFamily: MONO_FONT,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "600",
     letterSpacing: 0.7,
     textAlign: "center",
@@ -1379,18 +1379,18 @@ const styles = StyleSheet.create({
   recentRankName: {
     color: STATS_COLORS.text,
     fontFamily: MONO_FONT,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
   },
   recentMapName: {
     marginTop: 2,
     color: STATS_COLORS.textMuted,
-    fontSize: 8,
+    fontSize: 10,
   },
   recentResult: {
     width: "23%",
     fontFamily: MONO_FONT,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "800",
     textAlign: "right",
     fontVariant: ["tabular-nums"],
@@ -1398,7 +1398,7 @@ const styles = StyleSheet.create({
   recentRr: {
     width: "21%",
     fontFamily: MONO_FONT,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "700",
     textAlign: "right",
     fontVariant: ["tabular-nums"],
@@ -1563,7 +1563,7 @@ const styles = StyleSheet.create({
   detailLabel: {
     color: STATS_COLORS.textSecondary,
     fontFamily: MONO_FONT,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.9,
   },
@@ -1595,7 +1595,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: STATS_COLORS.textSecondary,
     fontFamily: MONO_FONT,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.7,
   },

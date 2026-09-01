@@ -456,6 +456,18 @@
       "fun": "Fun"
     }
   },
+  "chat_page": {
+    "back": "Back",
+    "loading_identity": "Loading Riot ID...",
+    "online": "Online",
+    "offline": "Offline",
+    "empty_title": "No messages yet",
+    "empty_subtitle": "Start a conversation with this friend.",
+    "message_placeholder": "Send a message...",
+    "message_label": "Message",
+    "send": "Send message",
+    "send_failed": "Could not send message"
+  },
   "profile_page": {
     "act_wins": "Wins",
     "act_losses": "Losses",
@@ -557,6 +569,39 @@
     "lock_failed_title": "Lock failed",
     "lock_failed_message": "Unable to lock that agent right now.",
     "party_chat_solo_unavailable": "Party chat is only available when another player is in your party.",
+    "party_code": "Party code",
+    "no_active_code": "No active code",
+    "invite_code_placeholder": "Enter invite code",
+    "copied": "Copied!",
+    "copy_code": "Copy party code",
+    "disable_code": "Disable party code",
+    "me": "Me",
+    "party": "Party",
+    "agents": "Agents",
+    "party_chat": "Party chat",
+    "xmpp_chat": "XMPP chat",
+    "chat": {
+      "looking_presence": "Looking for VALORANT party presence...",
+      "join_required": "Join or create a party to use party chat.",
+      "temporarily_unavailable": "Party chat is temporarily unavailable. Pull to refresh after the party finishes syncing.",
+      "join_failed": "Could not join party chat.",
+      "send_failed": "Could not send party chat.",
+      "message_placeholder": "Message party",
+      "connecting": "Connecting to party chat...",
+      "join_first": "Join a party first",
+      "joining": "Joining party chat...",
+      "empty": "No party messages yet.",
+      "refresh": "Refresh party chat",
+      "send": "Send party message"
+    },
+    "errors": {
+      "generate_code": "Could not generate party invite code.",
+      "disable_code": "Could not disable party invite code.",
+      "invalid_code": "Invalid or expired party invite code.",
+      "join_code": "Could not join party with this code.",
+      "quit_party": "Could not leave the current party.",
+      "ready_state": "Could not update ready state."
+    },
     "actions": {
       "cancel": "Cancel",
       "lock": "Lock Agent",
@@ -564,7 +609,10 @@
       "refresh": "Refresh",
       "ready": "Ready",
       "unready": "Unready",
-      "view_match": "Details"
+      "view_match": "Details",
+      "generate": "Generate",
+      "join": "Join",
+      "quit_party": "Quit party"
     }
   },
   "combat_session_page": {
@@ -632,6 +680,7 @@
     "search_placeholder": "Search by player name...",
     "rank_label": "Rank",
     "player": "Player",
+    "player_count": "{{count}} players",
     "rr": "RR",
     "wins": "Wins",
     "tier_icon": "Tier",

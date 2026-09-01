@@ -6,6 +6,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.1.5] - 2026-09-02
+
+### Security
+
+- Overrode Expo Router's transitive `decode-uri-component` dependency to patched version 0.5.0, removing the malformed percent-encoding denial-of-service advisory from the production graph.
+
+### Changed
+
+- Removed the Party Chat pager from Combat so the module stays focused on party management and agent selection. Friends and direct Riot chat remain available.
+- Replaced the generic direct-chat connection label with the selected friend's actual `Online` or `Offline` presence state.
+- Localized the remaining Combat, direct-chat, Crosshair and Leaderboard labels in English and Vietnamese and added missing roles, labels and selected states for interactive controls.
+
+### Fixed
+
+- Corrected the floating navigation indicator geometry so every icon stays centered in its selected circle without accumulating horizontal rounding error toward More.
+- Kept full-width opaque tab transitions aligned to the live viewport after display-size changes and made both the indicator and collapsed navigation respect Reduce Motion.
+- Added safe bottom spacing to Bundle, Store, Profile and More content so the floating navigation no longer obscures the final controls or cards.
+- Hid background navigation and content from accessibility while the Bundle detail modal is active, while keeping the media viewer above the bundle sheet.
+- Raised undersized match, Profile statistic and skin-card labels to a readable minimum size and made Profile's typewriter text stop animating when Reduce Motion is enabled.
+
+### Validation
+
+- `pnpm run check` — TypeScript and ESLint passed; 27/27 Jest suites and 161/161 tests passed; the production audit policy passed with four documented Expo/Metro constraints.
+- Android production export bundled 2,687 modules and 38 assets. The 9.75 MB total export, 7.28 MB Hermes bundle and 1.25 MB largest asset all stayed inside their enforced budgets. The EAS production APK build is validated before GitHub publication.
+- Bundle, Combat and direct-chat Online/Offline behavior verified on the connected Redmi K60 development build without fatal Android or React Native runtime errors.
+
+### Build metadata
+
+- App/runtime version: `4.1.5`
+- Android version code: `86`
+- iOS build number: `38`
+- Distribution: EAS production APK and GitHub Release asset `vshop-4.1.5.apk`.
+
 ## [4.1.4 OTA 1] - 2026-08-29
 
 ### Fixed
@@ -330,7 +363,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - iOS build number: `30`
 - Production profile: `eas build --profile production --platform android`
 
-[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.4...HEAD
+[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.5...HEAD
+[4.1.5]: https://github.com/GinzaTech/Vshop/compare/v4.1.4...v4.1.5
 [4.1.4]: https://github.com/GinzaTech/Vshop/compare/v4.1.3...v4.1.4
 [4.1.3]: https://github.com/GinzaTech/Vshop/compare/v4.1.2...v4.1.3
 [4.1.2]: https://github.com/GinzaTech/Vshop/compare/v4.1.1...v4.1.2

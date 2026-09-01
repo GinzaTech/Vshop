@@ -367,7 +367,7 @@ export default function LeaderboardScreen() {
       {/* Tổng số người chơi */}
       {totalPlayers > 0 && (
         <Text style={styles.totalText}>
-          {totalPlayers} {t("leaderboard_page.player").toLowerCase()}s
+          {t("leaderboard_page.player_count", { count: totalPlayers })}
         </Text>
       )}
 

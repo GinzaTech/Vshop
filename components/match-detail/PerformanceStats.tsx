@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
     textAlign: "center",
     color: MATCH_COLORS.textPrimary,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "800",
     borderRightWidth: 1,
     borderRightColor: MATCH_COLORS.divider,

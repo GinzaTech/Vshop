@@ -93,6 +93,12 @@ const PRIMARY_ROUTE_ORDER = [
   "settings",
 ] as const;
 
+const TAB_PADDING_H = 18;
+const TAB_FRAME_BORDER_WIDTH = 1;
+const INDICATOR_SIZE = 44;
+const COLLAPSED_BAR_SIZE = 62;
+const EXPANDED_BAR_HEIGHT = 68;
+
 type TabSceneInterpolator = NonNullable<
   BottomTabNavigationOptions["sceneStyleInterpolator"]
 >;
@@ -144,6 +150,30 @@ export const PRIMARY_TAB_REDUCED_MOTION_OPTIONS = {
   animation: "none",
 } as const;
 
+export function createPrimaryTabScreenOptions(viewportWidth: number) {
+  const sceneStyleInterpolator: TabSceneInterpolator = ({ current }) => ({
+    sceneStyle: {
+      opacity: 1,
+      transform: [
+        {
+          translateX: current.progress.interpolate({
+            inputRange: [-1, 0, 1],
+            outputRange: [-viewportWidth, 0, viewportWidth],
+          }),
+        },
+      ],
+    },
+  });
+
+  return {
+    lazy: true,
+    freezeOnBlur: false,
+    animation: "shift",
+    sceneStyleInterpolator,
+    transitionSpec: PRIMARY_TAB_SCREEN_TRANSITION.transitionSpec,
+  } as const;
+}
+
 /**
  * FloatingTabBar — Thanh tab nổi (floating) tùy chỉnh.
  *
@@ -185,6 +215,9 @@ export function FloatingTabBar({
   const primaryNavigationTone = useSystemChromeStore(
     (chrome) => chrome.primaryNavigationTone,
   );
+  const primaryNavigationAccessibilityHidden = useSystemChromeStore(
+    (chrome) => chrome.primaryNavigationAccessibilityHidden,
+  );
   const hasNightMarketItems = useUserStore(
     ({ user }) => user.shops.nightMarket.length > 0
   );
@@ -216,11 +249,15 @@ export function FloatingTabBar({
 
   // Animation khi thay đổi trạng thái collapsed
   useEffect(() => {
+    if (reduceMotionEnabled) {
+      collapseProgress.value = collapsed ? 0 : 1;
+      return;
+    }
     collapseProgress.value = withTiming(
       collapsed ? 0 : 1,
       MOTION_TIMING.emphasized,
     );
-  }, [collapseProgress, collapsed]);
+  }, [collapseProgress, collapsed, reduceMotionEnabled]);
 
   // Lọc và sắp xếp các route primary (tính trước để dùng cho sliding indicator)
   const visibleRoutes = useMemo(
@@ -245,10 +282,6 @@ export function FloatingTabBar({
 
   // ── Sliding tab indicator ──
   // Mỗi tab dùng flex: 1 nên chia đều content width; indicator dịch chuyển theo index.
-  const TAB_PADDING_H = 18; // = paddingHorizontal của expandedTabContent
-  const INDICATOR_SIZE = 44;
-  const COLLAPSED_BAR_SIZE = 62;
-  const EXPANDED_BAR_HEIGHT = 68;
   const expandedBarWidth = Math.min(
     560,
     viewportWidth - 24,
@@ -264,7 +297,10 @@ export function FloatingTabBar({
   );
   const tabButtonWidth =
     visibleRoutes.length > 0
-      ? (expandedBarWidth - TAB_PADDING_H * 2) / visibleRoutes.length
+      ? (expandedBarWidth -
+          TAB_FRAME_BORDER_WIDTH * 2 -
+          TAB_PADDING_H * 2) /
+        visibleRoutes.length
       : INDICATOR_SIZE;
   const indicatorTargetX =
     activeVisibleIndex * tabButtonWidth +
@@ -293,7 +329,7 @@ export function FloatingTabBar({
 
   useEffect(() => {
     if (!isPrimaryRoute) return;
-    if (shouldJump.value) {
+    if (reduceMotionEnabled || shouldJump.value) {
       indicatorTranslateX.value = indicatorTargetX;
       shouldJump.value = false;
       return;
@@ -308,6 +344,7 @@ export function FloatingTabBar({
     indicatorTargetX,
     indicatorTranslateX,
     isPrimaryRoute,
+    reduceMotionEnabled,
     shouldJump,
   ]);
   const tabBarAnimatedStyle = useAnimatedStyle(() => ({
@@ -374,6 +411,10 @@ export function FloatingTabBar({
 
   return (
     <View
+      accessibilityElementsHidden={primaryNavigationAccessibilityHidden}
+      importantForAccessibility={
+        primaryNavigationAccessibilityHidden ? "no-hide-descendants" : "auto"
+      }
       style={[
         styles.tabBarWrap,
         Platform.OS === "web" && styles.tabBarWrapWeb,
@@ -601,9 +642,14 @@ export function FloatingTabBar({
 function Layout() {
   const { t } = useTranslation();
   const reduceMotionEnabled = useReducedMotion();
-  const primaryTabScreenOptions = reduceMotionEnabled
-    ? PRIMARY_TAB_REDUCED_MOTION_OPTIONS
-    : PRIMARY_TAB_SCREEN_OPTIONS;
+  const { width: viewportWidth } = useWindowDimensions();
+  const primaryTabScreenOptions = useMemo(
+    () =>
+      reduceMotionEnabled
+        ? PRIMARY_TAB_REDUCED_MOTION_OPTIONS
+        : createPrimaryTabScreenOptions(viewportWidth),
+    [reduceMotionEnabled, viewportWidth],
+  );
 
   return (
     <>
@@ -809,7 +855,7 @@ const styles = StyleSheet.create({
   tabBarFrame: {
     borderRadius: 28,
     backgroundColor: COLORS.PURE_BLACK,
-    borderWidth: 1,
+    borderWidth: TAB_FRAME_BORDER_WIDTH,
     borderColor: "rgba(255,255,255,0.06)",
     ...SHADOWS.md,
   },
@@ -879,11 +925,15 @@ const styles = StyleSheet.create({
   },
   tabIndicator: {
     position: "absolute",
-    top: 12,
-    left: 18, // = paddingHorizontal, căn lề với content box
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    top:
+      (EXPANDED_BAR_HEIGHT -
+        TAB_FRAME_BORDER_WIDTH * 2 -
+        INDICATOR_SIZE) /
+      2,
+    left: TAB_PADDING_H,
+    width: INDICATOR_SIZE,
+    height: INDICATOR_SIZE,
+    borderRadius: INDICATOR_SIZE / 2,
     backgroundColor: COLORS.PURE_WHITE,
   },
   tabIndicatorLight: {

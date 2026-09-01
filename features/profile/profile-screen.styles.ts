@@ -890,7 +890,7 @@ export const styles = StyleSheet.create({
     zIndex: 1,
   },
   profileSkinTierText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "900",
   },
   profileSkinLevelBadge: {
@@ -905,7 +905,7 @@ export const styles = StyleSheet.create({
   },
   profileSkinLevelText: {
     color: COLORS.PURE_WHITE,
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "900",
   },
   profileSkinContent: {
@@ -915,7 +915,7 @@ export const styles = StyleSheet.create({
   },
   profileSkinWeaponName: {
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "600",
     marginBottom: 2,
   },

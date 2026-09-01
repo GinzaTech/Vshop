@@ -39,8 +39,8 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { runWhenIdle, type IdleTask } from "~/utils/idle-task";
-
 import CurrencyIcon from "~/components/CurrencyIcon";
 import RankSplitGroup, {
   type RankSplitContentMode,
@@ -98,6 +98,7 @@ import { COLORS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { VItemTypes } from "~/utils/misc";
 import { getPublicWeapons } from "~/services/valorant/public-api";
+import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
 import { styles } from "~/features/profile/profile-screen.styles";
 import { CompactProfileSkinCard } from "~/features/profile/CompactProfileSkinCard";
 import { ProfilePickerModal } from "~/features/profile/ProfilePickerModal";
@@ -219,11 +220,10 @@ type ProfileNavContentMode = "profile" | "blank" | "stats";
  * - initialFetchTimeoutRef: Timeout cho fetch ban đầu.
  * - rankRefreshAuthKeyRef: Auth key của lần refresh rank gần nhất.
  * - fetchLoadoutInFlightRef: Đang có fetch loadout đang chạy?
- *
  * @returns {JSX.Element} Màn hình Profile.
  */
 function Profile() {
-  const { colors } = useTheme();
+  const insets = useSafeAreaInsets(); const { colors } = useTheme();
   const { t } = useTranslation();
   const { width: viewportWidth } = useWindowDimensions();
   const user = useUserStore((state) => state.user);
@@ -3617,7 +3617,7 @@ function Profile() {
             data={profileListRowsByTab[tab]}
             keyExtractor={(item) => item.key}
             renderItem={renderProfileListRow}
-            contentContainerStyle={styles.pageScrollContent}
+            contentContainerStyle={[styles.pageScrollContent, { paddingBottom: getPrimaryTabContentBottomPadding(insets.bottom) }]}
             onScroll={handleProfileContentScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
