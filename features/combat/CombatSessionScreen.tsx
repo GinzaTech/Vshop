@@ -138,7 +138,6 @@ export default function CombatSessionScreen() {
             setOrientationReady(true);
           }
         });
-      void loadSnapshot();
 
       return () => {
         active = false;
@@ -146,16 +145,32 @@ export default function CombatSessionScreen() {
         setOrientationLocked(false);
         void lockScreenOrientation("portrait");
       };
+    }, [])
+  );
+
+  // FIX (L7): track focus — route nằm trong Tabs nên JS component vẫn mounted
+  // (dù native view bị detach) khi user chuyển tab. Không có gate này, poll
+  // 10s tiếp tục chạy ngầm (6 request/phút) khi user đang ở tab khác.
+  const [isScreenFocused, setIsScreenFocused] = React.useState(true);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setIsScreenFocused(true);
+      void loadSnapshot();
+      return () => {
+        setIsScreenFocused(false);
+      };
     }, [loadSnapshot])
   );
 
   React.useEffect(() => {
-    if (snapshot.state !== "live") return;
+    // Poll CHỈ khi: trận đang live VÀ màn hình đang focus
+    if (snapshot.state !== "live" || !isScreenFocused) return;
     const interval = setInterval(() => {
       void loadSnapshot();
     }, 10_000);
     return () => clearInterval(interval);
-  }, [loadSnapshot, snapshot.state]);
+  }, [isScreenFocused, loadSnapshot, snapshot.state]);
 
   const matchData = snapshot.currentGameMatch;
   const pregameData = snapshot.pregameMatch;

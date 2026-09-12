@@ -3,6 +3,17 @@ const base = require("./jest.config");
 module.exports = {
   ...base,
   roots: ["<rootDir>"],
+  // ECC/ là thư mục công cụ ngoài (không phải code app) — test suite của nó
+  // dùng runner riêng và process.exit, không được jest của app quét vào.
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/ECC/",
+    "/backup/",
+    "/.codex-tmp/",
+    "/rn-flow-visualizer/",
+    "/valorant-api-docs/",
+    "/test/",
+  ],
   collectCoverageFrom: [
     "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",

@@ -8,6 +8,11 @@ export const MOTION_DURATION = {
 } as const;
 
 export const MOTION_TIMING = {
+  tab: {
+    duration: MOTION_DURATION.standard,
+    easing: Easing.out(Easing.cubic),
+    reduceMotion: ReduceMotion.System,
+  },
   fast: {
     duration: MOTION_DURATION.fast,
     easing: Easing.out(Easing.cubic),
@@ -23,6 +28,13 @@ export const MOTION_TIMING = {
     easing: Easing.out(Easing.cubic),
     reduceMotion: ReduceMotion.System,
   },
+} as const;
+
+export const TAB_MOTION = {
+  initialOpacity: 0.92,
+  viewportRatio: 0.08,
+  maxShift: 32,
+  pressedScale: 0.9,
 } as const;
 
 export const MOTION_SPRING = {
@@ -41,4 +53,3 @@ export const MOTION_SPRING = {
     reduceMotion: ReduceMotion.System,
   },
 } as const;
-

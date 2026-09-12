@@ -12,6 +12,8 @@
 
 A third-party companion app for **Valorant** — browse the daily store, check match history, view your profile loadout, track competitive rank, chat with friends, and more.
 
+Navigation motion uses shared timing tokens, transition-aware tab preloading and live OS Reduce Motion preferences. Primary scenes hide outgoing content during the subtle incoming fade to avoid double images; indicator animations do not restart on route confirmation. See [the motion system](BUILD_DESIGN_SYSTEM.md#4-motion-system) for implementation rules; device FPS validation is separate from source tests and exports.
+
 ---
 
 ## Table of Contents
@@ -41,9 +43,11 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 ## Release 4.1.5 highlights
 
+Unreleased session reliability changes: token renewal is shared across callers and serialized with native cookie/account operations. Temporary service failures preserve the session, WebView completion can retry without deleting Riot cookies, and late requests cannot replace newer credentials. Interactive login is requested only when Riot requires it. Localized Riot callbacks such as /vi-vn/opt_in/ are accepted, and tracking-only cookie jars cannot overwrite saved login cookies. Unused helpers/UI primitives and the unused Stripe integration have been removed; primary tab transitions now share one runtime/test configuration. Removing Stripe from an installed native binary requires a new native build. These source changes do not imply a new APK or published OTA.
+
 - **Cleaner Combat flow:** removes the Party Chat pager while preserving party codes, join/leave controls, ready state and agent selection.
 - **Truthful direct-chat presence:** chat headers now show the selected friend as `Online` or `Offline` instead of reporting only the Riot socket state.
-- **Polished floating navigation:** selected icons are centered precisely, full-width horizontal transitions adapt to the live viewport and primary pages keep their final content above the floating bar.
+- **Polished floating navigation:** selected icons are centered precisely, short horizontal transitions and crossfades adapt to the live viewport and primary pages keep their final content above the floating bar.
 - **Accessibility and readability:** Bundle modals isolate background controls correctly, Reduce Motion is respected and small match/Profile labels now use a readable minimum size.
 
 ## Release 4.1.4 highlights
@@ -53,7 +57,7 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 - **Consistent collection cards:** Equipment and the Skin Gallery now use the Store card hierarchy while retaining their existing filters, media preview and wishlist interactions.
 
 - **Latest production OTA (29 August 2026):** primary tabs are preloaded and kept attached on Android for a full-width opaque horizontal transition; Profile supports vertical collapse gestures from its hero and empty areas.
-- **Reliable primary navigation:** Bundle, Store, Profile and More stay prepared and attached on Android, then slide left/right across the full viewport with a 360 ms opaque native transition synchronized with the floating indicator. This avoids mount/reattach stutter, faded components and Android elevation ghosts.
+- **Primary navigation:** The unreleased redesign preserves mounted React state while detaching inactive native scenes. It combines a short horizontal shift (up to 32 dp) with a subtle 220 ms incoming fade. Outgoing content and its background hide together to avoid ghosting and washout. A new tab press can interrupt the transition; Reduce Motion switches pages instantly. Device performance targets are not yet met.
 - **Natural Profile scrolling:** vertical drags from the player card and empty content areas collapse the Profile header, while horizontal skin and collection gestures keep their existing behavior.
 - **Web-safe profile export:** native media-library code is isolated from the web static renderer.
 - **Modern runtime:** upgraded to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
@@ -93,7 +97,6 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 | **Images** | expo-image (memory-disk cache) |
 | **Auth** | Riot RSO OAuth2 (WebView) |
 | **Chat** | XMPP over TCP socket (react-native-tcp-socket) |
-| **Payments** | Stripe (native) |
 | **Analytics** | Plausible, Sentry (native) |
 | **OTA Updates** | expo-updates |
 
@@ -157,6 +160,13 @@ shop/balance refresh after 3 seconds, match refresh after 5.2 seconds on Wi-Fi
 or 7.8 seconds on cellular, and XMPP startup after 250/900 ms respectively. It
 also checks token expiry every two minutes and refreshes a session when fewer
 than five minutes remain.
+
+Native saved accounts retain an encrypted Riot cookie snapshot per account.
+Before a switch or silent renewal, VShop restores only the selected account's
+snapshot and rejects any renewed token whose subject does not match that
+account. Web sessions remain tab-scoped and require interactive sign-in after
+their bearer token expires because HttpOnly cookies cannot be snapshotted from
+browser JavaScript.
 
 ### State, cache and consistency model
 
@@ -244,13 +254,15 @@ available in Expo Go or web builds.
 - The authenticated group uses a custom floating tab bar for primary routes;
   detail, history, combat, friends and reference screens are registered as
   hidden secondary routes.
-- `RootLayout` enforces portrait globally. `combat_session` temporarily acquires
-  landscape while focused, waits for the landscape viewport before rendering its
-  dense session layout, and restores portrait during cleanup. Android uses
+- `RootLayout` enforces upright portrait on every route except `combat_session`,
+  which stays locked to landscape while focused and waits for the landscape
+  viewport before rendering its dense session layout. The route-specific lock
+  is re-applied whenever the app returns from the background. Android uses
   `adjustResize` so chat composers remain above the software keyboard. The
   optional native-module wrapper avoids crashing an older development client.
-- Native/web variations use `.native.ts`, `.web.ts` and provider shims for
-  cookies, background fetch and Stripe.
+- Native/web variations use `.native.ts` and `.web.ts` entry points for
+  cookies and background fetch. Cookie logic lives in `utils/riot-cookies.ts`;
+  the web entry point remains a no-op and does not load the native manager.
 
 ### Failure and performance boundaries
 
@@ -376,6 +388,8 @@ Install via QR code or APK from the Expo dashboard.
 
 ## Điểm nổi bật bản 4.1.5
 
+Thay đổi chưa phát hành về phiên đăng nhập: các luồng dùng chung một lần làm mới token và thao tác cookie được thực hiện tuần tự. Lỗi dịch vụ tạm thời giữ nguyên phiên; lỗi hoàn tất WebView có thể thử lại mà không xóa cookie Riot; response cũ không được ghi đè credentials mới. Chỉ yêu cầu đăng nhập khi Riot cần xác thực lại. Callback Riot theo ngôn ngữ như /vi-vn/opt_in/ được nhận diện; cookie chỉ còn dữ liệu chống bot không được ghi đè cookie đăng nhập đã lưu. Đã bỏ helper/UI primitive không dùng và tích hợp Stripe chưa sử dụng; cấu hình chuyển tab được dùng chung giữa runtime và test. Cần build native mới để bỏ SDK Stripe khỏi binary đã cài. Những thay đổi source này chưa được phát hành thành APK hoặc OTA.
+
 - **Combat gọn hơn:** bỏ trang vuốt Chat tổ đội nhưng vẫn giữ mã tổ đội, tham gia/rời đội, trạng thái sẵn sàng và chọn đặc vụ.
 - **Presence chat chính xác:** tiêu đề chat riêng hiển thị người bạn đang `Online` hoặc `Offline`, thay vì chỉ báo trạng thái socket Riot.
 - **Thanh điều hướng hoàn thiện:** icon được căn chính giữa vòng tròn, chuyển cảnh ngang thích ứng với kích thước màn hình hiện tại và nội dung cuối trang không còn bị thanh nổi che.
@@ -387,7 +401,7 @@ Install via QR code or APK from the Expo dashboard.
 - **Khôi phục danh sách bạn bè lớn:** giữ nguyên roster Riot đang nhận dở cho tới khi stanza XMPP đóng hoàn chỉnh, tránh timeout sau khi mở app hoặc quay lại từ nền.
 
 - **OTA production mới nhất (29/08/2026):** tab chính được preload và giữ attached trên Android để chuyển ngang toàn màn hình mà không làm mờ component; Profile kéo dọc được từ hero và khoảng trống.
-- **Điều hướng chính ổn định:** Bundle, Store, Profile và More được preload và giữ attached trên Android, sau đó trượt trái/phải hết chiều rộng màn hình trong 360 ms bằng native transform opaque đồng bộ với vòng chọn thanh nổi. Cách này tránh giật do mount/reattach, component mờ và bóng elevation.
+- **Điều hướng chính:** Bản chưa phát hành giữ React state, tách scene native không hoạt động và chuyển ngang tối đa 32 dp trong 220 ms. Nền và nội dung trang cũ ẩn cùng nhau để tránh phủ mờ trang mới. Bấm tab khác được tiếp nhận ngay; Reduce Motion chuyển trang tức thời. Chỉ tiêu hiệu năng trên máy thật chưa đạt.
 - **Cuộn Profile tự nhiên:** kéo dọc từ bảng người chơi và các khoảng trống đều thu gọn header, còn thao tác kéo ngang skin và bộ sưu tập vẫn giữ nguyên.
 - **Profile tương thích web:** phần xuất ảnh dùng media-library native đã được tách khỏi trình render web tĩnh.
 - **Runtime mới:** nâng lên Expo SDK 57, React Native 0.86, React 19, Reanimated 4 và Zustand 5.
@@ -427,7 +441,6 @@ Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHA
 | **Ảnh** | expo-image (cache memory-disk) |
 | **Xác thực** | Riot RSO OAuth2 (WebView) |
 | **Chat** | XMPP qua TCP socket (react-native-tcp-socket) |
-| **Thanh toán** | Stripe (native) |
 | **Phân tích** | Plausible, Sentry (native) |
 | **OTA** | expo-updates |
 
@@ -446,7 +459,7 @@ dữ liệu tới UI.
 | **Điều hướng** | Stack setup/đăng nhập, tab đã xác thực, route phụ ẩn và phiên đấu ngang | `app/`, `app/(authenticated)/` |
 | **Màn hình và component** | Điều phối route, tương tác và hiển thị; không sở hữu transport lâu dài | `app/`, `components/` |
 | **Domain state** | Session người dùng, lịch sử đấu, profile warm cache, combat snapshot, wishlist và feature state | `hooks/`, `utils/chat-store.ts` |
-| **Service** | Riot HTTP, dựng RSO session, XMPP, đồng bộ, tải asset và preload ảnh | `utils/` |
+| **Service** | Riot HTTP, dựng RSO session, XMPP, đồng bộ, tải và cache asset | `utils/` |
 | **Lưu trữ** | Cache Zustand qua MMKV; Riot session dùng MMKV mã hóa trên native và `sessionStorage` theo tab trên web | `utils/storage.ts` |
 | **Contract và asset** | Riot DTO, kiểu match UI đã chuẩn hóa, design token, hình ảnh và 18 bộ ngôn ngữ | `types/`, `constants/`, `assets/` |
 
@@ -486,6 +499,13 @@ Sau khi đăng nhập, `AppWarmup` chủ động giãn các tác vụ: refresh s
 3 giây, refresh match sau 5,2 giây trên Wi-Fi hoặc 7,8 giây trên mạng di động,
 và mở XMPP sau 250/900 ms tương ứng. Token được kiểm tra mỗi hai phút và dựng
 lại session khi thời gian còn lại dưới năm phút.
+
+Trên native, mỗi tài khoản đã lưu giữ một snapshot cookie Riot trong kho phiên
+được mã hóa. Trước khi chuyển tài khoản hoặc silent renewal, VShop chỉ khôi phục
+snapshot của tài khoản đích và từ chối token mới nếu subject không khớp tài
+khoản đó. Bản web vẫn giới hạn phiên theo tab và cần đăng nhập tương tác sau khi
+bearer token hết hạn vì JavaScript trình duyệt không thể snapshot cookie
+HttpOnly.
 
 ### Mô hình state, cache và tính nhất quán
 
@@ -570,11 +590,14 @@ trong Expo Go hoặc bản web.
   đã xác thực.
 - Group đã xác thực dùng floating tab bar tùy chỉnh cho route chính; các màn
   detail, history, combat, friends và tham khảo được đăng ký làm route phụ ẩn.
-- `RootLayout` giữ toàn app ở portrait. `combat_session` tạm sở hữu landscape
-  khi focus và trả lại portrait lúc cleanup. Wrapper native optional giúp dev
-  client cũ không crash nếu chưa build module orientation.
-- Khác biệt native/web được tách bằng `.native.ts`, `.web.ts` và provider shim
-  cho cookie, background fetch và Stripe.
+- `RootLayout` khóa mọi route ngoài `combat_session` ở portrait hướng lên;
+  `combat_session` luôn landscape trong suốt thời gian focus và chỉ render layout
+  dày sau khi viewport ngang đã ổn định. Khóa theo route được áp lại mỗi khi app
+  trở về foreground. Wrapper native optional giúp dev client cũ không crash nếu
+  chưa build module orientation.
+- Khác biệt native/web được tách bằng entry point `.native.ts` và `.web.ts`
+  cho cookie và background fetch. Logic cookie dùng chung nằm ở
+  `utils/riot-cookies.ts`; bản web không nạp cookie manager native.
 
 ### Ranh giới lỗi và hiệu năng
 

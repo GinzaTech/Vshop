@@ -3,7 +3,9 @@
 // hoặc không thể khôi phục session từ cache.
 
 import { useTranslation } from "react-i18next";
+import { useCallback, useEffect } from "react";
 import {
+  BackHandler,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -18,6 +20,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import LoginWebView from "~/components/LoginWebView";
 import { COLORS } from "~/constants/DesignSystem";
 import GlassCard from "~/components/ui/GlassCard";
+import { restoreCurrentAccountAuthCookies } from "~/services/accounts/session";
 
 /**
  * ReAuth — Component yêu cầu người dùng đăng nhập lại.
@@ -37,13 +40,29 @@ import GlassCard from "~/components/ui/GlassCard";
 function ReAuth() {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; accountId?: string }>();
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const mode = params.mode === "add" || params.mode === "switch"
     ? params.mode
     : "reauth";
   const canCancel = mode !== "reauth";
+  const cancelReauthentication = useCallback(async () => {
+    await restoreCurrentAccountAuthCookies();
+    router.replace("/settings");
+  }, [router]);
+
+  useEffect(() => {
+    if (!canCancel) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        void cancelReauthentication();
+        return true;
+      }
+    );
+    return () => subscription.remove();
+  }, [canCancel, cancelReauthentication]);
   const title =
     mode === "add"
       ? t("settings_page.accounts.add_title")
@@ -80,7 +99,7 @@ function ReAuth() {
         {canCancel ? (
           <TouchableOpacity
             activeOpacity={0.75}
-            onPress={() => router.replace("/settings")}
+            onPress={() => void cancelReauthentication()}
             style={styles.backButton}
             accessibilityRole="button"
             accessibilityLabel={t("settings_page.accounts.back_to_more")}
@@ -104,7 +123,10 @@ function ReAuth() {
 
       {/* ── Form đăng nhập ── */}
       <GlassCard style={styles.loginCard} contentStyle={styles.loginCardContent}>
-        <LoginWebView minHeight={loginHeight} />
+        <LoginWebView
+          minHeight={loginHeight}
+          expectedAccountId={mode === "switch" ? params.accountId : undefined}
+        />
       </GlassCard>
     </ScrollView>
   );

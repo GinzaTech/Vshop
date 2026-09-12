@@ -39,9 +39,20 @@ const WIFI_INITIAL_DETAILS = 30;                   // Hydrate hết 30 trận tr
 const MATCH_DETAIL_RETRY_DELAY_MS = 600;           // Delay giữa các lần retry khi fetch detail lỗi
 const SEASON_STATS_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
 const SEASON_UPDATES_PAGE_SIZE = 20;
+// Negative-cache cho lần tính season stats THẤT BẠI: không cho phép re-crawl
+// cả Act (vài phút request) mỗi khi user identity đổi, chỉ retry sau 15 phút
+// hoặc khi user chủ động pull-to-refresh (force).
+const SEASON_STATS_FAILURE_TTL_MS = 15 * 60 * 1000;
 const SEASON_STATS_CALCULATION_VERSION = 7;
 const SEASON_DETAIL_REQUEST_DELAY_MS = 1_000;
+// Trần số match được persist xuống storage. Hydrate "load more" có thể phình
+// vô hạn theo tháng dùng; cap này giữ giá trị MMKV ở mức hợp lý. Danh sách
+// trong bộ nhớ vẫn đầy đủ, chỉ bản ghi xuống đĩa bị cắt.
+const MAX_PERSISTED_MATCHES = 200;
 const KAST_TRADE_WINDOW_MS = 5_000;
+
+// Negative-cache season stats theo authKey (xem SEASON_STATS_FAILURE_TTL_MS)
+let seasonStatsFailure: { key: string; at: number } | null = null;
 
 // --- Helper: delay promise ---
 const wait = (durationMs: number) =>
@@ -283,7 +294,14 @@ const summarizeSeasonMatches = (
 
 // --- Biến module-level để tránh request trùng lặp ---
 /** Đang fetch danh sách matches */
-let matchesInFlight: { key: string; promise: Promise<void> } | null = null;
+// Tracker request đang chạy: key = authKey, kind = "delta" | "full" để phân
+// biệt khi force refresh cần đợi delta xong rồi mới chạy full fetch (H7).
+// promise: Promise<boolean> — fetchMatches trả về true/false báo thành công.
+let matchesInFlight: {
+  key: string;
+  kind: "delta" | "full";
+  promise: Promise<boolean>;
+} | null = null;
 /** Đang hydrate thêm matches */
 let hydrationInFlight: { key: string; promise: Promise<void> } | null = null;
 let seasonStatsInFlight: { key: string; promise: Promise<void> } | null = null;
@@ -320,7 +338,12 @@ interface MatchState {
   historyEndIndex: number;
   seasonStats: SeasonPerformanceStats | null;
   seasonStatsLoading: boolean;
-  fetchMatches: (user: typeof defaultUser, force?: boolean) => Promise<void>;
+  /**
+   * Tải match history. Trả về true nếu dữ liệu dùng được (fetch OK, cache còn
+   * fresh, hoặc danh sách rỗng hợp lệ); false nếu fetch thất bại để caller
+   * (vd syncAllData) không stamp "đã sync" lên lần fetch lỗi.
+   */
+  fetchMatches: (user: typeof defaultUser, force?: boolean) => Promise<boolean>;
   fetchSeasonStats: (
     user: typeof defaultUser,
     force?: boolean
@@ -334,6 +357,19 @@ interface MatchState {
     matchId: string,
     force?: boolean
   ) => Promise<MatchDetailsData | null>;
+  /**
+   * Ghi đè MỘT PHẦN dữ liệu detail (vd: playerIdentities resolve xong) vào
+   * memory cache — QA qua LRU đúng chuẩn (fix M7).
+   * Nếu entry gốc đã bị LRU evict thì BỎ patch (không tạo entry rác thiếu
+   * players/teams gây crash downstream); nếu entry tồn tại thì merge + bump
+   * vị trí LRU.
+   * @param matchId - ID trận cần merge
+   * @param patch - Trường dữ liệu cần ghi đè
+   */
+  mergeMatchDetails: (
+    matchId: string,
+    patch: Partial<MatchDetailsData>
+  ) => void;
 }
 
 // --- Kiểu dữ liệu được persist (lưu xuống storage) ---
@@ -506,6 +542,32 @@ export const useMatchStore = create<MatchState>()(
       },
 
       /**
+       * Merge một phần dữ liệu detail vào memory cache QUA LRU (fix M7).
+       * Screen (match_details) trước đây setState trực tiếp trên detailsById:
+       * - Không bump detailCacheOrder → LRU diverge, entry leak.
+       * - Nếu entry đã bị evict, spread `undefined` tạo entry rác chỉ có
+       *   playerIdentities → cache-hit sau đó trả object lỗi → crash.
+       * Hành vi: entry gốc tồn tại → merge + bump LRU; đã bị evict → bỏ qua.
+       */
+      mergeMatchDetails: (matchId, patch) => {
+        const state = get();
+        const existing = state.detailsById[matchId];
+        if (!existing) {
+          // Entry đã bị LRU evict (hoặc chưa fetch) — patch rời rạc không
+          // đủ dữ liệu để dựng detail hợp lệ, bỏ qua an toàn.
+          return;
+        }
+        const merged: MatchDetailsData = { ...existing, ...patch };
+        set({
+          detailsById: addDetailToMemoryCache(
+            state.detailsById,
+            matchId,
+            merged
+          ),
+        });
+      },
+
+      /**
        * Hydrate các match tiếp theo: tải thêm match history và làm giàu stats.
        * @param user - thông tin user
        * @param count - số lượng match cần hydrate (mặc định: 4 nếu cellular, 8 nếu wifi)
@@ -533,6 +595,12 @@ export const useMatchStore = create<MatchState>()(
           // Kiểm tra kết nối mạng
           const network = await getNetworkProfile();
           if (!network.isConnected) return;
+          // Re-check authKey SAU await: trong lúc chờ network profile, một
+          // fetchMatches của user khác có thể đã reset store. Nếu không check,
+          // cờ `hydrating: true` set bên dưới sẽ dính vào session mới và
+          // không bao giờ được request này reset (finally sẽ skip do authKey
+          // không khớp) → footer "đang tải" kẹt vô hạn.
+          if (get().authKey !== authKey) return;
 
           // Xác định batch size theo network type (nhỏ để load từng trận)
           const batchSize = count ?? (network.isCellular ? 1 : 2);
@@ -692,6 +760,15 @@ export const useMatchStore = create<MatchState>()(
         ) {
           return;
         }
+        // Negative-cache: lần tính gần đây đã THẤT BẠI → bỏ qua để không
+        // re-crawl cả Act mỗi khi user identity đổi (setUser background).
+        if (
+          !force &&
+          seasonStatsFailure?.key === authKey &&
+          Date.now() - seasonStatsFailure.at < SEASON_STATS_FAILURE_TTL_MS
+        ) {
+          return;
+        }
         if (seasonStatsInFlight?.key === authKey) {
           return seasonStatsInFlight.promise;
         }
@@ -743,7 +820,10 @@ export const useMatchStore = create<MatchState>()(
                 user.id,
                 {
                   startIndex,
-                  endIndex: startIndex + SEASON_UPDATES_PAGE_SIZE,
+                  // endIndex là INCLUSIVE (giống các chỗ dùng "- 1" khác trong
+                  // file) → lấy đúng PAGE_SIZE item, không lệch +1 gây hỏng
+                  // điều kiện dừng `updates.length < PAGE_SIZE`.
+                  endIndex: startIndex + SEASON_UPDATES_PAGE_SIZE - 1,
                   queue: "competitive",
                 }
               );
@@ -806,29 +886,42 @@ export const useMatchStore = create<MatchState>()(
               }
             );
             if (get().authKey !== authKey) return;
-            const missingDetails = detailsList.reduce(
-              (count, details) => count + (details ? 0 : 1),
-              0
+            // Chấp nhận kết quả PARTIAL: crawl cả Act tốn vài phút, nếu chỉ
+            // thiếu 1-2 match detail (lỗi transient sau 4 lần retry) thì vứt
+            // toàn bộ kết quả là quá lãng phí. Chỉ throw khi KHÔNG có detail
+            // nào — khi đó không đủ dữ liệu để tính stats có ý nghĩa.
+            const fetchedDetails = detailsList.filter(
+              (details): details is NonNullable<typeof details> =>
+                Boolean(details)
             );
-            if (missingDetails > 0) {
+            if (fetchedDetails.length === 0) {
               throw new Error(
-                `Season stats are missing ${missingDetails}/${uniqueMatchIds.length} match details.`
+                `Season stats failed: 0/${uniqueMatchIds.length} match details loaded.`
+              );
+            }
+            if (fetchedDetails.length < uniqueMatchIds.length && __DEV__) {
+              console.warn(
+                `[season-stats] partial data: ${fetchedDetails.length}/${uniqueMatchIds.length} match details loaded`
               );
             }
 
             const seasonStats = summarizeSeasonMatches(
-              detailsList,
+              fetchedDetails,
               user.id,
               season
             );
             if (__DEV__) {
               console.log("[season-stats] computed", seasonStats);
             }
+            // Thành công → xoá negative-cache
+            seasonStatsFailure = null;
             set({ seasonStats });
           } catch (error) {
             if (__DEV__) {
               console.warn("[season-stats] fetch failed", error);
             }
+            // Ghi negative-cache để các trigger background không re-crawl liên tục
+            seasonStatsFailure = { key: authKey, at: Date.now() };
           } finally {
             if (get().authKey === authKey) {
               set({ seasonStatsLoading: false });
@@ -851,20 +944,20 @@ export const useMatchStore = create<MatchState>()(
        * @param force - true để bỏ qua cache
        */
       fetchMatches: async (user, force = false) => {
-        // Validate input — thiếu thông tin user thì thoát
+        // Validate input — thiếu thông tin user thì thoát (không coi là thành công)
         if (
           !user.accessToken ||
           !user.entitlementsToken ||
           !user.id ||
           !user.region
         ) {
-          return;
+          return false;
         }
 
         // Nếu cache còn hạn và không force thì bỏ qua
         const authKey = getMatchAuthKey(user);
-        const state = get();
-        const isSameSession = state.authKey === authKey;
+        let state = get();
+        let isSameSession = state.authKey === authKey;
 
         // Restored sessions do not pass through buildAuthenticatedUser, so the
         // in-memory asset catalog starts empty even when match records are cached.
@@ -888,13 +981,20 @@ export const useMatchStore = create<MatchState>()(
           }
         }
 
+        // RE-CHECK SAU AWAIT: loadAssets có thể mất hàng trăm ms, trong lúc đó
+        // một fetchMatches của user KHÁC có thể đã reset store. Nếu vẫn dùng
+        // `isSameSession` tính trước await, fetch của user cũ sẽ bỏ qua nhánh
+        // reset và ghi dữ liệu cũ đè lên session mới. Làm mới cả state và flag.
+        state = get();
+        isSameSession = state.authKey === authKey;
+
         if (
           !force &&
           isSameSession &&
           state.lastUpdated > 0 &&
           Date.now() - state.lastUpdated < MATCH_CACHE_TTL_MS
         ) {
-          return;
+          return true; // cache còn fresh → dữ liệu dùng được
         }
 
         // Nếu đổi user, reset toàn bộ store
@@ -918,7 +1018,7 @@ export const useMatchStore = create<MatchState>()(
         if (!force && isSameSession && state.matches.length > 0) {
           if (matchesInFlight?.key === authKey) return matchesInFlight.promise;
 
-          const deltaRequest = (async () => {
+          const deltaRequest = (async (): Promise<boolean> => {
             try {
               const [deltaPage, competitiveUpdates] = await Promise.all([
                 playerMatchHistory(
@@ -941,11 +1041,11 @@ export const useMatchStore = create<MatchState>()(
                 ).catch(() => null),
               ]);
               if (!isSameAccountSessionKey(get().authKey, authKey)) {
-                return;
+                return false;
               }
               if (!deltaPage?.History) {
                 set({ lastUpdated: Date.now() });
-                return;
+                return true;
               }
 
               const updateByMatch = new Map(
@@ -965,22 +1065,33 @@ export const useMatchStore = create<MatchState>()(
                 }));
               }
 
-              const knownIds = new Set(get().matches.map((m) => m.MatchID));
+              const currentMatches = get().matches;
+              const knownIds = new Set(
+                currentMatches.map((m) => m.MatchID)
+              );
+              // RETRY SET: match từng hydrate THẤT BẠI (stats: null) cần được
+              // thử lại ở chu kỳ delta này, nếu không chúng sẽ kẹt card
+              // "unavailable" vĩnh viễn (knownIds chặn mọi lần fetch lại).
+              const failedIds = new Set(
+                currentMatches
+                  .filter((m) => m.stats === null)
+                  .map((m) => m.MatchID)
+              );
               const newRawMatches = deltaPage.History.filter(
-                (m) => !knownIds.has(m.MatchID)
+                (m) => !knownIds.has(m.MatchID) || failedIds.has(m.MatchID)
               );
 
               if (newRawMatches.length === 0) {
                 // Không có trận mới → chỉ update timestamp
                 set({ lastUpdated: Date.now() });
-                return;
+                return true;
               }
 
               // Hydrate từng trận mới (1 lần/viết, không batch)
               const catalog = createMatchAssetCatalog();
               for (const raw of newRawMatches) {
                 const details = await get().fetchMatchDetails(user, raw.MatchID);
-                if (get().authKey !== authKey) return;
+                if (get().authKey !== authKey) return false;
                 const record = buildMatchHistoryRecord(
                   {
                     MatchID: raw.MatchID,
@@ -992,39 +1103,65 @@ export const useMatchStore = create<MatchState>()(
                   user.id,
                   catalog
                 );
-                set((current) => ({
-                  matches: [...current.matches, record].sort(
-                    (a, b) => b.GameStartTime - a.GameStartTime
-                  ),
-                  lastUpdated: Date.now(),
-                  totalMatches: Math.max(
-                    current.totalMatches,
-                    Number(deltaPage.Total) || current.totalMatches
-                  ),
-                }));
+                // RETRY match đã tồn tại → REPLACE thay vì append (tránh
+                // trùng lặp trong danh sách). Match mới → append + sort.
+                set((current) => {
+                  const exists = current.matches.some(
+                    (m) => m.MatchID === record.MatchID
+                  );
+                  const matches = exists
+                    ? current.matches.map((m) =>
+                        m.MatchID === record.MatchID ? record : m
+                      )
+                    : [...current.matches, record].sort(
+                        (a, b) => b.GameStartTime - a.GameStartTime
+                      );
+                  return {
+                    matches,
+                    lastUpdated: Date.now(),
+                    totalMatches: Math.max(
+                      current.totalMatches,
+                      Number(deltaPage.Total) || current.totalMatches
+                    ),
+                  };
+                });
               }
               if (__DEV__) {
                 console.log(`[matchStore] delta sync: +${newRawMatches.length} new matches`);
               }
+              return true;
             } catch (error) {
               if (__DEV__) console.warn("[matchStore] delta sync failed", error);
-              if (isSameAccountSessionKey(get().authKey, authKey)) {
-                set({ lastUpdated: Date.now() });
-              }
+              // FIX (H6a): KHÔNG bump lastUpdated khi fail — nếu stamp "fresh"
+              // thì TTL 30 phút sẽ chặn mọi retry trong khi chẳng có dữ liệu
+              // mới nào được tải về. Bỏ stamp → chu kỳ delta kế tiếp được thử.
+              return false;
             } finally {
               if (matchesInFlight?.key === authKey) matchesInFlight = null;
             }
           })();
 
-          matchesInFlight = { key: authKey, promise: deltaRequest };
+          matchesInFlight = { key: authKey, kind: "delta", promise: deltaRequest };
           return deltaRequest;
         }
+
         // Deduplication: nếu đang fetch thì trả về promise hiện tại
         if (matchesInFlight?.key === authKey) {
-          return matchesInFlight.promise;
+          if (!force) return matchesInFlight.promise;
+          // FIX (H7): force=true (pull-to-refresh) trước đây bị nuốt bởi
+          // request đang chạy — return promise của delta khiến full re-fetch
+          // không bao giờ chạy. Giờ: nếu đang chạy là DELTA (fetch nhỏ) thì
+          // đợi nó xong rồi rơi xuống chạy full fetch mới; nếu đang là FULL
+          // fetch (dữ liệu vừa từ server) thì join là đủ.
+          if (matchesInFlight.kind === "delta") {
+            await matchesInFlight.promise.catch(() => undefined);
+            // rơi xuống bên dưới để khởi tạo full fetch
+          } else {
+            return matchesInFlight.promise;
+          }
         }
 
-        const request = (async () => {
+        const request = (async (): Promise<boolean> => {
           set({ loading: true, error: null });
           // Hàm wrapper an toàn cho playerMatchHistory (tránh crash khi lỗi)
           const fetchHistorySafe = async (params?: {
@@ -1080,14 +1217,15 @@ export const useMatchStore = create<MatchState>()(
                 }
               : null;
 
-            // Kiểm tra auth key sau khi fetch
-            if (get().authKey !== authKey) return;
+            // Kiểm tra auth key sau khi fetch — session đã đổi, kết quả vô nghĩa
+            if (get().authKey !== authKey) return false;
             if (!historyData) {
               set({ error: "Could not load match data." });
-              return;
+              return false;
             }
             if (!historyData?.History?.length) {
-              // Không có match nào -> reset store
+              // Không có match nào -> reset store. Đây là trạng thái HỢP LỆ
+              // (tài khoản chưa chơi trận nào) → trả true.
               set({
                 matches: [],
                 loading: false,
@@ -1095,7 +1233,7 @@ export const useMatchStore = create<MatchState>()(
                 totalMatches: 0,
                 historyEndIndex: 0,
               });
-              return;
+              return true;
             }
 
             // Chỉ lấy số lượng match trong giới hạn
@@ -1135,7 +1273,7 @@ export const useMatchStore = create<MatchState>()(
 
             // Hydrate lô match đầu tiên (chi tiết + build record) dựa trên network type
             const network = await getNetworkProfile();
-            if (!network.isConnected || get().authKey !== authKey) return;
+            if (!network.isConnected || get().authKey !== authKey) return false;
             const initialCount = network.isCellular
               ? CELLULAR_INITIAL_DETAILS
               : WIFI_INITIAL_DETAILS;
@@ -1145,7 +1283,7 @@ export const useMatchStore = create<MatchState>()(
               network.requestConcurrency,
               (matchId) => get().fetchMatchDetails(user, matchId)
             );
-            if (get().authKey !== authKey) return;
+            if (get().authKey !== authKey) return false;
 
             // Thay thế base matches bằng phiên bản đã hydrate
             const hydratedById = new Map(
@@ -1156,11 +1294,13 @@ export const useMatchStore = create<MatchState>()(
                 (match) => hydratedById.get(match.MatchID) || match
               ),
             });
+            return true;
           } catch (error) {
             if (__DEV__) console.error("Failed to fetch matches globally", error);
             if (get().authKey === authKey) {
               set({ error: "Could not load match data." });
             }
+            return false;
           } finally {
             // Reset loading + giải phóng in-flight tracker
             if (get().authKey === authKey) set({ loading: false });
@@ -1169,7 +1309,7 @@ export const useMatchStore = create<MatchState>()(
         })();
 
         // Track request in-flight để deduplicate
-        matchesInFlight = { key: authKey, promise: request };
+        matchesInFlight = { key: authKey, kind: "full", promise: request };
         return request;
       },
     }),
@@ -1210,10 +1350,14 @@ export const useMatchStore = create<MatchState>()(
       },
       /**
        * Chỉ lưu các trường cần thiết xuống storage (bỏ detailsById, loading state, etc.)
+       * Danh sách matches bị cắt ở MAX_PERSISTED_MATCHES: hydrate "load more"
+       * có thể phình vô hạn theo thời gian, bản ghi xuống đĩa cần có trần để
+       * giá trị MMKV không phình theo tháng sử dụng. Danh sách trong bộ nhớ
+       * vẫn đầy đủ trong session.
        */
       partialize: (state) => ({
         authKey: state.authKey,
-        matches: state.matches,
+        matches: state.matches.slice(0, MAX_PERSISTED_MATCHES),
         lastUpdated: state.lastUpdated,
         totalMatches: state.totalMatches,
         historyEndIndex: state.historyEndIndex,

@@ -43,8 +43,13 @@ function NightMarket() {
   );
   const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
   // Timestamp kết thúc Night Market (hiện tại + số giây còn lại)
-  const timestamp =
-    new Date().getTime() + user.shops.remainingSecs.nightMarket * 1000;
+  // FIX (L10): useMemo — trước đây tính `Date.now() + remaining` mỗi render nên
+  // bất kỳ re-render nào (wishlist đổi, parent tick) cũng trượt mốc đếm ngược
+  // tiến về phía trước thay vì giảm dần đều.
+  const timestamp = React.useMemo(
+    () => new Date().getTime() + user.shops.remainingSecs.nightMarket * 1000,
+    [user.shops.remainingSecs.nightMarket]
+  );
   // Số cột: 3 nếu màn hình rộng >= 700, ngược lại 2
   const columnCount = width >= 700 ? 3 : 2;
   // Tính chiều rộng mỗi card dựa trên kích thước màn hình, padding, gap
@@ -84,7 +89,8 @@ function NightMarket() {
         <View style={styles.headerRight}>
           <View style={styles.headerBalance}>
             <Text style={styles.headerBalanceText}>{user.balances.vp} {t("vp")}</Text>
-            <Text style={styles.headerBalanceSubText}>{user.name || "KONA_Prime"}</Text>
+            {/* FIX (L15): bỏ hardcode handle dev, fallback trung tính */}
+            <Text style={styles.headerBalanceSubText}>{user.name || "Player"}</Text>
           </View>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{(user.name || "V").slice(0, 1).toUpperCase()}</Text>

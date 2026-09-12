@@ -273,23 +273,54 @@ export async function getPASToken(
 // ---------------------------------------------------------------------------
 // Riot Client Config (cấu hình Riot client)
 // ---------------------------------------------------------------------------
-// Export hàm lấy cấu hình Riot client
-// Parameters:
-//   - accessToken: token xác thực
-//   - entitlementsToken: token quyền
-// Returns: Promise<RiotClientConfigResponse | null>
+
+// FIX (L9): cache ngắn + in-flight dedup. Trước đây data-sync (bootstrap sync)
+// và chat-service (resolveChatHost) gọi song song lúc startup → 2 request
+// giống hệt nhau bắn đi cùng lúc. Config ít đổi nên TTL 5 phút là an toàn.
+let clientConfigCache: {
+  value: RiotClientConfigResponse | null;
+  expiresAt: number;
+} | null = null;
+let clientConfigInFlight: Promise<RiotClientConfigResponse | null> | null = null;
+const CLIENT_CONFIG_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Export hàm lấy cấu hình Riot client (có cache 5 phút + dedup in-flight)
+ * Parameters:
+ *   - accessToken: token xác thực
+ *   - entitlementsToken: token quyền
+ * Returns: Promise<RiotClientConfigResponse | null>
+ */
 export async function getRiotClientConfig(
   accessToken: string,
   entitlementsToken: string
 ): Promise<RiotClientConfigResponse | null> {
-  const res = await axios.request<RiotClientConfigResponse>({
-    url: buildRiotApiUrl({ name: "riotclientconfig" }),
-    method: "GET",
-    validateStatus: () => true,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "X-Riot-Entitlements-JWT": entitlementsToken,
-    },
-  });
-  return res.status === 200 ? res.data : null;
+  if (clientConfigCache && clientConfigCache.expiresAt > Date.now()) {
+    return clientConfigCache.value;
+  }
+  if (clientConfigInFlight) return clientConfigInFlight;
+
+  clientConfigInFlight = (async () => {
+    const res = await axios.request<RiotClientConfigResponse>({
+      url: buildRiotApiUrl({ name: "riotclientconfig" }),
+      method: "GET",
+      validateStatus: () => true,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "X-Riot-Entitlements-JWT": entitlementsToken,
+      },
+    });
+    const value = res.status === 200 ? res.data : null;
+    // Chỉ cache kết quả THÀNH CÔNG — fail thì chu kỳ sau được thử lại ngay.
+    if (value) {
+      clientConfigCache = { value, expiresAt: Date.now() + CLIENT_CONFIG_TTL_MS };
+    }
+    return value;
+  })();
+
+  try {
+    return await clientConfigInFlight;
+  } finally {
+    clientConfigInFlight = null;
+  }
 }

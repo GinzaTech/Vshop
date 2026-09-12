@@ -19,3 +19,15 @@ export const isAllowedRiotAuthNavigation = (value: string): boolean => {
     return false;
   }
 };
+
+export const isRiotAuthCallbackUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    const params = new URLSearchParams(url.hash.slice(1) || url.search.slice(1));
+    return url.protocol === "https:" && url.hostname === "playvalorant.com" &&
+      !url.username && !url.password && /^\/(?:[a-z]{2}-[a-z]{2}\/)?opt_in\/?$/i.test(url.pathname) &&
+      Boolean(params.get("access_token") && params.get("id_token"));
+  } catch {
+    return false;
+  }
+};

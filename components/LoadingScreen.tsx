@@ -8,11 +8,11 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
 
 type LoadingScreenProps = {

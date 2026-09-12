@@ -5,6 +5,13 @@ const allowedAdvisories = new Map([
   ["1119441", "Expo config-plugins pins xcode/uuid 7; affected buffered UUID API is not used by VShop."],
   ["1138808", "Metro pins image-size 1.2.1 and no patched release exists."],
   ["1138809", "Metro pins image-size 1.2.1 and no patched release exists."],
+  // js-yaml 3.x reaches the production tree only through @react-native/jest-preset
+  // (a prod dependency of react-native used exclusively at Jest/test time).
+  // The affected js-yaml load() API is never exercised by VShop code, and the
+  // transitive chain (@istanbuljs/load-nyc-config) requires the 3.x API, so a
+  // forced 4.x override would break tooling rather than ship behavior.
+  ["1193726", "js-yaml 3.x only via @react-native/jest-preset test tooling; affected load() API unused by VShop."],
+  ["1193727", "js-yaml 3.x only via @react-native/jest-preset test tooling; affected load() API unused by VShop."],
 ]);
 
 const pnpmEntrypoint = process.env.npm_execpath;

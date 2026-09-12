@@ -4,7 +4,7 @@
 //   - Kết hợp theme Paper + React Navigation thành CombinedAppTheme.
 //   - Khởi tạo flow-tracer (debug/tracing).
 //   - Bootstrap logic: kiểm tra region → khôi phục session → điều hướng.
-//   - Wrap toàn bộ app bằng GestureHandler, PaperProvider, StripeProvider,
+//   - Wrap toàn bộ app bằng GestureHandler, PaperProvider,
 //     ThemeProvider và PlausibleProvider.
 //   - Định nghĩa Stack navigator với các screen: index, reauth, setup,
 //     language, chat/[friendId], (authenticated).
@@ -30,7 +30,12 @@ import {
   ThemeProvider,
 } from "expo-router/react-navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { StatusBar, View, type GestureResponderEvent } from "react-native";
+import {
+  AppState,
+  StatusBar,
+  View,
+  type GestureResponderEvent,
+} from "react-native";
 import * as SystemUI from "expo-system-ui";
 import Animated, {
   interpolateColor,
@@ -45,12 +50,11 @@ import { initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import PlausibleProvider from "~/components/PlausibleProvider";
 import { COLORS } from "~/constants/DesignSystem";
-import StripeProvider from "~/components/providers/StripeProvider";
+import { useAccountStore } from "~/hooks/useAccountStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import {
   canResumeUserSession,
-  hasReusableAccessToken,
-  renewAuthenticatedSession,
+  isReauthenticationRequiredError,
 } from "~/utils/auth-session";
 import { defaultUser } from "~/utils/valorant-api";
 import { flowTracer } from "~/utils/flow-tracer";
@@ -62,14 +66,20 @@ import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import LoadingScreen from "~/components/LoadingScreen";
 import { syncAllData } from "~/utils/data-sync";
-import { lockScreenOrientation } from "~/utils/screen-orientation";
+import {
+  getScreenOrientationForPathname,
+  lockScreenOrientation,
+} from "~/utils/screen-orientation";
 import {
   isRiotAuthenticationError,
   isTransientNetworkError,
 } from "~/utils/session-events";
-import { MOTION_TIMING } from "~/constants/Motion";
+import { MOTION_DURATION, MOTION_TIMING } from "~/constants/Motion";
+import { useMotionPreference } from "~/hooks/useMotionPreference";
 import { markAppInteractive } from "~/utils/startup-performance";
 import { hasUsableStartupCache } from "~/utils/startup-cache";
+import { renewSavedAccountSession } from "~/services/accounts/session";
+import { isSessionChangedError } from "~/utils/session-operations";
 
 type CustomHeaderProps = {
   options: { title?: string };
@@ -157,11 +167,13 @@ const CustomHeader = ({ options, navigation }: CustomHeaderProps) => (
  * @returns {JSX.Element} Root layout.
  */
 function RootLayout() {
+  const reduceMotionEnabled = useMotionPreference();
   const router = useRouter();
   const pathname = usePathname();
   const { demo } = useGlobalSearchParams<{ demo?: string | string[] }>();
   const { t } = useTranslation();
   const hydrated = useUserStore((state) => state.hydrated);
+  const accountsHydrated = useAccountStore((state) => state.hydrated);
   const setUser = useUserStore((state) => state.setUser);
   const topInsetTone = useSystemChromeStore((state) => state.topInsetTone);
   const topInsetProgress = useSharedValue(topInsetTone === "dark" ? 1 : 0);
@@ -182,8 +194,7 @@ function RootLayout() {
     __DEV__ &&
     (demoValue === "1" || demoValue === "true") &&
     (pathname === "/history" || pathname.startsWith("/match_details/"));
-  const isCombatSessionRoute =
-    pathname === "/combat_session" || pathname.endsWith("/combat_session");
+  const requiredScreenOrientation = getScreenOrientationForPathname(pathname);
 
   const requestStartupRetry = useCallback(() => {
     startupWaitResolverRef.current?.("retry");
@@ -201,9 +212,9 @@ function RootLayout() {
     void SystemUI.setBackgroundColorAsync(topInsetColor);
     topInsetProgress.value = withTiming(
       topInsetTone === "dark" ? 1 : 0,
-      MOTION_TIMING.standard,
+      { ...MOTION_TIMING.standard, duration: reduceMotionEnabled ? 0 : MOTION_TIMING.standard.duration },
     );
-  }, [topInsetProgress, topInsetTone]);
+  }, [reduceMotionEnabled, topInsetProgress, topInsetTone]);
 
   // The native splash is only a launch hand-off. Once persisted state is
   // ready, reveal the branded React shell immediately instead of holding the
@@ -227,13 +238,23 @@ function RootLayout() {
     ),
   }));
 
-  // Every screen stays portrait. The combat session owns its landscape lock
-  // while focused, then restores portrait when it closes.
+  // Combat session is always landscape; every other route is always portrait.
+  // Re-apply the route lock after returning from the background because some
+  // Android vendors can drop the Activity orientation request while suspended.
   useEffect(() => {
-    if (!isCombatSessionRoute) {
-      void lockScreenOrientation("portrait");
-    }
-  }, [isCombatSessionRoute]);
+    const applyRequiredOrientation = () => {
+      void lockScreenOrientation(requiredScreenOrientation);
+    };
+
+    applyRequiredOrientation();
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        applyRequiredOrientation();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [requiredScreenOrientation]);
 
   // ── Effect 1: Khởi tạo flow-tracer ──
   useEffect(() => {
@@ -258,18 +279,29 @@ function RootLayout() {
   }, []);
 
   // ── Effect 2: Khởi tạo / dừng background fetch cho wishlist ──
+  // FIX (L5): đọc `notificationEnabled` QUA subscription thay vì đọc 1 lần lúc
+  // mount. Persist hydration là async (fallback AsyncStorage path) — trước đây
+  // effect chạy trước khi store hydrate xong → đọc được default `false` → gọi
+  // stopBackgroundFetch() và wishlist nền bị tắt cả session dù user đã bật.
   useEffect(() => {
-    const notificationEnabled = useWishlistStore.getState().notificationEnabled;
-    if (notificationEnabled) {
-      initBackgroundFetch();
-    } else {
-      stopBackgroundFetch();
-    }
+    const syncBackgroundFetch = () => {
+      const notificationEnabled =
+        useWishlistStore.getState().notificationEnabled;
+      if (notificationEnabled) {
+        initBackgroundFetch();
+      } else {
+        stopBackgroundFetch();
+      }
+    };
+    // Chạy ngay (path MMKV hydrate sync) + subscribe để bắt thay đổi sau hydrate
+    const unsubscribe = useWishlistStore.subscribe(syncBackgroundFetch);
+    syncBackgroundFetch();
+    return unsubscribe;
   }, []);
 
   // ── Effect 3: Bootstrap — xác định route đầu tiên ──
   useEffect(() => {
-    if (!hydrated || bootstrappedRef.current) {
+    if (!hydrated || !accountsHydrated || bootstrappedRef.current) {
       return;
     }
 
@@ -312,7 +344,7 @@ function RootLayout() {
        if (sessionUser.accessToken && sessionUser.id) {
         let syncUser = sessionUser;
         let retryDelayMs = 1_500;
-        let permanentFailureCount = 0;
+        let silentRecoveryAttempted = false;
 
         const waitForRecovery = async () => {
           const canUseCachedData = await hasUsableStartupCache(syncUser);
@@ -353,15 +385,14 @@ function RootLayout() {
 
         while (!cancelled) {
           try {
+            syncUser = useUserStore.getState().user;
             if (!canResumeUserSession(syncUser, region)) {
               if (!cancelled) setStartupMessage("Restoring your Riot session");
-              syncUser = await renewAuthenticatedSession({ ...syncUser, region });
-              useUserStore.getState().setUser(syncUser);
+              syncUser = await renewSavedAccountSession({ ...syncUser, region });
             }
 
             if (!cancelled) setStartupMessage("Loading your VShop data");
-            await syncAllData(syncUser, region);
-            permanentFailureCount = 0;
+            await syncAllData(syncUser, syncUser.region || region);
             setStartupRecovery({ visible: false, canUseCachedData: false });
 
             if (!cancelled) {
@@ -373,50 +404,40 @@ function RootLayout() {
           } catch (error) {
             if (cancelled) return;
 
-            if (isRiotAuthenticationError(error)) {
+            if (isSessionChangedError(error)) {
+              if (!useUserStore.getState().user.id) return;
+              setStartupMessage("Restoring your Riot session");
+              if (await waitForRecovery()) return;
+              continue;
+            }
+
+            let recoveryError: unknown = error;
+            if (isRiotAuthenticationError(error) && !silentRecoveryAttempted) {
+              silentRecoveryAttempted = true;
               try {
                 setStartupMessage("Refreshing your Riot session");
-                syncUser = await renewAuthenticatedSession(
+                syncUser = await renewSavedAccountSession(
                   useUserStore.getState().user
                 );
-                useUserStore.getState().setUser(syncUser);
                 continue;
               } catch (renewError) {
-                if (isTransientNetworkError(renewError)) {
-                  setStartupMessage("Waiting for Riot services…");
-                  if (await waitForRecovery()) return;
-                  continue;
-                }
-                if (
-                  isRiotAuthenticationError(renewError) ||
-                  !hasReusableAccessToken(
-                    useUserStore.getState().user.accessToken
-                  )
-                ) {
-                  setUser({ ...defaultUser, region });
-                  router.replace("/reauth");
-                  setIsPreloading(false);
-                  markAppInteractive("reauth");
-                  return;
-                }
+                recoveryError = renewError;
               }
             }
 
-            if (!isTransientNetworkError(error)) {
-              permanentFailureCount += 1;
-              if (permanentFailureCount >= 3) {
-                setUser({ ...defaultUser, region });
-                router.replace("/reauth");
-                setIsPreloading(false);
-                markAppInteractive("reauth");
-                return;
-              }
-            } else {
-              permanentFailureCount = 0;
+            if (isReauthenticationRequiredError(recoveryError)) {
+              // Preserve account identity and cache while the user signs in.
+              router.replace("/reauth");
+              setIsPreloading(false);
+              markAppInteractive("reauth");
+              return;
             }
 
-            setStartupMessage("Waiting for Riot services…");
+            setStartupMessage(isTransientNetworkError(recoveryError)
+              ? "Waiting for Riot services…"
+              : "Unable to refresh data. Retry or use your saved data.");
             if (await waitForRecovery()) return;
+            silentRecoveryAttempted = false;
           }
         }
         return;
@@ -438,8 +459,13 @@ function RootLayout() {
       cancelled = true; // Cleanup: tránh setState sau khi unmount
       startupWaitResolverRef.current?.("retry");
       startupWaitResolverRef.current = null;
+      // FIX (L13): cho phép bootstrap chạy lại nếu effect được tear-down rồi
+      // mount lại (deps đổi giữa chừng). Trước đây bootstrappedRef giữ true
+      // mãi → lần re-run bị return sớm → isPreloading kẹt true, app kẹt dưới
+      // LoadingScreen vĩnh viễn.
+      bootstrappedRef.current = false;
     };
-  }, [allowMatchDemo, hydrated, router, setUser]);
+  }, [accountsHydrated, allowMatchDemo, hydrated, router, setUser]);
 
   /**
    * handleGlobalTouchStart — Handler global cho mọi touch event.
@@ -485,7 +511,7 @@ function RootLayout() {
         <PlausibleProvider>
           {/* SafeAreaView phía trên (status bar) */}
           <StatusBar
-            animated
+            animated={!reduceMotionEnabled}
             backgroundColor={
               topInsetTone === "dark"
                 ? COLORS.PURE_BLACK
@@ -500,40 +526,37 @@ function RootLayout() {
             style={topInsetAnimatedStyle}
           />
           <PaperProvider theme={CombinedAppTheme}>
-            <StripeProvider
-              publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLIC_KEY ?? ""}
-            >
-              <ThemeProvider value={CombinedAppTheme}>
-                <Stack
-                  screenOptions={{
-                    headerStyle: {
-                      backgroundColor: CombinedAppTheme.colors.background,
-                    },
-                    headerTintColor: CombinedAppTheme.colors.text,
-                    header: CustomHeader,
-                    gestureEnabled: false, // Tắt gesture back mặc định
-                    animation: "slide_from_right",
-                    animationDuration: 250,
-                  }}
-                >
-                  <Stack.Screen name="index" options={{ headerShown: false }} />
-                  <Stack.Screen name="reauth" options={{ headerShown: false }} />
-                  <Stack.Screen name="setup" options={{ headerShown: false }} />
-                  <Stack.Screen
-                    name="language"
-                    options={{ presentation: "modal", title: t("language") }}
-                  />
-                  <Stack.Screen
-                    name="chat/[friendId]"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="(authenticated)"
-                    options={{ headerShown: false }}
-                  />
-                </Stack>
-              </ThemeProvider>
-            </StripeProvider>
+            <ThemeProvider value={CombinedAppTheme}>
+              <Stack
+                screenOptions={{
+                  headerStyle: {
+                    backgroundColor: CombinedAppTheme.colors.background,
+                  },
+                  headerTintColor: CombinedAppTheme.colors.text,
+                  header: CustomHeader,
+                  gestureEnabled: true,
+                  animation: reduceMotionEnabled ? "none" : "slide_from_right",
+                  animationDuration: MOTION_DURATION.standard,
+                  contentStyle: { backgroundColor: COLORS.BACKGROUND },
+                }}
+              >
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="reauth" options={{ headerShown: false }} />
+                <Stack.Screen name="setup" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="language"
+                  options={{ presentation: "modal", title: t("language") }}
+                />
+                <Stack.Screen
+                  name="chat/[friendId]"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="(authenticated)"
+                  options={{ headerShown: false }}
+                />
+              </Stack>
+            </ThemeProvider>
           </PaperProvider>
         </PlausibleProvider>
         {isPreloading ? (

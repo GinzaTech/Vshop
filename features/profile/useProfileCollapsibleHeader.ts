@@ -5,10 +5,10 @@ import {
   cancelAnimation,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withDecay,
 } from "react-native-reanimated";
+import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 
 export const PROFILE_STICKY_SEGMENT_HEIGHT = 70;
 

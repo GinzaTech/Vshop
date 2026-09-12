@@ -80,6 +80,7 @@ function Bundles() {
   if (user.shops.bundles.length === 0) {
     return (
       <ScrollView
+        removeClippedSubviews={Platform.OS === "android"}
         style={styles.screen}
         contentContainerStyle={[
           styles.content,
@@ -118,6 +119,7 @@ function Bundles() {
         }
       >
       <ScrollView
+        removeClippedSubviews={Platform.OS === "android"}
         style={styles.screen}
         contentContainerStyle={[
           styles.content,

@@ -1,5 +1,6 @@
 import {
   getAccountSessionKey,
+  hasUnexpiredAuthCookies,
   isSameAccountSessionKey,
   shouldAcceptSessionUpdate,
   upsertSavedAccount,
@@ -20,6 +21,15 @@ const makeSession = (
 });
 
 describe("saved account helpers", () => {
+  it("requires a live Riot session cookie, not a remaining tracking cookie", () => {
+    const now = Date.parse("2026-09-05T00:00:00Z");
+    expect(hasUnexpiredAuthCookies([{ name: "__cf_bm", value: "tracking" }], now)).toBe(false);
+    expect(hasUnexpiredAuthCookies([{ name: "ssid", value: "session" }], now)).toBe(true);
+    expect(hasUnexpiredAuthCookies([
+      { name: "ssid", value: "expired", expires: "2026-09-04T00:00:00Z" },
+      { name: "tdid", value: "tracking", expires: "2027-01-01T00:00:00Z" },
+    ], now)).toBe(false);
+  });
   it("creates a stable account-scoped cache key", () => {
     expect(
       getAccountSessionKey({ id: " ACCOUNT-A ", region: " AP " })
@@ -34,9 +44,18 @@ describe("saved account helpers", () => {
   });
 
   it("updates an existing account without creating a duplicate", () => {
+    const authCookies = [
+      {
+        name: "ssid",
+        value: "account-a-cookie",
+        domain: ".riotgames.com",
+        path: "/",
+      },
+    ];
     const initial = upsertSavedAccount([], makeSession("account-a"), {
       now: 100,
       touch: true,
+      authCookies,
     });
     const updated = upsertSavedAccount(
       initial,
@@ -48,8 +67,44 @@ describe("saved account helpers", () => {
     expect(updated[0]).toMatchObject({
       id: "ACCOUNT-A",
       accessToken: "refreshed-token",
+      authCookies,
       lastUsedAt: 100,
     });
+  });
+
+  it("replaces a saved cookie snapshot only when a new snapshot is supplied", () => {
+    const initial = upsertSavedAccount([], makeSession("account-a"), {
+      now: 100,
+      authCookies: [
+        {
+          name: "ssid",
+          value: "old-cookie",
+          domain: ".riotgames.com",
+        },
+      ],
+    });
+    const updated = upsertSavedAccount(
+      initial,
+      makeSession("account-a", "new-access-token"),
+      {
+        now: 200,
+        authCookies: [
+          {
+            name: "ssid",
+            value: "new-cookie",
+            domain: ".riotgames.com",
+          },
+        ],
+      }
+    );
+
+    expect(updated[0]?.authCookies).toEqual([
+      {
+        name: "ssid",
+        value: "new-cookie",
+        domain: ".riotgames.com",
+      },
+    ]);
   });
 
   it("keeps only the most recently used accounts", () => {

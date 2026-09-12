@@ -78,3 +78,7 @@ Desktop.ini
 
 expo-env.d.ts
 # @end expo-cli
+
+# Local tooling (external skills + opencode config)
+ECC/
+opencode.json

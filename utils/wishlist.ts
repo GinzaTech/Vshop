@@ -1,5 +1,5 @@
-// Import hàm lấy accessToken từ URI và kiểm tra cùng ngày UTC
-import { getAccessTokenFromUri, isSameDayUTC } from "./misc";
+// Import helper kiểm tra cùng ngày UTC
+import { isSameDayUTC } from "./misc";
 // Import AsyncStorage để lưu trữ thời gian kiểm tra wishlist gần nhất
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // Import axios để gọi API lấy thông tin skin
@@ -7,9 +7,17 @@ import { getPublicSkinLevel } from "~/services/valorant/public-api";
 // Import hook quản lý state wishlist (danh sách skin yêu thích) dùng Zustand persist
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 // Import Platform để kiểm tra nền tảng (bỏ qua background fetch trên web)
-import { Platform } from "react-native";
+// Import AppState để kiểm tra app foreground/background (fix L14)
+import { AppState, Platform } from "react-native";
 // Import thư viện background fetch chạy tác vụ ngầm
 import BackgroundFetch from "./background-fetch";
+import { useUserStore } from "~/hooks/useUserStore";
+import { useAccountStore } from "~/hooks/useAccountStore";
+import { isSessionRecoveryPaused, renewSavedAccountSession } from "~/services/accounts/session";
+import { hasReusableAccessToken, isReauthenticationRequiredError, shouldProactivelyRefreshToken } from "./auth-session";
+import { isRiotAuthenticationError, isTransientNetworkError } from "./session-events";
+import { getAccountSessionKey } from "./saved-accounts";
+import { isSessionChangedError } from "./session-operations";
 
 // Hằng số: tên channel thông báo cho wishlist
 const NOTIFICATION_CHANNEL = "wishlist";
@@ -48,7 +56,7 @@ function configureNotifications() {
 
 // Hàm lazy-load các dependencies cần thiết cho wishlist
 // Dùng require thay vì import tĩnh để tránh circular dependency
-// Returns: object chứa i18n, getVAPILang, plausible, fetchVersion, valorantApi
+// Returns: object chứa i18n, getVAPILang, plausible và valorantApi
 function getWishlistDependencies() {
   const localization = require("./localization");
 
@@ -56,8 +64,6 @@ function getWishlistDependencies() {
     i18n: localization.default,                          // Hàm dịch thuật
     getVAPILang: localization.getVAPILang as typeof import("./localization").getVAPILang,  // Hàm lấy ngôn ngữ hiện tại
     plausible: require("./plausible") as typeof import("./plausible"),  // Module phân tích (analytics)
-    fetchVersion: require("./valorant-assets")
-      .fetchVersion as typeof import("./valorant-assets").fetchVersion,  // Hàm lấy version Riot
     valorantApi: require("./valorant-api") as typeof import("./valorant-api"),  // Module API Valorant
   };
 }
@@ -67,15 +73,22 @@ function getWishlistDependencies() {
 // Không nhận tham số, không trả về giá trị (async void)
 export async function wishlistBgTask() {
   // Đảm bảo persist store đã được khôi phục từ AsyncStorage
-  await useWishlistStore.persist.rehydrate();
+  await Promise.all([
+    !useWishlistStore.persist.hasHydrated() && useWishlistStore.persist.rehydrate(),
+    !useUserStore.persist.hasHydrated() && useUserStore.persist.rehydrate(),
+    !useAccountStore.persist.hasHydrated() && useAccountStore.persist.rehydrate(),
+  ]);
   const wishlistStore = useWishlistStore.getState();
 
   // Nếu người dùng tắt notification wishlist thì thoát
-  if (!wishlistStore.notificationEnabled) return;
+  if (!wishlistStore.notificationEnabled || isSessionRecoveryPaused()) return;
+  const accountKey = getAccountSessionKey(useUserStore.getState().user);
+  if (accountKey === "guest") return;
+  const checkStorageKey = `lastWishlistCheck:${accountKey}`;
 
   // Lấy thời gian kiểm tra gần nhất từ AsyncStorage
   const lastWishlistCheckTs = Number.parseInt(
-    (await AsyncStorage.getItem("lastWishlistCheck")) || "0"
+    (await AsyncStorage.getItem(checkStorageKey)) || "0"
   );
   const lastWishlistCheck = new Date(lastWishlistCheckTs);
   const now = new Date();
@@ -89,23 +102,42 @@ export async function wishlistBgTask() {
     plausible.capture("wishlist_check");                   // Ghi nhận sự kiện analytics
 
     if (__DEV__) console.log("New day, checking shop in the background");
-    await checkShop(wishlistStore.skinIds);                // Kiểm tra shop với danh sách skin yêu thích
-    await AsyncStorage.setItem("lastWishlistCheck", now.getTime().toString());  // Cập nhật thời gian check
+    const checked = await checkShop(wishlistStore.skinIds);
+    if (checked && getAccountSessionKey(useUserStore.getState().user) === accountKey) {
+      await AsyncStorage.setItem(checkStorageKey, now.getTime().toString());
+    }
   }
 
   if (__DEV__) console.log("No wishlist check needed");
 }
+
+// FIX (L14): in-flight guard — Android có thể chạy background-fetch callback
+// ngay cả khi app đang foreground; không guard thì 2 checkShop chạy song song
+// (double getShop + thông báo trùng).
+let checkShopInFlight = false;
 
 // Export hàm kiểm tra shop: gọi API Riot, re-auth, lấy shop, so sánh với wishlist
 // Parameters:
 //   - wishlist: mảng các UUID của skin cần theo dõi
 // Returns: void (async, gửi notification qua expo-notifications)
 export async function checkShop(wishlist: string[]) {
+  if (isSessionRecoveryPaused()) return false;
+  if (checkShopInFlight) return false;
+  checkShopInFlight = true;
+  try {
+    return await checkShopInternal(wishlist);
+  } finally {
+    checkShopInFlight = false;
+  }
+}
+
+async function checkShopInternal(wishlist: string[]) {
+  if (isSessionRecoveryPaused()) return false;
   const Notifications = configureNotifications();
   // Lấy các dependencies
-  const { fetchVersion, getVAPILang, i18n, valorantApi } =
+  const { getVAPILang, i18n, valorantApi } =
     getWishlistDependencies();
-  const { getEntitlementsToken, getShop, getUserId, reAuth } = valorantApi;
+  const { getShop } = valorantApi;
 
   // Tạo/đảm bảo channel thông báo wishlist tồn tại với mức ưu tiên MAX
   await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL, {
@@ -114,19 +146,27 @@ export async function checkShop(wishlist: string[]) {
   });
 
   try {
-    // Lấy version hiện tại của Riot client
-    const version = await fetchVersion();
-
-    // Re-authenticate để lấy accessToken mới
-    // Lưu ý: cần cookie tự động (xem: https://github.com/facebook/react-native/issues/1274)
-    const res = await reAuth(version);
-    const accessToken = getAccessTokenFromUri(res.data.response.parameters.uri);
-    const userId = getUserId(accessToken);
-
-    // Lấy entitlementsToken và region, sau đó gọi API shop
-    const entitlementsToken = await getEntitlementsToken(accessToken);
-    const region = (await AsyncStorage.getItem("region")) || "eu";
-    const shop = await getShop(accessToken, entitlementsToken, region, userId);
+    const currentUser = useUserStore.getState().user;
+    let authenticatedUser = hasReusableAccessToken(currentUser.accessToken) &&
+      !shouldProactivelyRefreshToken(currentUser.accessToken) && currentUser.entitlementsToken
+      ? currentUser
+      : await renewSavedAccountSession(currentUser);
+    const accountKey = getAccountSessionKey(authenticatedUser);
+    const region = authenticatedUser.region ||
+      (await AsyncStorage.getItem("region")) ||
+      "eu";
+    const fetchShop = () => getShop(
+      authenticatedUser.accessToken,
+      authenticatedUser.entitlementsToken,
+      region,
+      authenticatedUser.id
+    );
+    const shop = await fetchShop().catch(async (error: unknown) => {
+      if (!isRiotAuthenticationError(error)) throw error;
+      authenticatedUser = await renewSavedAccountSession(authenticatedUser);
+      return fetchShop();
+    });
+    if (isSessionRecoveryPaused() || getAccountSessionKey(useUserStore.getState().user) !== accountKey) return false;
 
     // Duyệt danh sách wishlist, kiểm tra từng skin có trong shop hôm nay không
     let hit = false;
@@ -137,6 +177,7 @@ export async function checkShop(wishlist: string[]) {
           wishlist[i],
           getVAPILang(),
         );
+        if (isSessionRecoveryPaused() || getAccountSessionKey(useUserStore.getState().user) !== accountKey) return false;
         // Gửi thông báo: có skin yêu thích trong shop
         await Notifications.scheduleNotificationAsync({
           content: {
@@ -155,18 +196,29 @@ export async function checkShop(wishlist: string[]) {
     }
     // Nếu không có skin nào trong wishlist được tìm thấy
     if (!hit) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: i18n.t("wishlist.name"),
-          body: i18n.t("wishlist.notification.no_hit"),
-        },
-        trigger: {
-          channelId: NOTIFICATION_CHANNEL,
-          seconds: 1,
-        },
-      });
+      // FIX (L14): chỉ gửi thông báo "no hit" khi app đang NỀN. App mở,
+      // user tự nhìn thấy shop — thông báo "hôm nay không có" chỉ gây spam
+      // (trước đây thông báo bắn cả khi đang dùng app foreground).
+      const appInForeground = AppState.currentState === "active";
+      if (!appInForeground) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: i18n.t("wishlist.name"),
+            body: i18n.t("wishlist.notification.no_hit"),
+          },
+          trigger: {
+            channelId: NOTIFICATION_CHANNEL,
+            seconds: 1,
+          },
+        });
+      }
     }
+    return true;
   } catch (e) {
+    if (isSessionRecoveryPaused() || isTransientNetworkError(e) || isSessionChangedError(e)) return false;
+    // Cookie hết hạn → cần login tương tác, im lặng chờ flow /reauth thay vì
+    // bắn thông báo lỗi gây hoang mang (auth error KHÔNG phải lỗi hệ thống).
+    if (isReauthenticationRequiredError(e)) return false;
     // Xử lý lỗi: gửi thông báo lỗi
     if (__DEV__) console.log(e);
     await Notifications.scheduleNotificationAsync({
@@ -179,6 +231,7 @@ export async function checkShop(wishlist: string[]) {
         seconds: 1,
       },
     });
+    return false;
   }
 }
 
@@ -213,8 +266,11 @@ export async function initBackgroundFetch() {
     },
     // Callback chính: chạy tác vụ wishlist nền
     async (taskId: string) => {
-      await wishlistBgTask();
-      BackgroundFetch.finish(taskId);
+      try {
+        await wishlistBgTask();
+      } finally {
+        BackgroundFetch.finish(taskId);
+      }
     },
     // Callback timeout: kết thúc task khi hết thời gian
     (taskId: string) => {

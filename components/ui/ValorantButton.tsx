@@ -3,8 +3,9 @@
 // Tích hợp haptic feedback và flow tracking.
 
 import React from "react";
-import { Pressable, Text, StyleSheet, View, StyleProp, ViewStyle, TextStyle } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { ActivityIndicator, Pressable, Text, StyleSheet, View, StyleProp, ViewStyle, TextStyle } from "react-native";
+import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useMotionPreference } from "~/hooks/useMotionPreference";
 import * as Haptics from "expo-haptics";                       // Thư viện rung haptic (cảm ứng vật lý)
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { MOTION_SPRING } from "~/constants/Motion";
@@ -30,6 +31,8 @@ interface ValorantButtonProps {
     style?: StyleProp<ViewStyle>;
     textStyle?: StyleProp<TextStyle>;
     icon?: React.ReactNode;
+    disabled?: boolean;
+    loading?: boolean;
 }
 
 /**
@@ -50,7 +53,11 @@ export default function ValorantButton({
     style,
     textStyle,
     icon,
+    disabled = false,
+    loading = false,
 }: ValorantButtonProps) {
+    const reduceMotion = useMotionPreference();
+    const unavailable = disabled || loading;
     /**
      * handlePress – Xử lý sự kiện nhấn nút.
      * 1. Track sự kiện UI_EVENT qua flowTracer (tên nút, biến thể, source file).
@@ -72,7 +79,7 @@ export default function ValorantButton({
             },
             tool: "Manual",
         });
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
         onPress();
     };
 
@@ -96,6 +103,13 @@ export default function ValorantButton({
         variant === "secondary" ? COLORS.BORDER : "transparent";
 
     const scale = useSharedValue(1);
+    React.useEffect(() => {
+        if (unavailable || reduceMotion) {
+            cancelAnimation(scale);
+            scale.value = 1;
+        }
+        return () => cancelAnimation(scale);
+    }, [reduceMotion, scale, unavailable]);
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
     }));
@@ -104,7 +118,7 @@ export default function ValorantButton({
     const Content = (
         <View style={[styles.contentContainer, { backgroundColor: isGlass ? "rgba(255,70,85, 0.1)" : backgroundColor, borderColor, borderWidth: variant === "secondary" ? 1 : 0 }]}>
             {/* Icon bên trái (nếu có) */}
-            {icon && <View style={styles.iconContainer}>{icon}</View>}
+            {(loading || icon) && <View style={styles.iconContainer}>{loading ? <ActivityIndicator color={variant === "primary" ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY} /> : icon}</View>}
             {/* Chữ trên nút – màu phụ thuộc variant */}
             <Text
                 style={[
@@ -126,20 +140,23 @@ export default function ValorantButton({
     );
 
     return (
-        <Animated.View style={animatedStyle}>
             <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: unavailable, busy: loading }}
+                disabled={unavailable}
                 onPress={handlePress}
                 onPressIn={() => {
-                    scale.value = withSpring(0.96, MOTION_SPRING.press);
+                    scale.value = reduceMotion ? 1 : withSpring(0.96, MOTION_SPRING.press);
                 }}
                 onPressOut={() => {
                     scale.value = withSpring(1, MOTION_SPRING.settle);
                 }}
-                style={[styles.container, style]}
+                style={[styles.container, style, unavailable && { opacity: 0.5 }]}
             >
+              <Animated.View style={animatedStyle}>
                 {Content}
+              </Animated.View>
             </Pressable>
-        </Animated.View>
     );
 }
 

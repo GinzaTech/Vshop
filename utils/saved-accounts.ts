@@ -1,4 +1,15 @@
+import type { RiotAuthCookie } from "./cookies";
+
 export const MAX_SAVED_ACCOUNTS = 6;
+
+/** Missing expiry denotes a session cookie; native storage decides its validity. */
+export const hasUnexpiredAuthCookies = (cookies: readonly RiotAuthCookie[], now = Date.now()) =>
+  cookies.some((cookie) => {
+      // Anti-bot/tracking cookies can outlive the Riot login session.
+      if (cookie.name !== "ssid" || !cookie.value) return false;
+    const expiresAt = cookie.expires ? Date.parse(cookie.expires) : NaN;
+    return !Number.isFinite(expiresAt) || expiresAt > now;
+  });
 
 export type AccountSessionSource = {
   id: string;
@@ -20,6 +31,7 @@ export type SavedAccount = {
   accessToken: string;
   idToken: string;
   entitlementsToken: string;
+  authCookies?: RiotAuthCookie[];
   lastUsedAt: number;
 };
 
@@ -49,7 +61,8 @@ export const isSavableAccount = (
 
 export const toSavedAccount = (
   user: AccountSessionSource,
-  lastUsedAt: number
+  lastUsedAt: number,
+  authCookies?: readonly RiotAuthCookie[]
 ): SavedAccount => ({
   id: user.id,
   name: user.name,
@@ -58,8 +71,33 @@ export const toSavedAccount = (
   accessToken: user.accessToken,
   idToken: user.idToken,
   entitlementsToken: user.entitlementsToken,
+  ...(authCookies ? { authCookies: [...authCookies] } : {}),
   lastUsedAt,
 });
+
+const authCookiesEqual = (
+  left?: readonly RiotAuthCookie[],
+  right?: readonly RiotAuthCookie[]
+) => {
+  if (left === right) return true;
+  if (!left || !right || left.length !== right.length) return false;
+
+  return left.every((cookie, index) => {
+    const next = right[index];
+    return (
+      Boolean(next) &&
+      cookie.name === next.name &&
+      cookie.value === next.value &&
+      cookie.path === next.path &&
+      cookie.domain === next.domain &&
+      cookie.version === next.version &&
+      cookie.expires === next.expires &&
+      cookie.secure === next.secure &&
+      cookie.httpOnly === next.httpOnly &&
+      cookie.sameSite === next.sameSite
+    );
+  });
+};
 
 export const upsertSavedAccount = (
   accounts: SavedAccount[],
@@ -68,6 +106,7 @@ export const upsertSavedAccount = (
     now: number;
     touch?: boolean;
     maxAccounts?: number;
+    authCookies?: readonly RiotAuthCookie[];
   }
 ): SavedAccount[] => {
   if (!isSavableAccount(user)) return accounts;
@@ -79,7 +118,8 @@ export const upsertSavedAccount = (
   const lastUsedAt = options.touch
     ? options.now
     : existing?.lastUsedAt ?? options.now;
-  const nextAccount = toSavedAccount(user, lastUsedAt);
+  const authCookies = options.authCookies ?? existing?.authCookies;
+  const nextAccount = toSavedAccount(user, lastUsedAt, authCookies);
 
   if (
     existing &&
@@ -89,6 +129,7 @@ export const upsertSavedAccount = (
     existing.accessToken === nextAccount.accessToken &&
     existing.idToken === nextAccount.idToken &&
     existing.entitlementsToken === nextAccount.entitlementsToken &&
+    authCookiesEqual(existing.authCookies, nextAccount.authCookies) &&
     existing.lastUsedAt === nextAccount.lastUsedAt
   ) {
     return accounts;

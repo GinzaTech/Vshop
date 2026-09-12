@@ -1,6 +1,8 @@
 import {
   getHttpStatus,
   getRequestUrl,
+  getRequestAccessToken,
+  isCurrentSessionAuthFailure,
   isRiotAuthenticationError,
   isTransientNetworkError,
   notifySessionAuthFailure,
@@ -8,6 +10,12 @@ import {
 } from "~/utils/session-events";
 
 describe("session event classification", () => {
+  test("ignores delayed auth failures from a superseded bearer token", () => {
+    const accessToken = getRequestAccessToken({ config: { headers: { Authorization: "Bearer old-token" } } });
+    expect(accessToken).toBe("old-token");
+    expect(isCurrentSessionAuthFailure({ status: 401, url: "https://pd.ap.a.pvp.net", accessToken }, "new-token")).toBe(false);
+    expect(isCurrentSessionAuthFailure({ status: 401, url: "https://pd.ap.a.pvp.net", accessToken }, "old-token")).toBe(true);
+  });
   test("extracts HTTP status and request URL", () => {
     const error = {
       config: { url: "https://fallback.example" },
@@ -44,6 +52,11 @@ describe("session event classification", () => {
     [403, "https://pd.ap.a.pvp.net/store/v3/storefront/user"],
     [401, "https://example.com/private"],
     [500, "https://auth.riotgames.com/api/v1/authorization"],
+    [401, "https://auth.riotgames.com.attacker.test/private"],
+    [401, "https://example.com/?next=https://auth.riotgames.com"],
+    [401, "https://auth.riotgames.com@example.com/private"],
+    [401, "http://auth.riotgames.com/api/v1/authorization"],
+    [401, "https://example.com/path/.a.pvp.net"],
   ])("does not misclassify HTTP %s for %s", (status, url) => {
     expect(
       isRiotAuthenticationError({ response: { status, config: { url } } })

@@ -15,10 +15,12 @@ import { getNetworkProfile } from "./network";
 import { getAccountSessionKey } from "./saved-accounts";
 
 // ===== Base TTL (milliseconds) =====
+// Ghi chú: `matches` phải bằng MATCH_CACHE_TTL_MS trong useMatchStore (30 phút)
+// để tránh tình trạng app-sync báo stale nhưng store lại no-op do TTL riêng.
 const BASE_TTL = {
   shop: 6 * 60 * 60 * 1000,
   balances: 60 * 60 * 1000,
-  matches: 5 * 60 * 1000,
+  matches: 30 * 60 * 1000,
   profile: 5 * 60 * 1000,
   leaderboard: 30 * 60 * 1000,
   contracts: 30 * 60 * 1000,
@@ -50,6 +52,28 @@ type AccountSyncState = Record<SyncSource, number>;
 
 const accountSyncStates = new Map<string, AccountSyncState>();
 const shopBalancesInFlight = new Map<string, Promise<void>>();
+
+// ===== Full-sync registry (chống sync chồng sync) =====
+// syncAllData (data-sync.ts) đăng ký accountKey đang sync full tại đây.
+// refreshShopAndBalances đọc registry này để nhường đường — nếu full sync đang
+// chạy cho cùng account thì shop/balances sắp được ghi bởi sync đó rồi,
+// không được fetch đè song song (tránh double request + stale-overwrite).
+const fullSyncInFlight = new Set<string>();
+
+/** Đăng ký bắt đầu full sync cho một account (data-sync gọi) */
+export function beginFullSync(accountKey: string): void {
+  fullSyncInFlight.add(accountKey);
+}
+
+/** Gỡ đăng ký khi full sync kết thúc (thành công hay thất bại) */
+export function endFullSync(accountKey: string): void {
+  fullSyncInFlight.delete(accountKey);
+}
+
+/** Full sync cho account này có đang chạy không? */
+export function isFullSyncInFlight(accountKey: string): boolean {
+  return fullSyncInFlight.has(accountKey);
+}
 
 const createAccountSyncState = (): AccountSyncState => ({
   shop: 0,
@@ -85,6 +109,13 @@ export const getLastSync = (key: "shop" | "balances" | "matches") => {
  * refreshShopAndBalances — Refresh shop + balances + progress trong nền.
  * Chỉ chạy khi data stale (TTL) hoặc force=true.
  * Không throw — lỗi được nuốt im lặng.
+ *
+ * Guards:
+ * - Nếu full sync (syncAllData) đang chạy cho cùng account → bỏ qua,
+ *   vì shop/balances sẽ được ghi bởi sync đó (chống fetch trùng + stale-overwrite).
+ * - Trước khi ghi store, kiểm tra lại token: nếu token đã được renew
+ *   trong lúc fetch chạy thì KHÔNG ghi (tránh đè token mới bằng token cũ
+ *   đã hết hạn — nguyên nhân từng gây vòng lặp 401 sau khi renew).
  */
 export async function refreshShopAndBalances(force = false): Promise<void> {
   const store = useUserStore.getState();
@@ -95,6 +126,12 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
   }
 
   const accountKey = getAccountSessionKey(user);
+
+  // Full sync đang chạy cho account này → nhường, không fetch đè
+  if (isFullSyncInFlight(accountKey)) {
+    return;
+  }
+
   const existingRequest = shopBalancesInFlight.get(accountKey);
   if (existingRequest) return existingRequest;
 
@@ -115,7 +152,14 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
 
         const shops = await parseShop(shop, user.shops.bundles);
         const currentUser = useUserStore.getState().user;
-        if (getAccountSessionKey(currentUser) !== accountKey) {
+        // Guard ghi store: account phải không đổi VÀ token phải còn là token
+        // đã dùng cho request này. Nếu token đã bị renew giữa chừng, dữ liệu
+        // này (và đặc biệt là spread ...currentUser chứa token cũ) không được
+        // phép ghi đè session mới.
+        if (
+          getAccountSessionKey(currentUser) !== accountKey ||
+          currentUser.accessToken !== user.accessToken
+        ) {
           return;
         }
         store.setUser({

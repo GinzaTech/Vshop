@@ -8,12 +8,17 @@ import {
   upsertSavedAccount,
 } from "~/utils/saved-accounts";
 import { secureAppStorage } from "~/utils/storage";
+import type { RiotAuthCookie } from "~/utils/cookies";
 
 interface AccountState {
   accounts: SavedAccount[];
   activeAccountId: string | null;
   hydrated: boolean;
-  saveAccount: (user: AccountSessionSource, makeActive?: boolean) => void;
+  saveAccount: (
+    user: AccountSessionSource,
+    makeActive?: boolean,
+    authCookies?: readonly RiotAuthCookie[]
+  ) => void;
   activateAccount: (accountId: string) => void;
   removeAccount: (accountId: string) => void;
   clearAccounts: () => void;
@@ -26,11 +31,12 @@ export const useAccountStore = create<AccountState>()(
       accounts: [],
       activeAccountId: null,
       hydrated: false,
-      saveAccount: (user, makeActive = false) =>
+      saveAccount: (user, makeActive = false, authCookies) =>
         set((state) => {
           const accounts = upsertSavedAccount(state.accounts, user, {
             now: Date.now(),
             touch: makeActive,
+            authCookies,
           });
           const activeAccountId =
             makeActive || !state.activeAccountId

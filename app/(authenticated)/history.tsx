@@ -1,7 +1,7 @@
 // ===== Import thư viện =====
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { FlatList, LayoutAnimation, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,7 @@ import { MATCH_COLORS, MATCH_LAYOUT, MATCH_RADIUS, MATCH_SPACING } from "~/const
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { useUserStore } from "~/hooks/useUserStore";
+import { getSessionAuthKey } from "~/utils/profile-cache";
 import { mockMatchHistory } from "~/mocks/match-ui";
 import type { DailyMatchSummary, MatchHistoryItem, MatchHistoryRecord } from "~/types/match-ui";
 import { buildMatchHistoryGroups } from "~/utils/match-ui";
@@ -77,7 +78,9 @@ export default function MatchHistoryScreen() {
   const [refreshing, setRefreshing] = React.useState(false);  // State refresh
 
   // Profile cache
-  const authKey = user.region && user.id ? `${user.region}|${user.id}` : "guest";
+  // FIX (L3): dùng getSessionAuthKey chuẩn hóa (lowercase) thay vì nối chuỗi
+  // thô — khớp key khi lưu vào useProfileCacheStore ở mọi layer.
+  const authKey = getSessionAuthKey(user);
   const cachedProfile = useProfileCacheStore((state) => state.cacheByAuth[authKey]);
 
   const sourceMatches = isDemo ? mockMatchHistory : matches;  // Nguồn dữ liệu (thật hoặc mock)
@@ -110,7 +113,6 @@ export default function MatchHistoryScreen() {
     if (isDemo) return;
     setRefreshing(true);
     try {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       await fetchMatches(user, true);
     }
     finally { setRefreshing(false); }
@@ -119,7 +121,6 @@ export default function MatchHistoryScreen() {
   // loadMore: tải thêm match history (khi scroll gần cuối)
   const loadMore = React.useCallback(() => {
     if (!isDemo && !loading && !hydrating) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       void hydrateNextMatches(user);
     }
   }, [hydrateNextMatches, hydrating, isDemo, loading, user]);

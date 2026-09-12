@@ -1,5 +1,7 @@
 // Import UUID các loại vật phẩm từ misc
 import { VItemTypes } from "./misc";
+// Import hàm tạo session key chuẩn hóa (lowercase region + id) dùng chung toàn app
+import { getAccountSessionKey } from "./saved-accounts";
 // Import các hàm và kiểu từ module valorant-api
 import {
   CompetitiveMMRResponse,
@@ -76,6 +78,39 @@ export const PROFILE_RANK_CACHE_VERSION = 11;
 const profileWarmupInFlight = new Map<string, Promise<ProfileWarmCache | null>>();
 const profileWarmupCache = new Map<string, ProfileWarmCache>();
 
+// Trần số account giữ trong warm cache in-memory (fix L12). Trước đây map
+// không bao giờ được dọn: mỗi account từng đăng nhập trong session chiếm 1
+// slot vĩnh viễn (chứa cả loadout snapshot) và có thể diverge với persisted
+// store (giữ 3 entry). 6 slot là đủ cho đa số phiên dùng.
+const MAX_WARM_CACHE_ACCOUNTS = 6;
+
+/**
+ * Giới hạn số entry của profileWarmupCache theo updatedAt (mới nhất giữ lại).
+ */
+function evictWarmCacheIfOverflow() {
+  if (profileWarmupCache.size <= MAX_WARM_CACHE_ACCOUNTS) return;
+  const entries = [...profileWarmupCache.entries()].sort(
+    ([, left], [, right]) => right.updatedAt - left.updatedAt
+  );
+  for (const [key] of entries.slice(MAX_WARM_CACHE_ACCOUNTS)) {
+    profileWarmupCache.delete(key);
+  }
+}
+
+/**
+ * clearProfileWarmupCache - Xoá warm cache in-memory.
+ * @param authKey - Xoá đúng 1 account; bỏ qua tham số để xoá toàn bộ.
+ * Dùng khi sign-out / switch account để dữ liệu account cũ không chiếm chỗ
+ * và không bị nhầm sang session kế tiếp.
+ */
+export function clearProfileWarmupCache(authKey?: string) {
+  if (authKey) {
+    profileWarmupCache.delete(authKey);
+  } else {
+    profileWarmupCache.clear();
+  }
+}
+
 /**
  * FALLBACK_COMPETITIVE_TIER_NAMES - Bảng tên thứ hạng dự phòng khi không lấy được từ API
  * Key là số thứ hạng (tier), value là tên hiển thị
@@ -130,13 +165,14 @@ type CompetitiveQueueSkill = {
 
 /**
  * getSessionAuthKey - Tạo khóa định danh duy nhất cho session của user
+ * Delegate về getAccountSessionKey để TOÀN BỘ app dùng chung một quy ước
+ * normalize (lowercase region + id). Trước đây hàm này tự nối chuỗi thô —
+ * nếu region/id chứa chữ hoa thì cache lookup sẽ âm thầm miss giữa các layer.
  * @param {typeof defaultUser} user - Đối tượng user
  * @returns {string} Khóa authKey dạng "region|id", hoặc "guest" nếu không có region/id
  */
 export const getSessionAuthKey = (user: typeof defaultUser) =>
-  user.region && user.id
-    ? [user.region, user.id].join("|")
-    : "guest";
+  getAccountSessionKey(user);
 
 /**
  * isProfileCacheFresh - Kiểm tra cache profile còn hạn sử dụng hay không
@@ -150,17 +186,25 @@ export const isProfileCacheFresh = (
 ) => Boolean(cache?.updatedAt && Date.now() - cache.updatedAt < ttl);
 
 /**
- * hasValidCompetitiveRankCache - Kiểm tra cache thứ hạng còn hợp lệ không
- * @param {Pick<ProfileWarmCache, "competitiveRank" | "rankCacheVersion"> | null | undefined} cache - Cache thứ hạng cần kiểm tra
- * @returns {boolean} true nếu cache hợp lệ (đúng version và có dữ liệu)
+ * hasValidCompetitiveRankCache - Kiểm tra bản ghi thứ hạng trong cache còn
+ * ĐÚNG PHIÊN BẢN SCHEMA không.
+ *
+ * Semantics QUAN TRỌNG (fix H1): "valid" nghĩa là chúng ta ĐÃ từng fetch rank
+ * cho session này và dữ liệu được lưu đúng version — kể cả khi kết quả là
+ * `competitiveRank: null` (tài khoản chưa xếp hạng). Trước đây hàm đòi hỏi
+ * phải có tier data, khiến account không rank bị coi là "chưa có cache" và
+ * Profile re-fetch toàn bộ loadout + ownership + MMR ở MỖI lần khởi động.
+ * Với semantics mới: null rank là một kết quả được cache hợp lệ.
+ *
+ * Caller cần dữ liệu rank để HIỂN THỊ nên đọc `cache.competitiveRank` trực
+ * tiếp (null/undefined khi không có hạng) — không dựa vào hàm này.
+ *
+ * @param cache - Cache thứ hạng cần kiểm tra
+ * @returns true nếu cache đúng version schema (đã có bản ghi rank)
  */
 export const hasValidCompetitiveRankCache = (
   cache?: Pick<ProfileWarmCache, "competitiveRank" | "rankCacheVersion"> | null
-) =>
-  Boolean(
-    cache?.rankCacheVersion === PROFILE_RANK_CACHE_VERSION &&
-      (cache.competitiveRank?.currentTier || cache.competitiveRank?.peakTier)
-  );
+) => Boolean(cache?.rankCacheVersion === PROFILE_RANK_CACHE_VERSION);
 
 /**
  * hasValidProfileLoadoutCache - Kiểm tra cache loadout còn hợp lệ không
@@ -497,14 +541,21 @@ export async function fetchCompetitiveRankSummary(
 /**
  * fetchProfileWarmCacheInternal - Fetch tất cả dữ liệu cần để làm nóng cache profile (nội bộ)
  * Bao gồm: loadout, danh sách vật phẩm đã sở hữu, thứ hạng competitive
- * @param {typeof defaultUser} user - Đối tượng user
- * @returns {Promise<ProfileWarmCache | null>} Promise trả về ProfileWarmCache hoặc null nếu thiếu thông tin xác thực
+ *
+ * @param user - Đối tượng user
+ * @param options - force: bỏ qua TTL cache nội bộ của từng API con
+ * @returns Promise<ProfileWarmCache | null> - Cache hoặc null nếu thiếu thông tin xác thực
  */
-async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
+async function fetchProfileWarmCacheInternal(
+  user: typeof defaultUser,
+  options: RiotPlayerRequestOptions = {}
+) {
   // Kiểm tra thông tin xác thực
   if (!user.accessToken || !user.entitlementsToken || !user.region || !user.id) {
     return null;
   }
+
+  const authKey = getSessionAuthKey(user);
 
   // Gọi song song: loadout, ownership (6 loại vật phẩm), và thứ hạng
   const [loadoutSnapshot, ownershipResults, competitiveRank] = await Promise.all([
@@ -512,7 +563,8 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
       user.accessToken,
       user.entitlementsToken,
       user.region,
-      user.id
+      user.id,
+      options
     ).catch(() => null),
     // Dùng allSettled để không bị fail nếu một API bị lỗi
     Promise.allSettled([
@@ -523,19 +575,32 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
       ownedItems(user.accessToken, user.entitlementsToken, user.region, user.id, VItemTypes.PlayerCard),
       ownedItems(user.accessToken, user.entitlementsToken, user.region, user.id, VItemTypes.PlayerTitle),
     ]),
-    fetchCompetitiveRankSummary(user).catch(() => null),
+    fetchCompetitiveRankSummary(user, options).catch(() => null),
   ]);
 
-  // Tập hợp danh sách vật phẩm đã sở hữu từ các kết quả
-  const ownedSkinIds = new Set<string>(user.ownedSkinIds ?? []);
-  const ownedSprayIds = new Set<string>();
-  const ownedFlexIds = new Set<string>();
-  const ownedPlayerCardIds = new Set<string>();
-  const ownedPlayerTitleIds = new Set<string>();
+  // FIX (M3): seed danh sách sở hữu từ CACHE TRƯỚC ĐÓ thay vì seed rỗng.
+  // Trước đây nếu 1/6 call ownership lỗi transient, danh sách tương ứng bị
+  // ghi thành rỗng rồi persist → 5 phút sau UI tưởng user không sở hữu item.
+  // Union với cache cũ: kết quả fetch thành công sẽ bổ sung ID mới; kết quả
+  // lỗi thì giữ nguyên ID cũ (Valorant không thu hồi item nên union là an toàn,
+  // cách làm này cũng trùng khớp với ownedSkinIds vốn đã seed từ user store).
+  const previousCache = profileWarmupCache.get(authKey);
+  const ownedSkinIds = new Set<string>([
+    ...(user.ownedSkinIds ?? []),
+    ...(previousCache?.ownedSkinItemIds ?? []),
+  ]);
+  const ownedSprayIds = new Set<string>(previousCache?.ownedSprayItemIds ?? []);
+  const ownedFlexIds = new Set<string>(previousCache?.ownedFlexItemIds ?? []);
+  const ownedPlayerCardIds = new Set<string>(
+    previousCache?.ownedPlayerCardItemIds ?? []
+  );
+  const ownedPlayerTitleIds = new Set<string>(
+    previousCache?.ownedPlayerTitleItemIds ?? []
+  );
 
   ownershipResults.forEach((result, index) => {
     if (result.status !== "fulfilled") {
-      return; // Bỏ qua nếu API bị lỗi
+      return; // Bỏ qua nếu API bị lỗi — cache cũ đã seed sẵn ở trên
     }
 
     extractOwnedItemIds(result.value).forEach((itemId) => {
@@ -557,7 +622,7 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
 
   // Xây dựng đối tượng cache
   const cache: ProfileWarmCache = {
-    authKey: getSessionAuthKey(user),
+    authKey,
     loadoutSnapshot,
     loadoutCacheVersion: PROFILE_LOADOUT_CACHE_VERSION,
     ownedSkinItemIds: Array.from(ownedSkinIds),
@@ -566,6 +631,8 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
     ownedPlayerCardItemIds: Array.from(ownedPlayerCardIds),
     ownedPlayerTitleItemIds: Array.from(ownedPlayerTitleIds),
     competitiveRank,
+    // Luôn stamp version — kể cả khi competitiveRank là null (tài khoản chưa
+    // xếp hạng). Version là "chứng nhận đã fetch", không phải "có dữ liệu".
     rankCacheVersion: PROFILE_RANK_CACHE_VERSION,
     updatedAt: Date.now(),
   };
@@ -575,9 +642,12 @@ async function fetchProfileWarmCacheInternal(user: typeof defaultUser) {
 
 /**
  * fetchProfileWarmCache - Fetch profile warm cache với cơ chế chống gọi trùng lặp
- * Nếu đã có request đang chạy cho authKey này, trả về Promise đang chạy thay vì gọi mới
- * @param {typeof defaultUser} user - Đối tượng user
- * @returns {Promise<ProfileWarmCache | null>} Promise trả về ProfileWarmCache hoặc null
+ *
+ * @param user - Đối tượng user
+ * @param options - force: bỏ qua TTL 5 phút của warm cache và TTL của các
+ *   API con (loadout/MMR). Trước đây options bị bỏ qua — caller "ép làm mới"
+ *   nhận về dữ liệu cũ tới 5 phút mà không hay biết (fix L1).
+ * @returns Promise<ProfileWarmCache | null> - Cache hoặc null
  */
 export async function fetchProfileWarmCache(
   user: typeof defaultUser,
@@ -594,24 +664,29 @@ export async function fetchProfileWarmCache(
     return cached;
   }
 
-  // Kiểm tra nếu đã có Promise đang chạy cho authKey này
-  const existingPromise = profileWarmupInFlight.get(authKey);
+  // In-flight key PHẢI phân biệt force/cached: một caller force không được
+  // join promise của request non-force (nếu join thì "force" nhận về dữ liệu
+  // cũ đang chạy). Hai request song song là chấp nhận được (tình huống hiếm).
+  const inFlightKey = `${authKey}|${options.force ? "force" : "cached"}`;
+  const existingPromise = profileWarmupInFlight.get(inFlightKey);
   if (existingPromise) {
     return existingPromise;
   }
 
   // Tạo request mới và lưu vào Map
-  const request = fetchProfileWarmCacheInternal(user)
+  const request = fetchProfileWarmCacheInternal(user, options)
     .then((cache) => {
       if (cache) {
         profileWarmupCache.set(authKey, cache);
+        // FIX (L12): giữ map trong giới hạn, ưu tiên entry mới nhất
+        evictWarmCacheIfOverflow();
       }
       return cache;
     })
     .finally(() => {
-      profileWarmupInFlight.delete(authKey);
+      profileWarmupInFlight.delete(inFlightKey);
     });
 
-  profileWarmupInFlight.set(authKey, request);
+  profileWarmupInFlight.set(inFlightKey, request);
   return request;
 }

@@ -159,7 +159,7 @@ export async function getProgress(
 // Returns: Promise<AxiosResponse> chứa URI xác thực
 export const reAuth = (version: string) =>
   axios.request({
-    url: "https://auth.riotgames.com/api/v1/authorization",
+    url: buildRiotApiUrl({ name: "auth" }),
     method: "POST",
     headers: {
       "User-Agent": `RiotClient/${version} rso-auth (Windows; 10;;Professional, x64)`,

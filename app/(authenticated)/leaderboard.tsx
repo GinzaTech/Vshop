@@ -102,6 +102,26 @@ export default function LeaderboardScreen() {
   );
   const leaderboardRequestId = React.useRef(0);
 
+  // FIX (M9): credentials đọc qua ref thay vì closure — trước đây
+  // fetchLeaderboard phụ thuộc toàn bộ object `user` nên bị tái tạo (và effect
+  // init re-run getContent + leaderboard) MỖI lần setUser chạy nền (balance
+  // tick, sync). Giờ effect chỉ re-run khi có/không có credentials.
+  const credentialsRef = React.useRef({
+    accessToken: user.accessToken,
+    entitlementsToken: user.entitlementsToken,
+    region: user.region,
+  });
+  React.useEffect(() => {
+    credentialsRef.current = {
+      accessToken: user.accessToken,
+      entitlementsToken: user.entitlementsToken,
+      region: user.region,
+    };
+  }, [user.accessToken, user.entitlementsToken, user.region]);
+  const hasCredentials = Boolean(
+    user.accessToken && user.entitlementsToken && user.region
+  );
+
   /**
    * fetchLeaderboard – Gọi API lấy dữ liệu bảng xếp hạng theo seasonId
    * @param seasonId – ID của mùa giải cần lấy
@@ -110,16 +130,17 @@ export default function LeaderboardScreen() {
     async (seasonId: string, options: { showLoading?: boolean } = {}) => {
       const { showLoading = true } = options;
       const requestId = ++leaderboardRequestId.current;
-      if (!user.accessToken || !user.entitlementsToken || !user.region) {
+      const { accessToken, entitlementsToken, region } = credentialsRef.current;
+      if (!accessToken || !entitlementsToken || !region) {
         if (showLoading) setLoading(false);
         return;
       }
       if (showLoading) setLoading(true);
       try {
         const data = await getLeaderboard(
-          user.accessToken,
-          user.entitlementsToken,
-          user.region,
+          accessToken,
+          entitlementsToken,
+          region,
           seasonId,
           { startIndex: 0, size: 100 }
         );
@@ -127,33 +148,35 @@ export default function LeaderboardScreen() {
         if (data) {
           setPlayers(data.Players ?? []);
           setTotalPlayers(data.totalPlayers ?? 0);
-        } else {
-          setPlayers([]);
-          setTotalPlayers(0);
         }
+        // FIX (M9): khi API trả null/fail, GIỮ danh sách đang hiển thị
+        // (stale-while-error) thay vì setPlayers([]) — trước đây một lỗi
+        // mạng transient biến bảng xếp hạng thành "không có kết quả" dù
+        // dữ liệu cũ vẫn đáng tin. UI loading state vẫn báo đúng trạng thái.
       } catch (err) {
         if (requestId !== leaderboardRequestId.current) return;
         if (__DEV__) console.error("Failed to fetch leaderboard:", err);
-        setPlayers([]);
-        setTotalPlayers(0);
       } finally {
         if (showLoading && requestId === leaderboardRequestId.current) {
           setLoading(false);
         }
       }
     },
-    [user]
+    []
   );
 
   // Effect: Lấy danh sách mùa giải (season) và tải leaderboard mặc định
+  // FIX (M9): deps chỉ dựa vào `hasCredentials` (primitive) + callback ổn định
+  // — không còn re-init mỗi lần user identity đổi.
   React.useEffect(() => {
     const init = async () => {
-      if (!user.accessToken || !user.entitlementsToken || !user.region) return;
+      const { accessToken, entitlementsToken, region } = credentialsRef.current;
+      if (!accessToken || !entitlementsToken || !region) return;
       try {
         const content = await getContent(
-          user.accessToken,
-          user.entitlementsToken,
-          user.region
+          accessToken,
+          entitlementsToken,
+          region
         );
         if (content) {
           // Hiển thị toàn bộ Act đã bắt đầu, mới nhất trước.
@@ -176,7 +199,7 @@ export default function LeaderboardScreen() {
       }
     };
     init();
-  }, [user, fetchLeaderboard]);
+  }, [fetchLeaderboard, hasCredentials]);
 
   // Effect: Nếu chưa có tierLookup, fetch competitive tiers từ API
   React.useEffect(() => {

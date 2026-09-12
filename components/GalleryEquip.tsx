@@ -4,7 +4,7 @@
 import React, { type ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import { useReducedMotion } from "react-native-reanimated";
+import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 
 import {
   buildEquipDisplayList,

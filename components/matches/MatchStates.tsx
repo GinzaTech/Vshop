@@ -1,5 +1,6 @@
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
+import { useMotionPreference } from "~/hooks/useMotionPreference";
 import {
   Animated,
   Easing,
@@ -28,7 +29,9 @@ let shimmerSubscriberCount = 0;
  * execute during Expo web SSR where requestAnimationFrame does not exist.
  */
 const useSharedShimmerLoop = () => {
+  const reduceMotion = useMotionPreference();
   React.useEffect(() => {
+    if (reduceMotion) return;
     shimmerSubscriberCount += 1;
 
     if (!shimmerLoop) {
@@ -39,6 +42,7 @@ const useSharedShimmerLoop = () => {
           duration: 1200,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: Platform.OS !== "web",
+          isInteraction: false,
         })
       );
       shimmerLoop.start();
@@ -52,7 +56,7 @@ const useSharedShimmerLoop = () => {
         shimmerValue.setValue(0);
       }
     };
-  }, []);
+  }, [reduceMotion]);
 };
 
 type MatchStatePanelProps = {

@@ -15,6 +15,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   PanResponder,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -28,12 +29,12 @@ import Animated, {
   interpolateColor,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withTiming,
   Easing,
   ReduceMotion,
 } from "react-native-reanimated";
+import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import { ActivityIndicator, Searchbar, useTheme } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
@@ -58,6 +59,7 @@ import {
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useUserStore } from "~/hooks/useUserStore";
+import { getSessionGeneration } from "~/utils/session-operations";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import {
   extractOwnedItemIds,
@@ -112,7 +114,6 @@ import {
   ProfileIdentitySection,
 } from "~/features/profile/ProfileEquipmentSections";
 import {
-  delay,
   formatOneDecimal,
   formatPercentage,
   getProfileWeaponOrderIndex,
@@ -132,6 +133,7 @@ import {
   type PendingLoadoutUpdate,
   type PickerState,
 } from "~/features/profile/profile-loadout";
+import { confirmProfileLoadout } from "~/features/profile/confirm-loadout";
 
 type ProfileListRow =
     | { key: "identity"; kind: "identity" }
@@ -437,6 +439,15 @@ function Profile() {
   );
   const rankRefreshAuthKeyRef = React.useRef<string | null>(null);
   const fetchLoadoutInFlightRef = React.useRef(false);
+
+  // ─── Refs dữ liệu phiên (fix M6): fetchLoadoutData đọc qua ref, không phụ
+  // thuộc identity `user` → callback ổn định, effect không re-arm khi setUser nền.
+  const sessionUserRef = React.useRef(user);
+  React.useEffect(() => { sessionUserRef.current = user; }, [user]);
+  const competitiveRankRef = React.useRef(competitiveRank);
+  React.useEffect(() => { competitiveRankRef.current = competitiveRank; }, [competitiveRank]);
+  const cachedCompetitiveRankRef = React.useRef(cachedCompetitiveRank);
+  React.useEffect(() => { cachedCompetitiveRankRef.current = cachedCompetitiveRank; }, [cachedCompetitiveRank]);
 
   // ─── Palette màu (tính toán từ theme) ─────────────────────────────────────
   const palette = React.useMemo(
@@ -1036,27 +1047,37 @@ function Profile() {
   }, [cachedCompetitiveRank, cachedLoadoutSnapshot, cachedProfile, hasAuth, syncLoadoutState, user.ownedSkinIds]);
 
   /**
-   * fetchLoadoutData — Hàm chính để fetch toàn bộ dữ liệu profile từ API.
+   * fetchLoadoutData — Fetch profile (loadout + ownership + rank), có
+   * optimistic update (ưu tiên pendingLoadout khi đang equip).
+   * FIX (M6): dữ liệu phiên đọc qua REF → deps chỉ còn setter ổn định, callback
+   * không tái tạo mỗi lần setUser nền. FIX (M8): FORCE (PTR) bypass in-flight.
    *
-   * Quy trình:
-   * 1. Gọi playerLoadout() để lấy loadout hiện tại.
-   * 2. Đồng bộ loadout ngay (render ngay khi có response).
-   * 3. Song song fetch: ownedItems (6 loại) + competitive rank.
-   * 4. Xử lý kết quả ownership, cập nhật danh sách sở hữu.
-   * 5. Lưu vào profile cache.
-   *
-   * Có cơ chế optimistic update: nếu có pendingLoadout, ưu tiên hiển thị
-   * loadout đã chỉnh sửa thay vì loadout từ server.
-   *
-   * @param {boolean} [showSpinner=true] - Hiển thị spinner loading?
-   * @param {boolean} [forceRefresh=false] - Bỏ qua cache kết quả đã resolve?
+   * @param showSpinner - Hiển thị spinner loading?
+   * @param forceRefresh - Bỏ qua cache kết quả đã resolve?
    */
   const fetchLoadoutData = React.useCallback(
       async (showSpinner = true, forceRefresh = false) => {
-        if (!hasAuth) return;
-        if (fetchLoadoutInFlightRef.current) return;
+        // Đọc snapshot phiên MỚI NHẤT tại thời điểm bắt đầu request (fix M6)
+        const currentUser = sessionUserRef.current;
+        const sessionAuthKey = getSessionAuthKey(currentUser);
+        const hasAuthNow = Boolean(
+            currentUser.accessToken &&
+            currentUser.entitlementsToken &&
+            currentUser.region &&
+            currentUser.id
+        );
+        if (!hasAuthNow) return;
+        // Guard in-flight: request thường bị chặn, FORCE (PTR) đi tiếp (M8)
+        if (fetchLoadoutInFlightRef.current && !forceRefresh) return;
 
         fetchLoadoutInFlightRef.current = true;
+        const generation = getSessionGeneration();
+        const isCurrentRequest = () => {
+          const latest = useUserStore.getState().user;
+          return generation === getSessionGeneration() &&
+            getSessionAuthKey(latest) === sessionAuthKey &&
+            latest.accessToken === currentUser.accessToken;
+        };
 
         if (showSpinner) {
           setLoading(true);
@@ -1066,19 +1087,20 @@ function Profile() {
         try {
           const mutationVersionAtRequest = loadoutMutationVersionRef.current;
           const response = await playerLoadout(
-              user.accessToken,
-              user.entitlementsToken,
-              user.region,
-              user.id,
+              currentUser.accessToken,
+              currentUser.entitlementsToken,
+              currentUser.region,
+              currentUser.id,
               { force: forceRefresh }
           );
+          if (!isCurrentRequest()) return;
 
           if (!response) {
             if (loadoutSnapshotRef.current) {
               syncLoadoutState(loadoutSnapshotRef.current);
             }
             setCompetitiveRank(
-                competitiveRank ?? cachedCompetitiveRank
+                competitiveRankRef.current ?? cachedCompetitiveRankRef.current
             );
             return;
           }
@@ -1120,49 +1142,49 @@ function Profile() {
           const [ownershipResults, nextCompetitiveRank] = await Promise.all([
             Promise.allSettled([
               ownedItems(
-                  user.accessToken,
-                  user.entitlementsToken,
-                  user.region,
-                  user.id,
+                  currentUser.accessToken,
+                  currentUser.entitlementsToken,
+                  currentUser.region,
+                  currentUser.id,
                   VItemTypes.SkinLevel
               ),
               ownedItems(
-                  user.accessToken,
-                  user.entitlementsToken,
-                  user.region,
-                  user.id,
+                  currentUser.accessToken,
+                  currentUser.entitlementsToken,
+                  currentUser.region,
+                  currentUser.id,
                   VItemTypes.SkinChroma
               ),
               ownedItems(
-                  user.accessToken,
-                  user.entitlementsToken,
-                  user.region,
-                  user.id,
+                  currentUser.accessToken,
+                  currentUser.entitlementsToken,
+                  currentUser.region,
+                  currentUser.id,
                   VItemTypes.Spray
               ),
               ownedItems(
-                  user.accessToken,
-                  user.entitlementsToken,
-                  user.region,
-                  user.id,
+                  currentUser.accessToken,
+                  currentUser.entitlementsToken,
+                  currentUser.region,
+                  currentUser.id,
                   VItemTypes.Flex
               ),
               ownedItems(
-                  user.accessToken,
-                  user.entitlementsToken,
-                  user.region,
-                  user.id,
+                  currentUser.accessToken,
+                  currentUser.entitlementsToken,
+                  currentUser.region,
+                  currentUser.id,
                   VItemTypes.PlayerCard
               ),
               ownedItems(
-                  user.accessToken,
-                  user.entitlementsToken,
-                  user.region,
-                  user.id,
+                  currentUser.accessToken,
+                  currentUser.entitlementsToken,
+                  currentUser.region,
+                  currentUser.id,
                   VItemTypes.PlayerTitle
               ),
             ]),
-            fetchCompetitiveRankSummary(user, { force: forceRefresh }).catch((err) => {
+            fetchCompetitiveRankSummary(currentUser, { force: forceRefresh }).catch((err) => {
               if (__DEV__) {
                 console.warn("[profile] competitive rank unavailable", err);
               }
@@ -1170,11 +1192,13 @@ function Profile() {
             }),
           ]);
 
+          if (!isCurrentRequest()) return;
           const resolvedLoadout = resolveLoadoutForDisplay();
           syncLoadoutState(resolvedLoadout);
 
-          const currentUser = useUserStore.getState().user;
-          const nextOwnedSkinIds = new Set<string>(currentUser.ownedSkinIds ?? []);
+          const currentUserAfterFetch = useUserStore.getState().user;
+          // Seed skin từ store + fetch (union 1 chiều — Valorant không thu hồi skin)
+          const nextOwnedSkinIds = new Set<string>(currentUserAfterFetch.ownedSkinIds ?? []);
           const nextOwnedSprayIds = new Set<string>();
           const nextOwnedFlexIds = new Set<string>();
           const nextOwnedPlayerCardIds = new Set<string>();
@@ -1227,25 +1251,27 @@ function Profile() {
           setOwnedPlayerTitleItemIds(nextOwnedPlayerTitleList);
 
           if (nextOwnedSkinIds.size > 0) {
-            const currentOwnedSkinSet = new Set(currentUser.ownedSkinIds ?? []);
+            const currentOwnedSkinSet = new Set(currentUserAfterFetch.ownedSkinIds ?? []);
             const ownedSkinListChanged =
                 nextOwnedSkinList.length !== currentOwnedSkinSet.size ||
                 nextOwnedSkinList.some((itemId) => !currentOwnedSkinSet.has(itemId));
 
             if (ownedSkinListChanged) {
               setUser({
-                ...currentUser,
+                ...currentUserAfterFetch,
                 ownedSkinIds: nextOwnedSkinList,
               });
             }
           }
 
           const resolvedCompetitiveRank =
-              nextCompetitiveRank ?? competitiveRank ?? cachedCompetitiveRank;
+              nextCompetitiveRank ??
+              competitiveRankRef.current ??
+              cachedCompetitiveRankRef.current;
 
           setCompetitiveRank(resolvedCompetitiveRank);
           setProfileCache({
-            authKey,
+            authKey: sessionAuthKey,
             loadoutSnapshot: resolvedLoadout,
             loadoutCacheVersion: PROFILE_LOADOUT_CACHE_VERSION,
             ownedSkinItemIds: nextOwnedSkinList,
@@ -1254,11 +1280,9 @@ function Profile() {
             ownedPlayerCardItemIds: nextOwnedPlayerCardList,
             ownedPlayerTitleItemIds: nextOwnedPlayerTitleList,
             competitiveRank: resolvedCompetitiveRank,
-            rankCacheVersion: nextCompetitiveRank
-                ? PROFILE_RANK_CACHE_VERSION
-                : cachedCompetitiveRank
-                    ? cachedProfile?.rankCacheVersion
-                    : undefined,
+            // Luôn stamp version (fix H1): rank null cũng là bản ghi hợp lệ;
+            // stamp undefined → cache bị coi thiếu rank → re-fetch mỗi cold start.
+            rankCacheVersion: PROFILE_RANK_CACHE_VERSION,
             updatedAt: Date.now(),
           });
         } catch (err) {
@@ -1272,17 +1296,9 @@ function Profile() {
           }
         }
       },
-      [
-        authKey,
-        cachedCompetitiveRank,
-        cachedProfile,
-        competitiveRank,
-        hasAuth,
-        syncLoadoutState,
-        setProfileCache,
-        setUser,
-        user,
-      ]
+      // Deps chỉ còn các setter/selector ổn định (fix M6) — user/rank/cache
+      // được đọc qua ref nên không xuất hiện ở đây.
+      [syncLoadoutState, setProfileCache, setUser]
   );
 
   // ── Effect: Fetch weapon metadata từ valorant-api.com ──────────────────────
@@ -1336,12 +1352,13 @@ function Profile() {
   );
 
   // ── Effect chính: Fetch dữ liệu profile ─────────────────────────────────────
-  // Logic:
-  // - Nếu không có auth → reset state, hiển thị lỗi.
-  // - Nếu cache còn fresh và có loadout cache + rank cache → không fetch.
-  // - Nếu cache fresh nhưng thiếu rank → refresh rank (chỉ 1 lần).
-  // - Nếu cache stale hoặc không có → fetch đầy đủ khi JS runtime rảnh.
-  // - Delay: 120ms nếu có cache, 260ms nếu không (để animation mượt).
+  // - Không auth → reset state + lỗi. - Cache fresh + loadout hợp lệ + bản ghi
+  // rank đúng version (kể cả null — chưa xếp hạng, fix H1) → KHÔNG fetch; đây
+  // là điều kiện giúp syncAllData preload đúng 1 lần/session.
+  // - Cache fresh nhưng chưa từng có bản ghi rank (schema cũ) → fetch đầy đủ
+  // đúng 1 lần/authKey (guard bằng ref). Nhánh này fetch FULL, không chỉ rank.
+  // - Cache stale → fetch đầy đủ khi JS runtime rảnh (delay 120/260ms).
+  // Deps fetchLoadoutData đã ổn định (fix M6) → chỉ re-arm khi thật sự đổi.
   React.useEffect(() => {
     if (!hasAuth) {
       // Reset toàn bộ state khi không có auth
@@ -2562,30 +2579,12 @@ function Profile() {
               expected: PlayerLoadoutResponse
           ) => boolean = loadoutsMatch
       ) => {
-        await delay(650);
-
-        const latestLoadout = await playerLoadout(
-            user.accessToken,
-            user.entitlementsToken,
-            user.region,
-            user.id
-        ).catch(() => null);
-
-        if (
-            !latestLoadout ||
-            pendingLoadoutRef.current !== pendingUpdate
-        ) {
-          return;
-        }
-
-        const matches = matchesExpected(latestLoadout, expectedLoadout);
-        if (__DEV__) {
-          console.log("[profile] background loadout confirmation", { matches });
-        }
-
-        if (!matches) {
-          return;
-        }
+        const latestLoadout = await confirmProfileLoadout(
+          { accessToken: user.accessToken, entitlementsToken: user.entitlementsToken,
+            region: user.region, id: user.id }, expectedLoadout, pendingUpdate,
+          () => pendingLoadoutRef.current, matchesExpected,
+        );
+        if (!latestLoadout) return;
 
         pendingLoadoutRef.current = null;
         syncLoadoutState(latestLoadout);
@@ -3630,7 +3629,7 @@ function Profile() {
               />
             }
             ListHeaderComponent={renderProfileListHeader(tab)}
-            removeClippedSubviews={false}
+            removeClippedSubviews={Platform.OS === "android"}
             initialNumToRender={1}
             maxToRenderPerBatch={1}
             windowSize={5}
@@ -3672,7 +3671,8 @@ function Profile() {
           >
             <Animated.ScrollView
                 key={`profile-pager:${Math.round(viewportWidth)}`}
-                ref={profilePagerRef}
+                  ref={profilePagerRef}
+                  removeClippedSubviews={Platform.OS === "android"}
                 horizontal
                 pagingEnabled
                 bounces={false}

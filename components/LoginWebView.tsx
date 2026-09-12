@@ -4,9 +4,18 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Linking, StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from "react-native";
+import {
+  Alert,
+  Linking,
+  StyleProp,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  ViewStyle,
+} from "react-native";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useAccountStore } from "~/hooks/useAccountStore";
 import { getAccessTokenFromUri, getIdTokenFromUri } from "~/utils/misc";
@@ -14,13 +23,18 @@ import { defaultUser } from "~/utils/valorant-api";
 import Loading from "./Loading";
 import WebView from "react-native-webview";
 import { COLORS } from "~/constants/DesignSystem";
-import { clearAllCookies } from "~/utils/cookies";
+import {
+  captureRiotAuthCookies,
+} from "~/utils/cookies";
 import { buildAuthenticatedUser } from "~/utils/auth-session";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { fetchProfileWarmCache } from "~/utils/profile-cache";
 import { disconnectChatService } from "~/utils/chat-service";
-import { isAllowedRiotAuthNavigation } from "~/utils/riot-auth-navigation";
+import { isAllowedRiotAuthNavigation, isRiotAuthCallbackUrl } from "~/utils/riot-auth-navigation";
+import { normalizeAccountId } from "~/utils/saved-accounts";
+import { finishInteractiveAuthentication, prepareInteractiveAuthentication, restoreCurrentAccountAuthCookies } from "~/services/accounts/session";
+import { getSessionGeneration } from "~/utils/session-operations";
 
 // URL đăng nhập Riot OAuth2
 const LOGIN_URL =
@@ -33,9 +47,6 @@ const PROFILE_PRELOAD_TIMEOUT_MS = 4500;
  * @param url – URL cần kiểm tra
  * @returns true nếu là callback xác thực
  */
-const isAuthCallbackUrl = (url?: string) =>
-  Boolean(url && (url.includes("access_token=") || url.includes("id_token=")));
-
 /**
  * wait – Tạo promise resolve sau ms mili giây
  * @param ms – Số mili giây chờ
@@ -48,6 +59,7 @@ const wait = (ms: number) =>
 interface LoginWebViewProps {
   minHeight?: number;
   style?: StyleProp<ViewStyle>;
+  expectedAccountId?: string;
 }
 
 /**
@@ -58,6 +70,7 @@ interface LoginWebViewProps {
 export default function LoginWebView({
   minHeight,
   style,
+  expectedAccountId,
 }: LoginWebViewProps) {
   const router = useRouter();
   // Hàm setUser từ store (lưu thông tin user sau đăng nhập)
@@ -69,6 +82,18 @@ export default function LoginWebView({
   const [webIssue, setWebIssue] = useState<string | null>(null);
   // Ref: ngăn xử lý auth nhiều lần đồng thời
   const authInFlightRef = useRef(false);
+  const mountedRef = useRef(false);
+  const [authReady, setAuthReady] = useState(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    void prepareInteractiveAuthentication().then(() => {
+      if (mountedRef.current) setAuthReady(true);
+    });
+    return () => {
+      mountedRef.current = false;
+      finishInteractiveAuthentication();
+    };
+  }, []);
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
   // Chiều cao tối thiểu của WebView (tự động tính hoặc nhận từ props)
@@ -94,18 +119,25 @@ export default function LoginWebView({
   }) => {
     if (!newNavState.url) return;
 
-    if (isAuthCallbackUrl(newNavState.url)) {
+    if (authReady && mountedRef.current && isRiotAuthCallbackUrl(newNavState.url)) {
       // Nếu đang xử lý auth request trước đó thì bỏ qua
       if (authInFlightRef.current) {
         return;
       }
 
       authInFlightRef.current = true;
+      const generation = getSessionGeneration();
+      const isCurrentAttempt = () => mountedRef.current && generation === getSessionGeneration();
       setWebIssue(null);
-      const accessToken = getAccessTokenFromUri(newNavState.url);
-      const idToken = getIdTokenFromUri(newNavState.url);
+      // Bắt đầu snapshot khi WebView vẫn còn mounted; iOS cần WebKit store đã
+      // được khởi tạo để đọc cookie của phiên vừa hoàn tất.
+      const authCookiesPromise = captureRiotAuthCookies("webview");
       const loginStart = Date.now();
       try {
+        const accessToken = getAccessTokenFromUri(newNavState.url);
+        const idToken = getIdTokenFromUri(newNavState.url);
+        const authCookies = await authCookiesPromise;
+        if (!isCurrentAttempt()) return;
         // Lấy region từ AsyncStorage hoặc dùng mặc định
         const region =
           (await AsyncStorage.getItem("region")) || defaultUser.region;
@@ -118,6 +150,23 @@ export default function LoginWebView({
           undefined,
           idToken
         );
+        if (!isCurrentAttempt()) return;
+
+        if (
+          expectedAccountId &&
+          normalizeAccountId(authenticatedUser.id) !==
+            normalizeAccountId(expectedAccountId)
+        ) {
+          await restoreCurrentAccountAuthCookies();
+          authInFlightRef.current = false;
+          setLoading(null);
+          Alert.alert(
+            t("settings_page.accounts.switch_failed_title"),
+            t("settings_page.accounts.switch_failed_description")
+          );
+          router.replace("/settings");
+          return;
+        }
 
         // Lưu region nếu khác
         if (authenticatedUser.region && authenticatedUser.region !== region) {
@@ -126,8 +175,13 @@ export default function LoginWebView({
 
         // Login là hành động đổi phiên có chủ đích. Ngắt socket của account cũ,
         // lưu account mới rồi mới kích hoạt để mọi effect chạy đúng credentials.
+        if (!isCurrentAttempt()) return;
         disconnectChatService();
-        useAccountStore.getState().saveAccount(authenticatedUser, true);
+        useAccountStore.getState().saveAccount(
+          authenticatedUser,
+          true,
+          authCookies.length ? authCookies : undefined
+        );
         activateUser(authenticatedUser);
 
         setLoading(t("fetching.progress"));
@@ -159,23 +213,25 @@ export default function LoginWebView({
           Promise.race([profileWarmupPromise, wait(PROFILE_PRELOAD_TIMEOUT_MS)]),
         ]);
 
-        router.replace("/profile");
-      } catch (e) {
-        if (__DEV__) console.log(e);
+        if (isCurrentAttempt()) router.replace("/profile");
+      } catch {
+        if (!isCurrentAttempt()) return;
         authInFlightRef.current = false;
-
-        // Trong production: xóa cookies và chuyển về setup để không bị kẹt
-        if (!__DEV__) {
-          await clearAllCookies(true);
-          router.replace("/setup");
-        }
+        setLoading(null);
+        setWebIssue(t("login_web_view.completion_error"));
+        // Keep Riot cookies and retry only the failed completion step.
+        Alert.alert(t("login_web_view.completion_error"), t("login_web_view.retry_hint"), [
+          { text: t("settings_page.accounts.cancel"), style: "cancel" },
+          { text: t("login_web_view.retry"),
+            onPress: () => { void handleWebViewChange(newNavState); } },
+        ]);
       }
     }
   };
 
   // Hiển thị màn hình loading với message trong quá trình xử lý đăng nhập
-  if (loading) {
-    return <Loading msg={loading} />;
+  if (!authReady) {
+    return <Loading msg={t("fetching.progress")} />;
   }
 
   return (
@@ -231,7 +287,7 @@ export default function LoginWebView({
         onLoadEnd={() => setWebIssue(null)}
         // Xử lý lỗi native
         onError={(event) => {
-          if (isAuthCallbackUrl(event.nativeEvent.url)) {
+          if (isRiotAuthCallbackUrl(event.nativeEvent.url || "")) {
             setWebIssue(null);
             return;
           }
@@ -247,7 +303,7 @@ export default function LoginWebView({
         }}
         // Xử lý lỗi HTTP
         onHttpError={(event) => {
-          if (isAuthCallbackUrl(event.nativeEvent.url)) {
+          if (isRiotAuthCallbackUrl(event.nativeEvent.url || "")) {
             setWebIssue(null);
             return;
           }
@@ -274,6 +330,11 @@ export default function LoginWebView({
       />
       {/* Hiển thị lỗi WebView nếu có */}
       {webIssue ? <Text style={styles.issueText}>{webIssue}</Text> : null}
+      {loading ? (
+        <View style={StyleSheet.absoluteFill} accessibilityLiveRegion="polite">
+          <Loading msg={loading} />
+        </View>
+      ) : null}
     </View>
   );
 }

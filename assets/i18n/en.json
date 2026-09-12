@@ -520,6 +520,9 @@
     "riot_account": "Riot Games account"
   },
   "login_web_view": {
+    "completion_error": "Unable to finish signing in",
+    "retry_hint": "Check your connection and retry. Your Riot cookies have been kept.",
+    "retry": "Retry",
     "error": "WebView error",
     "http_error": "HTTP {{statusCode}} {{description}}"
   },

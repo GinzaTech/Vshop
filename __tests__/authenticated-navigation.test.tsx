@@ -2,16 +2,16 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
-import {
-  FloatingTabBar,
-  createPrimaryTabScreenOptions,
-  PRIMARY_TAB_REDUCED_MOTION_OPTIONS,
-  PRIMARY_TAB_SCREEN_OPTIONS,
-  PRIMARY_TAB_SCREEN_TRANSITION,
-  PRIMARY_TAB_SLIDE_DISTANCE,
-} from "~/app/(authenticated)/_layout";
+import { FloatingTabBar } from "~/app/(authenticated)/_layout";
+import { createPrimaryTabScreenOptions, PRIMARY_TAB_REDUCED_MOTION_OPTIONS } from "~/utils/primary-tab-motion";
 import { COLORS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
+import { withTiming } from "react-native-reanimated";
+import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
+
+let mockReduceMotion = false;
+let mockNightMarket: object[] = [];
+let mockSceneFocused = true;
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
   function MockMaterialCommunityIcon() {
@@ -24,12 +24,14 @@ jest.mock("expo-router", () => {
   MockTabs.Screen = function MockTabsScreen() {
     return null;
   };
-  return { Tabs: MockTabs };
+  return { Tabs: MockTabs, useIsFocused: () => mockSceneFocused };
 });
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
+
+jest.mock("~/hooks/useMotionPreference", () => ({ useMotionPreference: () => mockReduceMotion }));
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
@@ -37,6 +39,7 @@ jest.mock("react-native-safe-area-context", () => ({
 
 jest.mock("react-native-reanimated", () => {
   const { View } = require("react-native");
+  const { useRef } = require("react");
   return {
     __esModule: true,
     default: { View },
@@ -53,8 +56,9 @@ jest.mock("react-native-reanimated", () => {
     ) => (value === inputRange[0] ? outputRange[0] : outputRange.at(-1)),
     useAnimatedStyle: (factory: () => object) => factory(),
     useReducedMotion: () => false,
-    useSharedValue: (value: unknown) => ({ value }),
-    withTiming: (value: unknown) => value,
+    useSharedValue: (value: unknown) => useRef({ value }).current,
+    withTiming: jest.fn((value: unknown) => value),
+    cancelAnimation: jest.fn(),
   };
 });
 
@@ -77,7 +81,7 @@ jest.mock("~/components/popups/MediaPopup", () =>
 );
 jest.mock("~/hooks/useUserStore", () => ({
   useUserStore: (selector: (state: object) => unknown) =>
-    selector({ user: { shops: { nightMarket: [] } } }),
+    selector({ user: { shops: { nightMarket: mockNightMarket } } }),
 }));
 jest.mock("~/utils/flow-tracer", () => ({
   flowTracer: { startTrace: jest.fn(), track: jest.fn() },
@@ -106,47 +110,84 @@ const getButton = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
   );
 
 describe("FloatingTabBar", () => {
+  const renderers: TestRenderer.ReactTestRenderer[] = [];
+  afterEach(() => {
+    act(() => renderers.splice(0).forEach((renderer) => renderer.unmount()));
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    mockReduceMotion = false;
+    mockNightMarket = [];
+    mockSceneFocused = true;
+  });
   it("keeps Android scenes ready for the horizontal transition", () => {
-    expect(PRIMARY_TAB_SCREEN_OPTIONS.lazy).toBe(true);
-    expect(PRIMARY_TAB_SCREEN_OPTIONS.freezeOnBlur).toBe(false);
-    expect(PRIMARY_TAB_SCREEN_OPTIONS.animation).toBe("shift");
+    const options = createPrimaryTabScreenOptions(400);
+    expect(options.lazy).toBe(true);
+    expect(options.freezeOnBlur).toBe(false);
+    expect(options.animation).toBe("shift");
   });
 
-  it("moves scenes left and right without changing opacity", () => {
+  it("fades in the destination with a short horizontal shift and respects Reduce Motion", () => {
+    const options = createPrimaryTabScreenOptions(400);
     const interpolateProgress = jest.fn(() => 16);
-    const transitionStyle = PRIMARY_TAB_SCREEN_TRANSITION.sceneStyleInterpolator(
+    const transitionStyle = options.sceneStyleInterpolator(
       {
         current: {
           progress: { interpolate: interpolateProgress },
         },
       } as unknown as Parameters<
-        typeof PRIMARY_TAB_SCREEN_TRANSITION.sceneStyleInterpolator
+        typeof options.sceneStyleInterpolator
       >[0],
     );
 
-    expect(PRIMARY_TAB_SCREEN_TRANSITION.transitionSpec.config.duration).toBe(
-      360,
+    expect(options.transitionSpec.config.duration).toBe(
+      220,
     );
     expect(transitionStyle).toEqual({
       sceneStyle: {
-        opacity: 1,
+        opacity: 16,
         transform: [{ translateX: 16 }],
       },
     });
     expect(interpolateProgress).toHaveBeenCalledWith({
       inputRange: [-1, 0, 1],
       outputRange: [
-        -PRIMARY_TAB_SLIDE_DISTANCE,
+        -32,
         0,
-        PRIMARY_TAB_SLIDE_DISTANCE,
+        32,
       ],
+      extrapolate: "clamp",
+    });
+    expect(interpolateProgress).toHaveBeenCalledWith({
+      inputRange: [-1, 0, 1],
+      outputRange: [0.92, 1, 0.92],
+      extrapolate: "clamp",
     });
     expect(PRIMARY_TAB_REDUCED_MOTION_OPTIONS.animation).toBe("none");
+    expect(PRIMARY_TAB_REDUCED_MOTION_OPTIONS.sceneStyle).toEqual({ backgroundColor: "transparent" });
+    expect(createPrimaryTabScreenOptions(400).sceneStyle).toEqual({ backgroundColor: "transparent" });
   });
 
-  it("uses the current viewport width for resized scene transitions", () => {
+  it("hides outgoing content so shifted pages cannot ghost through each other", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    const child = <React.Fragment />;
+    act(() => { renderer = TestRenderer.create(<PrimaryTabScene>{child}</PrimaryTabScene>); });
+    renderers.push(renderer);
+    mockSceneFocused = false;
+    act(() => renderer.update(<PrimaryTabScene>{child}</PrimaryTabScene>));
+    const scene = renderer.root.findByProps({ collapsable: false });
+    expect(StyleSheet.flatten(scene.props.style).backgroundColor).toBe(COLORS.BACKGROUND);
+    expect(StyleSheet.flatten(scene.props.style).opacity).toBe(0);
+    expect(scene.props.pointerEvents).toBe("none");
+    expect(scene.props.importantForAccessibility).toBe("no-hide-descendants");
+    mockSceneFocused = true;
+    act(() => renderer.update(<PrimaryTabScene>{child}</PrimaryTabScene>));
+    expect(StyleSheet.flatten(scene.props.style).opacity).not.toBe(0);
+    expect(scene.props.pointerEvents).toBe("auto");
+  });
+
+  it.each([[200, 16], [720, 32]])("bounds scene movement for a %s px viewport", (width, distance) => {
     const interpolateProgress = jest.fn(() => 20);
-    const resizedOptions = createPrimaryTabScreenOptions(720);
+    const resizedOptions = createPrimaryTabScreenOptions(width);
 
     resizedOptions.sceneStyleInterpolator({
       current: {
@@ -158,7 +199,8 @@ describe("FloatingTabBar", () => {
 
     expect(interpolateProgress).toHaveBeenCalledWith({
       inputRange: [-1, 0, 1],
-      outputRange: [-720, 0, 720],
+      outputRange: [-distance, 0, distance],
+      extrapolate: "clamp",
     });
   });
 
@@ -180,6 +222,7 @@ describe("FloatingTabBar", () => {
       );
     });
 
+    renderers.push(renderer);
     return { navigation, renderer };
   };
 
@@ -200,16 +243,78 @@ describe("FloatingTabBar", () => {
     expect(navigation.navigate).toHaveBeenCalledWith(route);
   });
 
-  it("ignores repeated tab presses while the scene transition is running", () => {
+  it("coalesces duplicate presses but accepts another destination immediately", () => {
     const { navigation, renderer } = renderTabBar();
     const shopButton = getButton(renderer, "shop");
 
     act(() => {
       shopButton.props.onPress();
       shopButton.props.onPress();
+      getButton(renderer, "settings").props.onPress();
     });
 
-    expect(navigation.navigate).toHaveBeenCalledTimes(1);
+    expect(navigation.navigate.mock.calls).toEqual([["shop"], ["settings"]]);
+  });
+
+  it("does not restart the indicator when navigation confirms its target", () => {
+    const { navigation, renderer } = renderTabBar();
+    jest.mocked(withTiming).mockClear();
+    act(() => getButton(renderer, "shop").props.onPress());
+    expect(withTiming).toHaveBeenCalledTimes(1);
+    act(() => renderer.update(<FloatingTabBar state={{ index: 1, routes }}
+      descriptors={descriptors} navigation={navigation} />));
+    expect(withTiming).toHaveBeenCalledTimes(1);
+    act(() => getButton(renderer, "settings").props.onPress());
+    act(() => renderer.update(<FloatingTabBar state={{ index: 4, routes }}
+      descriptors={descriptors} navigation={navigation} />));
+    expect(withTiming).toHaveBeenCalledTimes(2);
+    expect(navigation.navigate.mock.calls).toEqual([["shop"], ["settings"]]);
+  });
+
+  it("allows returning to the current route before a pending navigation commits", () => {
+    const { navigation, renderer } = renderTabBar();
+    act(() => {
+      getButton(renderer, "shop").props.onPress();
+      getButton(renderer, "profile").props.onPress();
+    });
+    expect(navigation.navigate.mock.calls).toEqual([["shop"], ["profile"]]);
+  });
+
+  it("does not move or lock the target when tabPress is prevented", () => {
+    const { navigation, renderer } = renderTabBar();
+    jest.mocked(withTiming).mockClear();
+    navigation.emit.mockReturnValueOnce({ defaultPrevented: true });
+    act(() => getButton(renderer, "shop").props.onPress());
+    expect(navigation.navigate).not.toHaveBeenCalled();
+    expect(withTiming).not.toHaveBeenCalled();
+    act(() => getButton(renderer, "shop").props.onPress());
+    expect(navigation.navigate).toHaveBeenCalledWith("shop");
+    expect(withTiming).toHaveBeenCalledTimes(1);
+  });
+
+  it("jumps on Back from a secondary screen and honors Reduce Motion", () => {
+    const { navigation, renderer } = renderTabBar();
+    const allRoutes = [...routes, { key: "history-key", name: "history" }];
+    act(() => renderer.update(<FloatingTabBar state={{ index: 5, routes: allRoutes }}
+      descriptors={descriptors} navigation={navigation} />));
+    jest.mocked(withTiming).mockClear();
+    act(() => renderer.update(<FloatingTabBar state={{ index: 2, routes: allRoutes }}
+      descriptors={descriptors} navigation={navigation} />));
+    expect(jest.mocked(withTiming).mock.calls.filter(([, config]) => config?.duration === 220)).toHaveLength(0);
+    jest.mocked(withTiming).mockClear();
+    mockReduceMotion = true;
+    act(() => renderer.update(<FloatingTabBar state={{ index: 2, routes }}
+      descriptors={descriptors} navigation={navigation} />));
+    act(() => getButton(renderer, "shop").props.onPress());
+    expect(withTiming).not.toHaveBeenCalled();
+    expect(navigation.navigate).toHaveBeenCalledWith("shop");
+  });
+
+  it("includes Night Market only when items exist", () => {
+    mockNightMarket = [{}];
+    const { navigation, renderer } = renderTabBar();
+    act(() => getButton(renderer, "night_market").props.onPress());
+    expect(navigation.navigate).toHaveBeenCalledWith("night_market");
   });
 
   it("keeps only one interactive layer mounted while collapsing", () => {

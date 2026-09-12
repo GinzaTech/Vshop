@@ -201,16 +201,13 @@ export default function MatchDetailsScreen() {
           };
           return next;
         });
-        // Cập nhật store cache sau khi setDetails
-        useMatchStore.setState((state) => ({
-          detailsById: {
-            ...state.detailsById,
-            [matchId]: {
-              ...state.detailsById[matchId],
-              playerIdentities: identities,
-            },
-          },
-        }));
+        // FIX (M7): merge qua store action thay vì setState trực tiếp trên
+        // detailsById — action này đi qua LRU (bump thứ tự) và bỏ qua an toàn
+        // nếu entry gốc đã bị evict (tránh tạo entry rác thiếu players/teams
+        // gây crash khi cache-hit sau đó).
+        useMatchStore.getState().mergeMatchDetails(matchId, {
+          playerIdentities: identities,
+        });
       })
       .catch((nameError: unknown) => {
         if (__DEV__) console.warn("Failed to resolve match player names", nameError);

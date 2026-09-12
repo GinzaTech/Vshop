@@ -789,6 +789,9 @@
     "riot_account": "Riot Games account"
   },
   "login_web_view": {
+    "completion_error": "Chưa thể hoàn tất đăng nhập",
+    "retry_hint": "Kiểm tra kết nối rồi thử lại. Phiên đăng nhập Riot của bạn vẫn được giữ.",
+    "retry": "Thử lại",
     "error": "WebView error",
     "http_error": "HTTP {{statusCode}} {{description}}"
   }

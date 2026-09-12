@@ -10,6 +10,8 @@ import {
   getPlayerNames,
   getRiotClientConfig,
 } from "./valorant-api";
+// Import network profile để reconnect chỉ chạy khi có mạng (fix L6)
+import { getNetworkProfile } from "./network";
 // Import jwtDecode để decode JWT token
 import { jwtDecode } from "jwt-decode";
 // Import Buffer từ buffer để decode base64
@@ -44,7 +46,9 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 // Số lần đã thử kết nối lại
 let reconnectAttempt = 0;
 // Các connection key đang được khởi tạo, tránh tạo hai socket XMPP cùng lúc.
-const initializingConnectionKeys = new Set<string>();
+// FIX (M12): Map<connectionKey, Promise> thay cho Set — caller gọi trong lúc
+// đang init sẽ AWAIT promise đang chạy thay vì return undefined im lặng.
+const initializingConnectionKeys = new Map<string, Promise<void>>();
 // Một lần focus có thể trùng với pull-to-refresh; dùng chung request đang chạy.
 let rosterRefreshPromise: Promise<void> | null = null;
 // Tăng sau mỗi roster response, kể cả roster rỗng, để phân biệt response mới.
@@ -91,12 +95,15 @@ function clearReconnectTimer() {
 /**
  * Lên lịch thử kết nối lại sau một khoảng thời gian.
  * Sử dụng exponential backoff (2.5s, 5s, 10s, 20s) tối đa 30s.
- * @param connectionKey - Key của kết nối
- * @param accessToken - Access token
- * @param entitlementsToken - Entitlements token
- * @param region - Region (tuỳ chọn)
- * @param userId - User ID (tuỳ chọn)
+ *
+ * FIX (L6): thêm cap số lần thử liên tiếp (MAX_RECONNECT_ATTEMPTS) và check
+ * kết nối mạng trước khi bắn — trước đây khi thiết bị offline, loop reconnect
+ * bắn getPASToken + riotclientconfig + TCP attempt mỗi 30s vô hạn (tốn pin,
+ * request thừa). Attempt được reset khi authenticate thành công hoặc khi
+ * connectionKey đổi (session mới).
  */
+const MAX_RECONNECT_ATTEMPTS = 8;
+
 function scheduleReconnect(
   connectionKey: string,
   accessToken: string,
@@ -105,19 +112,27 @@ function scheduleReconnect(
   userId?: string
 ) {
   if (reconnectTimer || activeConnectionKey !== connectionKey) return;
+  if (reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
+    if (__DEV__) {
+      console.warn("[XMPP] Reconnect suspended after max attempts");
+    }
+    return;
+  }
 
   const delay = Math.min(30_000, 2500 * 2 ** reconnectAttempt);
   reconnectAttempt += 1;
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
-    if (activeConnectionKey === connectionKey) {
-      void initChatService(
-        accessToken,
-        entitlementsToken,
-        region,
-        userId
-      );
-    }
+    if (activeConnectionKey !== connectionKey) return;
+    // Chỉ reconnect khi thiết bị thực sự có mạng — offline thì bỏ lượt này,
+    // sự kiện network-restored (AppWarmup) sẽ khởi tạo lại khi phù hợp.
+    void getNetworkProfile()
+      .then((network) => {
+        if (!network.isConnected) return;
+        if (activeConnectionKey !== connectionKey) return;
+        return initChatService(accessToken, entitlementsToken, region, userId);
+      })
+      .catch(() => undefined);
   }, delay);
 }
 
@@ -238,10 +253,14 @@ export async function initChatService(
     return;
   }
 
-  if (initializingConnectionKeys.has(connectionKey)) return;
-  initializingConnectionKeys.add(connectionKey);
+  // FIX (M12): chia sẻ promise đang init thay vì bỏ qua im lặng. Trước đây
+  // caller (vd ensureChatService) gọi trong lúc đang connecting sẽ nhận
+  // `undefined` ngay, rồi thấy xmppClientInstance = null → throw
+  // "Could not connect" trong khi connection thực tế đang được thiết lập.
+  const inFlightInit = initializingConnectionKeys.get(connectionKey);
+  if (inFlightInit) return inFlightInit;
 
-  try {
+  const initTask = (async () => {
     clearReconnectTimer();
     if (connectionChanged) reconnectAttempt = 0;
 
@@ -344,9 +363,14 @@ export async function initChatService(
           ).then((resolved) => {
             if (resolved || rosterNameResolveKey !== resolveKey) return;
 
-            // Nếu chưa resolve được, thử lại sau 2.5s
+            // Nếu chưa resolve được, thử lại sau 2.5s. Reset resolveKey TRƯỚC
+            // khi retry để roster event đến trong lúc retry vẫn có thể
+            // trigger một chu kỳ resolve mới (fix M13).
             rosterNameRetryTimer = setTimeout(() => {
               rosterNameRetryTimer = null;
+              if (rosterNameResolveKey === resolveKey) {
+                rosterNameResolveKey = null;
+              }
               void resolveRosterNames(
                 accessToken,
                 entitlementsToken,
@@ -426,8 +450,18 @@ export async function initChatService(
         userId
       );
     }
+  })();
+
+  // Đăng ký promise rồi mới await: các caller song song gọi initChatService
+  // với cùng connectionKey sẽ AWAIT đúng promise này (fix M12). Outer finally
+  // xóa key với identity check — an toàn khi init mới đã đăng ký trước đó.
+  initializingConnectionKeys.set(connectionKey, initTask);
+  try {
+    await initTask;
   } finally {
-    initializingConnectionKeys.delete(connectionKey);
+    if (initializingConnectionKeys.get(connectionKey) === initTask) {
+      initializingConnectionKeys.delete(connectionKey);
+    }
   }
 }
 
@@ -608,7 +642,12 @@ async function resolveRosterNames(
     );
     return names.length > 0;
   } catch (error) {
-    rosterNameResolveKey = null;
+    // FIX (M13): GIỮ NGUYÊN rosterNameResolveKey khi lỗi. Trước đây catch
+    // null nó đi, khiến predicate retry trong onRoster
+    // (`resolved || rosterNameResolveKey !== resolveKey`) luôn thoát sớm →
+    // timer retry không bao giờ được lên lịch → toàn bộ bạn bè kẹt "Unknown"
+    // chỉ vì 1 lỗi mạng transient. Key được reset trong callback retry để
+    // roster event kế tiếp có thể trigger lại nếu cần.
     if (__DEV__) {
       console.log("[XMPP] Failed to resolve roster names", error);
     }
@@ -763,9 +802,21 @@ export function sendPartyXmppMessage(message: string) {
 
 /**
  * Public API: Ngắt kết nối dịch vụ chat hoàn toàn.
- * Xoá tất cả timer, ngắt kết nối XMPP, reset store.
+ * Xoá tất cả timer, ngắt kết nối XMPP.
+ *
+ * FIX (H8): mặc định KHÔNG còn reset chat store (friends/messages). Trước đây
+ * mỗi lần token được renew (~1h/lần), AppWarmup cleanup gọi hàm này và
+ * `resetChatSession()` xoá sạch hội thoại + danh sách bạn bè giữa chừng —
+ * user đang đọc chat thì màn hình trống rỗng cho tới khi roster resolve lại.
+ * Socket/connection state (module-level) luôn được dọn vì chúng gắn với token.
+ *
+ * @param options.keepSessionData - true: chỉ ngắt socket, giữ nguyên dữ liệu
+ *   chat trong store (dùng khi RENEW token cùng account). false/undefined:
+ *   reset toàn bộ store (đổi account, đăng xuất, vào /reauth).
  */
-export function disconnectChatService() {
+export function disconnectChatService(options?: {
+  keepSessionData?: boolean;
+}) {
   clearReconnectTimer();
   reconnectAttempt = 0;
   if (rosterNameRetryTimer) {
@@ -782,5 +833,7 @@ export function disconnectChatService() {
   rosterRevision = 0;
   partyJoinRequests.clear();
   currentUserId = null;
-  useChatStore.getState().resetChatSession();
+  if (!options?.keepSessionData) {
+    useChatStore.getState().resetChatSession();
+  }
 }

@@ -11,7 +11,7 @@ import { Platform } from "react-native";
 import { isExpoGo } from "./runtime";
 
 // URL fallback khi không fetch được release mới nhất từ GitHub API
-const FALLBACK_RELEASE_URL = "https://github.com/VShopApp/mobile/releases/latest";
+const FALLBACK_RELEASE_URL = "https://github.com/GinzaTech/Vshop/releases/latest";
 
 // Type mô tả module expo-updates (dùng để dynamic require)
 type UpdatesModule = typeof import("expo-updates");

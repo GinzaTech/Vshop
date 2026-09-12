@@ -1,7 +1,7 @@
 type HttpErrorLike = {
   code?: string;
   message?: string;
-  config?: { url?: string };
+  config?: { url?: string; headers?: { Authorization?: unknown; authorization?: unknown } };
   response?: {
     status?: number;
     config?: { url?: string };
@@ -11,7 +11,20 @@ type HttpErrorLike = {
 export type SessionAuthFailure = {
   status: number;
   url: string;
+  /** Used only in memory to discard errors from superseded requests. Never log. */
+  accessToken?: string;
 };
+
+export const getRequestAccessToken = (value: unknown): string | undefined => {
+  const headers = (value as HttpErrorLike | undefined)?.config?.headers;
+  const authorization = headers?.Authorization ?? headers?.authorization;
+  return typeof authorization === "string" && authorization.startsWith("Bearer ")
+    ? authorization.slice(7)
+    : undefined;
+};
+
+export const isCurrentSessionAuthFailure = (failure: SessionAuthFailure, accessToken: string) =>
+  !failure.accessToken || failure.accessToken === accessToken;
 
 type SessionAuthFailureListener = (failure: SessionAuthFailure) => void;
 
@@ -27,14 +40,26 @@ export const getRequestUrl = (value: unknown): string => {
   return String(error?.response?.config?.url || error?.config?.url || "");
 };
 
+const getTrustedHostname = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password
+      ? url.hostname.toLowerCase().replace(/\.$/, "")
+      : "";
+  } catch {
+    return "";
+  }
+};
+
 const isRiotAuthUrl = (url: string) =>
-  url.includes("auth.riotgames.com") ||
-  url.includes("entitlements.auth.riotgames.com");
+  ["auth.riotgames.com", "entitlements.auth.riotgames.com"].includes(
+    getTrustedHostname(url)
+  );
 
 const isRiotProtectedUrl = (url: string) =>
   isRiotAuthUrl(url) ||
-  url.includes(".a.pvp.net") ||
-  url.includes("riot-geo.pas.si.riotgames.com");
+  getTrustedHostname(url).endsWith(".a.pvp.net") ||
+  getTrustedHostname(url) === "riot-geo.pas.si.riotgames.com";
 
 /**
  * Riot trả 401 khi access token không còn hợp lệ. Một số endpoint auth trả

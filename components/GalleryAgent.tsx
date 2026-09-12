@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { getAgent } from "~/utils/valorant-assets";
 import { COLORS } from "~/constants/DesignSystem";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { useMotionPreference } from "~/hooks/useMotionPreference";
 
 // Interface Role: định nghĩa một role (vai trò) của agent
 // icon: đường dẫn ảnh icon role
@@ -242,8 +243,10 @@ export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgent
 // Hiển thị: tên agent, ảnh fullPortrait, mô tả, lưới abilities
 //   abilities được sắp xếp (passive trước) và có thể nhấn để xem mô tả
 // Modal dạng slide, không transparent, full màn hình
-export const AgentModal: React.FC<AgentModalProps> = React.memo(({ agent, onClose, selectedAbility, onAbilityPress, sortAbilities, }) => (
-    <Modal visible={!!agent} transparent={false} animationType="slide" onRequestClose={onClose}>
+export const AgentModal: React.FC<AgentModalProps> = React.memo(({ agent, onClose, selectedAbility, onAbilityPress, sortAbilities, }) => {
+  const reduceMotion = useMotionPreference();
+  return (
+    <Modal visible={!!agent} transparent={false} animationType={reduceMotion ? "none" : "slide"} onRequestClose={onClose}>
         <View style={styles.modalContainer}>
             <ScrollView contentContainerStyle={styles.modalContent}>
                 {agent && (
@@ -298,7 +301,8 @@ export const AgentModal: React.FC<AgentModalProps> = React.memo(({ agent, onClos
             </ScrollView>
         </View>
     </Modal>
-));
+  );
+});
 
 // Gán displayName cho các component để dễ debug trong React DevTools
 RoleSelector.displayName = "RoleSelector";

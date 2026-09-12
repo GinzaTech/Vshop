@@ -9,6 +9,9 @@ import Animated, {
     ReduceMotion,
 } from "react-native-reanimated";
 import { GLOBAL_STYLES, RADIUS, SHADOWS } from "~/constants/DesignSystem";
+import { MOTION_DURATION } from "~/constants/Motion";
+
+const CARD_ENTRANCE = FadeInDown.duration(MOTION_DURATION.standard).reduceMotion(ReduceMotion.System);
 
 /**
  * Định nghĩa props cho component GlassCard.
@@ -45,7 +48,7 @@ export default function GlassCard({
     if (animated) {
         return (
             <Animated.View
-                entering={FadeInDown.duration(260).reduceMotion(ReduceMotion.System)}
+                entering={CARD_ENTRANCE}
                 style={[styles.container, style]}
                 {...props}
             >

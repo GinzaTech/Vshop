@@ -11,10 +11,8 @@ import {
   type ComponentProps,
 } from "react";
 import { Tabs } from "expo-router";
-import type { BottomTabNavigationOptions } from "expo-router/tabs";
 import { useTranslation } from "react-i18next";
 import {
-  Dimensions,
   Platform,
   Pressable,
   StyleSheet,
@@ -24,22 +22,26 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Reanimated, {
+  cancelAnimation,
   interpolate,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
 
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup from "~/components/popups/MediaPopup";
+import PressFeedback from "~/components/ui/PressFeedback";
+import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
 import { COLORS, SHADOWS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import { flowTracer } from "~/utils/flow-tracer";
-import { runWhenIdle } from "~/utils/idle-task";
-import { MOTION_DURATION, MOTION_TIMING } from "~/constants/Motion";
+import { usePrimaryTabPreload, type TabTransitionNavigation } from "~/hooks/usePrimaryTabPreload";
+import { useMotionPreference } from "~/hooks/useMotionPreference";
+import { MOTION_TIMING } from "~/constants/Motion";
+
+import { createPrimaryTabScreenOptions, PRIMARY_TAB_REDUCED_MOTION_OPTIONS } from "~/utils/primary-tab-motion";
 
 type FloatingRoute = {
   key: string;
@@ -54,7 +56,7 @@ type FloatingTabBarProps = {
   };
   descriptors: Record<
     string,
-    { options?: { tabBarAccessibilityLabel?: string } }
+    { options?: { tabBarAccessibilityLabel?: string }; navigation?: TabTransitionNavigation }
   >;
   navigation: {
     emit: (event: {
@@ -99,81 +101,6 @@ const INDICATOR_SIZE = 44;
 const COLLAPSED_BAR_SIZE = 62;
 const EXPANDED_BAR_HEIGHT = 68;
 
-type TabSceneInterpolator = NonNullable<
-  BottomTabNavigationOptions["sceneStyleInterpolator"]
->;
-
-export const PRIMARY_TAB_SLIDE_DISTANCE = Dimensions.get("window").width;
-
-const primaryTabSceneInterpolator: TabSceneInterpolator = ({ current }) => ({
-  sceneStyle: {
-    opacity: 1,
-    transform: [
-      {
-        translateX: current.progress.interpolate({
-          inputRange: [-1, 0, 1],
-          outputRange: [
-            -PRIMARY_TAB_SLIDE_DISTANCE,
-            0,
-            PRIMARY_TAB_SLIDE_DISTANCE,
-          ],
-        }),
-      },
-    ],
-  },
-});
-
-export const PRIMARY_TAB_SCREEN_TRANSITION = {
-  animation: "shift",
-  sceneStyleInterpolator: primaryTabSceneInterpolator,
-  transitionSpec: {
-    animation: "timing",
-    config: {
-      duration: MOTION_DURATION.emphasized,
-      easing: MOTION_TIMING.emphasized.easing,
-    },
-  },
-} satisfies Pick<
-  BottomTabNavigationOptions,
-  "animation" | "sceneStyleInterpolator" | "transitionSpec"
->;
-
-export const PRIMARY_TAB_SCREEN_OPTIONS = {
-  lazy: true,
-  freezeOnBlur: false,
-  ...PRIMARY_TAB_SCREEN_TRANSITION,
-} as const;
-
-export const PRIMARY_TAB_REDUCED_MOTION_OPTIONS = {
-  lazy: true,
-  freezeOnBlur: false,
-  animation: "none",
-} as const;
-
-export function createPrimaryTabScreenOptions(viewportWidth: number) {
-  const sceneStyleInterpolator: TabSceneInterpolator = ({ current }) => ({
-    sceneStyle: {
-      opacity: 1,
-      transform: [
-        {
-          translateX: current.progress.interpolate({
-            inputRange: [-1, 0, 1],
-            outputRange: [-viewportWidth, 0, viewportWidth],
-          }),
-        },
-      ],
-    },
-  });
-
-  return {
-    lazy: true,
-    freezeOnBlur: false,
-    animation: "shift",
-    sceneStyleInterpolator,
-    transitionSpec: PRIMARY_TAB_SCREEN_TRANSITION.transitionSpec,
-  } as const;
-}
-
 /**
  * FloatingTabBar — Thanh tab nổi (floating) tùy chỉnh.
  *
@@ -187,7 +114,7 @@ export function createPrimaryTabScreenOptions(viewportWidth: number) {
  * - collapseProgress (SharedValue<number>): Giá trị Reanimated animation mở/thu gọn (1 = mở, 0 = thu).
  * - moreLongPressHandledRef (useRef): Đánh dấu long press đã được xử lý.
  * - wasHiddenRef (useRef): Đánh dấu tab bar vừa ẩn (đang ở sub-screen).
- * - shouldJump (SharedValue<boolean>): true → indicator nhảy thẳng (không animate) khi lần đầu mount hoặc Back từ sub-screen.
+ * - shouldJump (ref): indicator nhảy thẳng khi lần đầu mount hoặc Back từ sub-screen.
  * - activeRoute: Route hiện tại đang active.
  *
  * Animation (Reanimated, chạy trên UI thread):
@@ -211,7 +138,7 @@ export function FloatingTabBar({
 }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
-  const reduceMotionEnabled = useReducedMotion();
+  const reduceMotionEnabled = useMotionPreference();
   const primaryNavigationTone = useSystemChromeStore(
     (chrome) => chrome.primaryNavigationTone,
   );
@@ -224,28 +151,27 @@ export function FloatingTabBar({
   const [collapsed, setCollapsed] = useState(false);
   const collapseProgress = useSharedValue(1); // 1 = mở, 0 = thu gọn
   const moreLongPressHandledRef = useRef(false);
-  const preloadedRouteNamesRef = useRef(new Set<string>());
-  const indicatorTranslateX = useSharedValue(0);
-  const transitionInProgressRef = useRef(false);
+  const lastIndicatorTarget = useRef<number | null>(null);
+  const pendingTabNameRef = useRef<string | null>(null);
   const activeRoute = state.routes[state.index];
 
-  const unlockTabTransition = useCallback(() => {
-    transitionInProgressRef.current = false;
-  }, []);
+  useEffect(() => {
+    pendingTabNameRef.current = null;
+  }, [activeRoute?.key]);
 
   // Track khi tab bar chuyển từ hidden → visible (Back từ sub-screen)
   // Khi visible lại → indicator JUMP trực tiếp, không animate
   const isPrimaryRoute = activeRoute?.name in PRIMARY_ROUTES;
   const wasHiddenRef = useRef(false);
-  const shouldJump = useSharedValue(true); // true lần đầu mount
+  const shouldJump = useRef(true); // true lần đầu mount
 
   useEffect(() => {
     if (isPrimaryRoute && wasHiddenRef.current) {
       // Vừa quay lại từ sub-screen → jump, không slide
-      shouldJump.value = true;
+      shouldJump.current = true;
     }
     wasHiddenRef.current = !isPrimaryRoute;
-  }, [isPrimaryRoute, shouldJump]);
+  }, [isPrimaryRoute]);
 
   // Animation khi thay đổi trạng thái collapsed
   useEffect(() => {
@@ -305,47 +231,35 @@ export function FloatingTabBar({
   const indicatorTargetX =
     activeVisibleIndex * tabButtonWidth +
     (tabButtonWidth - INDICATOR_SIZE) / 2;
-
-  useEffect(() => {
-    if (!navigation.preload) return;
-
-    // Chuẩn bị các scene nặng sau khi frame hiện tại rảnh. Khi người dùng
-    // bấm tab, React không còn phải mount cả page trên đường animation.
-    const idleTask = runWhenIdle(() => {
-      for (const route of visibleRoutes) {
-        if (
-          route.key === activeRoute?.key ||
-          preloadedRouteNamesRef.current.has(route.name)
-        ) {
-          continue;
-        }
-        navigation.preload?.(route.name);
-        preloadedRouteNamesRef.current.add(route.name);
-      }
-    });
-
-    return idleTask.cancel;
-  }, [activeRoute?.key, navigation, visibleRoutes]);
+  const indicatorTranslateX = useSharedValue(indicatorTargetX);
+  useEffect(() => () => {
+    cancelAnimation(indicatorTranslateX);
+    cancelAnimation(collapseProgress);
+  }, [indicatorTranslateX, collapseProgress]);
+  const pausePreload = usePrimaryTabPreload({
+    routes: visibleRoutes,
+    activeKey: activeRoute.key,
+    enabled: isPrimaryRoute,
+    preload: navigation.preload,
+    descriptors,
+  });
+  const moveIndicator = useCallback((target: number, jump = false) => {
+    // The route confirmation must not restart an animation begun by onPress.
+    if (!jump && !reduceMotionEnabled && lastIndicatorTarget.current === target) return;
+    lastIndicatorTarget.current = target;
+    indicatorTranslateX.value = jump || reduceMotionEnabled
+      ? target
+      : withTiming(target, MOTION_TIMING.tab);
+  }, [indicatorTranslateX, reduceMotionEnabled]);
 
   useEffect(() => {
     if (!isPrimaryRoute) return;
-    if (reduceMotionEnabled || shouldJump.value) {
-      indicatorTranslateX.value = indicatorTargetX;
-      shouldJump.value = false;
-      return;
-    }
-    // onPress đã khởi động indicator cùng lúc với scene transition.
-    if (transitionInProgressRef.current) return;
-    indicatorTranslateX.value = withTiming(
-      indicatorTargetX,
-      MOTION_TIMING.standard,
-    );
+    moveIndicator(indicatorTargetX, shouldJump.current);
+    shouldJump.current = false;
   }, [
     indicatorTargetX,
-    indicatorTranslateX,
     isPrimaryRoute,
-    reduceMotionEnabled,
-    shouldJump,
+    moveIndicator,
   ]);
   const tabBarAnimatedStyle = useAnimatedStyle(() => ({
     width: interpolate(
@@ -385,25 +299,10 @@ export function FloatingTabBar({
       },
     ],
   }));
-  const indicatorAnimatedStyle = useAnimatedStyle(() => {
-    const targetX =
-      activeVisibleIndex * tabButtonWidth +
-      (tabButtonWidth - INDICATOR_SIZE) / 2;
-
-    // Jump trực tiếp (Back navigation hoặc first mount) — KHÔNG animate
-    if (shouldJump.value) {
-      return {
-        opacity: collapseProgress.value,
-        transform: [{ translateX: targetX }],
-      };
-    }
-
-    // User chủ động đổi tab → animate slide
-    return {
-      opacity: collapseProgress.value,
-      transform: [{ translateX: indicatorTranslateX.value }],
-    };
-  });
+  const indicatorAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: collapseProgress.value,
+    transform: [{ translateX: indicatorTranslateX.value }],
+  }));
   // Nếu route hiện tại không phải primary → ẩn tab bar
   if (!(activeRoute?.name in PRIMARY_ROUTES)) {
     return null;
@@ -479,7 +378,7 @@ export function FloatingTabBar({
                       : undefined
                   }
                   onPress={() => {
-                    if (transitionInProgressRef.current) return;
+                    if (pendingTabNameRef.current === route.name) return;
 
                     if (moreLongPressHandledRef.current) {
                       moreLongPressHandledRef.current = false;
@@ -492,7 +391,9 @@ export function FloatingTabBar({
                       canPreventDefault: true,
                     });
 
-                    if (!focused && !event.defaultPrevented) {
+                    if ((!focused || pendingTabNameRef.current !== null) && !event.defaultPrevented) {
+                      pendingTabNameRef.current = route.name;
+                      pausePreload(route.key);
                       flowTracer.startTrace(
                         `Vshop Tab Navigation: ${activeRoute.name} to ${route.name}`
                       );
@@ -518,11 +419,6 @@ export function FloatingTabBar({
                         tool: "React Navigation",
                       });
 
-                      if (reduceMotionEnabled) {
-                        navigation.navigate(route.name);
-                        return;
-                      }
-
                       const targetVisibleIndex = Math.max(
                         0,
                         visibleRoutes.findIndex(
@@ -532,14 +428,7 @@ export function FloatingTabBar({
                       const targetIndicatorX =
                         targetVisibleIndex * tabButtonWidth +
                         (tabButtonWidth - INDICATOR_SIZE) / 2;
-                      transitionInProgressRef.current = true;
-                      indicatorTranslateX.value = withTiming(
-                        targetIndicatorX,
-                        MOTION_TIMING.emphasized,
-                        () => {
-                          scheduleOnRN(unlockTabTransition);
-                        },
-                      );
+                      moveIndicator(targetIndicatorX);
                       navigation.navigate(route.name);
                     }
                   }}
@@ -549,6 +438,7 @@ export function FloatingTabBar({
                   ]}
                 >
                   {({ pressed }) => (
+                    <PressFeedback pressed={pressed}>
                     <View
                       style={[
                         styles.tabIconWrap,
@@ -573,6 +463,7 @@ export function FloatingTabBar({
                         }
                       />
                     </View>
+                    </PressFeedback>
                   )}
                 </Pressable>
               );
@@ -641,7 +532,7 @@ export function FloatingTabBar({
  */
 function Layout() {
   const { t } = useTranslation();
-  const reduceMotionEnabled = useReducedMotion();
+  const reduceMotionEnabled = useMotionPreference();
   const { width: viewportWidth } = useWindowDimensions();
   const primaryTabScreenOptions = useMemo(
     () =>
@@ -657,11 +548,18 @@ function Layout() {
       <Tabs
         initialRouteName="profile"
         backBehavior="history"
-        detachInactiveScreens={Platform.OS !== "android"}
+        detachInactiveScreens
         tabBar={(props) => <FloatingTabBar {...props} />}
+        screenLayout={({ children, route }) => route.name in PRIMARY_ROUTES
+          ? <PrimaryTabScene>{children}</PrimaryTabScene>
+          : <>{children}</>}
         screenOptions={{
-          // Tab chính nhận opaque transform transition từ options riêng;
-          // các route không khai báo animation vẫn dùng mặc định tức thời.
+          // Secondary pages share a short fade; primary tabs override with shift.
+          animation: reduceMotionEnabled ? "none" : "fade",
+          transitionSpec: {
+            animation: "timing",
+            config: { duration: MOTION_TIMING.fast.duration, easing: MOTION_TIMING.fast.easing },
+          },
           headerShown: false,
           tabBarShowLabel: false,
           sceneStyle: { backgroundColor: COLORS.BACKGROUND },

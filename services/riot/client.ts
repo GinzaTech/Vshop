@@ -9,6 +9,7 @@ import {
 } from "~/utils/api-logger";
 import {
   getRequestUrl,
+  getRequestAccessToken,
   isRiotAuthenticationError,
   notifySessionAuthFailure,
 } from "~/utils/session-events";
@@ -45,6 +46,7 @@ export function installRiotInterceptors() {
         notifySessionAuthFailure({
           status: response.status,
           url: getRequestUrl(errorLike),
+          accessToken: getRequestAccessToken(errorLike),
         });
       }
       return logAxiosResponse(response);
@@ -54,6 +56,7 @@ export function installRiotInterceptors() {
         notifySessionAuthFailure({
           status: Number(error.response?.status) || 401,
           url: getRequestUrl(error),
+          accessToken: getRequestAccessToken(error),
         });
       }
       return logAxiosError(error);
@@ -64,4 +67,3 @@ export function installRiotInterceptors() {
 }
 
 export const riotApiClient = installRiotInterceptors();
-

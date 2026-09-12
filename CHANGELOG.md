@@ -6,6 +6,89 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed — logic audit (4.1.6)
+
+Full logic-layer audit recorded in `LOGIC_AUDIT.md` (8 high, 15 medium, 16 low findings; all fixed, UI untouched). Highlights:
+
+- **Startup duplicate fetches eliminated.** Profile warm cache now records rank schema version even for unranked accounts, so the profile screen stops re-fetching loadout, ownership and MMR on every cold start. `getRiotClientConfig` gained a 5-minute cache and in-flight dedup shared by data-sync and chat service. A full-sync registry prevents background shop refreshes from racing the startup sync, and shop/balances TTLs are stamped as soon as that data lands instead of at the end of the sync.
+- **Session writes are token-safe.** `refreshShopAndBalances` verifies the access token before writing the store, so a slow shop response can no longer overwrite freshly renewed credentials with an expired token.
+- **Bounded recovery loop.** Persistent recovery failures now back off exponentially (15s → 10 min) and suspend after 5 consecutive attempts, waiting for a foreground or network-restored event. Recovery skips the full sync when all data sources are still within TTL, and a 60-second grace period after startup prevents a second full sync right after bootstrap. `reauthRequested` resets after successful recovery so later session losses can navigate to /reauth again.
+- **Match history integrity.** Delta sync no longer stamps the cache fresh on failure, retries matches whose details failed (replacing instead of duplicating), and honors forced pull-to-refresh by waiting for an in-flight delta before running the full fetch. Persisted history is capped at 200 records. Season stats tolerate partial detail failures, cache failures for 15 minutes, and use the correct inclusive page index.
+- **Chat survives token renewal.** Disconnecting the XMPP socket keeps friends and messages when only tokens changed; the store is only wiped on account switch or sign-out. Chat init shares its in-flight promise, roster name resolution retries actually reschedule, reconnection is network-aware and capped, outgoing duplicate messages are no longer swallowed, and party messages are timestamp-sorted and capped.
+- **Correct-by-construction screen effects.** Profile fetches read session data through refs so background `setUser` calls no longer re-arm full profile fetches; pull-to-refresh bypasses the in-flight guard. Match details merge player identities through an LRU-aware store action instead of raw `setState`, fixing a crash path from evicted cache entries. Leaderboard keeps its list on transient errors and re-inits only when credentials appear. Combat session polls only while focused; shop/night-market countdowns no longer drift on re-render.
+- **Misc hardening.** `buildAuthenticatedUser` no longer discards fresh entitlements tokens when a single shop/progress/balances call fails; public asset failures can't block Riot syncs. Partial ownership failures merge with the previous cache instead of persisting empty lists. Wishlist background task guards concurrent runs, skips "no hit" notifications while foregrounded, and silent reauth errors no longer notify. Bootstrap re-runs can no longer leave the app stuck under the loading screen; the warm-cache map is evicted and cleared on sign-out. Auth keys are normalized (lowercase) everywhere; removed a hardcoded developer handle from the night-market header.
+
+### Maintenance
+
+- Removed five unreferenced helpers/UI primitives and the unused Stripe SDK/provider integration. Existing installed binaries retain the SDK until rebuilt; no native release was produced.
+- Consolidated cookie implementation behind native/default entry points while preserving the web fallback, and made navigation tests exercise the same tab-motion factory used by the app.
+- Removed Quokka's obsolete `src/**/*.ts` preload glob and removed obsolete design-system/payment documentation. Vexo configuration remains unchanged.
+
+### Fixed
+
+- Staggered primary-tab preloads, added short secondary-page fades and consistent root-stack motion, and applied live OS Reduce Motion preferences across navigation, profile, gallery and loading feedback.
+- Made shared button touch targets stable during press animation, added disabled/loading semantics, and removed global list layout animation and interaction-blocking skeleton loops.
+
+- Accepted localized Riot OAuth callbacks such as `/vi-vn/opt_in/`, observed on Android after successful sign-in. Tracking-only cookie jars no longer overwrite saved Riot login cookies after process death or cancelled login.
+- Redesigned primary tab transitions with a bounded horizontal shift, subtle 220 ms incoming fade, synchronized indicator and UI-thread press feedback. Outgoing content is hidden to prevent double images. New tab selections interrupt ongoing movement; Reduce Motion disables it.
+- Prevented indicator restarts on route confirmation and paused staggered preload mounts throughout tab transitions, including interrupted and batched navigation.
+- Enabled Android clipping for Profile's pager/lists and the Bundle/More/Shop scroll containers to reduce offscreen native drawing while preserving mounted React state.
+- Moved primary-scene backgrounds into the focus-hidden content host to prevent outgoing empty surfaces washing out the incoming page. Enabled native scene detachment after transition; real-device performance remains below the target and is not considered fully resolved.
+
+- Serialized Riot cookie operations and shared concurrent token renewals across startup, foreground recovery and wishlist checks. Persisted refreshed credentials immediately and rejected results superseded by account switching, interactive login or logout.
+- Kept session/cache on network failures, malformed upstream responses and native cookie failures. Startup no longer redirects to login after three unrelated data errors; delayed 401 responses from older tokens no longer renew the current session.
+- Preserved Riot cookies when WebView login completion fails and added a retry action. Restricted token callbacks to the configured Riot redirect and restored the previous cookie jar when account switching fails.
+- Retained rotated cookies after partial renewal failures, retried revoked saved tokens once, and only marked daily wishlist checks complete after success for the same account.
+- Made loadout confirmation bypass cached PUT data and prevented a GET started before a mutation from overwriting its result. Core synchronization also preserves current credentials and account ownership.
+- Corrected the fallback release URL and the visualizer/workspace documentation. Validation and device testing for this unreleased source are reported separately from historical release results.
+
+### Validation
+
+- Motion pass (2026-09-11): TypeScript, zero-warning ESLint, 37 suites / 244 tests and Android export passed (9.64 MiB total / 7.16 MiB Hermes; budget passed). Full `check` remains blocked by production audit advisories 1193726 and 1193727 for transitive `js-yaml`. No connected Android device was available for FPS/gesture verification.
+
+- `pnpm run check`: TypeScript, zero-warning ESLint, 35 Jest suites / 240 tests and the production audit policy passed. The audit retains four documented transitive Expo/Metro advisories.
+- Android production export passed with 38 assets; export budget passed (9.63 MiB total / 7.16 MiB Hermes). The temporary export from this cleanup was deleted after verification.
+- Live Android testing confirmed localized login completion and successful silent renewal with identity preservation and concurrent-call deduplication. Verification of all four supplied accounts remains incomplete after USB disconnected; the old development binary also exhibited Hermes SIGSEGV crashes while DevTools was used. The redesigned tab animation has not yet been visually verified on a device. No APK, OTA, commit or push was produced for these changes.
+
+## [4.1.5 OTA 2] - 2026-09-04
+
+### Security
+
+- Bound every silent Riot renewal to the expected saved-account PUUID so a global cookie from another account cannot replace the active identity.
+- Raised the transitive `qs` and `@xmldom/xmldom` overrides to patched releases after new production advisories.
+
+### Fixed
+
+- Persisted native Riot cookie snapshots per saved account in the existing encrypted session store, restored the selected account before renewal and preserved the previous cookie jar for cancellation or failed-switch rollback.
+- Allowed expired saved accounts to renew silently when their own Riot cookie is still valid, and made background wishlist checks use the active account's scoped session instead of the ambient global cookie.
+
+### Validation
+
+- `pnpm run check` — TypeScript and ESLint passed; 30/30 Jest suites and 185/185 tests passed; the production audit policy passed with four documented Expo/Metro constraints.
+- Android production export bundled 2,685 modules and 38 assets successfully.
+
+### Build metadata
+
+- App/runtime version: `4.1.5`
+- Distribution: EAS Update channel `production`; no native metadata change and no new APK.
+
+## [4.1.5 OTA 1] - 2026-09-02
+
+### Fixed
+
+- Locked Combat Session to landscape for its entire focused lifetime and separated the orientation lifecycle from Combat data refreshes, preventing session updates from briefly restoring portrait.
+- Locked every non-Combat route to upright portrait and re-applied the route-specific lock whenever the app returns from the background, including on Android devices that discard an Activity orientation request while suspended.
+
+### Validation
+
+- `pnpm run check` — TypeScript and ESLint passed; 28/28 Jest suites and 173/173 tests passed; the production audit policy passed with four documented Expo/Metro constraints.
+- Android production export bundled 2,687 modules and 38 assets successfully.
+
+### Build metadata
+
+- App/runtime version: `4.1.5`
+- Distribution: EAS Update channel `production`; no native metadata change and no new APK.
+
 ## [4.1.5] - 2026-09-02
 
 ### Security

@@ -14,6 +14,7 @@ export type RiotPlayerRequestOptions = {
 };
 
 const PLAYER_LOADOUT_CACHE_TTL_MS = 30 * 1000;
+const loadoutMutationVersions = new Map<string, number>();
 
 const playerLoadoutCache = new Map<
   string,
@@ -87,6 +88,8 @@ export async function playerLoadout(
   options: RiotPlayerRequestOptions = {}
 ): Promise<PlayerLoadoutResponse | null> {
   const cacheKey = getPlayerResourceKey(region, userId);
+  const mutationVersion = loadoutMutationVersions.get(cacheKey) ?? 0;
+  const requestKey = `${cacheKey}|${mutationVersion}|${accesstoken}`;
   const cached = playerLoadoutCache.get(cacheKey);
 
   if (!options.force && cached && cached.expiresAt > Date.now()) {
@@ -94,7 +97,7 @@ export async function playerLoadout(
   }
 
   // A forced refresh bypasses resolved data but still joins an active request.
-  const existingRequest = playerLoadoutRequests.get(cacheKey);
+  const existingRequest = playerLoadoutRequests.get(requestKey);
   if (existingRequest) {
     return existingRequest;
   }
@@ -106,16 +109,19 @@ export async function playerLoadout(
     userId
   )
     .then((response) => {
+      if (mutationVersion !== (loadoutMutationVersions.get(cacheKey) ?? 0)) {
+        return playerLoadoutCache.get(cacheKey)?.value ?? null;
+      }
       if (response) {
         cachePlayerLoadout(region, userId, response);
       }
       return response;
     })
     .finally(() => {
-      playerLoadoutRequests.delete(cacheKey);
+      playerLoadoutRequests.delete(requestKey);
     });
 
-  playerLoadoutRequests.set(cacheKey, request);
+  playerLoadoutRequests.set(requestKey, request);
   return request;
 }
 
@@ -234,6 +240,8 @@ export async function updatePlayerLoadout(
   };
 
   cachePlayerLoadout(region, userId, updatedLoadout);
+  const key = getPlayerResourceKey(region, userId);
+  loadoutMutationVersions.set(key, (loadoutMutationVersions.get(key) ?? 0) + 1);
   return updatedLoadout;
 }
 
@@ -285,6 +293,8 @@ export async function updatePlayerLoadoutV3(
   } as PlayerLoadoutResponse;
 
   cachePlayerLoadout(region, userId, updatedLoadout);
+  const key = getPlayerResourceKey(region, userId);
+  loadoutMutationVersions.set(key, (loadoutMutationVersions.get(key) ?? 0) + 1);
   return updatedLoadout;
 }
 

@@ -19,7 +19,6 @@ import {
   Text,
 } from "react-native-paper";
 import { useTranslation } from "react-i18next";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
@@ -35,7 +34,6 @@ import BatteryOptimizationWarning from "~/components/BatteryOptimizationWarning"
 import GlassCard from "~/components/ui/GlassCard";
 import UpdatePopup from "~/components/popups/UpdatePopup";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
-import { clearAllCookies } from "~/utils/cookies";
 import {
   AppUpdateCheckResult,
   applyOtaUpdate,
@@ -45,8 +43,7 @@ import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { fullBackgroundSync } from "~/utils/app-sync";
 import { hasReusableAccessToken } from "~/utils/auth-session";
-import { disconnectChatService } from "~/utils/chat-service";
-import { switchSavedAccount } from "~/services/accounts/session";
+import { prepareInteractiveAuthentication, signOutRiotAccount, switchSavedAccount } from "~/services/accounts/session";
 import {
   normalizeAccountId,
   toSavedAccount,
@@ -65,11 +62,8 @@ function Settings() {
   const insets = useSafeAreaInsets();
   // User store: thông tin user + hàm reset
   const user = useUserStore((state) => state.user);
-  const resetUser = useUserStore((state) => state.resetUser);
   const savedAccounts = useAccountStore((state) => state.accounts);
-  const saveAccount = useAccountStore((state) => state.saveAccount);
   const removeAccount = useAccountStore((state) => state.removeAccount);
-  const clearAccounts = useAccountStore((state) => state.clearAccounts);
   // Feature store: screenshot mode
   const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
   const toggleScreenshotMode = useFeatureStore((state) => state.toggleScreenshotMode);
@@ -117,22 +111,14 @@ function Settings() {
    * tắt thông báo, chuyển về màn hình setup
    */
   const handleLogout = async () => {
-    await clearAllCookies(true);
-    await AsyncStorage.removeItem("region");
-    disconnectChatService();
-    clearAccounts();
-    resetUser();
+    await signOutRiotAccount();
     stopBackgroundFetch();
     setNotificationEnabled(false);
     router.replace("/setup");
   };
 
   const handleAddAccount = async () => {
-    if (user.id && user.accessToken) {
-      saveAccount(user, true);
-    }
-    disconnectChatService();
-    await clearAllCookies(true);
+    await prepareInteractiveAuthentication(true);
     router.push({ pathname: "/reauth", params: { mode: "add" } });
   };
 
@@ -153,6 +139,7 @@ function Settings() {
       }
 
       if (result.kind === "reauth-required") {
+        await prepareInteractiveAuthentication(true);
         router.push({
           pathname: "/reauth",
           params: { mode: "switch", accountId },
@@ -353,6 +340,7 @@ function Settings() {
   return (
     <>
       <ScrollView
+        removeClippedSubviews={Platform.OS === "android"}
         style={styles.screen}
         contentContainerStyle={[
           styles.content,

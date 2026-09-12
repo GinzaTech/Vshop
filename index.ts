@@ -33,7 +33,10 @@ if (Platform.OS !== "web") {
       return;
     }
 
-    await wishlistBgTask();
-    BackgroundFetch.finish(taskId);
+    try {
+      await wishlistBgTask();
+    } finally {
+      BackgroundFetch.finish(taskId);
+    }
   });
 }

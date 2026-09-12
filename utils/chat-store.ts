@@ -14,6 +14,11 @@ export interface ChatMessage {
 // Reusing this constant avoids an infinite useSyncExternalStore render loop.
 export const EMPTY_CHAT_MESSAGES: readonly ChatMessage[] = Object.freeze([]);
 
+// Trần số tin nhắn giữ trong memory cho mỗi hội thoại/phòng party (fix L16).
+// Store không persist nên chỉ ảnh hưởng RAM của session; 500 tin là dư sức
+// cho một phiên chat dài mà không phình vô hạn.
+const MAX_MESSAGES_PER_CHAT = 500;
+
 // Interface định nghĩa cấu trúc một người bạn trong danh bạ
 export interface ChatFriend {
   id: string;       // Riot PUUID
@@ -150,28 +155,39 @@ export const useChatStore = create<ChatState>((set) => ({
     }),
 
   // Thêm tin nhắn vào lịch sử chat (kiểm tra trùng lặp trước khi thêm)
-  // Sắp xếp tin nhắn theo thời gian tăng dần
+  // Sắp xếp tin nhắn theo thời gian tăng dần.
+  //
+  // FIX (L16): heuristic dedup "cùng from + body trong 2s" trước đây áp cho
+  // CẢ tin gửi đi — tin outgoing có ID duy nhất (xmpp message id) nên gửi 2
+  // tin giống nhau trong 2s là hợp lệ nhưng tin thứ 2 bị nuốt. Giờ heuristic
+  // thời gian chỉ áp dụng cho tin INCOMING (echo/Ngâu gửi trùng từ server);
+  // tin outgoing chỉ dedup theo ID chính xác.
   addMessage: (friendId, message) =>
     set((state) => {
       const normalizedFriendId = normalizeChatId(friendId);
       const currentMessages = state.messages[normalizedFriendId] || [];
-      // Kiểm tra trùng lặp: cùng ID hoặc cùng nội dung trong 2 giây
+      const isOutgoing = message.from === "me";
+      // Kiểm tra trùng lặp: cùng ID, hoặc (incoming) cùng nội dung trong 2 giây
       const isDuplicate = currentMessages.some(
         (item) =>
           item.id === message.id ||
-          (item.from === message.from &&
+          (!isOutgoing &&
+            item.from === message.from &&
             item.body === message.body &&
             Math.abs(item.timestamp - message.timestamp) < 2000)
       );
 
       if (isDuplicate) return state;
 
+      // Cap số tin/lượt hội thoại để memory không phình vô hạn (session-scoped)
+      const nextMessages = [...currentMessages, message].sort(
+        (left, right) => left.timestamp - right.timestamp
+      );
+
       return {
         messages: {
           ...state.messages,
-          [normalizedFriendId]: [...currentMessages, message].sort(
-            (left, right) => left.timestamp - right.timestamp
-          ),
+          [normalizedFriendId]: nextMessages.slice(-MAX_MESSAGES_PER_CHAT),
         },
       };
     }),
@@ -183,23 +199,31 @@ export const useChatStore = create<ChatState>((set) => ({
   setCurrentPartyId: (partyId) => set({ currentPartyId: partyId }),
 
   // Thêm tin nhắn vào party chat (kiểm tra trùng lặp)
+  // FIX (L16): sort theo timestamp sau khi append (trước đây giữ thứ tự arrival
+  // nên tin đến lệch thứ tự sẽ hiển thị sai trật tự) + cap số tin/phòng.
   addPartyMessage: (room, message) =>
     set((state) => {
       const currentMessages = state.partyMessages[room] || [];
+      const isOutgoing = message.from === "me";
       const isDuplicate = currentMessages.some(
         (item) =>
           item.id === message.id ||
-          (item.from === message.from &&
+          (!isOutgoing &&
+            item.from === message.from &&
             item.body === message.body &&
             Math.abs(item.timestamp - message.timestamp) < 2000)
       );
 
       if (isDuplicate) return state;
 
+      const nextMessages = [...currentMessages, message].sort(
+        (left, right) => left.timestamp - right.timestamp
+      );
+
       return {
         partyMessages: {
           ...state.partyMessages,
-          [room]: [...currentMessages, message],
+          [room]: nextMessages.slice(-MAX_MESSAGES_PER_CHAT),
         },
       };
     }),

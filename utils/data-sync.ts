@@ -15,9 +15,11 @@ import { fetchProfileWarmCache } from "./profile-cache";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
-import { markSynced } from "./app-sync";
+import { beginFullSync, endFullSync, markSynced } from "./app-sync";
 import { getRiotClientConfig } from "./valorant-api";
 import { markStartupCacheReady } from "./startup-cache";
+import { getAccountSessionKey } from "./saved-accounts";
+import { getSessionGeneration, SessionChangedError } from "./session-operations";
 
 // ===== Types =====
 
@@ -115,11 +117,49 @@ function matchIdsEqual(
  * @param region - Region
  * @returns SyncReport — chi tiết gì đã thay đổi
  */
-export async function syncAllData(
+const syncRequests = new Map<string, Promise<SyncReport>>();
+
+export function syncAllData(
+  user: ReturnType<typeof useUserStore.getState>["user"],
+  region: string
+): Promise<SyncReport> {
+  const key = `${getSessionGeneration()}|${getAccountSessionKey(user)}|${user.accessToken}`;
+  const pending = syncRequests.get(key);
+  if (pending) return pending;
+
+  // Đăng ký "full sync đang chạy" để refreshShopAndBalances nhường đường,
+  // tránh fetch shop/balances song song rồi ghi đè lẫn nhau (stale-overwrite).
+  const accountKey = getAccountSessionKey(user);
+  beginFullSync(accountKey);
+
+  const request = syncAllDataInternal(user, region)
+    .finally(() => {
+      endFullSync(accountKey);
+    });
+  syncRequests.set(key, request);
+  void request.finally(() => {
+    if (syncRequests.get(key) === request) syncRequests.delete(key);
+  }).catch(() => undefined);
+  return request;
+}
+
+async function syncAllDataInternal(
   user: typeof useUserStore extends { getState: () => { user: infer U } } ? U : never,
   region: string
 ): Promise<SyncReport> {
   const startTime = Date.now();
+  const generation = getSessionGeneration();
+  let expectedAccountKey = getAccountSessionKey(user);
+  const assertCurrent = () => {
+    const current = useUserStore.getState().user;
+    if (
+      generation !== getSessionGeneration() ||
+      getAccountSessionKey(current) !== expectedAccountKey ||
+      current.accessToken !== user.accessToken
+    ) throw new SessionChangedError();
+    return current;
+  };
+  assertCurrent();
 
   // --- Bước 1: Đọc dữ liệu HIỆN TẠI từ cache ---
   const cachedUser = useUserStore.getState().user;
@@ -129,14 +169,32 @@ export async function syncAllData(
   // buildAuthenticatedUser dùng access token còn hạn để xin entitlement mới.
   // Credential mới phải được persist ngay cả khi shop/balance không thay đổi.
   const authUser = await buildAuthenticatedUser(user.accessToken, region, user);
-  useUserStore.getState().setUser(authUser);
+  const latestUser = assertCurrent();
+  useUserStore.getState().setUser({
+    ...latestUser,
+    name: authUser.name,
+    TagLine: authUser.TagLine,
+    shops: authUser.shops,
+    progress: authUser.progress,
+    balances: authUser.balances,
+    region: authUser.region,
+    entitlementsToken: authUser.entitlementsToken,
+  });
+  expectedAccountKey = getAccountSessionKey(authUser);
+
+  // Stamp TTL của shop/balances NGAY TẠI ĐÂY (không đợi cuối sync): dữ liệu
+  // shop/balances vừa được fetch + ghi, nếu đợi đến cuối sync (có thể thêm
+  // nhiều giây vì matches/profile) thì các refresh nền chạy giữa chừng
+  // (vd AppWarmup t+3s) sẽ thấy stale và fetch trùng.
+  markSynced(["shop", "balances"], authUser);
 
   // --- Bước 3: Fetch các nguồn còn lại bằng credentials vừa được làm mới ---
-  const [clientConfig, , profileCache] = await Promise.all([
+  const [clientConfig, matchesOk, profileCache] = await Promise.all([
     getRiotClientConfig(authUser.accessToken, authUser.entitlementsToken),
     useMatchStore.getState().fetchMatches(authUser),
     fetchProfileWarmCache(authUser),
   ]);
+  assertCurrent();
 
   if (!clientConfig) {
     throw new Error("Riot client configuration is unavailable");
@@ -144,6 +202,13 @@ export async function syncAllData(
 
   if (!profileCache) {
     throw new Error("Profile warm cache is unavailable");
+  }
+
+  // fetchMatches trả về boolean: true = dữ liệu dùng được (fetch OK hoặc cache
+  // còn fresh). false = fetch thất bại → KHÔNG stamp matches để TTL layer
+  // cho phép retry ở chu kỳ sau, thay vì khóa cache "đã sync" suốt 30 phút.
+  if (matchesOk) {
+    markSynced(["matches"], authUser);
   }
 
   const matchStateAfterSync = useMatchStore.getState();
@@ -194,9 +259,9 @@ export async function syncAllData(
     freshMatches.map((m) => ({ MatchID: m.MatchID }))
   );
 
-  // Startup/resume only completes after every core source is available. This
-  // prevents a half-valid session from entering the app with dead API actions.
-  markSynced(["shop", "balances", "matches"], authUser);
+  // Startup/resume chỉ hoàn tất khi mọi nguồn lõi khả dụng. Matches đã được
+  // stamp phía trên (chỉ khi fetch thành công). Việc này ngăn session nửa vời
+  // vào app với các API action chết.
   await markStartupCacheReady(authUser);
 
   const report: SyncReport = {

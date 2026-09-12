@@ -23,7 +23,6 @@ Vshop/
 │   ├── matches/                 match cards, loading và empty states
 │   ├── popups/                  overlay/modal dùng toàn app
 │   ├── profile/                 profile dashboard sections
-│   ├── providers/               platform providers
 │   └── ui/                      design-system primitives
 │       ├── AppRefreshControl.tsx
 │       ├── GlassCard.tsx
@@ -57,6 +56,8 @@ Vshop/
 │   ├── valorant-api.ts          facade tương thích re-export Riot services
 │   ├── valorant-user.ts         default user/session shape
 │   ├── valorant-assets.ts       cache + orchestration asset
+│   ├── riot-cookies.ts          logic cookie dùng chung; cookies.* là entry point nền tảng
+│   ├── primary-tab-motion.ts    cấu hình chuyển tab dùng bởi runtime và test
 │   ├── auth-session.ts          tạo/khôi phục session
 │   ├── session-events.ts        phân loại lỗi auth/network
 │   └── ...
@@ -89,6 +90,10 @@ Quy tắc:
 9. Chi tiết coding rule xem `AGENTS.md`; token/build rule xem `BUILD_DESIGN_SYSTEM.md`.
 
 ## State, cache và refresh
+
+- `services/accounts/session.ts` điều phối renewal, chuyển tài khoản, đăng xuất và chuẩn bị WebView trên một hàng đợi thao tác cookie. Request làm mới trùng dùng chung promise; token/cookie mới được lưu ngay, kết quả của phiên đã đổi bị bỏ qua.
+- `utils/session-operations.ts` quản lý generation và ranh giới xác thực tương tác. Startup/warmup chỉ mở reauth khi Riot yêu cầu đăng nhập/MFA hoặc xác nhận phiên không hợp lệ; lỗi mạng, lỗi native cookie và response không xác định giữ session/cache để thử lại.
+- `syncAllData` gộp request trùng, kiểm tra account/token/generation trước mỗi lần ghi kết quả. Các phép so sánh dữ liệu phục vụ báo cáo sync; việc lưu credentials không phụ thuộc shop có thay đổi hay không.
 
 - `useUserStore`: session Riot, shop, balance và account progress được persist.
 - `useMatchStore`: lịch sử/chi tiết trận có cache, deduplication và force refresh.
@@ -129,7 +134,7 @@ pnpm run typecheck       # TypeScript strict
 pnpm run lint            # ESLint, không cho warning
 pnpm run test:ci         # unit + endpoint contract + coverage
 pnpm run test:api        # gọi mạng thật các public API app đang dùng
-pnpm run check           # typecheck + lint + test:ci
+pnpm run check           # typecheck + lint + test:ci + production dependency audit
 ```
 
 API Riot cần access token/entitlements token chỉ được integration-test bằng session thử nghiệm hợp lệ. Các endpoint thay đổi trạng thái như lock agent, quit game, queue, loadout và party không được tự động gọi trong smoke test để tránh thay đổi tài khoản thật; URL/missing-param/encoding của chúng được kiểm tra đầy đủ bằng contract test.

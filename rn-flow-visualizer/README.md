@@ -5,14 +5,14 @@ Local MVP dashboard for visualizing how data moves through a React Native Androi
 ## Run
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm --filter rn-flow-visualizer dev
 ```
 
 For live React Native testing, run the dashboard and trace WebSocket server together:
 
 ```bash
-npm run dev:live
+pnpm --filter rn-flow-visualizer dev:live
 ```
 
 Dashboard URL: `http://127.0.0.1:5173`
@@ -72,4 +72,4 @@ The dashboard receives the trace through WebSocket and adds it to the scenario l
 
 ## MVP Scope
 
-This is local and mock-data based. It does not connect to a real React Native app, WebSocket server, native Android module, cloud sync, or AST parser yet.
+The dashboard supports sample traces, live React Native traces through the local WebSocket server, and source scanning through `/scan-code` and `/train-code-flow`. Source scans and the small local classifier infer possible events; they do not prove runtime execution. There is no cloud sync or native Android observer module. Use pnpm from the repository root for this workspace.

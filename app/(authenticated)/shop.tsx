@@ -4,6 +4,7 @@
 
 import React from "react";
 import {
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -48,7 +49,12 @@ function Shop() {
   );
   const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
 
-  const timestamp = new Date().getTime() + user.shops.remainingSecs.main * 1000;
+  // FIX (L10): useMemo mốc đếm ngược — tính `Date.now() + remaining` mỗi render
+  // khiến countdown trượt khi re-render bởi state không liên quan.
+  const timestamp = React.useMemo(
+    () => new Date().getTime() + user.shops.remainingSecs.main * 1000,
+    [user.shops.remainingSecs.main]
+  );
 
   const filteredItems = React.useMemo(() => {
     if (mode === "all") return user.shops.main;
@@ -66,6 +72,7 @@ function Shop() {
 
   return (
     <ScrollView
+      removeClippedSubviews={Platform.OS === "android"}
       style={styles.screen}
       contentContainerStyle={[
         styles.content,
@@ -161,7 +168,7 @@ function Shop() {
               {t("shop_page.items_count", { count: filteredItems.length })}
             </Text>
           </View>
-          <View style={styles.list}>
+          <View style={styles.list} removeClippedSubviews={Platform.OS === "android"}>
             {filteredItems.map((item) => (
               <View key={item.uuid} style={{ width: cardWidth }}>
                 <ShopItem item={item} />
@@ -353,6 +360,7 @@ const styles = StyleSheet.create({
   },
   // list – Grid flexWrap (giống Night Market)
   list: {
+    overflow: "hidden",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: GRID_GAP,

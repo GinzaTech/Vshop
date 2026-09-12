@@ -54,7 +54,7 @@ Component nhỏ đặc thù có thể dùng radius cục bộ, nhưng các primi
 - Dùng `LAYOUT.screenPadding`, `minTouchTarget` và `bottomNavHeight` cho kích thước dùng chung.
 - Card thường dùng `SHADOWS.none/xs/sm`; navigation dùng tối đa `md`; `lg` dành cho modal/sheet.
 - Bottom navigation phải tham gia layout của navigator, không đặt absolute phủ lên screen content.
-- Scene của tab chính phải luôn opaque, được preload khi runtime rảnh và trên Android phải giữ attached để tránh mount/unfreeze giữa animation. Chuyển tab dùng native transform trái/phải hết chiều rộng màn hình, đồng bộ indicator; không fade hoặc scale component và phải chuyển tức thời khi Reduce Motion bật.
+- Scene của tab chính dùng native detach sau chuyển cảnh, giữ React state. Nền design system nằm trong PrimaryTabScene và ẩn cùng nội dung khi mất focus; nền navigator phải trong suốt để không che bạc trang mới. Chuyển tab dùng native transform tối đa 32 dp trong 220 ms, scene mới fade nhẹ từ opacity 0.92. Indicator chỉ khởi động một lần cho mỗi đích, không restart khi route xác nhận. Bấm tab khác đổi đích ngay và Reduce Motion chuyển tức thời.
 
 Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout cụ thể. Khi xuất hiện từ ba lần trở lên, nâng giá trị thành token hoặc primitive.
 
@@ -66,10 +66,8 @@ Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout c
 | `ValorantButton` | button chính/phụ với press feedback |
 | `InfoPill` | metric, balance hoặc badge dạng pill |
 | `PageIntro` | title/subtitle đầu màn hình |
-| `SectionHeader` | tiêu đề section và action/meta |
 | `EmptyStateCard` | trạng thái rỗng có nội dung hướng dẫn |
 | `TwoColumnGrid` | grid nhỏ có số lượng item hữu hạn |
-| `AnimatedNumber` | chuyển đổi số có kiểm soát |
 | `AppRefreshControl` | pull-to-refresh đồng nhất Android/iOS |
 
 Trước khi tạo component mới, kiểm tra `components/ui/`. Primitive không được chứa domain logic hoặc tự gọi Riot API.
@@ -93,6 +91,10 @@ Quy tắc:
 4. Cleanup animation/timer khi unmount.
 5. Không chạy animation entrance lại chỉ vì selector/store trả object mới.
 6. Blur/modal phải giữ target ổn định; Android Expo Blur dùng `blurTarget` + `blurMethod`.
+7. Tab preload dùng `usePrimaryTabPreload` và `runIdleSequence`: dừng ngay khi bấm tab/transitionStart, tiếp tục sau transitionEnd và idle, mỗi lượt chỉ mount một scene. Không restart hàng đợi theo identity của navigation; cleanup cả listener, idle task và timer khi unmount.
+8. Màn phụ dùng fade 140 ms; root stack dùng slide 220 ms với nền cố định và gesture back. `useMotionPreference` cập nhật Reduce Motion khi OS thay đổi, kể cả sau khi app đã mở.
+9. Profile pager/list và ScrollView Bundles/More/Shop bật clipping riêng Android để giảm view ngoài vùng nhìn. Khi thay đổi layout/transform phải kiểm tra lại nội dung khi cuộn, chuyển trang con và quay lại tab; không unmount React state để tối ưu chuyển cảnh.
+9. Skeleton native-driver phải đặt `isInteraction: false` để không giữ hàng đợi render danh sách. Không dùng `LayoutAnimation.configureNext` toàn cục trước request bất đồng bộ của danh sách.
 
 ## 5. Lists, loading và refresh
 

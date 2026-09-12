@@ -1,6 +1,10 @@
 // https://docs.expo.dev/guides/using-eslint/
 module.exports = {
   extends: 'expo',
+  // ECC/ là thư mục công cụ/kỹ năng ngoài (không phải code app) — nó có
+  // prebuilt test scripts dùng `__dirname` CommonJS và workflow DSL riêng,
+  // không thuộc phạm vi lint của ứng dụng (khớp với tsconfig exclude).
+  ignorePatterns: ['ECC/'],
   rules: {
     // The app has not opted into React Compiler yet. Expo 57 enables its
     // migration diagnostics by default, including false positives for

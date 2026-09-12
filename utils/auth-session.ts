@@ -23,6 +23,8 @@ import {
   getIdTokenFromUri,
   normalizeValorantShard,
 } from "./misc";
+import { normalizeAccountId } from "./saved-accounts";
+import { getHttpStatus } from "./session-events";
 
 // Số giây đệm trước khi token hết hạn (90 giây) để tránh dùng token sắp hết hạn
 const ACCESS_TOKEN_BUFFER_SECONDS = 90;
@@ -155,20 +157,42 @@ export async function renewAuthenticatedSession(
   const version = await fetchVersion().catch(() =>
     getRiotClientVersionForRequests()
   );
-  const response = await reAuth(version);
+  const response = await reAuth(version).catch((error: unknown) => {
+    if (getHttpStatus(error) === 401) throw new ReauthenticationRequiredError();
+    throw error;
+  });
+  // An unexpected gateway response is not proof that the login expired.
+  if (response?.data?.type === "auth" || response?.data?.type === "multifactor") {
+    throw new ReauthenticationRequiredError();
+  }
   const callbackUri = response?.data?.response?.parameters?.uri;
 
   if (typeof callbackUri !== "string" || !callbackUri) {
-    throw new ReauthenticationRequiredError();
+    throw new Error("Riot renewal returned no authentication callback");
   }
 
   let accessToken: string;
   let idToken: string;
+  let renewedUserId: string;
   try {
     accessToken = getAccessTokenFromUri(callbackUri);
     idToken = getIdTokenFromUri(callbackUri);
+    renewedUserId = getUserId(accessToken);
   } catch {
-    throw new ReauthenticationRequiredError();
+    throw new Error("Riot renewal returned an invalid authentication callback");
+  }
+
+  if (!renewedUserId || !accessToken || !idToken) {
+    throw new Error("Riot renewal returned incomplete credentials");
+  }
+
+  if (
+    seedUser.id &&
+    normalizeAccountId(renewedUserId) !== normalizeAccountId(seedUser.id)
+  ) {
+    throw new ReauthenticationRequiredError(
+      "Riot cookie belongs to a different saved account"
+    );
   }
 
   const fallbackRegion = seedUser.region || defaultUser.region;
@@ -177,9 +201,13 @@ export async function renewAuthenticatedSession(
     resolveLiveRegion(accessToken, idToken, fallbackRegion),
   ]);
 
+  if (!entitlementsToken) {
+    throw new Error("Riot renewal returned no entitlements token");
+  }
+
   return {
     ...seedUser,
-    id: getUserId(accessToken),
+    id: renewedUserId,
     region: liveRegion || fallbackRegion,
     accessToken,
     idToken,
@@ -202,27 +230,48 @@ export async function buildAuthenticatedUser(
   seedUser?: typeof defaultUser,
   idToken = seedUser?.idToken ?? ""
 ) {
-  // Tải assets và agents song song
-  const assetsPromise = loadAssets();
-  const agentsPromise = loadAgent();
   const userId = getUserId(accessToken);
-  // Lấy entitlements token và region live song song
-  const [entitlementsToken, liveRegion] = await Promise.all([
-    getEntitlementsToken(accessToken),
-    resolveLiveRegion(accessToken, idToken, region),
+  // Lấy entitlements token + region live song song với assets/agents.
+  // LƯU Ý: assets/agents là dữ liệu công khai (valorant-api.com) — nếu
+  // upstream này sập thì KHÔNG được chặn sync dữ liệu Riot; chúng được load
+  // lazy ở nơi khác khi cần nên fail ở đây chỉ là degrade hình ảnh.
+  const [[entitlementsToken, liveRegion]] = await Promise.all([
+    Promise.all([
+      getEntitlementsToken(accessToken),
+      resolveLiveRegion(accessToken, idToken, region),
+    ]),
+    loadAssets().catch(() => null),
+    loadAgent().catch(() => null),
   ]);
 
-  // Lấy thông tin user, shop, progress, balances song song
-  const [username, shop, progress, balances] = await Promise.all([
-    getUsername(accessToken, entitlementsToken, userId, liveRegion),
-    getShop(accessToken, entitlementsToken, liveRegion, userId),
-    getProgress(accessToken, entitlementsToken, liveRegion, userId),
-    getBalances(accessToken, entitlementsToken, liveRegion, userId),
-    assetsPromise,
-    agentsPromise,
+  // Username là dữ liệu bắt buộc (hiện khắp app) → fail thì throw.
+  // Shop/progress/balances là dữ liệu có thể fallback từ seedUser (cache cũ
+  // vẫn tốt hơn mất toàn bộ): từng call tự bắt lỗi để 1 endpoint lỗi transient
+  // không làm vứt entitlements token vừa lấy được (tránh phải xin lại token
+  // ở chu kỳ sync sau).
+  const username = await getUsername(
+    accessToken,
+    entitlementsToken,
+    userId,
+    liveRegion
+  );
+  const [shop, progress, balances] = await Promise.all([
+    getShop(accessToken, entitlementsToken, liveRegion, userId).catch(
+      () => null
+    ),
+    getProgress(accessToken, entitlementsToken, liveRegion, userId).catch(
+      () => null
+    ),
+    getBalances(accessToken, entitlementsToken, liveRegion, userId).catch(
+      () => null
+    ),
   ]);
-  // Parse dữ liệu shop, giữ lại bundle cũ từ seedUser
-  const shops = await parseShop(shop, seedUser?.shops.bundles);
+
+  // Parse shop nếu fetch thành công; nếu fail → giữ nguyên shops cũ từ
+  // seedUser (hoặc mặc định) để UI vẫn render được từ cache.
+  const shops = shop
+    ? await parseShop(shop, seedUser?.shops.bundles)
+    : seedUser?.shops ?? defaultUser.shops;
 
   return {
     ...defaultUser,
@@ -232,8 +281,8 @@ export async function buildAuthenticatedUser(
     TagLine: username.TagLine,
     region: liveRegion,
     shops,
-    progress,
-    balances,
+    progress: progress ?? seedUser?.progress ?? defaultUser.progress,
+    balances: balances ?? seedUser?.balances ?? defaultUser.balances,
     accessToken,
     idToken,
     entitlementsToken,

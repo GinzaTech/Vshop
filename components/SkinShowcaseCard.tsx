@@ -3,11 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  useReducedMotion,
   withSpring,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import * as Haptics from "expo-haptics";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
