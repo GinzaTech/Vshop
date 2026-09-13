@@ -1,3 +1,8 @@
+// ===== ProfilePickerModal.tsx – Modal chọn skin/spray/flex/card/title =====
+// Presentational component: nhận toàn bộ options + callbacks equip từ
+// ProfileScreen. Hiển thị 5 nhánh theo pickerState.type (weapon/expression/
+// player-card/player-title/spray) và panel chọn chroma (long-press skin).
+
 import React from "react";
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
@@ -11,6 +16,7 @@ import { getContentTierVisual } from "~/utils/content-tier";
 import { styles } from "~/features/profile/profile-screen.styles";
 import type { EquippedExpression, ExpressionKind, OwnedExpressionOption, OwnedSkinOption, OwnedSprayOption, PickerState } from "~/features/profile/profile-loadout";
 
+/** ProfilePalette – Bộ màu truyền vào từ ProfileScreen (đã tính theo theme). */
 export interface ProfilePalette {
   accent: string;
   background: string;
@@ -21,6 +27,25 @@ export interface ProfilePalette {
   textSecondary: string;
 }
 
+/**
+ * ProfilePickerModalProps – Props của modal picker.
+ * @param {object | null} activeWeaponChroma - Panel chọn chroma đang mở (weapon only).
+ * @param {Function} handleDismissPicker - Đóng modal + reset state picker.
+ * @param {Function} handleEquipExpression - Equip graffiti/flex đã chọn.
+ * @param {Function} handleEquipIdentity - Equip player card/title đã chọn.
+ * @param {Function} handleEquipSpray - Equip spray đã chọn (legacy path).
+ * @param {Function} handleEquipWeapon - Equip skin/chroma cho vũ khí.
+ * @param {Function} handleOpenExpressionPicker - Đổi tab graffiti/flex trong picker.
+ * @param {IdentityDetails | null} identityDetails - Dữ liệu identity (subtitle picker).
+ * @param {string} identityPickerQuery - Từ khóa tìm card/title.
+ * @param {ProfilePalette} palette - Màu hiển thị.
+ * @param {string | null} pickerError - Lỗi equip đang hiển thị trong modal.
+ * @param {boolean} pickerLoading - Đang build options?
+ * @param {PickerState | null} pickerState - Trạng thái picker (null = đóng).
+ * @param {Function} setActiveWeaponChroma - Mở/đóng panel chroma.
+ * @param {Function} setIdentityPickerQuery - Set từ khóa tìm kiếm.
+ * @param {boolean} updatingLoadout - Đang có mutation loadout chạy?
+ */
 interface ProfilePickerModalProps {
   activeWeaponChroma: { weapon: EquippedWeapon; option: OwnedSkinOption } | null;
   handleDismissPicker: () => void;
@@ -40,6 +65,12 @@ interface ProfilePickerModalProps {
   updatingLoadout: boolean;
 }
 
+/**
+ * ProfilePickerModal – Modal bottom-sheet chọn item để trang bị.
+ * Tính tiêu đề/subtitle theo pickerState.type, lọc options card/title theo
+ * từ khóa, render FlatList grid/list tương ứng và xử lý trạng thái busy.
+ * @returns {JSX.Element | null} Modal content (Portal) hoặc null khi pickerState null.
+ */
 export function ProfilePickerModal({
   activeWeaponChroma,
   handleDismissPicker,
@@ -60,12 +91,15 @@ export function ProfilePickerModal({
 }: ProfilePickerModalProps) {
     const { t } = useTranslation();
 
+  // pickerState null → picker đang đóng, không render gì cả.
   if (!pickerState) {
       return null;
     }
 
+    // Busy khi đang build options hoặc đang PUT loadout: chặn mọi nút equip.
     const pickerBusy = pickerLoading || updatingLoadout;
 
+    // Tiêu đề/subtitle của sheet thay đổi theo loại picker.
     let title: string;
     let subtitle: string;
 
@@ -104,6 +138,7 @@ export function ProfilePickerModal({
         break;
     }
 
+    // Lọc options card/title theo từ khóa tìm kiếm (không phân biệt hoa thường).
     const normalizedIdentityQuery = identityPickerQuery.trim().toLowerCase();
     const filteredPlayerCardOptions =
         pickerState.type === "player-card"
@@ -190,6 +225,7 @@ export function ProfilePickerModal({
                   />
               ) : null}
 
+              {/* Nhánh 1: picker skin vũ khí — grid 2 cột, long-press mở panel chroma */}
               {pickerState.type === "weapon" ? (
                   <FlatList
                       data={pickerState.options}
@@ -377,6 +413,7 @@ export function ProfilePickerModal({
                       }}
                   />
               ) : pickerState.type === "expression" ? (
+                  // Nhánh 2: picker graffiti/flex — tab đổi kind + grid 2 cột
                   <>
                     <View
                         style={[
@@ -527,6 +564,7 @@ export function ProfilePickerModal({
                     />
                   </>
               ) : pickerState.type === "player-card" ? (
+                  // Nhánh 3: picker player card — grid ảnh vuông + badge selected
                   <FlatList
                       data={filteredPlayerCardOptions}
                       keyExtractor={(option) => option.id}
@@ -609,6 +647,7 @@ export function ProfilePickerModal({
                       )}
                   />
               ) : pickerState.type === "player-title" ? (
+                  // Nhánh 4: picker player title — list đơn giản + icon selected
                   <FlatList
                       data={filteredPlayerTitleOptions}
                       keyExtractor={(option) => option.id}
@@ -673,6 +712,7 @@ export function ProfilePickerModal({
                       )}
                   />
               ) : (
+                  // Nhánh 5 (mặc định): picker spray — grid 2 cột
                   <FlatList
                       data={pickerState.options}
                       keyExtractor={(option) => option.id}

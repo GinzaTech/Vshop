@@ -1,3 +1,9 @@
+// ===== useProfileCollapsibleHeader.ts – Header Profile thu gọn được =====
+// Điều khiển header (top bar + hero + segment) thu gọn/expand trực tiếp trên
+// UI thread bằng Reanimated: body cuộn lên → header trượt theo cho tới khi
+// chỉ còn thanh segment sticky. Toàn bộ gesture/animation chạy trên UI thread,
+// Reduce Motion được tôn trọng ở pha decay (vụn đổ theo vận tốc).
+
 import React from "react";
 import type { LayoutChangeEvent } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
@@ -10,12 +16,19 @@ import {
 } from "react-native-reanimated";
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 
+// Chiều cao của thanh segment sticky khi header đã thu gọn hoàn toàn.
 export const PROFILE_STICKY_SEGMENT_HEIGHT = 70;
 
 /**
  * Điều khiển header Profile thu gọn trực tiếp trên UI thread. Bảng hero và
  * vùng dữ liệu dùng chung một offset, nên kéo từ bảng sẽ dịch cả bố cục thay
  * vì chỉ thay đổi vị trí cuộn ẩn của danh sách con.
+ */
+/**
+ * useProfileCollapsibleHeader – Quản lý trạng thái thu gọn của header Profile.
+ * Trả về gesture, scroll handler và animated styles để gắn vào màn hình.
+ * @returns {object} { bodyAnimatedStyle, contentPanGesture, handleContentScroll,
+ *   handleHeaderLayout, headerAnimatedStyle, headerHeight, panGesture }
  */
 export function useProfileCollapsibleHeader() {
   const reduceMotionEnabled = useReducedMotion();
@@ -27,6 +40,8 @@ export function useProfileCollapsibleHeader() {
   const touchStartX = useSharedValue(0);
   const touchStartY = useSharedValue(0);
 
+  // Đo chiều cao header thật → tính quãn cách thu gọn (header - segment sticky);
+  // giữ offset hiện tại không vượt khoảng cách mới khi layout đổi.
   const handleHeaderLayout = React.useCallback(
     (event: LayoutChangeEvent) => {
       const nextHeaderHeight = event.nativeEvent.layout.height;
@@ -47,6 +62,8 @@ export function useProfileCollapsibleHeader() {
     [collapseDistance, collapseOffset]
   );
 
+  // Pan gesture kéo trực tiếp trên header: chỉ kích hoạt khi kéo dọc
+  // (±8px), nhường cho cuộn ngang (quá ±18px ngang thì fail).
   const panGesture = React.useMemo(
     () =>
       Gesture.Pan()
@@ -75,6 +92,9 @@ export function useProfileCollapsibleHeader() {
     [collapseDistance, collapseOffset, dragOrigin, reduceMotionEnabled]
   );
 
+  // Pan gesture cho vùng nội dung (manual activation): phân tích hướng chạm —
+  // kéo dọc → thu gọn header (lên) hoặc mở rộng khi nội dung đã cuộn về đầu;
+  // kéo ngang → fail để pager tab xử lý.
   const contentPanGesture = React.useMemo(
     () =>
       Gesture.Pan()
@@ -143,6 +163,7 @@ export function useProfileCollapsibleHeader() {
     ]
   );
 
+  // Ghi offset cuộn của nội dung (≥ 0) để biết khi nào được phép mở header.
   const handleContentScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
       contentScrollOffset.value = Math.max(
@@ -152,6 +173,7 @@ export function useProfileCollapsibleHeader() {
     },
   });
 
+  // Header trượt lên theo collapseOffset; body trượt bù để không hở khoảng trống.
   const headerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -collapseOffset.value }],
   }));

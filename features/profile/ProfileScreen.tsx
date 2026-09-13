@@ -257,7 +257,7 @@ function Profile() {
   const authKey = React.useMemo(() => getSessionAuthKey(user), [user]);
   React.useEffect(() => {
     if (!hasAuth) return;
-    void fetchSeasonStats(user);
+    void fetchSeasonStats(user); // Fetch season stats khi có auth (payload player info).
   }, [fetchSeasonStats, hasAuth, user]);
   const cachedProfile = useProfileCacheStore(
       (state) => state.cacheByAuth[authKey] ?? null
@@ -268,7 +268,7 @@ function Profile() {
   const cachedLoadoutSnapshot = hasValidProfileLoadoutCache(cachedProfile)
       ? cachedProfile?.loadoutSnapshot ?? null
       : null;
-  const dashboardMatches = React.useMemo(
+  const dashboardMatches = React.useMemo( // matches chỉ khi store khớp session (authKey)
       () => (matchAuthKey === authKey ? recentMatches : []),
       [authKey, matchAuthKey, recentMatches]
   );
@@ -291,9 +291,9 @@ function Profile() {
   const profilePagerRef =
       React.useRef<React.ElementRef<typeof ScrollView>>(null);
   const skinWhitespacePagerOriginRef = React.useRef(0);
-  const segmentProgress = useSharedValue(0);
-  const segmentLayoutProgress = useSharedValue(0);
-  const statsTabProgress = useSharedValue(0);
+  const segmentProgress = useSharedValue(0); // 0..2: tab pager đang hiển thị
+  const segmentLayoutProgress = useSharedValue(0); // 0..1: layout profile→stats
+  const statsTabProgress = useSharedValue(0); // 0..1: overview→details
   const segmentContainerWidth = useSharedValue(
       Math.max(0, viewportWidth - 32)
   );
@@ -516,7 +516,7 @@ function Profile() {
       }
     };
   }, []);
-
+  // ── Animated styles theo pageModeProgress (profile ↔ player info) ──
   const topHeaderTitleAnimatedStyle = useAnimatedStyle(() => ({
     color: interpolateColor(
         pageModeProgress.value,
@@ -648,7 +648,7 @@ function Profile() {
     opacity: statsVisibilityProgress.value,
     overflow: "hidden" as const,
   }));
-
+  // handleRegionPress: double-tap pill region → mở/thu hàng stats của hero card.
   const handleRegionPress = React.useCallback(() => {
     const now = Date.now();
     const isDoubleTap =
@@ -669,7 +669,7 @@ function Profile() {
         }
     );
   }, [statsVisibilityProgress]);
-
+  // startRankSplitTransition: thu text rank → chạy split progress → đổi nội dung rank/act.
   const startRankSplitTransition = React.useCallback(
       (showActStats: boolean) => {
         rankTransitionTimersRef.current.forEach(clearTimeout);
@@ -693,7 +693,7 @@ function Profile() {
       },
       [rankSplitProgress]
   );
-
+  // toggleHeroMode: đổi hero↔player info; khóa tương tác, chạy animation theo pha.
   const toggleHeroMode = React.useCallback(() => {
     if (profileModeInteractionLockedRef.current) return;
 
@@ -808,7 +808,7 @@ function Profile() {
     startRankSplitTransition,
     statsDashboardMounted,
   ]);
-
+  // Focus effect: đồng bộ tone status bar/navigation theo mode, trả giá trị cũ khi rời màn.
   useFocusEffect(
       React.useCallback(() => {
         setTopInsetTone(isPlayerInfoMode ? "dark" : "light");
@@ -820,7 +820,7 @@ function Profile() {
         };
       }, [isPlayerInfoMode, setPrimaryNavigationTone, setTopInsetTone])
   );
-
+  // handleStatsDashboardTabChange: đổi tab dashboard (overview/details) + chạy indicator.
   const handleStatsDashboardTabChange = React.useCallback(
       (tab: StatsDashboardTab) => {
         setStatsDashboardTab(tab);
@@ -831,7 +831,7 @@ function Profile() {
       },
       [statsTabProgress]
   );
-
+  // handleRequestStatsDetails: nút 'xem chi tiết' trên dashboard → chuyển tab DETAILS.
   const handleRequestStatsDetails = React.useCallback(() => {
     handleStatsDashboardTabChange("details");
   }, [handleStatsDashboardTabChange]);
@@ -855,7 +855,7 @@ function Profile() {
       ],
       [t, user.balances.kc, user.balances.rad, user.balances.vp]
   );
-
+  // playerPerformanceStats: HS/KD/ACS trung bình act (từ seasonStats khớp authKey).
   const playerPerformanceStats = React.useMemo(() => {
     const seasonStats =
         matchAuthKey === authKey ? seasonPerformanceStats : null;
@@ -900,7 +900,7 @@ function Profile() {
       },
     ];
   }, [authKey, matchAuthKey, seasonPerformanceStats]);
-
+  // actRankSummaryStats: trái = thắng/thua act; phải = KAST + tỉ lệ thắng act.
   const actRankSummaryStats = React.useMemo(() => {
     const seasonStats =
         matchAuthKey === authKey ? seasonPerformanceStats : null;
@@ -1029,9 +1029,9 @@ function Profile() {
       return;
     }
 
-    // Đồng bộ loadout từ cache vào state
+    // Cache hợp lệ → sync loadout snapshot vào toàn bộ state hiển thị.
     syncLoadoutState(cachedLoadoutSnapshot);
-    // Đồng bộ danh sách sở hữu
+    // Sync danh sách item đã sở hữu (skin/spray/flex/card/title) + rank.
     setOwnedSkinItemIds(
         cachedProfile.ownedSkinItemIds?.length
             ? cachedProfile.ownedSkinItemIds
@@ -1132,8 +1132,8 @@ function Profile() {
             return pendingLoadout.loadout;
           };
 
-          // The loadout can render as soon as v3 responds. Ownership and rank
-          // continue loading without holding the Profile screen spinner.
+          // Loadout render ngay khi v3 phản hồi; ownership/rank tải tiếp nền,
+          // không giữ spinner của màn Profile.
           syncLoadoutState(resolveLoadoutForDisplay());
           if (showSpinner) {
             setLoading(false);
@@ -1623,7 +1623,7 @@ function Profile() {
       hideLevel: identity.HideAccountLevel,
     };
   }, [identity, user.progress.level]);
-
+  // collectionCheckerProfile: profile gọn cho CollectionCheckerExport (export collection).
   const collectionCheckerProfile = React.useMemo<CollectionCheckerProfile>(
       () => ({
         gameName: user.name,
@@ -2153,7 +2153,7 @@ function Profile() {
             item.category.toLowerCase().includes(query)
     );
   }, [collectionWeaponFilter, ownedCollection, searchQuery]);
-
+  // profileListRowsByTab: build rows (loading/error/empty/section) cho từng tab.
   const profileListRowsByTab = React.useMemo<Record<TabKey, ProfileListRow[]>>(() => {
     if (loading) {
       const rows: ProfileListRow[] = [
@@ -2254,7 +2254,7 @@ function Profile() {
     await fetchLoadoutData(false, true);
     setRefreshing(false);
   }, [fetchLoadoutData, hasAuth]);
-
+  // handleStatsRefresh: pull-to-refresh dashboard → force fetch matches + season stats.
   const handleStatsRefresh = React.useCallback(async () => {
     if (!hasAuth) return;
 
@@ -2281,14 +2281,14 @@ function Profile() {
     setIdentityPickerQuery("");
     setPickerError(null);
   }, []);
-
+  // showLoadoutUpdateError: toast lỗi khi equip thất bại (dùng chung các handler equip).
   const showLoadoutUpdateError = React.useCallback(() => {
     Toast.show({
       type: "error",
       text1: t("equip_page.error_loading"),
     });
   }, [t]);
-
+  // handleTabChange: đóng picker + scroll pager đến tab (đổi state ngay nếu reduce motion).
   const handleTabChange = React.useCallback(
     (tab: TabKey) => {
       handleDismissPicker();
@@ -2313,7 +2313,7 @@ function Profile() {
       viewportWidth,
     ]
   );
-  const setPagerGestureEnabled = React.useCallback((enabled: boolean) => {
+  const setPagerGestureEnabled = React.useCallback((enabled: boolean) => { // khoá/mở cuộn pager
     profilePagerRef.current?.setNativeProps({ scrollEnabled: enabled });
   }, [profilePagerRef]);
   const {
@@ -2325,7 +2325,7 @@ function Profile() {
     headerHeight: collapsibleHeaderHeight,
     panGesture: profileHeaderPanGesture,
   } = useProfileCollapsibleHeader();
-  const skinWhitespacePagerPanResponder = React.useMemo(
+  const skinWhitespacePagerPanResponder = React.useMemo( // vuốt vùng trắng để kéo pager ngang
       () =>
           PanResponder.create({
             onMoveShouldSetPanResponder: (_event, gestureState) => {
@@ -2399,7 +2399,7 @@ function Profile() {
         viewportWidth,
       ]
   );
-
+  // handlePagerMomentumEnd: pager ngừng cuộn → cập nhật activeTab theo vị trí.
   const handlePagerMomentumEnd = React.useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const nextIndex = Math.max(
@@ -2440,7 +2440,7 @@ function Profile() {
       },
       [buildOwnedSkinOptions]
   );
-
+  // handleOpenSprayPicker: mở picker spray; build options khi JS rảnh (runWhenIdle).
   const handleOpenSprayPicker = React.useCallback(
       (spray: EquippedSpray) => {
         pickerTaskRef.current?.cancel();
@@ -2462,7 +2462,7 @@ function Profile() {
       },
       [buildOwnedSprayOptions]
   );
-
+  // handleOpenExpressionPicker: mở picker graffiti/flex theo kind (mặc định kind hiện tại).
   const handleOpenExpressionPicker = React.useCallback(
       (expression: EquippedExpression, mode: ExpressionKind = expression.kind) => {
         pickerTaskRef.current?.cancel();
@@ -2485,7 +2485,7 @@ function Profile() {
       },
       [buildOwnedExpressionOptions]
   );
-
+  // handleOpenIdentityPicker: mở picker player card/title (options đã memo sẵn).
   const handleOpenIdentityPicker = React.useCallback(
       (type: "player-card" | "player-title") => {
         pickerTaskRef.current?.cancel();
@@ -2502,7 +2502,7 @@ function Profile() {
       },
       [ownedPlayerCardOptions, ownedPlayerTitleOptions]
   );
-
+  // persistLoadoutCache: ghi loadout vào profile cache kèm ownership + rank hiện có.
   const persistLoadoutCache = React.useCallback(
       (nextLoadout: PlayerLoadoutResponse) => {
         const resolvedRank = competitiveRank ?? cachedCompetitiveRank;
@@ -2536,7 +2536,7 @@ function Profile() {
         setProfileCache,
       ]
   );
-
+  // applyOptimisticLoadout: hiển thị loadout mới NGAY (pending + version++) trước khi PUT.
   const applyOptimisticLoadout = React.useCallback(
       (nextLoadout: PlayerLoadoutResponse) => {
         const pendingUpdate: PendingLoadoutUpdate = {
@@ -2552,7 +2552,7 @@ function Profile() {
       },
       [persistLoadoutCache, syncLoadoutState]
   );
-
+  // rollbackOptimisticLoadout: hoàn tác optimistic nếu PUT lỗi/pending đã bị thay.
   const rollbackOptimisticLoadout = React.useCallback(
       (
           previousLoadout: PlayerLoadoutResponse,
@@ -2569,7 +2569,7 @@ function Profile() {
       },
       [persistLoadoutCache, syncLoadoutState]
   );
-
+  // confirmLoadoutUpdate: xác nhận bằng GET thật (confirmProfileLoadout); khớp → sync.
   const confirmLoadoutUpdate = React.useCallback(
       async (
           expectedLoadout: PlayerLoadoutResponse,
@@ -2599,7 +2599,7 @@ function Profile() {
         user.region,
       ]
   );
-
+  // handleEquipIdentity: equip card/title: optimistic → PUT v3 → confirm; lỗi → rollback.
   const handleEquipIdentity = React.useCallback(
       async (type: "player-card" | "player-title", optionId: string) => {
         if (!hasAuth || !loadoutSnapshot || updatingLoadout) {
@@ -2693,7 +2693,7 @@ function Profile() {
         user.region,
       ]
   );
-
+  // handleEquipWeapon: equip skin/chroma cho súng: optimistic → PUT v3 → confirm theo gun.
   const handleEquipWeapon = React.useCallback(
       async (weapon: EquippedWeapon, option: OwnedSkinOption) => {
         if (!hasAuth || !loadoutSnapshot || updatingLoadout) {
@@ -2826,7 +2826,7 @@ function Profile() {
         user.region,
       ]
   );
-
+  // handleEquipCollectionSkin: tap card collection → equip nhanh hoặc mở picker.
   const handleEquipCollectionSkin = React.useCallback(
       (item: OwnedWeaponCollectionItem) => {
         const equippedWeapon = loadoutDetails.find(
@@ -2869,7 +2869,7 @@ function Profile() {
         updatingLoadout,
       ]
   );
-
+  // handleEquipSpray: equip spray theo slot (path legacy updatePlayerLoadout).
   const handleEquipSpray = React.useCallback(
       async (spray: EquippedSpray, option: OwnedSprayOption) => {
         if (!hasAuth || !loadoutSnapshot || updatingLoadout) {
@@ -2904,8 +2904,8 @@ function Profile() {
             });
           }
 
-          // This path only renders when v3 is unavailable and Riot still
-          // returns the legacy Sprays slots.
+          // Path legacy: chỉ chạy khi v3 không khả dụng và Riot vẫn trả slot
+          // Sprays cũ.
           const response = await updatePlayerLoadout(
               user.accessToken,
               user.entitlementsToken,
@@ -2983,7 +2983,7 @@ function Profile() {
         user.region,
       ]
   );
-
+  // handleEquipExpression: equip graffiti/flex vào slot ActiveExpressions (PUT v3).
   const handleEquipExpression = React.useCallback(
       async (
           expression: EquippedExpression,
@@ -3090,7 +3090,7 @@ function Profile() {
         user.region,
       ]
   );
-
+  // renderProfileHero: hero card (toggle mode, region, stats, RankSplitGroup).
   const renderProfileHero = () => (
       <View style={[styles.heroCard, { backgroundColor: "#1a1d24" }]}>
         <View style={styles.heroTopRow}>
@@ -3315,7 +3315,7 @@ function Profile() {
         </View>
       </View>
   );
-
+  // renderIdentitySection: bọc ProfileIdentitySection cho row 'identity'.
   const renderIdentitySection = () => (
       <ProfileIdentitySection
           identityDetails={identityDetails}
@@ -3323,7 +3323,7 @@ function Profile() {
           t={t}
       />
   );
-
+  // renderSpraySection: bọc ProfileExpressionSection cho row 'expressions'.
   const renderSpraySection = () => (
       <ProfileExpressionSection
           expressionDetails={expressionDetails}
@@ -3333,7 +3333,7 @@ function Profile() {
           t={t}
       />
   );
-
+  // renderSkinGridCard: card skin tab skins (CompactProfileSkinCard, memo).
   const renderSkinGridCard = React.useCallback(
       (weapon: EquippedWeapon) => (
           <CompactProfileSkinCard
@@ -3345,12 +3345,12 @@ function Profile() {
       ),
       [handleOpenWeaponPicker, profileSkinRowCardWidth]
   );
-
+  // renderSkinListItem: adapter renderItem của FlatList ngang → renderSkinGridCard.
   const renderSkinListItem = React.useCallback(
       ({ item }: { item: EquippedWeapon }) => renderSkinGridCard(item),
       [renderSkinGridCard]
   );
-
+  // renderPageHeader: top bar + hero + segment, bọc pan gesture thu gọn header.
   const renderPageHeader = () => (
       <GestureDetector gesture={profileHeaderPanGesture}>
         <Animated.View
@@ -3421,7 +3421,7 @@ function Profile() {
         </Animated.View>
       </GestureDetector>
   );
-
+  // renderCollectionControls: searchbar + chip lọc vũ khí (chỉ ở tab collection).
   const renderCollectionControls = () => (
       <>
         <View style={styles.collectionSearchRow}>
@@ -3474,7 +3474,7 @@ function Profile() {
         </ScrollView>
       </>
   );
-
+  // renderCollectionCard: card collection → equip nhanh hoặc mở picker.
   const renderCollectionCard = React.useCallback(
       (item: OwnedWeaponCollectionItem) => (
           <CompactProfileSkinCard
@@ -3486,7 +3486,7 @@ function Profile() {
       ),
       [handleEquipCollectionSkin, profileGridCardWidth]
   );
-
+  // renderProfileListRow: theo row kind → loading/message/identity/skins/collection.
   const renderProfileListRow = ({ item }: { item: ProfileListRow }) => {
     switch (item.kind) {
       case "loading":
@@ -3585,7 +3585,7 @@ function Profile() {
         return null;
     }
   };
-
+  // renderProfileListHeader: header từng tab (collection → search + filter).
   const renderProfileListHeader = (tab: TabKey) => (
       <>
         {tab === "collection" &&
@@ -3596,7 +3596,7 @@ function Profile() {
             : null}
       </>
   );
-
+  // renderProfileTabPage: 1 trang pager = swipe zone + FlatList dọc rows của tab.
   const renderProfileTabPage = (tab: TabKey) => (
       <View
           key={tab}
