@@ -10,6 +10,10 @@ import * as FileSystem from "expo-file-system/legacy";
 // Import hàm lấy network profile và mapWithConcurrency (chạy đồng thời có giới hạn)
 import { getNetworkProfile, mapWithConcurrency } from "./network";
 
+/**
+ * ValorantMapAsset - Metadata một bản đồ (từ valorant-api.com/v1/maps).
+ * @property {string} [mapUrl] - Link minimap bố trí (callout map)
+ */
 export type ValorantMapAsset = {
   uuid?: string;
   displayName?: string;
@@ -19,6 +23,10 @@ export type ValorantMapAsset = {
   displayIcon?: string;
 };
 
+/**
+ * CompetitiveTierAsset - Metadata một bậc xếp hạng (Iron, Diamond, Radiant...).
+ * @property {number} [tier] - Số thứ tự bậc (3 = Iron 1, 27 = Radiant...)
+ */
 export type CompetitiveTierAsset = {
   tier?: number;
   tierName?: string;
@@ -27,6 +35,9 @@ export type CompetitiveTierAsset = {
   rankTriangleDownIcon?: string;
 };
 
+/**
+ * CompetitiveTierSet - Một mùa giải (act) chứa danh sách các bậc xếp hạng.
+ */
 export type CompetitiveTierSet = {
   uuid?: string;
   tiers?: CompetitiveTierAsset[];

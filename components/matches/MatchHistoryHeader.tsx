@@ -1,3 +1,6 @@
+// ===== MatchHistoryHeader.tsx =====
+// Header màn hình lịch sử trận đấu: hàng trên (nút back + tiêu đề) và
+// khối hồ sơ người chơi (avatar, Riot ID #tag, badge rank).
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
@@ -15,6 +18,15 @@ import {
   MATCH_RADIUS,
 } from "~/constants/MatchTheme";
 
+/**
+ * MatchHistoryHeaderProps – Props của MatchHistoryHeader.
+ *
+ * @param playerName – Tên Riot ID của người chơi (rỗng → fallback i18n).
+ * @param tagLine – Tag sau dấu # (bị bỏ qua nếu rỗng; "#..." tự strip).
+ * @param avatarUrl – (tuỳ chọn) URL ảnh đại diện; thiếu → icon fallback.
+ * @param rankIconUrl – (tuỳ chọn) URL icon rank; thiếu → ẩn khối rank.
+ * @param onBack – Callback khi bấm nút quay lại.
+ */
 type MatchHistoryHeaderProps = {
   playerName: string;
   tagLine: string;
@@ -23,6 +35,18 @@ type MatchHistoryHeaderProps = {
   onBack: () => void;
 };
 
+/**
+ * MatchHistoryHeaderComponent – Component nội bộ render header.
+ * Layout: topBar [nút back | tiêu đề "Lịch sử trận" | spacer cân bằng] rồi
+ * profileHeader [avatar tròn | tên + tag | icon rank]. Thuần presentational.
+ *
+ * @param playerName – Tên người chơi (xem props type).
+ * @param tagLine – Tag Riot ID.
+ * @param avatarUrl – URL ảnh đại diện (tuỳ chọn).
+ * @param rankIconUrl – URL icon rank (tuỳ chọn).
+ * @param onBack – Callback nút back.
+ * @returns View chứa topBar và khối hồ sơ.
+ */
 function MatchHistoryHeaderComponent({
   playerName,
   tagLine,
@@ -166,4 +190,7 @@ const styles = StyleSheet.create({
   },
 });
 
+/**
+ * MatchHistoryHeader – Export memo hoá; chỉ re-render khi props header đổi.
+ */
 export const MatchHistoryHeader = React.memo(MatchHistoryHeaderComponent);

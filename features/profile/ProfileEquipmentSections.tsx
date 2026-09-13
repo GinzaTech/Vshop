@@ -1,3 +1,8 @@
+// ===== ProfileEquipmentSections.tsx – Các section trang bị của màn Profile =====
+// Gồm: IdentitySection (player card + title + cấp tài khoản) và
+// ExpressionSection (graffiti/flex đã trang bị, fallback spray legacy).
+// Component thuần hiển thị — toàn bộ state/mutation nằm ở ProfileScreen.
+
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
@@ -14,6 +19,10 @@ import { COLORS, SHADOWS } from "~/constants/DesignSystem";
 import type { EquippedExpression } from "~/features/profile/profile-loadout";
 import { styles } from "~/features/profile/profile-screen.styles";
 
+/**
+ * ProfileEquipmentSectionsProps – Props chung của các section trang bị.
+ * Props của từng component được chọn riêng qua Pick<> để interface rõ ràng.
+ */
 type ProfileEquipmentSectionsProps = {
   expressionDetails: EquippedExpression[];
   identityDetails: IdentityDetails | null;
@@ -24,6 +33,15 @@ type ProfileEquipmentSectionsProps = {
   t: TFunction;
 };
 
+/**
+ * ProfileIdentitySection – Section danh tính: ảnh player card (bấm mở picker),
+ * tên card (sửa), khẩu hiệu/title (sửa) và cấp tài khoản.
+ * @param {IdentityDetails | null} identityDetails - Dữ liệu identity đã enrich;
+ *   null → section ẩn hoàn toàn.
+ * @param {Function} onOpenIdentityPicker - Mở picker "player-card"|"player-title".
+ * @param {TFunction} t - Hàm dịch i18next.
+ * @returns {JSX.Element | null} Section identity hoặc null nếu không có dữ liệu.
+ */
 export function ProfileIdentitySection({
   identityDetails,
   onOpenIdentityPicker,
@@ -140,6 +158,17 @@ export function ProfileIdentitySection({
   );
 }
 
+/**
+ * ProfileExpressionSection – Section biểu cảm đã trang bị: ưu tiên slot
+ * graffiti/flex từ ActiveExpressions (v3); nếu rỗng, fallback sang danh sách
+ * spray legacy theo EquipSlotID. Không có gì để hiện → trả null.
+ * @param {EquippedExpression[]} expressionDetails - Graffiti/Flex đang trang bị.
+ * @param {Function} onOpenExpressionPicker - Mở picker cho 1 expression.
+ * @param {Function} onOpenSprayPicker - Mở picker cho 1 spray (legacy path).
+ * @param {EquippedSpray[]} sprayDetails - Spray legacy đang trang bị.
+ * @param {TFunction} t - Hàm dịch i18next.
+ * @returns {JSX.Element | null} Section biểu cảm hoặc null khi rỗng.
+ */
 export function ProfileExpressionSection({
   expressionDetails,
   onOpenExpressionPicker,

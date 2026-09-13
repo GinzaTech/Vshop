@@ -142,8 +142,22 @@ const toPartyChatMessage = (
   };
 };
 
-// Component PartyChatPanel: bảng chat cho party (nhóm)
-// Cho phép gửi/nhận tin nhắn qua XMPP hoặc local chat
+/**
+ * PartyChatPanel – Bảng chat của party, gửi/nhận tin nhắn qua XMPP hoặc
+ * Riot local chat API (fallback khi XMPP lỗi token). Tự tải party chat
+ * khi mount; request trùng bị dedupe qua partyLoadRef (key = user:party:room).
+ *
+ * @param {Object} props - Props của component.
+ * @param {string | null} [props.partyId] – ID party hiện tại (null khi idle).
+ * @param {string | null} [props.roomName] – Tên room XMPP (MUCName từ party).
+ * @param {string} props.accessToken – Access token Riot dùng cho XMPP.
+ * @param {string} props.entitlementsToken – Entitlements token Riot.
+ * @param {string} props.region – Region của user.
+ * @param {Object} props.currentUser – Thông tin user hiện tại { id, name, TagLine }.
+ * @param {Function} [props.onRefreshSession] – Callback lấy snapshot party
+ *   mới nhất, dùng khi refresh thủ công (pull-to-refresh / nút refresh).
+ * @returns {JSX.Element} Panel chat: FlatList tin nhắn + composer + nút refresh.
+ */
 export function PartyChatPanel({
   partyId,
   roomName,
@@ -533,8 +547,14 @@ export function PartyChatPanel({
   );
 }
 
-// Component Combat (mặc định export): trang chính cho combat
-// Hiển thị thông tin session, party code và chọn agent
+/**
+ * Combat – Component mặc định export: trang combat chính.
+ * Hiển thị thông tin session (map, queue, party size), quản lý party code
+ * (tạo / copy / disable / join / quit / ready) và chọn + lock agent.
+ * useFocusEffect tải lại session snapshot mỗi khi màn hình được focus.
+ *
+ * @returns {JSX.Element} Màn hình combat.
+ */
 export default function Combat() {
   const { t } = useTranslation();                          // Hook dịch thuật
   const router = useRouter();                               // Router để điều hướng
@@ -550,6 +570,8 @@ export default function Combat() {
   const partyReadyRequestRef = React.useRef(false);                             // Ref chống gửi request ready trùng lặp
   const copiedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cleanup: hủy timer ẩn badge "Copied" khi unmount để tránh setState sau
+  // khi component đã gỡ khỏi tree.
   React.useEffect(
     () => () => {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);

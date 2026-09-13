@@ -1,3 +1,6 @@
+// ===== RoundTimeline.tsx =====
+// Timeline các vòng của trận: mỗi vòng một ô bấm được, hiển thị đội thắng
+// (màu), kết thúc vòng (icon), số kill/chết của người chơi đang chọn.
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
@@ -17,6 +20,14 @@ import {
 } from "~/constants/MatchTheme";
 import type { RoundDetail } from "~/types/match-ui";
 
+/**
+ * RoundTimelineProps – Props của RoundTimeline.
+ *
+ * @param rounds – Danh sách chi tiết từng vòng (kết quả, sự kiện, đội thắng).
+ * @param selectedPlayerId – Người chơi đang chọn (tính kill/chết trên ô).
+ * @param selectedRoundNumber – Vòng đang chọn (null nếu chưa chọn).
+ * @param onSelectRound – Callback khi bấm một vòng.
+ */
 type RoundTimelineProps = {
   rounds: RoundDetail[];
   selectedPlayerId: string;
@@ -24,8 +35,14 @@ type RoundTimelineProps = {
   onSelectRound: (roundNumber: number) => void;
 };
 
+// CELL_WIDTH: Chiều rộng cố định của một ô vòng (dùng tính scroll căn giữa)
 const CELL_WIDTH = 48;
 
+/**
+ * outcomeIcon – Ánh xạ kết thúc vòng → tên icon MaterialCommunityIcons.
+ * @param outcome – Loại kết thúc vòng (defuse/detonate/hết giờ/đầu hàng/kill).
+ * @returns Tên icon tương ứng, mặc định "crosshairs-gps" (loại bỏ đội địch).
+ */
 const outcomeIcon = (outcome: RoundDetail["outcome"]) => {
   if (outcome === "spike_defused") return "shield-check-outline" as const;
   if (outcome === "spike_detonated") return "bomb" as const;
@@ -34,6 +51,19 @@ const outcomeIcon = (outcome: RoundDetail["outcome"]) => {
   return "crosshairs-gps" as const;
 };
 
+/**
+ * RoundTimeline – Dải timeline cuộn ngang các vòng (memo hoá).
+ * Mỗi ô: thanh màu đội thắng + icon kết thúc + badge kill (số) hoặc icon
+ * chết, số vòng bên dưới. Bấm ô sẽ chọn vòng và cuộn để căn giữa ô đó.
+ * Thuần presentational, không side effect.
+ *
+ * @param rounds – Danh sách vòng (xem RoundTimelineProps).
+ * @param selectedPlayerId – Người chơi đang chọn.
+ * @param selectedRoundNumber – Vòng đang chọn.
+ * @param onSelectRound – Callback chọn vòng.
+ * @returns View section với tiêu đề, số vòng và ScrollView timeline
+ *          (hoặc text "partial" khi không có dữ liệu).
+ */
 export const RoundTimeline = React.memo(function RoundTimeline({
   rounds,
   selectedPlayerId,
@@ -42,8 +72,10 @@ export const RoundTimeline = React.memo(function RoundTimeline({
 }: RoundTimelineProps) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
+  // scrollRef: điều khiển cuộn ngang để căn giữa ô vòng được chọn
   const scrollRef = React.useRef<ScrollView>(null);
 
+  // selectRound: chọn vòng + cuộn ngang đưa ô về giữa màn hình
   const selectRound = (roundNumber: number, index: number) => {
     onSelectRound(roundNumber);
     scrollRef.current?.scrollTo({

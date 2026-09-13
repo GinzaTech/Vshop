@@ -156,6 +156,13 @@ export default function ChatScreen() {
     }
   }, [chatStatus, friend?.jid, friendId]);
 
+  /**
+   * refreshChat — Handler pull-to-refresh của màn hình chat.
+   * Khởi động lại chat service nếu còn token hợp lệ, sau đó yêu cầu lại
+   * lịch sử tin nhắn của friend hiện tại (reset historyRequestRef để
+   * cho phép request trùng key trước đó).
+   * Side effects: network XMPP, ghi tin nhắn vào useChatStore.
+   */
   const refreshChat = React.useCallback(async () => {
     if (user.accessToken && user.entitlementsToken) {
       await initChatService(
@@ -176,6 +183,9 @@ export default function ChatScreen() {
   }, [chatStatus, friend?.jid, friendId, user]);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshChat);
 
+  // Effect: Tự động cuộn xuống cuối danh sách khi số tin nhắn thay đổi.
+  // Chỉ chạy khi messages.length khác giá trị trước đó; dùng
+  // requestAnimationFrame để đợi layout render xong, cleanup hủy frame.
   React.useEffect(() => {
     if (messages.length === previousMessageCountRef.current) {
       return;
@@ -218,7 +228,9 @@ export default function ChatScreen() {
       : friend.gameName
     : t("chat_page.loading_identity");
 
+  // Nút send chỉ bật khi chat đã authenticated, có nội dung, không đang gửi
   const canSend = chatStatus === "authenticated" && Boolean(text.trim()) && !sending;
+  // Friend được coi là online khi chat authenticated và show != "offline"
   const friendIsOnline =
     chatStatus === "authenticated" &&
     Boolean(friend && friend.show !== "offline");

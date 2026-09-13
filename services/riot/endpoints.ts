@@ -1,5 +1,16 @@
 import { normalizeValorantShard } from "~/utils/misc";
 
+// endpoints.ts — Nguồn DUY NHẤT sinh URL của Riot API trong toàn app (bắt buộc
+// theo kiến trúc: không screen/service nào được hard-code URL Riot).
+// URL chia 3 nhóm:
+//   1. URL tĩnh (auth, entitlements, geo...) — không cần region.
+//   2. URL PD (pd.<shard>.a.pvp.net) — API dữ liệu người chơi, cần region.
+//   3. URL GLZ (glz-<shard>-1.<shard>.a.pvp.net) — API live/party/pregame.
+
+/**
+ * Danh sách tên endpoint được phép build. Dùng `as const` để tên sai sẽ bị
+ * TypeScript chặn ngay ở compile time thay vì lỗi runtime.
+ */
 export const RIOT_ENDPOINT_NAMES = [
   "auth",
   "entitlements",
@@ -50,8 +61,10 @@ export const RIOT_ENDPOINT_NAMES = [
   "riotclientconfig",
 ] as const;
 
+/** Union type các tên endpoint hợp lệ (rút từ RIOT_ENDPOINT_NAMES). */
 export type RiotEndpointName = (typeof RIOT_ENDPOINT_NAMES)[number];
 
+/** Tham số build URL: name bắt buộc; các tham số còn lại dùng tùy endpoint. */
 export type RiotEndpointParams = {
   name: RiotEndpointName;
   region?: string | null;
@@ -62,8 +75,11 @@ export type RiotEndpointParams = {
   code?: string | null;
 };
 
+// Các shard Valorant được hỗ trợ (region game KHÔNG dùng trực tiếp — luôn
+// normalize qua normalizeValorantShard trước, vd "vn" → "ap").
 const SUPPORTED_SHARDS = new Set(["ap", "eu", "kr", "na", "pbe"]);
 
+/** Bắt buộc có giá trị (sau trim) — trả về giá trị hoặc throw Error rõ ràng. */
 const requireValue = (value: string | null | undefined, label: string) => {
   const normalized = value?.trim();
   if (!normalized) {
@@ -72,6 +88,7 @@ const requireValue = (value: string | null | undefined, label: string) => {
   return normalized;
 };
 
+/** Normalize region → shard và chặn shard không hỗ trợ trước khi build URL. */
 const requireShard = (region: string | null | undefined) => {
   const shard = normalizeValorantShard(region);
   if (!SUPPORTED_SHARDS.has(shard)) {
@@ -80,7 +97,13 @@ const requireShard = (region: string | null | undefined) => {
   return shard;
 };
 
-/** Build a validated Riot API URL and fail before a malformed request is sent. */
+/**
+ * Build URL Riot API đã validate — fail SỚM (throw) trước khi request lỗi
+ * được gửi đi: thiếu tham số bắt buộc hoặc shard không hỗ trợ đều throw.
+ * Các ID nhúng vào path luôn được encodeURIComponent chống injection path.
+ * @param params - { name, region?, userId?, matchId?, agentId?, itemTypeId?, code? }
+ * @returns URL hoàn chỉnh cho endpoint tương ứng.
+ */
 export function buildRiotApiUrl(params: RiotEndpointParams): string {
   const { name } = params;
 

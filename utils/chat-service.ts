@@ -506,6 +506,14 @@ async function waitForChatAuthentication(timeoutMs = 15_000) {
   throw new Error("Riot chat connection timed out. Please refresh party chat.");
 }
 
+/**
+ * Chờ roster phản hồi sau khi gửi IQ requestRoster. rosterRevision tăng sau
+ * MỖI roster response (kể cả rỗng) nên hàm phân biệt được response mới với
+ * roster cũ đã có trong store.
+ * @param {number} previousRevision - Giá trị revision chụp trước khi gửi request
+ * @param {number} [timeoutMs] - Thời gian chờ tối đa (mặc định 10s)
+ * @throws Error nếu chat ngắt kết nối giữa chừng hoặc quá thời gian chờ
+ */
 async function waitForRosterRevision(
   previousRevision: number,
   timeoutMs = 10_000

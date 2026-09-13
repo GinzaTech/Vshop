@@ -145,6 +145,8 @@ const FALLBACK_COMPETITIVE_TIER_NAMES: Record<number, string> = {
   27: "Radiant",
 };
 
+// Thông tin xếp hạng của một mùa giải (season) trong payload MMR.
+// Trường là unknown vì Riot trả nhiều shape tùy phiên bản API.
 type CompetitiveSeasonInfo = {
   Rank?: unknown;
   CompetitiveTier?: unknown;
@@ -157,6 +159,7 @@ type CompetitiveSeasonInfo = {
   WinsByTier?: Record<string, number> | null;
 };
 
+// Dữ liệu kỹ năng của một queue (thường "competitive") trong payload MMR.
 type CompetitiveQueueSkill = {
   CompetitiveTier?: unknown;
   HighestCompetitiveTier?: unknown;

@@ -23,6 +23,9 @@ import { flowTracer } from "~/utils/flow-tracer";              // Công cụ the
  * @param style     – (tuỳ chọn) Style ghi đè khung ngoài (TouchableOpacity).
  * @param textStyle – (tuỳ chọn) Style ghi đè chữ.
  * @param icon      – (tuỳ chọn) ReactNode hiển thị bên trái chữ.
+ * @param disabled  – (mặc định false) Khoá nút (opacity 0.5, không nhấn được).
+ * @param loading   – (mặc định false) Trạng thái loading: thay icon bằng
+ *                    ActivityIndicator, khoá nút và chặn onDismiss behaviour.
  */
 interface ValorantButtonProps {
     title: string;
@@ -56,7 +59,9 @@ export default function ValorantButton({
     disabled = false,
     loading = false,
 }: ValorantButtonProps) {
+    // reduceMotion: tôn trọng Reduce Motion của hệ điều hành
     const reduceMotion = useMotionPreference();
+    // unavailable: nút không tương tác được khi disabled hoặc đang loading
     const unavailable = disabled || loading;
     /**
      * handlePress – Xử lý sự kiện nhấn nút.
@@ -102,7 +107,10 @@ export default function ValorantButton({
     const borderColor =
         variant === "secondary" ? COLORS.BORDER : "transparent";
 
+    // scale: shared value hiệu ứng nhấn giữ (thu 0.96 → nở về 1)
     const scale = useSharedValue(1);
+    // Effect: khi nút bị khoá (disabled/loading) hoặc Reduce Motion bật,
+    // đưa scale về 1; cleanup luôn hủy animation đang chạy.
     React.useEffect(() => {
         if (unavailable || reduceMotion) {
             cancelAnimation(scale);
@@ -110,11 +118,13 @@ export default function ValorantButton({
         }
         return () => cancelAnimation(scale);
     }, [reduceMotion, scale, unavailable]);
+    // animatedStyle: gắn scale vào transform của Animated.View bọc nội dung
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
     }));
 
     // === Content (thành phần nội dung bên trong nút) ===
+    // glass → nền đỏ mờ rgba(255,70,85,0.1); secondary → viền 1px
     const Content = (
         <View style={[styles.contentContainer, { backgroundColor: isGlass ? "rgba(255,70,85, 0.1)" : backgroundColor, borderColor, borderWidth: variant === "secondary" ? 1 : 0 }]}>
             {/* Icon bên trái (nếu có) */}

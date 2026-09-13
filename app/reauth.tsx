@@ -47,11 +47,20 @@ function ReAuth() {
     ? params.mode
     : "reauth";
   const canCancel = mode !== "reauth";
+  /**
+   * cancelReauthentication — Hủy flow đăng nhập và quay về trang Settings.
+   * Chỉ dùng được ở mode "add"/"switch" (canCancel). Khôi phục cookies của
+   * account hiện tại trước khi điều hướng để không làm hỏng phiên đang chạy.
+   * Side effects: network (restore cookies), navigation (router.replace).
+   */
   const cancelReauthentication = useCallback(async () => {
     await restoreCurrentAccountAuthCookies();
     router.replace("/settings");
   }, [router]);
 
+  // Effect: Chặn nút Back phần cứng khi ở mode có thể hủy (add/switch) —
+  // thay vì thoát màn hình, gọi cancelReauthentication để khôi phục cookies.
+  // Cleanup: gỡ subscription khi unmount hoặc khi canCancel/callback đổi.
   useEffect(() => {
     if (!canCancel) return;
     const subscription = BackHandler.addEventListener(

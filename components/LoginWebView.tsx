@@ -43,19 +43,25 @@ const LOGIN_URL =
 const PROFILE_PRELOAD_TIMEOUT_MS = 4500;
 
 /**
- * isAuthCallbackUrl – Kiểm tra URL có phải là callback xác thực không (chứa access_token hoặc id_token)
- * @param url – URL cần kiểm tra
- * @returns true nếu là callback xác thực
- */
-/**
  * wait – Tạo promise resolve sau ms mili giây
  * @param ms – Số mili giây chờ
+ * @returns Promise<void> resolve sau khi timeout kết thúc (không trả giá trị)
  */
 const wait = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 
+/**
+ * LoginWebViewProps – Props của LoginWebView.
+ *
+ * @param minHeight – (tuỳ chọn) Chiều cao tối thiểu của WebView (px).
+ *                    Nếu bỏ trống, tự tính theo chiều cao màn hình.
+ * @param style – (tuỳ chọn) Style ghi đè container bọc WebView.
+ * @param expectedAccountId – (tuỳ chọn) UUID account đang switch sang.
+ *                            Nếu token nhận được thuộc account khác → hủy
+ *                            phiên đăng nhập và quay lại /settings.
+ */
 interface LoginWebViewProps {
   minHeight?: number;
   style?: StyleProp<ViewStyle>;
@@ -82,8 +88,14 @@ export default function LoginWebView({
   const [webIssue, setWebIssue] = useState<string | null>(null);
   // Ref: ngăn xử lý auth nhiều lần đồng thời
   const authInFlightRef = useRef(false);
+  // Ref: cờ mounted – chặn setState/callback sau khi component unmount
   const mountedRef = useRef(false);
+  // State: authReady – chờ prepareInteractiveAuthentication hoàn tất trước khi
+  // render WebView (tránh bắt callback trước khi cookie snapshot sẵn sàng)
   const [authReady, setAuthReady] = useState(false);
+  // Effect: chuẩn bị phiên đăng nhập tương tác khi mount.
+  // Cleanup: đánh dấu unmount và gọi finishInteractiveAuthentication để
+  // hủy chuẩn bị nếu component bị gỡ giữa chừng.
   useEffect(() => {
     mountedRef.current = true;
     void prepareInteractiveAuthentication().then(() => {

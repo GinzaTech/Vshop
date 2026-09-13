@@ -4,30 +4,30 @@ import type { CompetitiveMMRResponse, ValorantSessionResponse } from "~/services
 import type { RiotPlayerRequestOptions } from "~/services/riot/loadout-api";
 import { extraHeaders, getPlayerResourceKey, getRiotClientVersionForRequests, logValorantApiDebug, logValorantApiResponse, maskSecretForLog, setRiotClientVersionOverride } from "~/services/riot/request-context";
 
-// Kiểu dữ liệu cho tên người chơi: Subject (UUID), GameName, TagLine
+// Tên người chơi theo name-service: Subject = PUUID, GameName + TagLine hiển thị.
 type PlayerName = { Subject: string; GameName: string; TagLine: string };
 
-// Thời gian sống (TTL) của cache tên người chơi: 1 giờ (tính bằng milliseconds)
+// TTL cache tên người chơi: 1 giờ — tên hiếm khi đổi nên cache dài là an toàn.
 const PLAYER_NAME_CACHE_TTL_MS = 60 * 60 * 1000;
 
-// Số lượng tối đa entry trong cache tên người chơi (LRU eviction)
+// Trần cache tên (LRU): giữ 500 entry gần dùng nhất, chống phình bộ nhớ.
 const PLAYER_NAME_CACHE_MAX_SIZE = 500;
 
-// Cache tên người chơi: key = "region|subject", value = { value, expiresAt }
+// Cache tên (memory only): key "region|subject" → { value, expiresAt, lastAccessed }.
 const playerNameCache = new Map<
   string,
   { value: PlayerName; expiresAt: number; lastAccessed: number }
 >();
 
-// Promise theo từng subject giúp các consumer dùng chung cả cache và request
-// đang chạy, kể cả khi danh sách subject của chúng chỉ trùng một phần.
+// Request tên đang bay theo TỪNG subject: các consumer có danh sách chỉ
+// trùng một phần vẫn dùng chung request — không bắn trùng PUT /name-service.
 const playerNameRequests = new Map<string, Promise<void>>();
 
-// Export hàm lấy lịch sử trận đấu của người chơi
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-//   - params: tham số tùy chọn (startIndex, endIndex, queue)
-// Returns: Promise<MatchHistoryResponse>
+/** Lấy lịch sử trận (match-history v1) — phân trang theo startIndex/endIndex.
+ *  @param params - startIndex/endIndex (endIndex INCLUSIVE) và queue lọc
+ *  (vd "competitive"); bỏ qua sẽ lấy toàn bộ queue.
+ *  @returns MatchHistoryResponse (History, Total, EndIndex). Throw khi HTTP
+ *  lỗi — caller (useMatchStore) đã bọc try/catch. */
 export async function playerMatchHistory(
   accessToken: string,
   entitlementsToken: string,
@@ -62,10 +62,10 @@ export async function playerMatchHistory(
   return res.data;
 }
 
-// Export hàm lấy thông tin session Valorant hiện tại
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<ValorantSessionResponse | null>
+/** Lấy session Valorant hiện tại (glz session/v1/sessions/:userId).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param region - Shard hợp lệ. @param userId - PUUID.
+ *  @returns Session (clientVersion, state...) khi HTTP 200; null khi khác. */
 export async function getValorantSession(
   accessToken: string,
   entitlementsToken: string,
@@ -86,11 +86,12 @@ export async function getValorantSession(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm cập nhật phiên bản Riot client từ thông tin session
-// Lấy clientVersion từ session và set làm override
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<string | null> phiên bản đã set hoặc null
+/** Đồng bộ phiên bản Riot client dùng cho header X-Riot-ClientVersion:
+ *  đọc clientVersion từ session rồi set override toàn cục (request-context).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param region - Shard hợp lệ. @param userId - PUUID.
+ *  @returns Phiên bản đã set; null nếu session thiếu clientVersion hoặc
+ *  request thất bại (lỗi được nuốt — không ảnh hưởng luồng gọi). */
 export async function hydrateRiotClientVersionFromSession(
   accessToken: string,
   entitlementsToken: string,
@@ -112,27 +113,37 @@ export async function hydrateRiotClientVersionFromSession(
   return setRiotClientVersionOverride(sessionVersion);
 }
 
-// Export hàm lấy thông tin MMR competitive của người chơi
-// Tự động retry với client version từ session nếu request đầu thất bại
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<CompetitiveMMRResponse | {}>
+// getCompetitiveMMR: MMR competitive (rank, RR, leaderboard info của player).
+// Cache 5 phút + dedup in-flight theo "region|userId"; force=true bỏ qua cache.
+// Tự retry 1 lần sau khi hydrate client version từ session nếu lần đầu lỗi.
+// Returns: CompetitiveMMRResponse khi OK; {} (object rỗng) khi thất bại.
 type CompetitiveMMRResult =
   | CompetitiveMMRResponse
   | Record<string, never>;
 
+// TTL cache MMR: 5 phút — đủ ngắn để bắt thay đổi RR sau mỗi trận competitive.
 const COMPETITIVE_MMR_CACHE_TTL_MS = 5 * 60 * 1000;
 
+// Cache MMR (memory only): key "region|userId" → { value, expiresAt }.
 const competitiveMmrCache = new Map<
   string,
   { value: CompetitiveMMRResponse; expiresAt: number }
 >();
 
+// Request MMR đang bay theo "region|userId" — caller sau join promise này.
 const competitiveMmrRequests = new Map<
   string,
   Promise<CompetitiveMMRResult>
 >();
 
+/**
+ * Lấy MMR competitive của người chơi (có cache 5 phút + dedup in-flight).
+ * @param accessToken - Bearer token xác thực Riot.
+ * @param entitlementsToken - JWT quyền (X-Riot-Entitlements-JWT).
+ * @param region - Shard hợp lệ. @param userId - PUUID.
+ * @param options - { force?: boolean } để bỏ qua cache (pull-to-refresh).
+ * @returns CompetitiveMMRResponse hoặc {} — object rỗng nghĩa là thất bại.
+ */
 export async function getCompetitiveMMR(
   accessToken: string,
   entitlementsToken: string,
@@ -175,13 +186,14 @@ export async function getCompetitiveMMR(
   return request;
 }
 
+/** Nội bộ: request MMR và retry khi client version lệch với session. */
 async function requestCompetitiveMMR(
   accessToken: string,
   entitlementsToken: string,
   region: string,
   userId: string
 ): Promise<CompetitiveMMRResult> {
-  // Hàm nội bộ thực hiện request MMR
+  // Wrapper request MMR (tái dùng cho cả lần đầu và lần retry).
   const requestMmr = () => axios.request<CompetitiveMMRResponse>({
     url: buildRiotApiUrl({ name: "mmr", region: region, userId: userId }),
     method: "GET",
@@ -207,12 +219,12 @@ async function requestCompetitiveMMR(
     data: res.data,
   });
 
-  // Thành công ngay lần đầu
+  // HTTP 200 ngay lần đầu → trả data, không cần hydrate client version.
   if (res.status === 200) {
     return res.data;
   }
 
-  // Thất bại: thử hydrate client version và retry
+  // Thất bại → lấy client version từ session; khác version hiện tại thì retry.
   const currentVersion = getRiotClientVersionForRequests();
   const sessionVersion = await hydrateRiotClientVersionFromSession(
     accessToken,
@@ -234,11 +246,11 @@ async function requestCompetitiveMMR(
   return {};
 }
 
-// Export hàm lấy chi tiết một trận đấu cụ thể
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - matchId: UUID trận đấu
-// Returns: Promise<MatchDetailsResponse>
+/** Lấy chi tiết đầy đủ của MỘT trận (match-details v1) — players, teams,
+ *  roundResults: nguồn dữ liệu cho màn hình match session/thống kê.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param region - Shard hợp lệ. @param matchId - UUID trận cần tra.
+ *  @returns MatchDetailsResponse. Throw khi HTTP lỗi (caller bắt). */
 export async function matchDetails(
   accessToken: string,
   entitlementsToken: string,
@@ -271,13 +283,12 @@ export async function matchDetails(
 }
 
 // ---------------------------------------------------------------------------
-// getCompetitiveUpdates - Lấy cập nhật competitive (lịch sử rank)
+// getCompetitiveUpdates - Cập nhật competitive (lịch sử thay đổi rank + RR)
 // ---------------------------------------------------------------------------
-// Export hàm lấy lịch sử thay đổi rank competitive
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-//   - params: tham số tùy chọn (startIndex, endIndex, queue)
-// Returns: Promise<CompetitiveUpdatesResponse | null>
+/** Lấy competitive updates (MMR per-match: RR, rank sau trận, elo...).
+ *  @param params - startIndex/endIndex (INCLUSIVE), queue="competitive".
+ *  @returns CompetitiveUpdatesResponse khi HTTP 200; null khi khác (không
+ *  throw — caller tự fallback vì đây là dữ liệu bổ trợ, không bắt buộc). */
 export async function getCompetitiveUpdates(
   accessToken: string,
   entitlementsToken: string,
@@ -316,28 +327,28 @@ export async function getCompetitiveUpdates(
 }
 
 // ---------------------------------------------------------------------------
-// getPlayerNames – Giải mã danh sách UUID subject thành GameName/TagLine
-// Có cache và deduplicate request
+// getPlayerNames - Giải mã danh sách UUID subject thành GameName/TagLine
+// PUT /name-service với cache LRU 1h (max 500) + dedup in-flight per subject
 // ---------------------------------------------------------------------------
-// Export hàm lấy tên người chơi từ danh sách subject UUIDs
-// Parameters:
-//   - accessToken: token xác thực
-//   - entitlementsToken: token quyền
-//   - subjects: mảng UUID cần tra cứu
-//   - region: khu vực
-// Returns: Promise<PlayerName[]> danh sách tên người chơi
+/** Tra tên hàng loạt subject. Subject còn cache hạn không được fetch lại;
+ *  phần thiếu gộp thành MỘT PUT — consumer gọi sau join request đang bay.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param subjects - Mảng PUUID (trùng/viết hoa được chuẩn hóa trước).
+ *  @param region - Shard hợp lệ (đi vào cache key).
+ *  @returns PlayerName[] CHỈ gồm subject tra được; subject thiếu bị lược
+ *  bỏ — caller phải hiển thị fallback (vd "?"). */
 export async function getPlayerNames(
   accessToken: string,
   entitlementsToken: string,
   subjects: string[],
   region: string
 ): Promise<PlayerName[]> {
-  // Chuẩn hóa: loại bỏ trùng lặp, chuyển về chữ thường
+  // Chuẩn hóa: lọc rỗng, lowercase, khử trùng lặp (Set).
   const normalizedSubjects = Array.from(
     new Set(subjects.filter(Boolean).map((subject) => subject.toLowerCase()))
   );
   const now = Date.now();
-  // Lọc các subject chưa có cache hoặc cache đã hết hạn
+  // Chỉ fetch các subject chưa có cache hoặc cache đã hết hạn (TTL 1h).
   const missingSubjects = normalizedSubjects.filter((subject) => {
     const cached = playerNameCache.get(`${region}|${subject}`);
     return !cached || cached.expiresAt <= now;
@@ -405,7 +416,7 @@ export async function getPlayerNames(
     await Promise.all(pendingRequests);
   }
 
-  // Trả về kết quả từ cache
+  // Trả kết quả từ cache theo thứ tự input; touch LRU (cập nhật lastAccessed).
   return normalizedSubjects.flatMap((subject) => {
     const cached = playerNameCache.get(`${region}|${subject}`);
     if (cached && cached.expiresAt > Date.now()) {

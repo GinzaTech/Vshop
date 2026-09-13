@@ -1,3 +1,8 @@
+// ===== valorant-assets.d.ts – Kiểu dữ liệu asset Valorant từ valorant-api.com =====
+// Các interface này phản chiếu schema của endpoint /agents, /weapons, /bundles...
+// và được dùng chung cho toàn app (ambient declaration, không cần import).
+
+/** ValorantSkin – Skin vũ khí (tên, icon, content tier, chromas, levels). */
 interface ValorantSkin {
   uuid: string;
   displayName: string;
@@ -10,6 +15,7 @@ interface ValorantSkin {
   levels: ValorantSkinLevel[];
 }
 
+/** ValorantAgent – Agent kèm ảnh chân dung, vai trò và danh sách kỹ năng. */
 interface ValorantAgent {
   uuid: string;
   displayName: string;
@@ -30,6 +36,7 @@ interface ValorantAgent {
   abilities?: Ability[];
 }
 
+/** ValorantWeapon – Vũ khí rút gọn (uuid, tên, category, displayIcon). */
 interface ValorantWeapon {
   uuid: string;
   displayName: string;
@@ -37,12 +44,14 @@ interface ValorantWeapon {
   displayIcon?: string;
 }
 
+/** Ability – Một kỹ năng của agent (slot, tên, mô tả, icon). */
 interface Ability {
   slot: string;
   displayName: string;
   description: string;
   displayIcon: string;
 }
+/** ValorantBuddyAccessory – Charm (buddy) treo súng kèm các cấp độ. */
 interface ValorantBuddyAccessory {
   uuid: string;
   displayName: string;
@@ -53,6 +62,7 @@ interface ValorantBuddyAccessory {
   levels: ValorantBuddyLevel[];
 }
 
+/** ValorantTitleAccessory – Danh hiệu người chơi (titleText hiển thị profile). */
 interface ValorantTitleAccessory {
   uuid: string;
   displayName: string;
@@ -61,6 +71,7 @@ interface ValorantTitleAccessory {
   assetPath: string;
 }
 
+/** ValorantCardAccessory – Player card với 4 kích thước ảnh (icon/small/wide/large). */
 interface ValorantCardAccessory {
   uuid: string;
   displayName: string;
@@ -73,6 +84,7 @@ interface ValorantCardAccessory {
   assetPath: string;
 }
 
+/** ValorantSprayAccessory – Spray (graffiti) kèm ảnh tĩnh/động và các cấp. */
 interface ValorantSprayAccessory {
   uuid: string;
   displayName: string;
@@ -89,6 +101,7 @@ interface ValorantSprayAccessory {
   levels: ValorantSprayLevel[];
 }
 
+/** ValorantFlexAccessory – Flex (biểu cảm animated) với icon hiển thị. */
 interface ValorantFlexAccessory {
   uuid: string;
   displayName: string;
@@ -97,6 +110,7 @@ interface ValorantFlexAccessory {
   assetPath: string;
 }
 
+/** ValorantBuddyLevel – Một cấp độ của charm (charmLevel + icon). */
 interface ValorantBuddyLevel {
   uuid: string;
   charmLevel: number;
@@ -106,6 +120,7 @@ interface ValorantBuddyLevel {
   assetPath: string;
 }
 
+/** ValorantSprayLevel – Một cấp độ của spray (sprayLevel + icon). */
 interface ValorantSprayLevel {
   uuid: string;
   sprayLevel: number;
@@ -114,6 +129,7 @@ interface ValorantSprayLevel {
   assetPath: string;
 }
 
+/** ValorantBundle – Bundle cửa hàng: tên, mô tả, ảnh promo, logo. */
 interface ValorantBundle {
   uuid: string;
   displayName: string;
@@ -129,6 +145,7 @@ interface ValorantBundle {
   assetPath: string;
 }
 
+/** ValorantSkinChroma – Biến thể màu của skin (swatch nhỏ, fullRender lớn). */
 interface ValorantSkinChroma {
   uuid: string;
   displayName: string;
@@ -139,6 +156,7 @@ interface ValorantSkinChroma {
   assetPath: string;
 }
 
+/** ValorantSkinLevel – Cấp nâng cấp của skin (levelItem mô tả hiệu ứng). */
 interface ValorantSkinLevel {
   uuid: string;
   displayName: string;

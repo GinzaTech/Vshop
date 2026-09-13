@@ -15,13 +15,19 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import { MOTION_DURATION } from "~/constants/Motion";
 import { useTranslation } from "react-i18next";
 
+// EquipmentDisplayItem: Kiểu item hiển thị, suy ra từ buildEquipDisplayList
+// (id, displayName, subtitle, item gốc, section)
 type EquipmentDisplayItem = ReturnType<
   typeof buildEquipDisplayList
 >[number];
 
+// UUID_PATTERN: Regex nhận diện displayName là UUID thuần → dùng tên section
+// làm tên hiển thị thay vì chuỗi UUID vô nghĩa
 const UUID_PATTERN =
   /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
+// SECTION_VISUALS: Map section → nhãn i18n + icon MaterialCommunityIcons
+// dùng cho category chip trên card; fallback về "buddies" nếu section lạ
 const SECTION_VISUALS: Record<
   string,
   {
@@ -253,6 +259,16 @@ const styles = StyleSheet.create({
   },
 });
 
+/**
+ * GalleryEquip – Export memo hoá của GalleryEquipComponent với comparator tùy chỉnh.
+ * So sánh nông theo các trường thực sự ảnh hưởng hiển thị (id, section,
+ * displayName, subtitle) + screenshotModeEnabled; thay đổi ở các trường khác
+ * của `data` không khiến card render lại (tối ưu FlatList lớn).
+ *
+ * @param prevProps – Props ở lần render trước.
+ * @param nextProps – Props ở lần render kế tiếp.
+ * @returns true nếu props tương đương (bỏ qua re-render), false nếu render lại.
+ */
 const GalleryEquip = React.memo(
   GalleryEquipComponent,
   (prevProps, nextProps) => {

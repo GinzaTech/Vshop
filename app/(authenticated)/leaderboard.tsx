@@ -100,6 +100,8 @@ export default function LeaderboardScreen() {
   const [tierLookup, setTierLookup] = React.useState(() =>
     buildTierLookup(getAssets().competitiveTiers as CompetitiveTierSet[])
   );
+  // Ref đếm thứ tự request: response của request cũ bị bỏ qua nếu user
+  // đổi season nhanh (chỉ request mới nhất được phép setState).
   const leaderboardRequestId = React.useRef(0);
 
   // FIX (M9): credentials đọc qua ref thay vì closure — trước đây
@@ -247,6 +249,12 @@ export default function LeaderboardScreen() {
     fetchLeaderboard(seasonId);
   };
 
+  /**
+   * handleRefresh – Pull-to-refresh bảng xếp hạng theo mùa đang chọn.
+   * Gọi fetchLeaderboard với showLoading: false (không hiện loading toàn
+   * màn hình, chỉ xoay RefreshControl). Bỏ qua nếu chưa chọn mùa hoặc
+   * đang có một lần refresh khác chạy.
+   */
   const handleRefresh = React.useCallback(async () => {
     if (!selectedSeason || refreshing) return;
 

@@ -37,18 +37,19 @@ const MAX_DETAIL_CACHE_ENTRIES = 10;               // Memory cache only (không 
 const CELLULAR_INITIAL_DETAILS = 15;               // Hydrate 15/30 trận đầu trên 4G
 const WIFI_INITIAL_DETAILS = 30;                   // Hydrate hết 30 trận trên WiFi
 const MATCH_DETAIL_RETRY_DELAY_MS = 600;           // Delay giữa các lần retry khi fetch detail lỗi
-const SEASON_STATS_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
-const SEASON_UPDATES_PAGE_SIZE = 20;
+const SEASON_STATS_CACHE_TTL_MS = 2 * 60 * 60 * 1000;   // TTL stats season: 2 giờ
+const SEASON_UPDATES_PAGE_SIZE = 20;                    // Số trận competitiveupdates/request
 // Negative-cache cho lần tính season stats THẤT BẠI: không cho phép re-crawl
 // cả Act (vài phút request) mỗi khi user identity đổi, chỉ retry sau 15 phút
 // hoặc khi user chủ động pull-to-refresh (force).
 const SEASON_STATS_FAILURE_TTL_MS = 15 * 60 * 1000;
-const SEASON_STATS_CALCULATION_VERSION = 7;
-const SEASON_DETAIL_REQUEST_DELAY_MS = 1_000;
+const SEASON_STATS_CALCULATION_VERSION = 7;        // Bump → tính lại stats season
+const SEASON_DETAIL_REQUEST_DELAY_MS = 1_000;      // Nghỉ giữa 2 request detail (chống rate-limit)
 // Trần số match được persist xuống storage. Hydrate "load more" có thể phình
 // vô hạn theo tháng dùng; cap này giữ giá trị MMKV ở mức hợp lý. Danh sách
 // trong bộ nhớ vẫn đầy đủ, chỉ bản ghi xuống đĩa bị cắt.
 const MAX_PERSISTED_MATCHES = 200;
+// Cửa sổ 5s để tính một mạng bị "traded" trong KAST (bị hạ rồi đồng đội báo thù).
 const KAST_TRADE_WINDOW_MS = 5_000;
 
 // Negative-cache season stats theo authKey (xem SEASON_STATS_FAILURE_TTL_MS)
@@ -58,10 +59,11 @@ let seasonStatsFailure: { key: string; at: number } | null = null;
 const wait = (durationMs: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, durationMs));
 
-// --- Tạo auth key từ thông tin user (dùng để phân biệt session) ---
+// Auth key của match store = session key tài khoản ("region|id"); Guest → "guest".
 const getMatchAuthKey = (user: typeof defaultUser) =>
   getAccountSessionKey(user);
 
+// Season act competitive đang chạy (theo thời gian thực) cho thống kê mùa.
 type ActiveCompetitiveSeason = {
   id: string;
   name: string;
@@ -69,6 +71,13 @@ type ActiveCompetitiveSeason = {
   endTimeMs: number;
 };
 
+/**
+ * Chọn act competitive đang active từ danh sách season của getContent().
+ * Ưu tiên act có cờ IsActive; nếu không có (dữ liệu lệch) thì fallback
+ * chọn act có khoảng StartTime/EndTime bao lấy thời điểm hiện tại.
+ * @param seasons - Danh sách season từ ContentResponse.Seasons.
+ * @returns Act đang chạy, hoặc null nếu không xác định được act nào.
+ */
 const resolveActiveCompetitiveSeason = (
   seasons: {
     ID: string;
@@ -98,6 +107,18 @@ const resolveActiveCompetitiveSeason = (
   };
 };
 
+/**
+ * Tính tổng hợp hiệu suất season từ danh sách match details đã crawl.
+ * Chỉ tính trận competitive thuộc season được truyền vào (lọc theo seasonId).
+ * Các chỉ số: K/D, ACS, ADR, HS%, KAST (kể trade 5s), winRate, wins/losses...
+ * Chỉ số tổng chia theo tổng (kd, acs, adr) VÀ chỉ số trung bình per-match
+ * được log ở DEV để kiểm chứng khác biệt cách tính.
+ * @param detailsList - Match details (có thể chứa null — bị bỏ qua).
+ * @param userId - PUUID người chơi cần tổng hợp stats.
+ * @param season - Act đang active (lọc + nhãn hiển thị).
+ * @returns SeasonPerformanceStats gắn calculationVersion để invalidate
+ * khi công thức đổi (SEASON_STATS_CALCULATION_VERSION).
+ */
 const summarizeSeasonMatches = (
   detailsList: (MatchDetailsData | null)[],
   userId: string,
@@ -304,6 +325,7 @@ let matchesInFlight: {
 } | null = null;
 /** Đang hydrate thêm matches */
 let hydrationInFlight: { key: string; promise: Promise<void> } | null = null;
+// Đang crawl/tính season stats — caller sau join promise, không crawl đè.
 let seasonStatsInFlight: { key: string; promise: Promise<void> } | null = null;
 /** Map chứa các request fetch detail đang bay — tránh fetch cùng matchId nhiều lần */
 const detailsInFlight = new Map<
@@ -334,9 +356,13 @@ interface MatchState {
   hydrating: boolean;
   error: string | null;
   lastUpdated: number;
+  /** Tổng số trận trên server */
   totalMatches: number;
+  /** Index cuối cùng đã tải (dùng để phân trang) */
   historyEndIndex: number;
+  /** Thống kê hiệu suất act competitive đang chạy (null = chưa tính/không có). */
   seasonStats: SeasonPerformanceStats | null;
+  /** Đang crawl/tính season stats (spinner riêng cho khu vực này). */
   seasonStatsLoading: boolean;
   /**
    * Tải match history. Trả về true nếu dữ liệu dùng được (fetch OK, cache còn
@@ -738,6 +764,19 @@ export const useMatchStore = create<MatchState>()(
         return request;
       },
 
+      /**
+       * Tính thống kê season (act competitive đang chạy):
+       * 1. getContent → tìm act active (bỏ qua nếu cache 2h còn hạn, trừ force).
+       * 2. Negative-cache 15 phút sau lần tính THẤT BẠI để không re-crawl cả
+       *    Act mỗi khi background sync chạy lại (chỉ force mới bỏ qua).
+       * 3. Dedup in-flight theo authKey; đổi user → reset store trước khi crawl.
+       * 4. Lấy danh sách MatchID của act từ competitive updates (nguồn chuẩn —
+       *    match history bị giới hạn lưu trữ có thể thiếu trận cũ), crawl chi
+       *    tiết tuần tự (concurrency 1, delay 1s, retry 4 lần/match).
+       * 5. Chấp nhận kết quả PARTIAL (thiếu 1-2 match không fatal).
+       * @param user - thông tin user
+       * @param force - true để bỏ qua cả cache TTL lẫn negative-cache
+       */
       fetchSeasonStats: async (user, force = false) => {
         if (
           !user.accessToken ||

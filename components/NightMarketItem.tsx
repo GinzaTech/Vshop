@@ -21,6 +21,18 @@ interface NightMarketItemProps {
   width: number;
 }
 
+/**
+ * NightMarketItem – Component card một skin trong Night Market.
+ * Hiển thị: khung ảnh (badge tier + badge giảm giá), loại vũ khí, tên,
+ * giá đã giảm (kèm icon VP) và giá gốc gạch ngang. Nhấn card mở popup
+ * preview media của các level skin (disabled nếu không có media).
+ *
+ * @param item – Dữ liệu item Night Market (skin, giá, % giảm).
+ * @param width – Chiều rộng cố định của card (tính từ bên ngoài).
+ * @returns Pressable card Night Market.
+ *
+ * Side effects: không có timer/subscription; mở popup qua store.
+ */
 export default function NightMarketItem({ item, width }: NightMarketItemProps) {
   // Hook dịch thuật i18n
   const { t } = useTranslation();

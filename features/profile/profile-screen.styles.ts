@@ -1,13 +1,19 @@
+// ===== profile-screen.styles.ts – Styles màn Profile (ProfileScreen + picker) =====
+// Nhóm theo vùng, tên style bắt đầu bằng prefix mục đích: hero* (hero card),
+// picker*/identity*/chroma* (picker modal), segment* (thanh tab), profileSkin*
+// (card skin), collection* (tab bộ sưu tập). Xem chú thích chi tiết ở ProfileScreen.
 import { StyleSheet } from "react-native";
 
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 
 export const styles = StyleSheet.create({
+  // ── Khung màn + pager ngang giữa các tab ──
   container: {
     flex: 1,
     backgroundColor: COLORS.PURE_WHITE,
     overflow: "hidden",
   },
+  // Nền tối khi chuyển sang player info mode
   statsBackground: {
     ...StyleSheet.absoluteFill,
     backgroundColor: COLORS.PURE_BLACK,
@@ -26,6 +32,7 @@ export const styles = StyleSheet.create({
     left: 0,
     zIndex: 1,
   },
+  // Header thu gọn được (chứa top bar + hero + segment)
   profilePageHeader: {
     zIndex: 2,
   },
@@ -38,6 +45,7 @@ export const styles = StyleSheet.create({
   profilePageSwipeZone: {
     height: 12,
   },
+  // ── Top bar: avatar + tiêu đề + balance pill ──
   topHeaderRow: {
     minHeight: 56,
     flexDirection: "row",
@@ -105,6 +113,7 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
+  // ── Hero card: tên, subtitle, meta, stats, rank ──
   heroCard: {
     marginHorizontal: 16,
     marginTop: 14,
@@ -117,6 +126,7 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  // Toggle hero/profile info (thumb trượt + nhãn typewriter)
   heroModeToggle: {
     width: 120,
     height: 32,
@@ -152,6 +162,7 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
   },
+  // Pill region (double-tap mở/thu hàng stats)
   heroRegionPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -167,6 +178,7 @@ export const styles = StyleSheet.create({
     color: COLORS.PURE_WHITE,
     letterSpacing: 0.6,
   },
+  // Tên người chơi + tagline
   heroNameRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -191,6 +203,7 @@ export const styles = StyleSheet.create({
     color: COLORS.PURE_WHITE,
     letterSpacing: 0.3,
   },
+  // Subtitle typewriter (thu/mở theo mode)
   heroSubtitle: {
     fontSize: 14,
     lineHeight: 20,
@@ -199,6 +212,7 @@ export const styles = StyleSheet.create({
   heroSubtitleViewport: {
     overflow: "hidden",
   },
+  // Hàng meta pill (cấp tài khoản, trạng thái sync)
   heroMetaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -219,6 +233,7 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.PURE_WHITE,
   },
+  // Hàng 3 stat card (balances hoặc hiệu suất)
   heroStatsRow: {
     flex: 1,
     flexDirection: "row",
@@ -272,6 +287,7 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
+  // Hàng rank hiện tại + peak (RankSplitGroup)
   heroRankRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -279,6 +295,7 @@ export const styles = StyleSheet.create({
     marginTop: 10,
     height: 64,
   },
+  // ── Nội dung chính từng tab + trạng thái ──
   pageScroll: {
     flex: 1,
   },
@@ -288,12 +305,14 @@ export const styles = StyleSheet.create({
   pageBody: {
     paddingHorizontal: 16,
   },
+  // Khối loading/error/empty giữa màn
   pageStatus: {
     minHeight: 240,
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
   },
+  // ── Picker modal (bottom sheet) ──
   pickerModalContainer: {
     justifyContent: "center",
     paddingHorizontal: 16,
@@ -314,6 +333,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.BORDER,
     marginBottom: 14,
   },
+  // Header sheet: tiêu đề + spinner + nút đóng
   pickerHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -346,6 +366,7 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
+  // Ô tìm kiếm cho picker identity
   identityPickerSearch: {
     minHeight: 44,
     marginBottom: 12,
@@ -353,6 +374,7 @@ export const styles = StyleSheet.create({
     elevation: 0,
     borderWidth: 1,
   },
+  // Option player card dạng grid
   identityPlayerCardOption: {
     width: "48%",
     borderRadius: 8,
@@ -391,6 +413,7 @@ export const styles = StyleSheet.create({
   identityTitleListContent: {
     paddingBottom: 8,
   },
+  // Option player title dạng list
   identityTitleOption: {
     minHeight: 54,
     flexDirection: "row",
@@ -408,6 +431,7 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: "700",
   },
+  // Tab chọn Graffiti/Flex trong expression picker
   expressionPickerTabs: {
     flexDirection: "row",
     borderRadius: RADIUS.chip,
@@ -427,6 +451,7 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  // Danh sách options dùng chung
   pickerList: {
     minHeight: 240,
   },
@@ -446,6 +471,7 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
   },
+  // Card option skin/spray (2 cột)
   pickerOptionCard: {
     width: "48%",
     borderRadius: 22,
@@ -475,6 +501,7 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
+  // Hàng hint chroma (swatch nhỏ + số dư)
   pickerChipHintRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -515,6 +542,7 @@ export const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
   },
+  // Hàng badge (tier, upgrade level)
   pickerOptionMeta: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -545,6 +573,7 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
+  // ── Panel chọn chroma (long-press skin) ──
   chromaPanel: {
     marginTop: 12,
     borderRadius: 20,
@@ -605,6 +634,7 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
+  // ── Section trang bị (identity, spray) ──
   section: {
     marginBottom: 16,
   },
@@ -613,6 +643,7 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 12,
   },
+  // ── Thanh segment (tab chính + tab stats) ──
   segmentContainer: {
     position: "relative",
     height: 50,
@@ -649,6 +680,7 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
+  // ── Section identity trên trang loadout ──
   identityContainer: {
     flexDirection: "row",
     borderRadius: RADIUS.card,
@@ -732,6 +764,7 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
+  // ── Danh sách spray/flex đã trang bị ──
   sprayList: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -762,6 +795,7 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     opacity: 0.8,
   },
+  // ── Nhóm vũ khí theo category (trang trang bị cũ) ──
   categorySection: {
     marginBottom: 24,
   },
@@ -836,6 +870,7 @@ export const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  // ── Hàng skin theo category (tab skins) ──
   profileSkinCategoryRow: {
     paddingHorizontal: 16,
   },
@@ -860,6 +895,7 @@ export const styles = StyleSheet.create({
     gap: 8,
     paddingRight: 8,
   },
+  // Card skin nhỏ gọn (CompactProfileSkinCard)
   profileSkinCard: {
     backgroundColor: COLORS.SURFACE,
     borderRadius: 8,
@@ -926,6 +962,7 @@ export const styles = StyleSheet.create({
     lineHeight: 14,
     minHeight: 28,
   },
+  // ── Tab collection: tìm kiếm + lọc vũ khí ──
   searchBar: {
     flex: 1,
     borderRadius: 20,
@@ -945,6 +982,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingTop: 2,
   },
+  // Chip lọc theo vũ khí
   collectionFilterChip: {
     paddingHorizontal: 14,
     paddingVertical: 9,
@@ -966,11 +1004,13 @@ export const styles = StyleSheet.create({
   collectionFilterChipTextActive: {
     color: COLORS.PURE_WHITE,
   },
+  // Hàng grid collection (4 card/row)
   collectionRow: {
     flexDirection: "row",
     gap: 8,
     paddingHorizontal: 16,
   },
+  // Khối trạng thái chung (error/empty)
   centered: {
     flex: 1,
     alignItems: "center",

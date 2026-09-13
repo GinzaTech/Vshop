@@ -63,9 +63,16 @@ interface CombatState {
   fetchSession: (user: CombatUser) => Promise<CombatSessionSnapshot>;
 }
 
+// ID tăng dần cho mỗi lần fetchSession — chỉ request có ID = latest mới được
+// ghi kết quả vào store; request cũ hơn (stale) tự bỏ kết quả thay vì đè lên
+// phiên mới của người dùng.
 let latestCombatRequestId = 0;
+// Dedup in-flight theo requestKey (sessionKey + token hiện tại): nhiều
+// component gọi fetchSession cùng lúc chỉ tạo MỘT chuỗi request — promise
+// chung; sau khi token được renew, key mới không join request cũ nữa.
 const combatRequests = new Map<string, Promise<CombatSessionSnapshot>>();
 
+// Key phiên chiến đấu: region + id chuẩn hóa lowercase để so sánh an toàn.
 const getCombatSessionKey = (user: CombatUser) =>
   `${user.region.toLowerCase()}|${user.id.toLowerCase()}`;
 
@@ -80,12 +87,17 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   loading: false,
   /** Timestamp cập nhật gần nhất */
   lastUpdated: 0,
-  /** Phiên sở hữu snapshot hiện tại; ngăn dữ liệu tài khoản cũ bị giữ lại. */
+  /** Phiên sở hữu snapshot hiện tại ("region|id"); ngăn dữ liệu tài khoản cũ bị giữ lại. */
   sessionKey: null,
 
-  /** Lấy dữ liệu phiên chiến đấu từ Riot API
-   * @param user - đối tượng user chứa token, region, id
-   * @returns Promise<CombatSessionSnapshot> snapshot sau khi fetch
+  /** Lấy dữ liệu phiên chiến đấu từ Riot API (party/pregame/live + tên player).
+   *  Luồng: validate → dedup in-flight theo sessionKey → fetch 3 endpoint song
+   *  song (party-player/pregame-player/coregame-player) → fetch chi tiết theo
+   *  MatchID tìm được → gom subject → lấy tên → dựng snapshot ưu tiên
+   *  pregame > live > idle. Chỉ requestId mới nhất được ghi vào store.
+   *  @param user - đối tượng user chứa token, region, id
+   *  @returns Promise<CombatSessionSnapshot> snapshot sau khi fetch (EMPTY_SESSION
+   *  nếu thiếu token hoặc lỗi); lỗi mạng giữ nguyên snapshot cũ đang hiển thị.
    */
   fetchSession: async (user) => {
     // Nếu thiếu token hoặc thông tin user -> reset về rỗng và thoát
@@ -96,12 +108,17 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     }
 
     const sessionKey = getCombatSessionKey(user);
-    const pendingRequest = combatRequests.get(sessionKey);
+    // Do not join a request made with credentials that have just been rotated.
+    // The new request supersedes the old one through latestCombatRequestId.
+    const requestKey = `${sessionKey}|${user.accessToken}|${user.entitlementsToken}`;
+    const pendingRequest = combatRequests.get(requestKey);
     if (pendingRequest) {
       return pendingRequest;
     }
 
     const requestId = ++latestCombatRequestId;
+    // Key phiên hiện tại; nếu đang đổi tài khoản thì snapshot cũ phải bị xóa
+    // sạch trước (EMPTY_SESSION) để không lộ dữ liệu của tài khoản trước.
     const currentState = get();
     set({
       loading: true,
@@ -227,13 +244,13 @@ export const useCombatStore = create<CombatState>((set, get) => ({
         }
         return EMPTY_SESSION;
       } finally {
-        if (combatRequests.get(sessionKey) === request) {
-          combatRequests.delete(sessionKey);
+        if (combatRequests.get(requestKey) === request) {
+          combatRequests.delete(requestKey);
         }
       }
     })();
 
-    combatRequests.set(sessionKey, request);
+    combatRequests.set(requestKey, request);
     return request;
   },
 }));

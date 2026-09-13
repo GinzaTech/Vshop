@@ -6,12 +6,16 @@ import {
   WEAPON_NAME_ORDER,
 } from "~/components/GalleryProfile";
 
+/** PROFILE_TAB_KEYS – Thứ tự các tab của pager Profile (index → vị trí cuộn ngang). */
 export const PROFILE_TAB_KEYS: TabKey[] = ["loadout", "skins", "collection"];
 
+/** truncateToOneDecimal – Cắt (không làm tròn) số thập phân còn 1 chữ số. */
 export const truncateToOneDecimal = (value: number) =>
     Math.trunc(value * 10) / 10;
+/** formatOneDecimal – Format số thành chuỗi luôn có 1 chữ số thập phân (VD "1.0"). */
 export const formatOneDecimal = (value: number) =>
     truncateToOneDecimal(value).toFixed(1);
+/** formatPercentage – Format số thành chuỗi phần trăm 1 chữ số (VD "52.3%"). */
 export const formatPercentage = (value: number) =>
     `${formatOneDecimal(value)}%`;
 
@@ -66,8 +70,12 @@ export const formatUpgradeLevel = (
   return `${weapon.upgradeLevel}`;
 };
 
-/** Props cho CompactProfileSkinCard component. */
-
+/**
+ * normalizeWeaponKey – Chuẩn hóa tên vũ khí/skin để so sánh mờ:
+ * bỏ dấu (NFD), lowercase, thay ký tự đặc biệt bằng khoảng trắng.
+ * @param {string | undefined} value - Tên gốc bất kỳ.
+ * @returns {string} Key đã chuẩn hóa dùng cho so sánh/lọc.
+ */
 export const normalizeWeaponKey = (value?: string) =>
     (value || "")
         .toLowerCase()

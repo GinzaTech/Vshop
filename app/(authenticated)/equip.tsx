@@ -17,8 +17,22 @@ import { fullBackgroundSync } from "~/utils/app-sync";
 // EquipmentDisplayItem: kiểu item hiển thị trong danh sách
 type EquipmentDisplayItem = ReturnType<typeof buildEquipDisplayList>[number];
 
-// Component Equip: hiển thị danh sách trang bị (vũ khí, mũ, cards, ...) theo section
-// Cho phép tìm kiếm và lọc theo tab section
+/**
+ * Equip — Component hiển thị danh sách trang bị (vũ khí, thẻ, banner, ...)
+ * theo section. Cho phép tìm kiếm và lọc theo tab section.
+ *
+ * State:
+ * - activeSection: section đang chọn trên UI (đổi ngay khi bấm tab).
+ * - renderedSection: section thực tế đang render (đổi trễ 1 frame qua
+ *   requestAnimationFrame để tránh giật khi chuyển tab).
+ * - searchQuery: từ khóa tìm kiếm (lọc theo displayName + subtitle).
+ * - sectionData (useMemo): toàn bộ section đã sort + build display list,
+ *   chỉ tính một lần khi mount (deps rỗng).
+ * - data (useMemo): items của renderedSection đã lọc theo searchQuery.
+ * - renderEquipItem (useCallback): render một item trong grid.
+ *
+ * @returns {JSX.Element} Màn hình trang bị dạng grid 2-3 cột.
+ */
 const Equip = () => {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -29,6 +43,7 @@ const Equip = () => {
   const [activeSection, setActiveSection] = React.useState<EquipmentSectionKey>(EQUIPMENT_SECTIONS[0].key); // Section đang active (UI)
   const [renderedSection, setRenderedSection] = React.useState<EquipmentSectionKey>(EQUIPMENT_SECTIONS[0].key); // Section thực tế render (delay)
   const [searchQuery, setSearchQuery] = React.useState("");                                                     // Từ khóa tìm kiếm
+  // refreshApp: pull-to-refresh chạy full sync nền (force = true)
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 

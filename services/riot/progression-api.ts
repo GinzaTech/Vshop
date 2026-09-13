@@ -5,10 +5,10 @@ import { API_DEBUG_LOGGING, extraHeaders, logValorantApiDebug, logValorantApiRes
 // ---------------------------------------------------------------------------
 // Contracts (hợp đồng/agent contract)
 // ---------------------------------------------------------------------------
-// Export hàm lấy thông tin contracts của người chơi
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<ContractsResponse | null>
+/** Lấy contracts (hợp đồng agent + tiến trình battlepass) — GET /contracts/:userId.
+ *  @param accessToken - Bearer token từ auth.riotgames.com.
+ *  @param entitlementsToken - JWT quyền (header X-Riot-Entitlements-JWT).
+ *  @returns Data khi HTTP 200; null khi lỗi (không throw — caller tự fallback). */
 export async function getContracts(
   accessToken: string,
   entitlementsToken: string,
@@ -35,11 +35,11 @@ export async function getContracts(
 // ---------------------------------------------------------------------------
 // Activate Contract (kích hoạt hợp đồng agent)
 // ---------------------------------------------------------------------------
-// Export hàm kích hoạt một contract (hợp đồng agent)
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-//   - contractId: UUID contract cần kích hoạt
-// Returns: Promise<ContractsResponse | null>
+/** Kích hoạt contract agent — POST /contracts/:userId/special/:contractId (PD).
+ *  Hành động thay đổi tài khoản: chỉ gọi từ tương tác UI của người dùng.
+ *  @param accessToken/entitlementsToken/region/userId - bộ xác thực chuẩn Riot.
+ *  @param contractId - UUID contract cần kích hoạt.
+ *  @returns ContractsResponse mới khi HTTP 200; null khi lỗi (không throw). */
 export async function activateContract(
   accessToken: string,
   entitlementsToken: string,
@@ -69,10 +69,10 @@ export async function activateContract(
 // ---------------------------------------------------------------------------
 // Item Upgrades (nâng cấp skin bằng Radianite)
 // ---------------------------------------------------------------------------
-// Export hàm lấy danh sách item upgrades (nâng cấp skin) khả dụng
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-// Returns: Promise<ItemUpgradesResponse | null>
+/** Lấy danh sách item upgrade (nâng skin bằng Radianite) — GET item-upgrades.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param region - Shard hợp lệ (ap/eu/kr/na/pbe).
+ *  @returns ItemUpgradesResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function getItemUpgrades(
   accessToken: string,
   entitlementsToken: string,
@@ -94,10 +94,10 @@ export async function getItemUpgrades(
 // ---------------------------------------------------------------------------
 // Fetch Content (seasons, acts, events)
 // ---------------------------------------------------------------------------
-// Export hàm lấy nội dung game (season, act, event hiện tại)
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-// Returns: Promise<ContentResponse | null>
+/** Lấy nội dung game (season/act/event) từ content-service v3 của shard.
+ *  Dùng để xác định act đang chạy cho thống kê season (fetchSeasonStats).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @returns ContentResponse khi HTTP 200; null khi lỗi (không cache). */
 export async function getContent(
   accessToken: string,
   entitlementsToken: string,
@@ -126,12 +126,13 @@ export async function getContent(
 // ---------------------------------------------------------------------------
 // Leaderboard (bảng xếp hạng)
 // ---------------------------------------------------------------------------
-// Export hàm lấy bảng xếp hạng competitive
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - seasonId: UUID season
-//   - params: tham số tùy chọn (startIndex, size, query)
-// Returns: Promise<LeaderboardResponse | null>
+/** Lấy bảng xếp hạng competitive theo season — GET mmr/v1/leaderboards/
+ *  affinity/:shard/queue/competitive/season/:seasonId trên PD.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param region - Shard quyết định affinity của bảng xếp hạng.
+ *  @param seasonId - UUID season cần tra hạng.
+ *  @param params - Phân trang/tìm kiếm tùy chọn: startIndex, size, query.
+ *  @returns LeaderboardResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function getLeaderboard(
   accessToken: string,
   entitlementsToken: string,
@@ -156,10 +157,10 @@ export async function getLeaderboard(
 // ---------------------------------------------------------------------------
 // Config (cấu hình game)
 // ---------------------------------------------------------------------------
-// Export hàm lấy cấu hình game cho shard hiện tại
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-// Returns: Promise<ConfigResponse | null>
+/** Lấy cấu hình game theo shard — GET /v1/config/:shard trên PD.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param region - Shard hợp lệ cần lấy config.
+ *  @returns ConfigResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function getConfig(
   accessToken: string,
   entitlementsToken: string,
@@ -181,10 +182,10 @@ export async function getConfig(
 // ---------------------------------------------------------------------------
 // Penalties (hình phạt)
 // ---------------------------------------------------------------------------
-// Export hàm lấy thông tin hình phạt (nếu có) của tài khoản
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-// Returns: Promise<PenaltiesResponse | null>
+/** Lấy hình phạt/restriction của tài khoản — GET restrictions/v3/penalties.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param region - Shard hợp lệ.
+ *  @returns PenaltiesResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function getPenalties(
   accessToken: string,
   entitlementsToken: string,
@@ -206,10 +207,10 @@ export async function getPenalties(
 // ---------------------------------------------------------------------------
 // Player Info (thông tin người chơi từ auth.riotgames.com/userinfo)
 // ---------------------------------------------------------------------------
-// Export hàm lấy thông tin tài khoản Riot (không cần entitlementsToken)
-// Parameters:
-//   - accessToken: token xác thực
-// Returns: Promise<PlayerInfoResponse | null>
+/** Lấy userinfo Riot — GET auth.riotgames.com/userinfo (chỉ cần access token,
+ *  không cần entitlementsToken). @param accessToken - Bearer token.
+ *  @returns PlayerInfoResponse (puuid, pvp_id_account...) khi HTTP 200;
+ *  null khi token hết hạn hoặc lỗi (không throw). */
 export async function getPlayerInfo(
   accessToken: string
 ): Promise<PlayerInfoResponse | null> {
@@ -227,11 +228,11 @@ export async function getPlayerInfo(
 // ---------------------------------------------------------------------------
 // Riot Geo (lấy region affinity)
 // ---------------------------------------------------------------------------
-// Export hàm lấy thông tin region (khu vực) của người dùng từ Riot Geo
-// Parameters:
-//   - accessToken: token xác thực
-//   - idToken: ID token
-// Returns: Promise<RiotGeoResponse | null>
+/** Tra region affinity từ Riot Geo — PUT pas/v1/product/valorant.
+ *  Dùng lúc đăng nhập để chọn shard/region phù hợp cho tài khoản.
+ *  @param accessToken - Bearer token xác thực Riot.
+ *  @param idToken - ID token gửi trong body { id_token } để Riot định vị.
+ *  @returns RiotGeoResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function getRiotGeo(
   accessToken: string,
   idToken: string
@@ -252,10 +253,10 @@ export async function getRiotGeo(
 // ---------------------------------------------------------------------------
 // PAS Token (token xác thực chat XMPP)
 // ---------------------------------------------------------------------------
-// Export hàm lấy PAS token dùng cho xác thực XMPP chat
-// Parameters:
-//   - accessToken: token xác thực Riot
-// Returns: Promise<string | null> PAS token
+/** Lấy PAS token cho XMPP chat — GET pas/v1/service/chat (chỉ access token).
+ *  Token này do chat-service dùng để đăng nhập kênh chat trong game.
+ *  @param accessToken - Bearer token xác thực Riot (không cần entitlements).
+ *  @returns PAS token (string) khi HTTP 200; null khi lỗi (không throw). */
 export async function getPASToken(
   accessToken: string
 ): Promise<string | null> {
@@ -274,9 +275,9 @@ export async function getPASToken(
 // Riot Client Config (cấu hình Riot client)
 // ---------------------------------------------------------------------------
 
-// FIX (L9): cache ngắn + in-flight dedup. Trước đây data-sync (bootstrap sync)
-// và chat-service (resolveChatHost) gọi song song lúc startup → 2 request
-// giống hệt nhau bắn đi cùng lúc. Config ít đổi nên TTL 5 phút là an toàn.
+// FIX (L9): cache TTL 5 phút + in-flight dedup. Trước đây data-sync (bootstrap
+// sync) và chat-service (resolveChatHost) gọi song song lúc startup → 2 request
+// giống hệt nhau bắn cùng lúc. Config ít đổi nên TTL 5 phút là an toàn.
 let clientConfigCache: {
   value: RiotClientConfigResponse | null;
   expiresAt: number;
@@ -285,11 +286,12 @@ let clientConfigInFlight: Promise<RiotClientConfigResponse | null> | null = null
 const CLIENT_CONFIG_TTL_MS = 5 * 60 * 1000;
 
 /**
- * Export hàm lấy cấu hình Riot client (có cache 5 phút + dedup in-flight)
- * Parameters:
- *   - accessToken: token xác thực
- *   - entitlementsToken: token quyền
- * Returns: Promise<RiotClientConfigResponse | null>
+ * Lấy cấu hình Riot client (riotclientconfig) với cache 5 phút + dedup
+ * in-flight: nhiều caller cùng lúc chỉ tạo đúng 1 HTTP request.
+ * Chỉ kết quả THÀNH CÔNG (HTTP 200) được cache — fail thì lần sau thử lại.
+ * @param accessToken - Bearer token xác thực Riot.
+ * @param entitlementsToken - JWT quyền (X-Riot-Entitlements-JWT).
+ * @returns Data khi HTTP 200; null khi lỗi (cache value cũng có thể là null).
  */
 export async function getRiotClientConfig(
   accessToken: string,

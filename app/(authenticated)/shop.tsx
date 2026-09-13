@@ -43,6 +43,7 @@ function Shop() {
   const user = useUserStore((state) => state.user);
   const [mode, setMode] = React.useState<"all" | "wishlist">("all");
   const skinIds = useWishlistStore((state) => state.skinIds);
+  // refreshShop: pull-to-refresh làm mới daily shop + balances (force = true)
   const refreshShop = React.useCallback(
     () => refreshShopAndBalances(true),
     []
@@ -56,6 +57,8 @@ function Shop() {
     [user.shops.remainingSecs.main]
   );
 
+  // filteredItems: item shop theo bộ lọc (memoized) — "all" trả nguyên
+  // danh sách, "wishlist" chỉ giữ item có level đầu tiên nằm trong wishlist.
   const filteredItems = React.useMemo(() => {
     if (mode === "all") return user.shops.main;
     return user.shops.main.filter((item) =>
@@ -63,11 +66,14 @@ function Shop() {
     );
   }, [mode, skinIds, user.shops.main]);
 
+  // Số cột grid: 3 nếu màn hình rộng >= 700, ngược lại 2
   const columnCount = width >= 700 ? 3 : 2;
+  // Chiều rộng mỗi card = (width - padding - gap*(n-1)) / n (làm tròn xuống)
   const cardWidth = Math.floor(
     (width - CONTENT_PADDING * 2 - GRID_GAP * (columnCount - 1)) / columnCount
   );
 
+  // Chữ cái đầu tên user dùng làm avatar
   const initials = (user.name || "V").slice(0, 1).toUpperCase();
 
   return (

@@ -19,9 +19,14 @@ import {
   normalizeGalleryQuery,
 } from "~/utils/gallery-filter";
 
-// useDebounceValue: custom hook debounce giá trị string
-// value: giá trị đầu vào, delay: thời gian debounce (ms)
-// Trả về: giá trị đã debounce (chỉ cập nhật sau delay ms kể từ lần thay đổi cuối)
+/**
+ * useDebounceValue — Custom hook debounce giá trị string.
+ * @param {string} value – Giá trị đầu vào thay đổi liên tục (VD: ô tìm kiếm).
+ * @param {number} delay – Thời gian trễ (ms) kể từ lần thay đổi cuối.
+ * @returns {string} Giá trị đã debounce — chỉ cập nhật sau `delay` ms.
+ * Side effect: setTimeout bên trong effect; cleanup clearTimeout khi
+ * value/delay đổi hoặc unmount.
+ */
 function useDebounceValue(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = React.useState(value);
 
@@ -33,7 +38,19 @@ function useDebounceValue(value: string, delay: number) {
   return debouncedValue;
 }
 
-// Component Gallery: thư viện skin vũ khí với tìm kiếm, lọc wishlist
+/**
+ * Gallery — Thư viện skin vũ khí với tìm kiếm (debounce) và lọc wishlist.
+ *
+ * State:
+ * - searchQuery: từ khóa thô; debouncedQuery: bản debounce 100ms.
+ * - filter: "all" | "wishlist" (chip chọn kiểu hiển thị).
+ * - columnCount: số cột grid — 3 nếu width >= 700, ngược lại 2.
+ * - gallerySkins (useMemo): skin đã lọc theo query/tier/wishlist, gắn cờ
+ *   onWishlist và sort item wishlist lên đầu danh sách.
+ * - renderItem (useCallback): render một ô skin trong FlatList.
+ *
+ * @returns {JSX.Element} Màn hình thư viện skin.
+ */
 function Gallery() {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -43,6 +60,7 @@ function Gallery() {
   const debouncedQuery = useDebounceValue(searchQuery, 100);
 
   const skinIds = useWishlistStore((state) => state.skinIds);
+  // refreshApp: pull-to-refresh chạy full sync nền (force = true)
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 

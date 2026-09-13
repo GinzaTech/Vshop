@@ -1,3 +1,8 @@
+// ===== PlayerStatsDashboard.tsx =====
+// Dashboard thống kê người chơi (màn hình profile): 2 tab (overview/details),
+// mỗi tab là một danh sách card render qua FlatList (performance, agents &
+// maps, recent, activity heatmap, RR trend; details: rank, combat, totals,
+// record). Card entrance animate theo tabProgress mỗi khi đổi tab.
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
@@ -28,8 +33,22 @@ import { MOTION_DURATION } from "~/constants/Motion";
 import type { MatchHistoryRecord, SeasonPerformanceStats } from "~/types/match-ui";
 import type { CompetitiveRankSummary } from "~/utils/profile-cache";
 
+// StatsDashboardTab: Hai tab của dashboard - tổng quan và chi tiết
 export type StatsDashboardTab = "overview" | "details";
 
+/**
+ * PlayerStatsDashboardProps – Props của PlayerStatsDashboard.
+ *
+ * @param activeTab – Tab đang hiển thị ("overview" | "details").
+ * @param competitiveRank – Tóm tắt rank cạnh tranh (hoặc null nếu chưa có).
+ * @param loading – Đang sync dữ liệu lần đầu (hiện thanh loading header).
+ * @param matches – Toàn bộ trận (được lọc competitive nội bộ).
+ * @param onRefresh – Callback pull-to-refresh.
+ * @param onRequestDetails – Callback khi bấm "DETAILS" (chuyển tab details).
+ * @param refreshing – Trạng thái pull-to-refresh đang chạy.
+ * @param seasonStats – Thống kê season hiện tại (null nếu chưa có).
+ * @param totalMatches – Tổng số trận trong account history (footer).
+ */
 type PlayerStatsDashboardProps = {
   activeTab: StatsDashboardTab;
   competitiveRank: CompetitiveRankSummary | null;
@@ -42,8 +61,11 @@ type PlayerStatsDashboardProps = {
   totalMatches: number;
 };
 
+// DashboardTone: Tông màu ngữ nghĩa - positive/negative/neutral
 type DashboardTone = "positive" | "negative" | "neutral";
+// TableMode: Chế độ bảng AgentsMapsCard - theo agent hoặc theo map
 type TableMode = "agents" | "maps";
+// DashboardCardKind: Loại card có thể xuất hiện trong dashboard
 type DashboardCardKind =
   | "performance"
   | "agents-maps"
@@ -55,11 +77,13 @@ type DashboardCardKind =
   | "totals"
   | "record";
 
+// DashboardCardItem: Item của FlatList dashboard (key trùng kind)
 type DashboardCardItem = {
   key: DashboardCardKind;
   kind: DashboardCardKind;
 };
 
+// Danh sách card của tab OVERVIEW (theo thứ tự hiển thị)
 const OVERVIEW_DASHBOARD_CARDS: DashboardCardItem[] = [
   { key: "performance", kind: "performance" },
   { key: "agents-maps", kind: "agents-maps" },
@@ -68,6 +92,7 @@ const OVERVIEW_DASHBOARD_CARDS: DashboardCardItem[] = [
   { key: "rr-trend", kind: "rr-trend" },
 ];
 
+// Danh sách card của tab DETAILS (theo thứ tự hiển thị)
 const DETAIL_DASHBOARD_CARDS: DashboardCardItem[] = [
   { key: "rank-summary", kind: "rank-summary" },
   { key: "combat", kind: "combat" },
@@ -75,8 +100,10 @@ const DETAIL_DASHBOARD_CARDS: DashboardCardItem[] = [
   { key: "record", kind: "record" },
 ];
 
+// dashboardCardKeyExtractor: key FlatList = key của card
 const dashboardCardKeyExtractor = (item: DashboardCardItem) => item.key;
 
+// AggregateRow: Một dòng thống kê tổng hợp theo agent hoặc map
 type AggregateRow = {
   adr: number;
   games: number;
@@ -88,6 +115,7 @@ type AggregateRow = {
   winPercent: number;
 };
 
+// ActivityCell: Một ô trong heatmap hoạt động 12 tuần
 type ActivityCell = {
   count: number;
   date: Date;
@@ -96,6 +124,7 @@ type ActivityCell = {
   level: 0 | 1 | 2 | 3 | 4 | 5;
 };
 
+// STATS_COLORS: Bảng màu tối riêng của dashboard (nền, chữ, accent tím...)
 const STATS_COLORS = {
   page: "#090A0B",
   card: "#141414",
@@ -116,33 +145,60 @@ const STATS_COLORS = {
   neutral: "#D6D6D6",
 } as const;
 
+// MONO_FONT: Font monospace theo nền tảng (Android/iOS/web)
 const MONO_FONT = Platform.select({
   android: "monospace",
   ios: "Menlo",
   web: "monospace",
 });
 
+/**
+ * compactNumber – Format số nguyên có phân cách nghìn; giá trị không hợp lệ
+ * (null/undefined/NaN/Infinity) trả "--".
+ * @param value – Số cần format.
+ * @returns Chuỗi số đã format hoặc "--".
+ */
 const compactNumber = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? "--"
     : Math.round(value).toLocaleString();
 
+/**
+ * oneDecimal – Format số với 1 chữ số thập phân; không hợp lệ trả "--".
+ * @param value – Số cần format.
+ * @returns Chuỗi "x.y" hoặc "--".
+ */
 const oneDecimal = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? "--"
     : value.toFixed(1);
 
+/**
+ * percentage – Format số thành phần trăm làm tròn; không hợp lệ trả "--".
+ * @param value – Số cần format (0-100).
+ * @returns Chuỗi "x%" hoặc "--".
+ */
 const percentage = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? "--"
     : `${Math.round(value)}%`;
 
+/**
+ * toneColor – Đổi tông ngữ nghĩa thành mã màu của dashboard.
+ * @param tone – Tông cần lấy màu.
+ * @returns Mã màu positive/negative/neutral.
+ */
 const toneColor = (tone: DashboardTone) => {
   if (tone === "positive") return STATS_COLORS.positive;
   if (tone === "negative") return STATS_COLORS.negative;
   return STATS_COLORS.neutral;
 };
 
+/**
+ * toneForKd – Tông màu theo K/D: >= 1 xanh, < 1 đỏ, không hợp lệ neutral.
+ * @param value – Giá trị K/D.
+ * @returns DashboardTone tương ứng.
+ */
 const toneForKd = (value: number | null | undefined): DashboardTone =>
   value === null || value === undefined
     ? "neutral"
@@ -150,6 +206,11 @@ const toneForKd = (value: number | null | undefined): DashboardTone =>
       ? "positive"
       : "negative";
 
+/**
+ * toneForWinRate – Tông màu theo tỉ lệ thắng: >= 50% xanh, < 50% đỏ.
+ * @param value – Tỉ lệ thắng (0-100).
+ * @returns DashboardTone tương ứng.
+ */
 const toneForWinRate = (value: number | null | undefined): DashboardTone =>
   value === null || value === undefined
     ? "neutral"
@@ -157,6 +218,11 @@ const toneForWinRate = (value: number | null | undefined): DashboardTone =>
       ? "positive"
       : "negative";
 
+/**
+ * dayKey – Sinh key "yyyy-mm-dd" của một Date (dùng đếm trận theo ngày).
+ * @param date – Ngày cần sinh key.
+ * @returns Chuỗi key ngày.
+ */
 const dayKey = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -164,6 +230,16 @@ const dayKey = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+/**
+ * aggregateMatches – Tổng hợp trận theo agent hoặc map để vẽ bảng top 6.
+ * Gom: số game, số thắng, kills/deaths, tổng ADR, trung bình HS% (bỏ trận
+ * null). K/D tính kills/deaths (không deaths → kills). Sort theo số game
+ * giảm dần rồi K/D, lấy 6 dòng đầu.
+ *
+ * @param matches – Danh sách trận (bỏ qua trận thiếu stats).
+ * @param mode – "agents" gom theo agent, "maps" gom theo map.
+ * @returns Mảng tối đa 6 AggregateRow đã sắp xếp.
+ */
 const aggregateMatches = (
   matches: MatchHistoryRecord[],
   mode: TableMode
@@ -239,6 +315,14 @@ const aggregateMatches = (
     .slice(0, 6);
 };
 
+/**
+ * buildActivityWeeks – Dựng dữ liệu heatmap hoạt động 12 tuần (84 ô).
+ * Tuần đầu bắt đầu từ Thứ 2 của tuần cách nay 11 tuần; mỗi ô đếm số trận
+ * trong ngày, đánh dấu tương lai (future) và mức cường độ level 0-5.
+ *
+ * @param matches – Danh sách trận (dùng GameStartTime đếm theo ngày).
+ * @returns Mảng 12 tuần, mỗi tuần là mảng 7 ActivityCell.
+ */
 const buildActivityWeeks = (matches: MatchHistoryRecord[]) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -272,6 +356,14 @@ const buildActivityWeeks = (matches: MatchHistoryRecord[]) => {
   );
 };
 
+/**
+ * lineStyle – Sinh style đoạn thẳng nối 2 điểm (View xoay) cho RR trend.
+ * @param x1 – Hoành độ điểm đầu.
+ * @param y1 – Tung độ điểm đầu.
+ * @param x2 – Hoành độ điểm cuối.
+ * @param y2 – Tung độ điểm cuối.
+ * @returns ViewStyle absolute (left/top/width/rotate) của đoạn thẳng.
+ */
 const lineStyle = (
   x1: number,
   y1: number,
@@ -292,17 +384,36 @@ const lineStyle = (
   };
 };
 
+/**
+ * DashboardCardProps – Props của DashboardCard.
+ *
+ * @param children – Nội dung card.
+ * @param index – Thứ tự card trong tab (quyết định thời điểm reveal).
+ * @param tabProgress – SharedValue 0..1 tiến trình animation đổi tab.
+ */
 type DashboardCardProps = {
   children: React.ReactNode;
   index: number;
   tabProgress: SharedValue<number>;
 };
 
+/**
+ * DashboardCard – Khung card có entrance animation khi đổi tab (memo không
+ * bắt buộc): mỗi card hiện dần (opacity) + trượt lên (translateY) theo
+ * một khoảng tabProgress lệch nhau theo index (stagger). Chạy trên UI
+ * thread; ReduceMotion.System do withTiming điều khiển.
+ *
+ * @param children – Nội dung card.
+ * @param index – Thứ tự card trong danh sách.
+ * @param tabProgress – SharedValue tiến trình tab.
+ * @returns Animated.View card đã animate.
+ */
 function DashboardCard({
   children,
   index,
   tabProgress,
 }: DashboardCardProps) {
+  // animatedStyle: map tabProgress → opacity + translateY theo mốc index
   const animatedStyle = useAnimatedStyle(() => {
     const start = Math.min(0.24, 0.025 + index * 0.04);
     const end = Math.min(0.92, start + 0.42);
@@ -328,12 +439,28 @@ function DashboardCard({
   );
 }
 
+/**
+ * CardHeaderProps – Props của CardHeader.
+ *
+ * @param icon – Icon MaterialCommunityIcons trong ô vuông accent.
+ * @param right – (tuỳ chọn) Node hiển thị bên phải header (badge, nút...).
+ * @param title – Tiêu đề card (font mono, uppercase).
+ */
 type CardHeaderProps = {
   icon: React.ComponentProps<typeof Icon>["name"];
   right?: React.ReactNode;
   title: string;
 };
 
+/**
+ * CardHeader – Header dùng chung cho mọi dashboard card:
+ * [icon accent] [title] ..................... [right tuỳ chọn].
+ *
+ * @param icon – Icon tiêu đề.
+ * @param right – Node bên phải (tuỳ chọn).
+ * @param title – Tiêu đề.
+ * @returns View header có border-bottom.
+ */
 function CardHeader({ icon, right, title }: CardHeaderProps) {
   return (
     <View style={styles.cardHeader}>
@@ -348,6 +475,15 @@ function CardHeader({ icon, right, title }: CardHeaderProps) {
   );
 }
 
+/**
+ * MetricCellProps – Props của MetricCell.
+ *
+ * @param label – Nhãn chỉ số.
+ * @param value – Giá trị đã format.
+ * @param tone – (mặc định "neutral") Tông màu giá trị.
+ * @param right – (tuỳ chọn) Ô nằm cột phải (thêm border-left).
+ * @param bottom – (tuỳ chọn) Ô nằm hàng dưới (thêm border-top).
+ */
 type MetricCellProps = {
   bottom?: boolean;
   label: string;
@@ -356,6 +492,16 @@ type MetricCellProps = {
   value: string;
 };
 
+/**
+ * MetricCell – Ô chỉ số 2x2 trong PerformanceCard (nhãn trên, giá trị dưới).
+ *
+ * @param bottom – Ô hàng dưới.
+ * @param label – Nhãn chỉ số.
+ * @param right – Ô cột phải.
+ * @param tone – Tông màu giá trị.
+ * @param value – Giá trị hiển thị.
+ * @returns View ô metric.
+ */
 function MetricCell({
   bottom = false,
   label,
@@ -379,11 +525,25 @@ function MetricCell({
   );
 }
 
+/**
+ * PerformanceCardProps – Props của PerformanceCard.
+ *
+ * @param onRequestDetails – Callback khi bấm nút "DETAILS".
+ * @param seasonStats – Thống kê season (ADR, K/D, HS%, WIN%...).
+ */
 type PerformanceCardProps = {
   onRequestDetails: () => void;
   seasonStats: SeasonPerformanceStats | null;
 };
 
+/**
+ * PerformanceCard – Card tổng quan hiệu suất (tab overview): badge tên ACT,
+ * nút "DETAILS" và lưới 4 metric (ADR, K/D, HS%, WIN%) có tô màu ngữ nghĩa.
+ *
+ * @param onRequestDetails – Callback mở tab details.
+ * @param seasonStats – Dữ liệu season hiện tại.
+ * @returns Fragment header + lưới metric.
+ */
 function PerformanceCard({
   onRequestDetails,
   seasonStats,
@@ -440,18 +600,37 @@ function PerformanceCard({
   );
 }
 
+/**
+ * AgentsMapsCardProps – Props của AgentsMapsCard.
+ *
+ * @param agentRows – Bảng tổng hợp theo agent (đã sort, tối đa 6 dòng).
+ * @param mapRows – Bảng tổng hợp theo map (đã sort, tối đa 6 dòng).
+ * @param totalGames – Tổng số game hiển thị trên header.
+ */
 type AgentsMapsCardProps = {
   agentRows: AggregateRow[];
   mapRows: AggregateRow[];
   totalGames: number;
 };
 
+/**
+ * AgentsMapsCard – Card bảng thống kê theo agent/map (tab overview):
+ * 2 tab con "AGENTS"/"MAPS" (state nội bộ mode), bảng cột WINS/K/D/ADR/HS%
+ * với màu ngữ nghĩa, avatar agent; trống hiện empty state.
+ *
+ * @param agentRows – Dòng tổng hợp theo agent.
+ * @param mapRows – Dòng tổng hợp theo map.
+ * @param totalGames – Tổng game hiển thị trên header.
+ * @returns Fragment header + tabs + bảng hoặc trạng thái rỗng.
+ */
 function AgentsMapsCard({
   agentRows,
   mapRows,
   totalGames,
 }: AgentsMapsCardProps) {
+  // mode: bảng đang hiển thị theo agent hay map (state nội bộ)
   const [mode, setMode] = React.useState<TableMode>("agents");
+  // rows: dòng dữ liệu của mode hiện tại
   const rows = mode === "agents" ? agentRows : mapRows;
 
   return (
@@ -545,11 +724,25 @@ function AgentsMapsCard({
   );
 }
 
+/**
+ * RecentCompetitiveCardProps – Props của RecentCompetitiveCard.
+ *
+ * @param matches – Danh sách trận (chỉ dùng 6 trận mới nhất).
+ */
 type RecentCompetitiveCardProps = {
   matches: MatchHistoryRecord[];
 };
 
+/**
+ * RecentCompetitiveCard – Card 6 trận competitive gần nhất (tab overview):
+ * mỗi hàng gồm ngày, rank icon + tên rank + map, kết quả W/L tỉ số và RR
+ * thay đổi có tô màu; bỏ qua trận thiếu stats. Trống hiện empty state.
+ *
+ * @param matches – Danh sách trận.
+ * @returns Fragment header + các hàng trận gần nhất.
+ */
 function RecentCompetitiveCard({ matches }: RecentCompetitiveCardProps) {
+  // recent: 6 trận mới nhất trong danh sách
   const recent = matches.slice(0, 6);
 
   return (
@@ -629,13 +822,29 @@ function RecentCompetitiveCard({ matches }: RecentCompetitiveCardProps) {
   );
 }
 
+/**
+ * ActivityCardProps – Props của ActivityCard.
+ *
+ * @param matches – Danh sách trận dùng đếm heatmap.
+ */
 type ActivityCardProps = {
   matches: MatchHistoryRecord[];
 };
 
+/**
+ * ActivityCard – Card heatmap hoạt động 12 tuần (tab overview):
+ * hàng nhãn tháng, lưới ô bấm được (đếm trận/ngày, tô màu theo level,
+ * ô tương lai disabled), footer hiển thị chi tiết ô đang chọn + legend.
+ *
+ * @param matches – Danh sách trận.
+ * @returns Fragment header + heatmap + footer chọn/legend.
+ */
 function ActivityCard({ matches }: ActivityCardProps) {
+  // weeks: dữ liệu 12 tuần (memo theo matches)
   const weeks = React.useMemo(() => buildActivityWeeks(matches), [matches]);
+  // selectedCell: ô đang chọn hiển thị chi tiết ở footer (null nếu chưa)
   const [selectedCell, setSelectedCell] = React.useState<ActivityCell | null>(null);
+  // activityColors: dải 6 màu từ trống tới tích cực nhất
   const activityColors = [
     "#1A1A1A",
     "#2A2037",
@@ -717,12 +926,27 @@ function ActivityCard({ matches }: ActivityCardProps) {
   );
 }
 
+/**
+ * RrTrendCardProps – Props của RrTrendCard.
+ *
+ * @param matches – Danh sách trận dùng vẽ trend RR.
+ */
 type RrTrendCardProps = {
   matches: MatchHistoryRecord[];
 };
 
+/**
+ * RrTrendCard – Card biểu đồ xu hướng RR 10 trận gần nhất (tab overview):
+ * lấy rrAfter (hoặc RankedRatingAfterUpdate), đảo để cũ → mới, vẽ grid line,
+ * đoạn thẳng nối các điểm và nhãn min/max; điểm data < 2 hiện empty state.
+ *
+ * @param matches – Danh sách trận.
+ * @returns Fragment header + chart tuyến tính hoặc empty state.
+ */
 function RrTrendCard({ matches }: RrTrendCardProps) {
+  // chartWidth: bề rộng vùng chart (cập nhật qua onLayout)
   const [chartWidth, setChartWidth] = React.useState(280);
+  // points: tối đa 10 giá trị RR gần nhất, đã đảo theo thời gian tăng dần
   const points = React.useMemo(
     () =>
       matches
@@ -734,13 +958,17 @@ function RrTrendCard({ matches }: RrTrendCardProps) {
         .reverse(),
     [matches]
   );
+  // plotWidth: bề rộng vùng vẽ trừ lề nhãn
   const plotWidth = Math.max(120, chartWidth - 42);
+  // minimum/maximum/range: biên giá trị RR để scale trục Y (range tối thiểu 10)
   const minimum = points.length > 0 ? Math.min(...points) : 0;
   const maximum = points.length > 0 ? Math.max(...points) : 100;
   const range = Math.max(10, maximum - minimum);
+  // yForValue: giá trị RR → tung độ pixel; xForIndex: vị trí điểm → hoành độ
   const yForValue = (value: number) => 10 + ((maximum - value) / range) * 74;
   const xForIndex = (index: number) =>
     8 + (points.length <= 1 ? 0 : (index / (points.length - 1)) * (plotWidth - 16));
+  // handleLayout: đo bề rộng thực của vùng chart
   const handleLayout = (event: LayoutChangeEvent) => {
     setChartWidth(event.nativeEvent.layout.width);
   };
@@ -795,11 +1023,25 @@ function RrTrendCard({ matches }: RrTrendCardProps) {
   );
 }
 
+/**
+ * RankSummaryCardProps – Props của RankSummaryCard.
+ *
+ * @param competitiveRank – Tóm tắt rank (current/peak) hoặc null.
+ */
 type RankSummaryCardProps = {
   competitiveRank: CompetitiveRankSummary | null;
 };
 
+/**
+ * RankSummaryCard – Card hồ sơ rank (tab details): 2 ô cạnh nhau hiển thị
+ * rank hiện tại và rank đỉnh cao (icon cached + tên); thiếu dữ liệu hiện
+ * "UNRATED" với icon shield.
+ *
+ * @param competitiveRank – Tóm tắt rank hiện tại/đỉnh.
+ * @returns Fragment header + lưới 2 ô rank.
+ */
 function RankSummaryCard({ competitiveRank }: RankSummaryCardProps) {
+  // entries: dữ liệu 2 ô (current/peak) để map render
   const entries = [
     {
       key: "current",
@@ -849,17 +1091,32 @@ function RankSummaryCard({ competitiveRank }: RankSummaryCardProps) {
   );
 }
 
+// DetailRow: Một dòng trong DetailSection (nhãn + giá trị + tông màu)
 type DetailRow = {
   label: string;
   tone?: DashboardTone;
   value: string;
 };
 
+/**
+ * DetailSectionProps – Props của DetailSection.
+ *
+ * @param rows – Danh sách dòng chỉ số.
+ * @param title – Tiêu đề section (COMBAT/TOTALS/RECORD).
+ */
 type DetailSectionProps = {
   rows: DetailRow[];
   title: string;
 };
 
+/**
+ * DetailSection – Section danh sách dòng nhãn-giá trị (tab details), dùng
+ * cho các card COMBAT, TOTALS và RECORD.
+ *
+ * @param rows – Các dòng chỉ số.
+ * @param title – Tiêu đề section.
+ * @returns Fragment header + các dòng detail.
+ */
 function DetailSection({ rows, title }: DetailSectionProps) {
   return (
     <>
@@ -881,6 +1138,28 @@ function DetailSection({ rows, title }: DetailSectionProps) {
   );
 }
 
+/**
+ * PlayerStatsDashboard – Dashboard thống kê chính (export memo hoá).
+ * Lọc trận competitive + sort mới nhất (memo), tổng hợp theo agent/map,
+ * animate tabProgress mỗi khi đổi tab (useLayoutEffect + withTiming,
+ * tôn trọng ReduceMotion.System), dựng các dòng detail (combat/totals/
+ * record) và render danh sách card qua FlatList với RefreshControl.
+ *
+ * @param activeTab – Tab đang hiển thị.
+ * @param competitiveRank – Tóm tắt rank.
+ * @param loading – Đang sync lần đầu.
+ * @param matches – Danh sách trận.
+ * @param onRefresh – Callback pull-to-refresh.
+ * @param onRequestDetails – Callback chuyển sang tab details.
+ * @param refreshing – Trạng thái refreshing.
+ * @param seasonStats – Thống kê season.
+ * @param totalMatches – Tổng số trận (footer).
+ * @returns FlatList các dashboard card.
+ *
+ * Side effects: withTiming trên tabProgress (UI thread); không timer/
+ * subscription trực tiếp. FlatList tuning: initialNumToRender 2,
+ * maxToRenderPerBatch 1, windowSize 3, removeClippedSubviews trên Android.
+ */
 function PlayerStatsDashboard({
   activeTab,
   competitiveRank,
@@ -892,8 +1171,12 @@ function PlayerStatsDashboard({
   seasonStats,
   totalMatches,
 }: PlayerStatsDashboardProps) {
+  // tabProgress: SharedValue 0..1 điều khiển entrance animation các card
   const tabProgress = useSharedValue(1);
+  // previousActiveTabRef: tab lần render trước (phát hiện đổi tab)
   const previousActiveTabRef = React.useRef(activeTab);
+  // competitiveMatches: trận có stats + queue competitive (hoặc trống),
+  // sort mới nhất trước (memo theo matches)
   const competitiveMatches = React.useMemo(
     () =>
       matches
@@ -905,6 +1188,7 @@ function PlayerStatsDashboard({
         .sort((left, right) => right.GameStartTime - left.GameStartTime),
     [matches]
   );
+  // agentRows/mapRows: bảng tổng hợp theo agent và theo map (memo)
   const agentRows = React.useMemo(
     () => aggregateMatches(competitiveMatches, "agents"),
     [competitiveMatches]
@@ -914,6 +1198,8 @@ function PlayerStatsDashboard({
     [competitiveMatches]
   );
 
+  // Effect: đổi tab → reset tabProgress về 0 rồi animate lên 1 (0.25s,
+  // easing cubic out, tuân theo Reduce Motion hệ thống)
   React.useLayoutEffect(() => {
     if (previousActiveTabRef.current === activeTab) return;
 
@@ -926,10 +1212,12 @@ function PlayerStatsDashboard({
     });
   }, [activeTab, tabProgress]);
 
+  // killsPerRound: số kill trung bình mỗi vòng (null nếu chưa có rounds)
   const killsPerRound =
     seasonStats && seasonStats.roundsPlayed > 0
       ? seasonStats.kills / seasonStats.roundsPlayed
       : null;
+  // combatRows/totalRows/recordRows: dữ liệu 3 section của tab details
   const combatRows = React.useMemo<DetailRow[]>(
     () => [
       {
@@ -977,10 +1265,13 @@ function PlayerStatsDashboard({
     ],
     [seasonStats]
   );
+  // dashboardCards: danh sách card theo tab hiện tại
   const dashboardCards =
     activeTab === "overview"
       ? OVERVIEW_DASHBOARD_CARDS
       : DETAIL_DASHBOARD_CARDS;
+  // renderDashboardCard: map kind → nội dung card tương ứng, bọc trong
+  // DashboardCard để có entrance animation
   const renderDashboardCard = React.useCallback(
     ({ item, index }: { item: DashboardCardItem; index: number }) => {
       let content: React.ReactNode = null;
@@ -1090,6 +1381,9 @@ function PlayerStatsDashboard({
 
 export default React.memo(PlayerStatsDashboard);
 
+// styles: Toàn bộ style dashboard (bảng màu tối STATS_COLORS, font mono,
+// header card, metric grid, bảng agents/maps, hàng recent, heatmap, chart
+// trend, rank summary, detail rows, loading bar/footer)
 const styles = StyleSheet.create({
   screen: {
     flex: 1,

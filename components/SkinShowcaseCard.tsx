@@ -31,21 +31,25 @@ interface SkinShowcaseCardProps {
   variant?: "store" | "bundle" | "gallery";
 }
 
-// ─── SkinShowcaseCard ──────────────────────────────────────────────────────────
-// Component thẻ hiển thị skin trong shop hoặc bundle.
-// Được bọc trong React.memo để tránh re-render không cần thiết.
-//
-// State & Hook:
-//   - t (useTranslation): hàm dịch đa ngôn ngữ
-//   - showMediaPopup (useMediaPopupStore): hàm mở popup xem media (video/ảnh)
-//   - skinIds (useWishlistStore): mảng chứa UUID các skin đã yêu thích
-//   - toggleSkin (useWishlistStore): hàm thêm/xoá skin khỏi wishlist
-//   - screenshotModeEnabled (useFeatureStore): bool chế độ chụp màn hình
-
-// useRef:
-//   - previewTimeoutRef: lưu timeout để phân biệt click đơn vs click đôi
-//     (double-tap để toggle wishlist, single-tap sau 220ms để preview)
-
+/**
+ * SkinShowcaseCard – Component thẻ hiển thị skin trong shop, bundle hoặc gallery.
+ * Được bọc trong React.memo để tránh re-render không cần thiết.
+ *
+ * State & Hook:
+ *   - t (useTranslation): hàm dịch đa ngôn ngữ
+ *   - showMediaPopup (useMediaPopupStore): hàm mở popup xem media (video/ảnh)
+ *   - skinIds/toggleSkin (useWishlistStore): trạng thái + toggle wishlist
+ *   - screenshotModeEnabled (useFeatureStore): bool chế độ chụp màn hình
+ *   - scale/badgeScale (Reanimated): animation nhấn và badge "SAVED"
+ *
+ * Tương tác: single-tap (sau 220ms) mở preview media; double-tap toggle
+ * wishlist kèm haptic Success.
+ *
+ * @param item – Đối tượng SkinShopItem hoặc GalleryItem chứa thông tin skin.
+ * @param variant – "store" | "bundle" | "gallery" (mặc định "store"):
+ *                   ảnh hưởng đến footer (giá VP / số chroma) và text loại.
+ * @returns Card skin memo hoá (Animated.View + Pressable).
+ */
 const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   item,
   variant = "store",
@@ -55,7 +59,10 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
   const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
   const reduceMotion = useReducedMotion();
+  // previewTimeoutRef: lưu timeout phân biệt click đơn (preview) vs click
+  // đôi (toggle wishlist) trong cửa sổ 220ms
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // wishlistId: UUID dùng cho wishlist (level đầu tiên, fallback item.uuid)
   const wishlistId = item.levels?.[0]?.uuid ?? item.uuid;
   const isFavorited = useWishlistStore((state) =>
     state.skinIds.includes(wishlistId)
@@ -101,6 +108,12 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     }
   }, [item.chromas, item.displayName, item.levels, showMediaPopup]);
 
+  // useEffect: animation badge "SAVED" + haptic khi trạng thái wishlist đổi
+  //   - isFavorited: chạy sequence spring (1.2 → 1) trừ khi Reduce Motion;
+  //     nếu vừa chuyển từ chưa-fav sang fav thì rung haptic Success một lần
+  //   - !isFavorited: thu badge về scale 0 (hoặc ẩn ngay khi Reduce Motion)
+  //   - previousFavoritedRef: chặn haptic lặp khi component re-render cùng trạng thái
+  //   - Phụ thuộc: [badgeScale, isFavorited, reduceMotion]
   useEffect(() => {
     if (isFavorited) {
       badgeScale.value = reduceMotion
@@ -164,7 +177,12 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
     );
   }, [item.displayName, t, variant]);
 
+  // itemPrice: giá VP của item (undefined nếu item đến từ gallery, không có price)
   const itemPrice = "price" in item ? item.price : undefined;
+  // useMemo: footer
+  //   - gallery  → "Chromas <số lượng>" (không hiển thị giá)
+  //   - store/bundle → chuỗi giá, hoặc "--" nếu không có giá
+  //   - Phụ thuộc: [item.chromas, itemPrice, t, variant]
   const footer = useMemo(() => {
     if (variant === "gallery") {
       return `${t("chromas")} ${item.chromas?.length ?? 0}`;

@@ -1,3 +1,13 @@
+/**
+ * flow-tracer.ts — Công cụ trace luồng chạy của app chỉ dùng trong DEV.
+ *
+ * Ghi lại các sự kiện (UI, state, HTTP request/response, storage, navigation)
+ * vào một FlowTrace rồi gửi qua WebSocket (mặc định ws://127.0.0.1:8787) cho
+ * tool debug bên ngoài. Mọi thứ đều no-op khi không ở __DEV__, nên build
+ * release không có chi phí nào. Dữ liệu nhạy cảm (token, cookie, password)
+ * được che trước khi rời khỏi thiết bị.
+ */
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, {
   type AxiosRequestConfig,
@@ -117,15 +127,23 @@ const sensitiveKeys = new Set([
   "session",
 ]);
 
-const defaultUrl = "ws://127.0.0.1:8787";
-const maxTraceEvents = 300;
-const traceFlushDelayMs = 400;
-const traceStringLimit = 8000;
-const maxLoggedBodyBytes = 256_000;
-const traceArrayLimit = 40;
-const traceObjectKeyLimit = 60;
-const traceDepthLimit = 6;
+// Giới hạn của tracer: tránh flood WebSocket hoặc clone object khổng lồ.
+const defaultUrl = "ws://127.0.0.1:8787";   // URL WebSocket mặc định
+const maxTraceEvents = 300;                 // Số event tối đa giữ trong 1 trace
+const traceFlushDelayMs = 400;              // Debounce giữa 2 lần gửi trace
+const traceStringLimit = 8000;              // Độ dài chuỗi tối đa được giữ
+const maxLoggedBodyBytes = 256_000;         // Body HTTP lớn hơn sẽ bị bỏ qua
+const traceArrayLimit = 40;                 // Số phần tử mảng tối đa
+const traceObjectKeyLimit = 60;             // Số key object tối đa
+const traceDepthLimit = 6;                  // Độ sâu đệ quy tối đa
 
+/**
+ * maskSensitiveData — Duyệt đệ quy dữ liệu, che giá trị các key nhạy cảm.
+ * Key được so khớp không phân biệt hoa thường với danh sách sensitiveKeys.
+ * @template T - Kiểu dữ liệu đầu vào (giữ nguyên kiểu ở đầu ra)
+ * @param {T} value - Dữ liệu cần che (object, mảng hoặc giá trị nguyên thủy)
+ * @returns {T} Bản sao dữ liệu với giá trị nhạy cảm thay bằng "********"
+ */
 function maskSensitiveData<T>(value: T): T {
   if (Array.isArray(value)) {
     return value.map((item) => maskSensitiveData(item)) as T;
@@ -146,6 +164,11 @@ function maskSensitiveData<T>(value: T): T {
   return value;
 }
 
+/**
+ * FlowTracer — Lớp chính quản lý trace: thu thập event, gửi qua WebSocket và
+ * cài đặt interceptor toàn cục (axios, fetch, AsyncStorage, Zustand).
+ * Chỉ hoạt động trong __DEV__; mọi method đều thoát ngay nếu không phải DEV.
+ */
 class FlowTracer {
   private socket: WebSocket | null = null;
   private currentTrace: FlowTrace | null = null;
@@ -160,6 +183,14 @@ class FlowTracer {
   private eventSequence = 0;
   private sendTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  /**
+   * connect — Mở kết nối WebSocket tới tool debug (nếu chưa mở và đang DEV).
+   * Khi bridge mở: xả hàng đợi message chưa gửi kịp, gửi trace hiện tại và
+   * chụp snapshot AsyncStorage. Khi lỗi/đóng: đặt socket = null để lần
+   * connect sau thử lại; message mới tiếp tục vào queue.
+   * @param {string} [url] - URL WebSocket (mặc định env EXPO_PUBLIC_FLOW_TRACE_WS
+   *   hoặc ws://127.0.0.1:8787)
+   */
   connect(url = process.env.EXPO_PUBLIC_FLOW_TRACE_WS || defaultUrl) {
     if (!__DEV__ || this.socket) return;
 
@@ -179,12 +210,24 @@ class FlowTracer {
     };
   }
 
+  /**
+   * installGlobalTracing — Cài đặt một lần toàn bộ interceptor toàn cục:
+   * axios, fetch và AsyncStorage. Mỗi installer tự chống cài trùng bằng flag.
+   */
   installGlobalTracing() {
     this.installAxiosTracing();
     this.installFetchTracing();
     this.installAsyncStorageTracing();
   }
 
+  /**
+   * traceZustandStore — Theo dõi một Zustand store: mỗi lần state thay đổi,
+   * ghi event STATE_UPDATE kèm danh sách key đổi và snapshot trước/sau.
+   * Chỉ subscribe một lần cho mỗi tên store (tránh listener trùng).
+   * @template TState - Kiểu state của store
+   * @param {string} name - Tên store (dùng làm nhãn event và chống trùng)
+   * @param {object} store - Store Zustand (cần getState + subscribe)
+   */
   traceZustandStore<TState extends object>(
     name: string,
     store: {
@@ -222,6 +265,12 @@ class FlowTracer {
     });
   }
 
+  /**
+   * startTrace — Bắt đầu một trace mới (reset event sequence, timestamp gốc)
+   * và gửi metadata trace ngay tới tool debug, kèm snapshot AsyncStorage.
+   * @param {string} name - Tên trace (VD: tên luồng đang được phân tích)
+   * @param {string} [description] - Mô tả trace
+   */
   startTrace(name: string, description = `${name} captured from Vshop.`) {
     if (!__DEV__) return;
 
@@ -242,6 +291,13 @@ class FlowTracer {
     void this.snapshotAsyncStorage("AsyncStorage snapshot");
   }
 
+  /**
+   * snapshotAsyncStorage — Chụp toàn bộ key/value trong AsyncStorage thành
+   * một event STORAGE_READ để xem state persisted tại thời điểm đó.
+   * Guards: chỉ chạy ở DEV, chỉ 1 lần cho mỗi trace (theo trace id) và không
+   * chạy chồng nhau (storageSnapshotInFlight).
+   * @param {string} [label] - Nhãn mô tả snapshot
+   */
   async snapshotAsyncStorage(label = "AsyncStorage snapshot") {
     if (!__DEV__ || this.storageSnapshotInFlight || !this.currentTrace) return;
     if (this.storageSnapshotTraceIds.has(this.currentTrace.id)) return;
@@ -285,6 +341,12 @@ class FlowTracer {
     }
   }
 
+  /**
+   * track — Ghi một event vào trace hiện tại (tự tạo trace "Untitled" nếu
+   * chưa có). Input/output/state được summarize + mask trước khi lưu; nếu
+   * vượt maxTraceEvents thì các event cũ nhất bị loại. Sau đó lên lịch gửi.
+   * @param {TraceEventInput} event - Dữ kiện event (type, label, dữ liệu...)
+   */
   track(event: TraceEventInput) {
     if (!__DEV__) return;
     if (!this.currentTrace) {
@@ -315,6 +377,11 @@ class FlowTracer {
     this.scheduleCurrentTraceSend();
   }
 
+  /**
+   * endTrace — Kết thúc trace hiện tại: gửi lần cuối rồi trả về trace và
+   * xóa trace đang chạy (các track() sau đó sẽ tạo trace mới).
+   * @returns {FlowTrace | null} Trace vừa kết thúc, hoặc null nếu không ở DEV
+   */
   endTrace() {
     if (!__DEV__) return null;
 
@@ -324,6 +391,10 @@ class FlowTracer {
     return trace;
   }
 
+  /**
+   * sendCurrentTrace — Gửi trace hiện tại qua WebSocket ngay lập tức. Nếu
+   * socket chưa mở, message được đẩy vào queue (giữ tối đa 5 message cuối).
+   */
   private sendCurrentTrace() {
     if (this.sendTimeout) {
       clearTimeout(this.sendTimeout);
@@ -343,6 +414,10 @@ class FlowTracer {
     }
   }
 
+  /**
+   * scheduleCurrentTraceSend — Lên lịch gửi trace sau traceFlushDelayMs
+   * (debounce) để gom nhiều event trong cùng một frame chỉ tốn 1 lần gửi.
+   */
   private scheduleCurrentTraceSend() {
     if (this.sendTimeout) return;
 
@@ -352,6 +427,12 @@ class FlowTracer {
     }, traceFlushDelayMs);
   }
 
+  /**
+   * installAxiosTracing — Cài interceptor axios toàn cục (một lần duy nhất):
+   * - request: stamp thời điểm bắt đầu + ghi event API_REQUEST.
+   * - response: ghi event API_RESPONSE kèm status, headers, duration, size.
+   * - error: ghi event API_ERROR kèm thông tin request/response rồi reject lại.
+   */
   private installAxiosTracing() {
     if (!__DEV__ || this.axiosInstalled) return;
     this.axiosInstalled = true;
@@ -440,6 +521,11 @@ class FlowTracer {
     );
   }
 
+  /**
+   * installFetchTracing — Bọc (monkey-patch) globalThis.fetch một lần duy nhất
+   * để trace mọi request/response fetch (kể cả response body nếu là text và
+   * còn dưới maxLoggedBodyBytes). Error được log rồi throw lại nguyên vẹn.
+   */
   private installFetchTracing() {
     if (!__DEV__ || this.fetchInstalled || typeof globalThis.fetch !== "function") {
       return;
@@ -505,6 +591,11 @@ class FlowTracer {
     };
   }
 
+  /**
+   * installAsyncStorageTracing — Bọc getItem/setItem/removeItem của
+   * AsyncStorage (một lần, đánh dấu __flowTracerPatched) để ghi event
+   * STORAGE_READ/STORAGE_WRITE; callback style cũ vẫn được gọi đúng.
+   */
   private installAsyncStorageTracing() {
     if (!__DEV__ || this.asyncStorageInstalled) return;
     this.asyncStorageInstalled = true;
@@ -569,16 +660,35 @@ class FlowTracer {
   }
 }
 
+/** Instance dùng chung toàn app của FlowTracer (singleton). */
 export const flowTracer = new FlowTracer();
 
+/**
+ * pickChangedState — Trích các key đã thay đổi khỏi một state record.
+ * @param {Record<string, unknown>} state - State đầy đủ (trước hoặc sau)
+ * @param {string[]} changedKeys - Danh sách key cần trích
+ * @returns {Record<string, unknown>} Object chỉ chứa các key đã đổi
+ */
 function pickChangedState(state: Record<string, unknown>, changedKeys: string[]) {
   return Object.fromEntries(changedKeys.map((key) => [key, state[key]]));
 }
 
+/**
+ * sanitizeForTrace — Làm sạch dữ liệu trước khi lưu vào trace: summarize
+ * (giới hạn kích thước/độ sâu) rồi mask dữ liệu nhạy cảm.
+ * @param {unknown} value - Dữ liệu bất kỳ cần làm sạch
+ * @returns {unknown} Dữ liệu đã an toàn để ghi trace
+ */
 function sanitizeForTrace(value: unknown) {
   return maskSensitiveData(summarizeValue(value));
 }
 
+/**
+ * buildAxiosRequestTrace — Chuyển config axios thành object trace gọn gàng:
+ * method uppercase, url, params, headers đã normalize và body đã parse JSON.
+ * @param {AxiosRequestConfig} config - Config của request axios
+ * @returns {object} Mô tả request dùng cho event API_REQUEST
+ */
 function buildAxiosRequestTrace(config: AxiosRequestConfig) {
   return {
     method: String(config.method || "GET").toUpperCase(),
@@ -590,6 +700,16 @@ function buildAxiosRequestTrace(config: AxiosRequestConfig) {
   };
 }
 
+/**
+ * buildFetchRequestTrace — Chuyển input của fetch thành object trace gọn
+ * (method, url, headers, body). Header lấy từ init trước, fallback sang
+ * object Request nếu caller truyền Request thay vì string/URL.
+ * @param {RequestInfo | URL} input - Tham số đầu của fetch
+ * @param {RequestInit | undefined} init - Tham số init của fetch
+ * @param {string} url - URL đã chuẩn hóa (caller tự suy ra từ input)
+ * @param {string} method - HTTP method đã suy ra
+ * @returns {object} Mô tả request dùng cho event trace
+ */
 function buildFetchRequestTrace(
   input: RequestInfo | URL,
   init: RequestInit | undefined,
@@ -606,6 +726,13 @@ function buildFetchRequestTrace(
   };
 }
 
+/**
+ * readFetchResponseBody — Đọc body của fetch response để log, clone response
+ * nên không ảnh hưởng luồng đọc của caller. Body nhị phân hoặc quá lớn
+ * (maxLoggedBodyBytes) chỉ ghi metadata, không đọc nội dung.
+ * @param {Response} response - Response fetch cần đọc
+ * @returns {Promise<unknown>} Body đã parse JSON (nếu được) hoặc mô tả lý do bỏ qua
+ */
 async function readFetchResponseBody(response: Response) {
   try {
     const contentType = response.headers?.get?.("content-type") ?? undefined;
@@ -636,6 +763,14 @@ async function readFetchResponseBody(response: Response) {
   }
 }
 
+/**
+ * normalizeHeaders — Chuẩn hóa nhiều dạng header (Headers, mảng cặp
+ * [key, value], object có toJSON/forEach, object thường) thành record
+ * { key: value } để dễ serialize vào trace.
+ * @param {unknown} headers - Header ở bất kỳ dạng nào
+ * @returns {unknown} Record header đã normalize, undefined nếu rỗng,
+ *   hoặc chuỗi nếu dạng không nhận diện được
+ */
 function normalizeHeaders(headers: unknown): unknown {
   if (!headers) return undefined;
 
@@ -675,6 +810,12 @@ function normalizeHeaders(headers: unknown): unknown {
   return String(headers);
 }
 
+/**
+ * normalizeHttpBody — Chuẩn hóa body HTTP cho trace: chuỗi JSON được parse
+ * thành object, FormData (dạng _parts của RN) được mô tả dạng có cấu trúc.
+ * @param {unknown} body - Body thô của request
+ * @returns {unknown} Body đã normalize (object JSON, FormData mô tả, hoặc nguyên bản)
+ */
 function normalizeHttpBody(body: unknown): unknown {
   if (typeof body === "string") {
     return parseMaybeJson(body);
@@ -693,6 +834,13 @@ function normalizeHttpBody(body: unknown): unknown {
   return body;
 }
 
+/**
+ * parseMaybeJson — Thử parse chuỗi thành JSON nếu content-type là JSON hoặc
+ * chuỗi bắt đầu bằng { / [. Parse thất bại thì trả về chuỗi gốc.
+ * @param {string} text - Chuỗi cần parse
+ * @param {string | null} [contentType] - Content-Type của dữ liệu (nếu có)
+ * @returns {unknown} Object/array đã parse, hoặc chuỗi gốc
+ */
 function parseMaybeJson(text: string, contentType?: string | null): unknown {
   const trimmed = text.trim();
   if (!trimmed) return "";
@@ -708,6 +856,13 @@ function parseMaybeJson(text: string, contentType?: string | null): unknown {
   return text;
 }
 
+/**
+ * parseStorageValue — Parse một giá trị đọc từ AsyncStorage để hiển thị
+ * trong snapshot: giá trị quá dài (2x traceStringLimit) được summarize,
+ * còn lại thử parse JSON.
+ * @param {string | null} value - Giá trị raw từ AsyncStorage
+ * @returns {unknown} Giá trị đã parse/summarize, hoặc null
+ */
 function parseStorageValue(value: string | null): unknown {
   if (value === null) return null;
   if (value.length > traceStringLimit * 2) {
@@ -716,6 +871,14 @@ function parseStorageValue(value: string | null): unknown {
   return parseMaybeJson(value);
 }
 
+/**
+ * summarizeValue — Rút gọn dữ liệu đệ quy để trace không phình to:
+ * - Chuỗi quá traceStringLimit bị cắt kèm chú thích số ký tự đã bỏ.
+ * - Mảng/object vượt giới hạn (số phần tử, số key, độ sâu) bị cắt bớt.
+ * @param {unknown} value - Dữ liệu cần rút gọn
+ * @param {number} [depth] - Độ sâu đệ quy hiện tại (mặc định 0)
+ * @returns {unknown} Bản rút gọn của dữ liệu
+ */
 function summarizeValue(value: unknown, depth = 0): unknown {
   if (value === null || value === undefined) return value;
 
@@ -758,6 +921,11 @@ function summarizeValue(value: unknown, depth = 0): unknown {
   return String(value);
 }
 
+/**
+ * getContentLength — Đọc header content-length từ headers đã/ chưa normalize.
+ * @param {unknown} headers - Headers ở bất kỳ dạng nào
+ * @returns {number | undefined} Kích thước (byte), undefined nếu không có/không hợp lệ
+ */
 function getContentLength(headers: unknown) {
   const normalized = normalizeHeaders(headers);
   if (!normalized || typeof normalized !== "object") return undefined;
@@ -768,6 +936,13 @@ function getContentLength(headers: unknown) {
   return Number.isFinite(contentLength) ? contentLength : undefined;
 }
 
+/**
+ * getPayloadSize — Xác định kích thước payload của response: ưu tiên header
+ * content-length, sau đó đo độ dài chuỗi hoặc byteLength của binary.
+ * @param {unknown} value - Body response (chuỗi, ArrayBuffer, TypedArray...)
+ * @param {unknown} [headers] - Headers của response (nếu có)
+ * @returns {number | undefined} Kích thước (byte), hoặc undefined nếu không đo được
+ */
 function getPayloadSize(value: unknown, headers?: unknown) {
   const contentLength = getContentLength(headers);
   if (contentLength !== undefined) return contentLength;

@@ -6,11 +6,15 @@ import { VCurrencies } from "~/utils/misc";
 import { extraHeaders } from "~/services/riot/request-context";
 import { getPlayerNames } from "~/services/riot/match-api";
 
-// Export hàm lấy entitlements token từ access token
-// Gọi API entitlements.auth.riotgames.com để lấy token quyền
-// Parameters:
-//   - accessToken: token xác thực Riot
-// Returns: Promise<string> entitlements token
+// account-api.ts — Các API Riot phục vụ phiên tài khoản: entitlements token,
+// user id, tên hiển thị, shop, ví tiền, tiến trình và luồng re-authentication.
+// Mọi URL đều do services/riot/endpoints.ts sinh ra; request đi qua riotApiClient
+// (services/riot/client.ts) để được log + phát hiện lỗi phiên 401/403 thống nhất.
+
+/** Đổi access token lấy entitlements token (POST entitlements.auth.riotgames.com).
+ *  Request POST body rỗng {} — mọi request Riot đọc dữ liệu đều cần JWT này.
+ *  @param accessToken - Bearer token từ luồng auth Riot.
+ *  @returns Entitlements token (string) trong response. */
 export async function getEntitlementsToken(accessToken: string) {
   const res = await axios.request<EntitlementResponse>({
     url: buildRiotApiUrl({ name: "entitlements" }),
@@ -25,24 +29,23 @@ export async function getEntitlementsToken(accessToken: string) {
   return res.data.entitlements_token;
 }
 
-// Export hàm lấy User ID (subject) từ access token JWT
-// Giải mã JWT và trả về trường "sub" (subject = UUID người dùng)
-// Parameters:
-//   - accessToken: JWT token cần giải mã
-// Returns: string UUID người dùng
+/** Giải mã JWT access token (local, KHÔNG gọi mạng) lấy UUID người dùng.
+ *  Trường "sub" (subject) chính là PUUID dùng cho mọi endpoint per-player.
+ *  @param accessToken - JWT cần giải mã (phần payload base64).
+ *  @returns UUID người dùng (string "sub" trong payload). */
 export function getUserId(accessToken: string) {
   const data = jwtDecode<{ sub: string }>(accessToken);
   return data.sub;
 }
 
-// Export hàm lấy tên hiển thị (GameName + TagLine) của người dùng
-// Gọi API name-service của Riot
-// Parameters:
-//   - accessToken: token xác thực
-//   - entitlementsToken: token quyền
-//   - userId: UUID người dùng
-//   - region: khu vực (na, eu, ap, ...)
-// Returns: Promise<{ GameName: string, TagLine: string }>
+/** Lấy tên hiển thị của MỘT người dùng (GameName + TagLine).
+ *  Gọi chung name-service với getPlayerNames (match-api) nên hưởng luôn
+ *  cache 1h + dedup in-flight của hàm đó — không tạo thêm request mới.
+ *  @param accessToken - Bearer token xác thực Riot.
+ *  @param entitlementsToken - JWT quyền (X-Riot-Entitlements-JWT).
+ *  @param userId - PUUID cần tra tên.
+ *  @param region - Shard hợp lệ (ap/eu/kr/na/pbe).
+ *  @returns { GameName, TagLine } — mỗi trường fallback "?" nếu không tra được. */
 export async function getUsername(
   accessToken: string,
   entitlementsToken: string,
@@ -62,14 +65,14 @@ export async function getUsername(
   };
 }
 
-// Export hàm lấy thông tin shop (cửa hàng) hiện tại của người dùng
-// Gọi API storefront v3
-// Parameters:
-//   - accessToken: token xác thực
-//   - entitlementsToken: token quyền
-//   - region: khu vực
-//   - userId: UUID người dùng
-// Returns: Promise<StorefrontResponse> dữ liệu shop
+/** Lấy dữ liệu storefront v3 (shop chính, bundle, night market, accessory).
+ *  POST /store/v3/storefront/:userId với body rỗng — response thô được
+ *  trả nguyên trạng; parse có cấu trúc nằm ở services/riot/storefront-parser.
+ *  @param accessToken - Bearer token xác thực Riot.
+ *  @param entitlementsToken - JWT quyền (X-Riot-Entitlements-JWT).
+ *  @param region - Shard hợp lệ quyết định host PD.
+ *  @param userId - PUUID chủ shop.
+ *  @returns StorefrontResponse từ Riot. */
 export async function getShop(
   accessToken: string,
   entitlementsToken: string,
@@ -90,14 +93,13 @@ export async function getShop(
   return res.data;
 }
 
-// Export hàm lấy số dư các loại tiền tệ của người dùng
-// Gọi API wallet
-// Parameters:
-//   - accessToken: token xác thực
-//   - entitlementsToken: token quyền
-//   - region: khu vực
-//   - userId: UUID người dùng
-// Returns: Promise<{ vp, rad, fag, kc }> số dư từng loại
+/** Lấy số dư 4 loại tiền tệ (GET /store/v1/wallet/:userId trên PD).
+ *  @param accessToken - Bearer token xác thực Riot.
+ *  @param entitlementsToken - JWT quyền (X-Riot-Entitlements-JWT).
+ *  @param region - Shard hợp lệ quyết định host PD.
+ *  @param userId - PUUID chủ ví.
+ *  @returns { vp, rad, fag, kc } — map trực tiếp từ Balances theo key
+ *  VCurrencies tương ứng (VP/Radianite/Free Agent/Kingdom Credits). */
 export async function getBalances(
   accessToken: string,
   entitlementsToken: string,
@@ -122,14 +124,13 @@ export async function getBalances(
   };
 }
 
-// Export hàm lấy tiến trình tài khoản (cấp độ + kinh nghiệm)
-// Gọi API account-xp
-// Parameters:
-//   - accessToken: token xác thực
-//   - entitlementsToken: token quyền
-//   - region: khu vực
-//   - userId: UUID người dùng
-// Returns: Promise<{ level: number, xp: number }>
+/** Lấy tiến trình tài khoản: cấp độ + XP (GET account-xp/v1/players/:userId).
+ *  @param accessToken - Bearer token xác thực Riot.
+ *  @param entitlementsToken - JWT quyền (X-Riot-Entitlements-JWT).
+ *  @param region - Shard hợp lệ quyết định host PD.
+ *  @param userId - PUUID cần tra tiến trình.
+ *  @returns { level, xp } — Level hiện tại và XP trong level; response đầy đủ
+ *  của Riot có thêm nhiều trường nhưng UI chỉ dùng 2 trường này. */
 export async function getProgress(
   accessToken: string,
   entitlementsToken: string,
@@ -151,12 +152,11 @@ export async function getProgress(
   };
 }
 
-// Export hàm re-authentication (đăng nhập lại) với Riot
-// Gửi request đến auth.riotgames.com với User-Agent giả Riot client
-// Sử dụng HTTPS agent với ciphers tùy chỉnh để bypass các hạn chế bảo mật
-// Parameters:
-//   - version: phiên bản Riot client để giả mạo User-Agent
-// Returns: Promise<AxiosResponse> chứa URI xác thực
+/** Tạo phiên re-authentication với Riot (POST auth.riotgames.com/authorization).
+ *  Giả User-Agent Riot client; HTTPS agent cấu hình cipher TLS đặc thù
+ *  (ChaCha20/AES-GCM, TLS 1.2+) để vượt hạn chế bắt tay của Riot auth.
+ *  @param version - Phiên bản Riot client dùng giả mạo User-Agent.
+ *  @returns AxiosResponse chứa uri xác thực; caller đi tiếp theo luồng cookie. */
 export const reAuth = (version: string) =>
   axios.request({
     url: buildRiotApiUrl({ name: "auth" }),

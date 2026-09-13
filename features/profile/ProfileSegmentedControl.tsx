@@ -1,3 +1,8 @@
+// ===== ProfileSegmentedControl.tsx – Thanh segment dùng chung của Profile =====
+// Hai lớp segment chồng nhau: tab chính (loadout/skins/collection) và tab
+// dashboard stats (overview/details). Chỉ nền/chuyển động điều khiển từ
+// ProfileScreen (animated styles); component này thuần hiển thị.
+
 import React from "react";
 import { type LayoutChangeEvent, TouchableOpacity, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -10,6 +15,22 @@ import type { StatsDashboardTab } from "~/components/profile/PlayerStatsDashboar
 type AnimatedViewStyle = React.ComponentProps<typeof Animated.View>["style"];
 type AnimatedTextStyle = React.ComponentProps<typeof Animated.Text>["style"];
 
+/**
+ * ProfileSegmentedControlProps – Props của thanh segment.
+ * @param {TabKey} activeTab - Tab chính đang chọn (loadout/skins/collection).
+ * @param {AnimatedTextStyle} collectionSegmentLabelAnimatedStyle - Màu nhãn tab collection.
+ * @param {Function} handleSegmentContainerLayout - Ghi lại width container (đo indicator).
+ * @param {Function} handleStatsDashboardTabChange - Đổi tab dashboard stats.
+ * @param {Function} handleTabChange - Đổi tab chính (scroll pager).
+ * @param {AnimatedTextStyle} loadoutSegmentLabelAnimatedStyle - Màu nhãn tab loadout.
+ * @param {"profile"|"blank"|"stats"} profileNavContentMode - Lớp segment nào đang tương tác.
+ * @param {AnimatedViewStyle} profileSegmentLayerAnimatedStyle - Opacity/motion lớp profile.
+ * @param {AnimatedViewStyle} segmentIndicatorAnimatedStyle - Vị trí/width indicator chạy.
+ * @param {AnimatedTextStyle} skinsSegmentLabelAnimatedStyle - Màu nhãn tab skins.
+ * @param {StatsDashboardTab} statsDashboardTab - Tab stats đang chọn (overview/details).
+ * @param {AnimatedViewStyle} statsSegmentLayerAnimatedStyle - Opacity/motion lớp stats.
+ * @param {{value: TabKey; label: string}[]} tabItems - Danh sách tab chính + nhãn.
+ */
 interface ProfileSegmentedControlProps {
   activeTab: TabKey;
   collectionSegmentLabelAnimatedStyle: AnimatedTextStyle;

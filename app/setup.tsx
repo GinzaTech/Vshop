@@ -79,6 +79,7 @@ function Setup() {
         showsHorizontalScrollIndicator={false}
         ref={scrollViewRef}
         scrollEnabled={false}
+        // Lưu vị trí cuộn khi vừa chuyển trang xong (dùng bật/tắt Back/Next)
         onMomentumScrollEnd={(event) =>
           setOffsetX(event.nativeEvent.contentOffset.x)
         }

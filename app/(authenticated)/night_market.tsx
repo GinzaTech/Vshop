@@ -37,6 +37,7 @@ function NightMarket() {
   const { width } = useWindowDimensions();
   // Thông tin user từ store
   const user = useUserStore(({ user }) => user);
+  // refreshShop: pull-to-refresh làm mới night market + balances (force = true)
   const refreshShop = React.useCallback(
     () => refreshShopAndBalances(true),
     []

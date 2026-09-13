@@ -1,5 +1,8 @@
+// ===== valorant-api.d.ts – Kiểu phản hồi (response) của các Riot API / LCU =====
+// Ambient declarations khớp contract trong services/riot/*; KHÔNG export ở đây,
+// mọi type được khai báo global để dùng như api-types. Tên field giữ nguyên theo Riot.
 // ---------------------------------------------------------------------------
-// Storefront
+// Storefront – Cửa hàng Riot: bundle, skin offer hằng ngày, phụ kiện, night market
 // ---------------------------------------------------------------------------
 type StorefrontResponse = {
   FeaturedBundle: {
@@ -74,21 +77,21 @@ type OfferSchema = {
 };
 
 // ---------------------------------------------------------------------------
-// Wallet
+// Wallet – Số dư ví (VP/RAD/KC) theo bản ghi currency
 // ---------------------------------------------------------------------------
 type WalletResponse = {
   Balances: Record<string, number>;
 };
 
 // ---------------------------------------------------------------------------
-// Entitlements
+// Entitlements – Token entitlement dùng cho header X-Riot-Entitlements-JWT
 // ---------------------------------------------------------------------------
 type EntitlementResponse = {
   entitlements_token: string;
 };
 
 // ---------------------------------------------------------------------------
-// Prices
+// Prices – Bảng giá offer gốc của mọi item trong store
 // ---------------------------------------------------------------------------
 type PricesResponse = {
   Offers: {
@@ -101,7 +104,7 @@ type PricesResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Name Service
+// Name Service – Giải mã puuid → (gameName, tagLine)
 // ---------------------------------------------------------------------------
 type NameServiceResponse = {
   DisplayName: string;
@@ -111,7 +114,7 @@ type NameServiceResponse = {
 }[];
 
 // ---------------------------------------------------------------------------
-// Account XP
+// Account XP – Cấp độ, kinh nghiệm và lịch sử nhận XP của tài khoản
 // ---------------------------------------------------------------------------
 type AccountXPResponse = {
   Version: number;
@@ -131,7 +134,7 @@ type AccountXPResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Player Loadout
+// Player Loadout – Loadout hiện tại (skin/chroma/buddy/spray/identity)
 // ---------------------------------------------------------------------------
 interface PlayerLoadoutResponse {
   Subject: string;
@@ -167,7 +170,7 @@ interface PlayerLoadoutResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Pre-Game Player
+// Pre-Game Player – Thông tin người chơi ở giai đoạn pregame
 // ---------------------------------------------------------------------------
 interface PreGamePlayerResponse {
   Subject: string;
@@ -176,7 +179,7 @@ interface PreGamePlayerResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Lock Character
+// Lock Character – Cấu trúc team/state pregame (kết quả chọn agent)
 // ---------------------------------------------------------------------------
 interface PreGameTeam {
   TeamID: "Blue" | "Red" | string;
@@ -241,7 +244,7 @@ interface LockCharacterResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Match History
+// Match History – Danh sách MatchID của một subject theo queue
 // ---------------------------------------------------------------------------
 type MatchHistoryResponse = {
   Subject: string;
@@ -256,7 +259,7 @@ type MatchHistoryResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Match Details
+// Match Details – Chi tiết trận: map, players, teams, roundResults, kills
 // ---------------------------------------------------------------------------
 type MatchDetailsResponse = {
   matchInfo: {
@@ -382,7 +385,7 @@ type MatchDetailsResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Competitive Updates
+// Competitive Updates – Lịch sử trận ranked + biến đổi RR/tier
 // ---------------------------------------------------------------------------
 type CompetitiveUpdatesResponse = {
   Version: number;
@@ -404,7 +407,7 @@ type CompetitiveUpdatesResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Competitive MMR
+// Competitive MMR – MMR hiện tại: tier, RR, peak theo season (QueueSkills)
 // ---------------------------------------------------------------------------
 type CompetitiveMMRResponse = {
   Version: number;
@@ -448,7 +451,7 @@ type CompetitiveMMRResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Contracts
+// Contracts – Hợp đồng battlepass/nhân vật: tiến độ, nhiệm vụ
 // ---------------------------------------------------------------------------
 type ContractsResponse = {
   Version: number;
@@ -495,7 +498,7 @@ type ContractsResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Fetch Content
+// Fetch Content – Danh sách episode/act (seasons) và events đang có
 // ---------------------------------------------------------------------------
 type ContentResponse = {
   DisabledIDs: unknown[];
@@ -504,7 +507,7 @@ type ContentResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Leaderboard
+// Leaderboard – Bảng xếp hạng theo queue/season
 // ---------------------------------------------------------------------------
 type LeaderboardResponse = {
   Deployment: string;
@@ -533,7 +536,7 @@ type LeaderboardResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Item Upgrades
+// Item Upgrades – Định nghĩa cấp nâng cấp skin (level/sidegrade)
 // ---------------------------------------------------------------------------
 type ItemUpgradesResponse = {
   Definitions: {
@@ -568,7 +571,7 @@ type ItemUpgradesResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Config
+// Config – Client config Riot (chat affinities, port...)
 // ---------------------------------------------------------------------------
 type ConfigResponse = {
   LastApplication: string;
@@ -576,7 +579,7 @@ type ConfigResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Penalties
+// Penalties – Hình phạt tài khoản (AFK, queue dodge...)
 // ---------------------------------------------------------------------------
 type PenaltiesResponse = {
   Subject: string;
@@ -585,7 +588,7 @@ type PenaltiesResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Friends (local)
+// Friends (local) – Danh sách bạn bè từ Riot Client local API
 // ---------------------------------------------------------------------------
 type FriendsResponse = {
   friends: {
@@ -604,7 +607,7 @@ type FriendsResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Presence (local)
+// Presence (local) – Presence thô của Riot Client (cần decode private)
 // ---------------------------------------------------------------------------
 type PresenceResponse = {
   presences: {
@@ -632,7 +635,7 @@ type PresenceResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Valorant Presence (decoded from base64 private field)
+// Valorant Presence – Presence đã decode: trạng thái game, map, party, rank
 // ---------------------------------------------------------------------------
 type ValorantPresence = {
   isValid: boolean;
@@ -669,7 +672,7 @@ type ValorantPresence = {
 };
 
 // ---------------------------------------------------------------------------
-// Sessions (local)
+// Sessions (local) – Trạng thái tiến trình Riot Client/VALORANT đang chạy
 // ---------------------------------------------------------------------------
 type SessionsResponse = Record<string, {
   exitCode: number;
@@ -684,7 +687,7 @@ type SessionsResponse = Record<string, {
 }>;
 
 // ---------------------------------------------------------------------------
-// Auth / Player Info
+// Auth / Player Info – Thông tin tài khoản Riot (puuid, name, tag, locale)
 // ---------------------------------------------------------------------------
 type PlayerInfoResponse = {
   country: string;
@@ -705,7 +708,7 @@ type PlayerInfoResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Riot Geo
+// Riot Geo – Phân vùng phụ cầu (affinity) theo tài khoản Riot
 // ---------------------------------------------------------------------------
 type RiotGeoResponse = {
   token: string;
@@ -713,12 +716,12 @@ type RiotGeoResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// PAS Token
+// PAS Token – Token PAS (chuỗi) cho các service mới của Riot
 // ---------------------------------------------------------------------------
 type PASTokenResponse = string;
 
 // ---------------------------------------------------------------------------
-// Riot Client Config
+// Riot Client Config – Cấu hình client (chat.affinities, chat.port...)
 // ---------------------------------------------------------------------------
 type RiotClientConfigResponse = {
   "chat.affinities"?: Record<string, string>;
@@ -727,7 +730,7 @@ type RiotClientConfigResponse = {
 } & Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
-// Pre-Game Loadouts
+// Pre-Game Loadouts – Loadout các người chơi ở giai đoạn pregame
 // ---------------------------------------------------------------------------
 type PregameLoadoutsResponse = {
   Loadouts: {
@@ -751,7 +754,7 @@ type PregameLoadoutsResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Current Game Loadouts
+// Current Game Loadouts – Loadout theo agent trong trận đang chơi
 // ---------------------------------------------------------------------------
 type CurrentGameLoadoutsResponse = {
   Loadouts: {
@@ -777,7 +780,7 @@ type CurrentGameLoadoutsResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Party
+// Party – Nhóm chơi: thành viên, state, matchmaking data, invites
 // ---------------------------------------------------------------------------
 type PartyResponse = {
   ID: string;
@@ -830,7 +833,7 @@ type PartyChatTokenResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Current Game Match
+// Current Game Match – Trận đang chơi: map, queue, danh sách player, voice
 // ---------------------------------------------------------------------------
 type CurrentGameMatchResponse = {
   MatchID: string;
@@ -875,7 +878,7 @@ type CurrentGameMatchResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Owned Items
+// Owned Items – Entitlement các item đã sở hữu (skin, chroma, spray...)
 // ---------------------------------------------------------------------------
 type OwnedItemsResponse = {
   Subject?: string;
@@ -888,7 +891,7 @@ type OwnedItemsResponse = {
 };
 
 // ---------------------------------------------------------------------------
-// Auth Request / MFA
+// Auth Request / MFA – Phản hồi đăng nhập Riot (success/multifactor)
 // ---------------------------------------------------------------------------
 type AuthSuccessResponse = {
   type: "success";

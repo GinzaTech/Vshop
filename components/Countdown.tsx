@@ -23,11 +23,13 @@ interface props {
   textStyle?: StyleProp<TextStyle>;
 }
 
-// formatCountdown: Hàm thuần túy tính toán và format thời gian đếm ngược
-// timestamp: mốc thời gian đích (ms)
-// now: thời gian hiện tại (ms), mặc định là Date.now()
-// compact: nếu true và còn > 0 ngày, hiển thị dạng "Xd YYh" thay vì đầy đủ
-// Trả về: chuỗi định dạng "d:hh:mm:ss" hoặc "hh:mm:ss" hoặc "Xd YYh" (compact)
+/**
+ * formatCountdown – Hàm thuần túy tính toán và format thời gian đếm ngược
+ * @param timestamp – Mốc thời gian đích (ms)
+ * @param now – Thời gian hiện tại (ms), mặc định là Date.now()
+ * @param compact – Nếu true và còn > 0 ngày, hiển thị dạng "Xd YYh" thay vì đầy đủ
+ * @returns Chuỗi định dạng "d:hh:mm:ss" hoặc "hh:mm:ss" hoặc "Xd YYh" (compact)
+ */
 export function formatCountdown(
   timestamp: number,
   now = new Date().getTime(),
@@ -70,8 +72,22 @@ export function formatCountdown(
         .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
-// Countdown: Component chính, hiển thị đồng hồ đếm ngược tự động cập nhật mỗi giây
-// Sử dụng state diff để lưu khoảng cách thời gian, và setInterval để cập nhật
+/**
+ * Countdown – Component chính, hiển thị đồng hồ đếm ngược tự động cập nhật
+ * mỗi giây. Icon đồng hồ tuỳ chọn + text đã format bởi formatCountdown.
+ *
+ * @param timestamp – Mốc thời gian đích (ms).
+ * @param color – Màu chữ/icon, mặc định COLORS.TEXT_PRIMARY.
+ * @param compact – Chế độ rút gọn (font nhỏ hơn + format ngắn).
+ * @param showIcon – Hiển thị icon đồng hồ, mặc định true.
+ * @param iconSize – Kích thước icon, mặc định 15.
+ * @param containerStyle – Style ghi đè container.
+ * @param textStyle – Style ghi đè text.
+ * @returns View row chứa icon (tuỳ chọn) + text đếm ngược.
+ *
+ * Side effects: setInterval 1 giây cập nhật state diff; cleanup
+ * clearInterval khi unmount hoặc timestamp đổi.
+ */
 export default function Countdown({
   timestamp,
   color = COLORS.TEXT_PRIMARY,

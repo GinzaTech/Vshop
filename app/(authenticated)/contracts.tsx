@@ -47,7 +47,22 @@ function isEventPass(id: string) { return EVENTPASS_CONTRACT_PREFIXES.some((p) =
 // formatNumber: định dạng số với dấu phân cách hàng nghìn (VD: 1,234)
 function formatNumber(value: number) { return new Intl.NumberFormat().format(Math.max(0, Math.floor(value || 0))); }
 
-// Component ContractsScreen: hiển thị danh sách contracts (battle pass, event pass, agent contract, missions)
+/**
+ * ContractsScreen – Hiển thị danh sách contracts của người dùng: battle pass,
+ * event pass, agent contract và missions hiện tại.
+ *
+ * State:
+ * - contracts: dữ liệu từ API Riot (getContracts) — tiến độ, cấp, missions.
+ * - contractDefinitions: định nghĩa contracts từ valorant-api.com
+ *   (getPublicContracts) — dùng tra tên/icon và liên kết agent.
+ * - loading: đang tải lần đầu.
+ *
+ * fetchData: tải song song hai nguồn bằng Promise.all, chạy khi mount
+ * và khi pull-to-refresh (useAsyncRefresh). Lỗi từng nguồn được nuốt để
+ * không chặn nguồn còn lại.
+ *
+ * @returns {JSX.Element} Màn hình contracts.
+ */
 export default function ContractsScreen() {
   const { t } = useTranslation();                                  // Hook dịch thuật
   const user = useUserStore((state) => state.user);                 // Thông tin user

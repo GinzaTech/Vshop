@@ -30,8 +30,16 @@ type HistoryRow =
 // isTruthyParam: kiểm tra giá trị param (cho demo mode)
 const isTruthyParam = (value: string | string[] | undefined) => value === "1" || value === "true";
 
-// flattenHistory: chuyển mảng MatchHistoryRecord thành mảng HistoryRow phẳng
-// Bao gồm: group rows (summary + match), unavailable rows, pending rows
+/**
+ * flattenHistory – Chuyển mảng MatchHistoryRecord thành mảng HistoryRow phẳng
+ * để render trong một FlatList duy nhất.
+ * @param {readonly MatchHistoryRecord[]} matches – Danh sách match từ store
+ *   (hoặc mock khi demo mode).
+ * @param {string} locale – Ngôn ngữ hiện tại (dùng group ngày cho summary).
+ * @returns {HistoryRow[]} Thứ tự render: group rows (summary + match),
+ *   unavailable rows (stats === null), pending rows (stats === undefined,
+ *   mới nhất trước, tối đa 4).
+ */
 const flattenHistory = (matches: readonly MatchHistoryRecord[], locale: string): HistoryRow[] => {
   // Pending rows: match đang tải (stats === undefined), lấy tối đa 4
   const pendingRows: HistoryRow[] = matches
@@ -57,8 +65,14 @@ const flattenHistory = (matches: readonly MatchHistoryRecord[], locale: string):
   return [...groupRows, ...unavailableRows, ...pendingRows];
 };
 
-// Component MatchHistoryScreen: màn hình lịch sử đấu (match history)
-// Hiển thị danh sách match đã chơi, phân nhóm theo ngày, có refresh, load more
+/**
+ * MatchHistoryScreen – Màn hình lịch sử đấu (match history).
+ * Hiển thị danh sách match đã chơi phân nhóm theo ngày, có pull-to-refresh
+ * (fetchMatches force), infinite scroll (hydrateNextMatches) và các trạng
+ * thái loading/error/empty. Hỗ trợ demo mode qua param ?demo=1 (DEV only).
+ *
+ * @returns {JSX.Element} Danh sách match history.
+ */
 export default function MatchHistoryScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -88,8 +102,11 @@ export default function MatchHistoryScreen() {
   // rows: danh sách HistoryRow đã flatten (memoized)
   const rows = React.useMemo(() => flattenHistory(sourceMatches, i18n.language || "en"), [i18n.language, sourceMatches]);
 
+  // Số match đang chờ dữ liệu (stats === undefined, chưa fetch xong)
   const pendingMatchCount = isDemo ? 0 : matches.filter((match) => match.stats === undefined).length;
+  // Số match đã có dữ liệu, hiển thị được
   const visibleMatchCount = isDemo ? sourceMatches.length : matches.filter((match) => match.stats !== undefined).length;
+  // Còn lịch sử để tải thêm? (có pending hoặc tổng số match chưa chạm tới)
   const hasMoreHistory = !isDemo && (pendingMatchCount > 0 || matches.length < totalMatches);
 
   // useEffect: fetch matches khi component mount (trừ demo)

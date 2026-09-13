@@ -1,5 +1,10 @@
+// ===== combat-session.styles.ts – Styles màn Combat Session (dark tracker) =====
+// TRACKER_COLORS: palette riêng nền tối kiểu in-game tracker (cyan/red).
+// styles: nhóm theo vùng — header tracker, summary bar, bảng 2 đội,
+// hàng người chơi, empty state và modal chi tiết người chơi.
 import { StyleSheet } from "react-native";
 
+/** TRACKER_COLORS – Bảng màu tracker: nền navy đậm, cyan (đội mình), đỏ (đối thủ). */
 export const TRACKER_COLORS = {
   background: "#07101D",
   panel: "#0C1828",
@@ -39,6 +44,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 6,
     gap: 5,
   },
+  // ── Header tracker (map nền + player trái + map/queue giữa + actions phải) ──
   trackerHeader: {
     height: 50,
     borderRadius: 10,
@@ -61,6 +67,7 @@ export const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(7, 16, 29, 0.72)",
   },
+  // Nhóm player bên trái header
   headerPlayer: {
     zIndex: 1,
     flex: 1,
@@ -143,6 +150,7 @@ export const styles = StyleSheet.create({
     justifyContent: "flex-end",
     gap: 7,
   },
+  // Toggle COMP/MATCH
   statsModeToggle: {
     minWidth: 58,
     minHeight: 28,
@@ -169,6 +177,7 @@ export const styles = StyleSheet.create({
   statsModeToggleTextMatch: {
     color: TRACKER_COLORS.red,
   },
+  // Nhãn trạng thái phiên (LIVE/PREGAME/IDLE) + chấm màu
   liveState: {
     maxWidth: 135,
     minHeight: 28,
@@ -193,6 +202,7 @@ export const styles = StyleSheet.create({
     fontWeight: "800",
     textTransform: "uppercase",
   },
+  // ── Thanh tóm tắt (số người, map, queue, rank data) ──
   summaryBar: {
     height: 34,
     borderRadius: 8,
@@ -230,12 +240,14 @@ export const styles = StyleSheet.create({
     fontSize: 7,
     fontWeight: "800",
   },
+  // ── Bảng trận: 2 panel đội xếp ngang ──
   matchBoard: {
     flex: 1,
     minHeight: 0,
     flexDirection: "row",
     gap: 8,
   },
+  // Panel một đội + header đội
   teamPanel: {
     flex: 1,
     minWidth: 0,
@@ -288,6 +300,7 @@ export const styles = StyleSheet.create({
     minHeight: 0,
     padding: 3,
   },
+  // Hàng người chơi + slot trống + avatar agent
   playerRow: {
     flex: 1,
     minHeight: 0,
@@ -325,6 +338,7 @@ export const styles = StyleSheet.create({
     width: 33,
     height: 33,
   },
+  // Khối giữa hàng: tên, badge YOU, agent, rank, chỉ số
   playerIdentity: {
     flex: 1,
     minWidth: 58,
@@ -364,6 +378,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     gap: 3,
   },
+  // Rank hiện tại inline (icon + tên + RR)
   currentRankInline: {
     flex: 1,
     minWidth: 0,
@@ -391,6 +406,7 @@ export const styles = StyleSheet.create({
     fontSize: 7,
     fontWeight: "700",
   },
+  // Dải chỉ số nhỏ (KDA/WR/ACS/HS) trong hàng
   competitiveMetrics: {
     flexShrink: 0,
     flexDirection: "row",
@@ -415,6 +431,7 @@ export const styles = StyleSheet.create({
   matchMetricValue: {
     color: TRACKER_COLORS.red,
   },
+  // Khối peak rank ở mép phải hàng
   peakRankEnd: {
     width: 80,
     minWidth: 0,
@@ -456,6 +473,7 @@ export const styles = StyleSheet.create({
     fontSize: 6,
     fontWeight: "600",
   },
+  // Roster rỗng
   emptyRoster: {
     flex: 1,
     alignItems: "center",
@@ -468,6 +486,7 @@ export const styles = StyleSheet.create({
     color: TRACKER_COLORS.muted,
     fontSize: 10,
   },
+  // Empty state khi không có phiên nào
   emptyState: {
     flex: 1,
     minHeight: 0,
@@ -494,12 +513,14 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
   },
+  // Màn chờ khóa orientation
   orientationLoading: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: TRACKER_COLORS.background,
   },
+  // ── Modal chi tiết người chơi ──
   modalRoot: {
     ...StyleSheet.absoluteFill,
     zIndex: 50,
@@ -508,6 +529,7 @@ export const styles = StyleSheet.create({
     padding: 18,
     backgroundColor: "rgba(2, 7, 13, 0.78)",
   },
+  // Khung modal chính
   playerModal: {
     width: "100%",
     maxWidth: 590,
@@ -529,6 +551,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  // Switch COMP/MATCH trong modal
   modalModeSwitch: {
     padding: 2,
     borderRadius: 8,
@@ -567,6 +590,7 @@ export const styles = StyleSheet.create({
   modalModeTextMatch: {
     color: TRACKER_COLORS.red,
   },
+  // Định danh trong modal (avatar + tên)
   modalIdentity: {
     flex: 1,
     minWidth: 0,
@@ -614,6 +638,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: TRACKER_COLORS.border,
   },
+  // Grid 2 card rank (current + peak)
   modalRankGrid: {
     marginTop: 12,
     flexDirection: "row",
@@ -654,6 +679,7 @@ export const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "700",
   },
+  // Hàng chỉ số tổng hợp trong modal
   modalStats: {
     marginTop: 8,
     borderRadius: 10,
@@ -680,6 +706,7 @@ export const styles = StyleSheet.create({
     fontSize: 7,
     fontWeight: "800",
   },
+  // Form 5 trận gần đây + delta RR
   modalRecentForm: {
     marginTop: 8,
     minHeight: 36,
@@ -711,6 +738,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
+  // Badge W/L/D
   modalResultBadge: {
     width: 18,
     height: 18,
@@ -749,6 +777,7 @@ export const styles = StyleSheet.create({
   modalRrNeutral: {
     color: TRACKER_COLORS.muted,
   },
+  // Thông báo loading/hồ sơ riêng tư
   privateNotice: {
     marginTop: 8,
     minHeight: 30,

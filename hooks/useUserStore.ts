@@ -5,9 +5,14 @@ import { shouldAcceptSessionUpdate } from "~/utils/saved-accounts";
 import { secureAppStorage } from "~/utils/storage";
 
 // --- Định nghĩa store quản lý thông tin user (phiên đăng nhập) ---
+// Persist xuống secureAppStorage vì user chứa access/id/entitlements token.
 // user: đối tượng user hiện tại (token, region, id...) — mặc định là defaultUser
 // hydrated: đánh dấu đã rehydrate dữ liệu từ storage xong (dùng để tránh render sớm)
-// setUser(user): cập nhật user mới
+// setUser(user): cập nhật user mới — CHỈ nhận khi request vẫn thuộc phiên hiện
+//   tại (shouldAcceptSessionUpdate): kết quả của request nền cũ không được
+//   ghi đè lên phiên vừa đổi tài khoản.
+// activateUser(user): gán không điều kiện — chỉ dùng cho login/chuyển phiên
+//   CÓ CHỦ ĐÍCH (caller đã xác nhận người dùng muốn thay phiên hiện tại).
 // resetUser(): reset user về defaultUser
 // setHydrated(hydrated): cập nhật trạng thái hydrated
 interface UserState {
@@ -15,7 +20,7 @@ interface UserState {
   user: typeof defaultUser;
   /** Đã rehydrate từ storage xong chưa (true sau khi persist load lại) */
   hydrated: boolean;
-  /** Cập nhật thông tin user */
+  /** Cập nhật thông tin user (có guard theo phiên — xem ghi chú interface) */
   setUser: (user: typeof defaultUser) => void;
   /** Chuyển phiên có chủ đích sau login hoặc chọn tài khoản đã lưu */
   activateUser: (user: typeof defaultUser) => void;

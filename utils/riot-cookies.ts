@@ -29,6 +29,10 @@ type CookieManagerModule = {
   flush?: () => Promise<void>;
 };
 
+/**
+ * RiotAuthCookie - Một cookie Riot đã capture/khôi phục.
+ * @property {string} [expires] - Hết hạn (ISO; trống = cookie phiên không hết hạn)
+ */
 export type RiotAuthCookie = {
   name: string;
   value: string;
@@ -41,20 +45,38 @@ export type RiotAuthCookie = {
   sameSite?: "lax" | "strict" | "none";
 };
 
+/**
+ * Nguồn cookie khi capture: "network" = kho cookie của native networking
+ * (axios/TCP), "webview" = kho WebKit của login WebView (chỉ tách biệt trên iOS).
+ */
 export type RiotCookieCaptureSource = "network" | "webview";
 
+// Chỉ cookie thuộc các domain Riot này mới được capture/khôi phục.
 const RIOT_COOKIE_DOMAINS = ["riotgames.com", "playvalorant.com"];
+// Endpoint xác thực dùng làm URL truy vấn cookie trên Android (không có getAll).
 const RIOT_AUTH_COOKIE_TARGET = {
   url: "https://auth.riotgames.com/api/v1/authorization",
   domain: "auth.riotgames.com",
 } as const;
 
+/**
+ * normalizeCookieDomain — Chuẩn hóa domain cookie: bỏ dấu "." đầu, trim,
+ * lowercase để so khớp nhất quán ("." + ".riotgames.com" như nhau).
+ * @param {string} [domain] - Domain gốc của cookie
+ * @returns {string} Domain đã chuẩn hóa ("" nếu rỗng)
+ */
 const normalizeCookieDomain = (domain?: string) =>
   String(domain || "")
     .trim()
     .replace(/^\./, "")
     .toLowerCase();
 
+/**
+ * isRiotCookieDomain — Cookie có thuộc domain Riot được phép lưu không
+ * (so khớp chính xác hoặc subdomain của riotgames.com/playvalorant.com).
+ * @param {string} [domain] - Domain cần kiểm tra
+ * @returns {boolean} true nếu domain thuộc Riot
+ */
 const isRiotCookieDomain = (domain?: string) => {
   const normalizedDomain = normalizeCookieDomain(domain);
   return RIOT_COOKIE_DOMAINS.some(
@@ -64,12 +86,24 @@ const isRiotCookieDomain = (domain?: string) => {
   );
 };
 
+/**
+ * isCookieExpired — Cookie đã hết hạn chưa (theo trường expires). Cookie
+ * phiên (không có expires) luôn được coi là còn hạn.
+ * @param {RiotAuthCookie} cookie - Cookie cần kiểm tra
+ * @returns {boolean} true nếu expires hợp lệ và đã qua thời điểm hiện tại
+ */
 const isCookieExpired = (cookie: RiotAuthCookie) => {
   if (!cookie.expires) return false;
   const expiresAt = Date.parse(cookie.expires);
   return Number.isFinite(expiresAt) && expiresAt <= Date.now();
 };
 
+/**
+ * getCookieKey — Khóa định danh duy nhất của một cookie ("domain|path|name")
+ * dùng để dedupe khi gộp cookie từ nhiều nguồn/kho.
+ * @param {RiotAuthCookie} cookie - Cookie cần tạo khóa
+ * @returns {string} Chuỗi khóa định danh
+ */
 const getCookieKey = (cookie: RiotAuthCookie) =>
   [
     normalizeCookieDomain(cookie.domain),
@@ -77,12 +111,25 @@ const getCookieKey = (cookie: RiotAuthCookie) =>
     cookie.name,
   ].join("|");
 
+/**
+ * getCookieUrl — Dựng URL để set lại cookie vào cookie manager (cần https +
+ * domain + path). Path không hợp lệ được thay bằng "/".
+ * @param {RiotAuthCookie} cookie - Cookie cần dựng URL
+ * @returns {string} URL dạng "https://domain/path"
+ */
 const getCookieUrl = (cookie: RiotAuthCookie) => {
   const domain = normalizeCookieDomain(cookie.domain);
   const path = cookie.path?.startsWith("/") ? cookie.path : "/";
   return `https://${domain}${path}`;
 };
 
+/**
+ * readCookies — Đọc toàn bộ cookie từ cookie manager, ưu tiên API dạng mảng
+ * (getAllAsArray), fallback về dạng record (getAll) rồi chuyển values.
+ * @param {CookieManagerModule} cookieManager - Cookie manager đã load
+ * @param {boolean} useWebKit - true: kho WebKit (iOS WebView), false: kho native
+ * @returns {Promise<readonly RiotAuthCookie[]>} Danh sách cookie (rỗng nếu không hỗ trợ)
+ */
 const readCookies = async (
   cookieManager: CookieManagerModule,
   useWebKit: boolean
@@ -96,6 +143,13 @@ const readCookies = async (
   return [];
 };
 
+/**
+ * readCookiesForUrl — Đọc cookie cho MỘT URL cụ thể (cách duy nhất Android
+ * hỗ trợ). Ưu tiên getAsArray, fallback get dạng record.
+ * @param {CookieManagerModule} cookieManager - Cookie manager đã load
+ * @param {string} url - URL cần truy vấn cookie
+ * @returns {Promise<readonly RiotAuthCookie[]>} Cookie sẽ được gửi tới URL đó
+ */
 const readCookiesForUrl = async (
   cookieManager: CookieManagerModule,
   url: string

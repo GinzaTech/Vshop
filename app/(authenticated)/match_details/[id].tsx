@@ -143,6 +143,7 @@ export default function MatchDetailsScreen() {
     },
     [fetchMatchDetails, isDemo, matchId, t, user]
   );
+  // refreshDetails: pull-to-refresh luôn bỏ qua cache (force = true)
   const refreshDetails = React.useCallback(
     () => loadDetails(true),
     [loadDetails]

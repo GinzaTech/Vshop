@@ -11,6 +11,8 @@ import Animated, {
 import { GLOBAL_STYLES, RADIUS, SHADOWS } from "~/constants/DesignSystem";
 import { MOTION_DURATION } from "~/constants/Motion";
 
+// CARD_ENTRANCE: Animation entrance FadeInDown dùng khi animated=true;
+// tuân theo Reduce Motion của hệ thống (ReduceMotion.System)
 const CARD_ENTRANCE = FadeInDown.duration(MOTION_DURATION.standard).reduceMotion(ReduceMotion.System);
 
 /**
@@ -21,6 +23,8 @@ const CARD_ENTRANCE = FadeInDown.duration(MOTION_DURATION.standard).reduceMotion
  * @param style – (tuỳ chọn) Style ghi đè lên khung ngoài của thẻ.
  * @param contentStyle – (tuỳ chọn) Style ghi đè lên vùng chứa nội dung bên trong.
  * @param children – Nội dung ReactNode được render bên trong thẻ.
+ * @param animated – (mặc định false) Nếu true, card xuất hiện với animation
+ *                    FadeInDown (tôn trọng Reduce Motion).
  */
 interface GlassCardProps extends ViewProps {
     style?: StyleProp<ViewStyle>;
@@ -34,6 +38,8 @@ interface GlassCardProps extends ViewProps {
  *
  * - Bọc nội dung trong surface có border và shadow cấp `xs`.
  * - `contentStyle` cho phép tuỳ chỉnh padding / layout riêng của phần nội dung.
+ * - `animated` = true thì render bằng Animated.View với CARD_ENTRANCE,
+ *   ngược lại render View tĩnh (tránh chi phí animation không cần thiết).
  *
  * @param props – Xem interface GlassCardProps ở trên.
  * @returns Một tonal surface chứa nội dung con.

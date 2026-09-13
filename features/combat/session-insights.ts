@@ -1,13 +1,18 @@
+// ===== session-insights.ts – Đổi dữ liệu Riot (MMR, details, updates) thành intel UI =====
 import {
   type CompetitiveMMRResponse,
   getCompetitiveUpdates,
   matchDetails,
 } from "~/utils/valorant-api";
 
+/** MAX_TEAM_SIZE – Một team hiển thị tối đa 5 người (đúng chuẩn Valorant). */
 export const MAX_TEAM_SIZE = 5;
+// Chỉ lấy 5 trận ranked gần nhất khi tính hiệu suất (kd/acs/winrate).
 const RECENT_COMPETITIVE_MATCH_LIMIT = 5;
+// TTL cache kết quả hiệu suất ranked theo subject (tránh spam Riot API).
 const COMPETITIVE_STATS_CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** SessionPlayer – Một người chơi đã chuẩn hoá cho UI (dùng cho cả live lẫn pregame). */
 export type SessionPlayer = {
   subject: string;
   teamId?: string;
@@ -20,6 +25,7 @@ export type SessionPlayer = {
   isCurrentUser?: boolean;
 };
 
+/** PlayerIntel – Intel rank: status loading|ready|private + tier/RR hiện tại + peak/season. */
 export type PlayerIntel = {
   status: "loading" | "ready" | "private";
   currentTier: number | null;
@@ -28,6 +34,7 @@ export type PlayerIntel = {
   peakSeason: string | null;
 };
 
+/** CompetitivePerformance – Hiệu suất 5 trận ranked: kd/winRate/acs/HS%, W/L/D, delta RR. */
 export type CompetitivePerformance = {
   status: "loading" | "ready" | "private";
   kd: number | null;
@@ -42,8 +49,10 @@ export type CompetitivePerformance = {
   rrDelta: number | null;
 };
 
+/** StatsViewMode – Nguồn chỉ số đang hiển thị: ranked gần đây hay trận live. */
 export type StatsViewMode = "competitive" | "match";
 
+/** MatchPerformance – Chỉ số trong trận live hiện tại (KDA/ACS/HS, số round). */
 export type MatchPerformance = {
   status: "loading" | "ready" | "unavailable";
   kills: number | null;
@@ -54,6 +63,7 @@ export type MatchPerformance = {
   rounds: number;
 };
 
+/** ContentSeason – Một episode/act từ getContent, dùng để đặt tên peak season. */
 export type ContentSeason = {
   ID: string;
   Name: string;
@@ -63,6 +73,7 @@ export type ContentSeason = {
   IsActive: boolean;
 };
 
+/** EMPTY_INTEL – Intel mặc định (loading) dùng trước khi fetch rank xong. */
 export const EMPTY_INTEL: PlayerIntel = {
   status: "loading",
   currentTier: null,
@@ -71,6 +82,7 @@ export const EMPTY_INTEL: PlayerIntel = {
   peakSeason: null,
 };
 
+/** EMPTY_COMPETITIVE_PERFORMANCE – Trạng hiệu suất ranked mặc định (loading). */
 export const EMPTY_COMPETITIVE_PERFORMANCE: CompetitivePerformance = {
   status: "loading",
   kd: null,
@@ -82,6 +94,7 @@ export const EMPTY_COMPETITIVE_PERFORMANCE: CompetitivePerformance = {
   rrDelta: null,
 };
 
+/** EMPTY_MATCH_PERFORMANCE – Trạng chỉ số trận live mặc định (unavailable). */
 export const EMPTY_MATCH_PERFORMANCE: MatchPerformance = {
   status: "unavailable",
   kills: null,
@@ -94,17 +107,21 @@ export const EMPTY_MATCH_PERFORMANCE: MatchPerformance = {
 
 type MatchDetailsData = Awaited<ReturnType<typeof matchDetails>>;
 
+// Cache kết quả hiệu suất ranked theo "region|subject" (TTL 5 phút).
 const competitivePerformanceCache = new Map<
   string,
   { value: CompetitivePerformance; expiresAt: number }
 >();
+// Cache promise match details (dedup request trùng) theo "region|matchId".
 const matchDetailsCache = new Map<string, Promise<MatchDetailsData | null>>();
 
+/** toTier – Ép tier bất định thành number hợp lệ (> 0); null nếu không parse được. */
 export const toTier = (value: unknown) => {
   const tier = Number(value ?? 0);
   return Number.isFinite(tier) && tier > 0 ? tier : null;
 };
 
+/** getHighestWinningTier – Tier cao nhất có thắng trong WinsByTier (tierId → wins); 0 nếu rỗng. */
 export const getHighestWinningTier = (winsByTier: unknown) => {
   if (!winsByTier || typeof winsByTier !== "object" || Array.isArray(winsByTier)) {
     return 0;
@@ -120,12 +137,14 @@ export const getHighestWinningTier = (winsByTier: unknown) => {
   );
 };
 
+/** toTitleCase – "IMMORTAL_2" → "Immortal 2" (gạch dưới thành khoảng trắng + viết hoa đầu từ). */
 export const toTitleCase = (value?: string | null) =>
   (value || "")
     .replace(/_/g, " ")
     .toLocaleLowerCase("en-US")
     .replace(/\b\w/g, (letter) => letter.toLocaleUpperCase("en-US"));
 
+/** romanToNumber – Đổi số La Mã (I, V, X, L, C) thành chuỗi số; null nếu không hợp lệ. */
 const romanToNumber = (value: string) => {
   const romanValues: Record<string, number> = {
     I: 1,
@@ -145,6 +164,7 @@ const romanToNumber = (value: string) => {
   return total > 0 ? String(total) : null;
 };
 
+/** extractSeasonNumber – Trích số thứ tự season từ tên act/episode (chữ số hoặc La Mã). */
 const extractSeasonNumber = (value: string) => {
   const numericMatch = value.match(/\d+/);
   if (numericMatch?.[0]) return numericMatch[0];
@@ -153,6 +173,11 @@ const extractSeasonNumber = (value: string) => {
   return romanMatch?.[1] ? romanToNumber(romanMatch[1]) : null;
 };
 
+/** formatPeakSeason – "Episode X – Act Y": tìm act theo seasonId rồi episode cha (StartTime).
+ * @param {string | null} seasonId - ID act chứa peak rank.
+ * @param {ContentSeason[]} seasons - Danh sách episode/act từ getContent.
+ * @returns {string | null} Chuỗi "Episode X – Act Y" hoặc tên act/episode gốc.
+ */
 export const formatPeakSeason = (
   seasonId: string | null,
   seasons: ContentSeason[]
@@ -180,6 +205,13 @@ export const formatPeakSeason = (
   return act.Name || episode?.Name || null;
 };
 
+/**
+ * buildPlayerIntel – Intel rank: tier hiện tại (LatestCompetitiveUpdate), RR,
+ * peak tier (WinsByTier toàn season vs HighestCompetitiveTier) + peak season.
+ * @param {CompetitiveMMRResponse | Record<string, never>} result - MMR của subject.
+ * @param {ContentSeason[]} seasons - Seasons để format tên peak season.
+ * @returns {PlayerIntel} status "ready" nếu có rank data, ngược lại "private".
+ */
 export const buildPlayerIntel = (
   result: CompetitiveMMRResponse | Record<string, never>,
   seasons: ContentSeason[]
@@ -235,6 +267,13 @@ export const buildPlayerIntel = (
   };
 };
 
+/**
+ * mapWithConcurrency – Chạy worker song song giới hạn trên values, giữ thứ tự kết quả.
+ * @param {readonly T[]} values - Dữ liệu đầu vào.
+ * @param {number} concurrency - Số task chạy đồng thời tối đa (≥ 1).
+ * @param {(value: T) => Promise<R>} worker - Xử lý một phần tử.
+ * @returns {Promise<R[]>} Kết quả theo đúng thứ tự của values.
+ */
 export const mapWithConcurrency = async <T, R>(
   values: readonly T[],
   concurrency: number,
@@ -260,6 +299,10 @@ export const mapWithConcurrency = async <T, R>(
   return results;
 };
 
+/**
+ * getCachedMatchDetails – Fetch match details dedup "region|matchId": request
+ * trùng dùng chung promise, lỗi trả null, giữ tối đa 120 entry (LRU thủ công).
+ */
 const getCachedMatchDetails = (
   accessToken: string,
   entitlementsToken: string,
@@ -285,6 +328,15 @@ const getCachedMatchDetails = (
   return request;
 };
 
+/**
+ * buildCompetitivePerformance – Hiệu suất ranked của subject: cộng kill/death/
+ * score/round/damage, W/L/D theo team; không trận hợp lệ → "private".
+ * @param {string} subject - PUUID (so sánh không phân biệt hoa thường).
+ * @param {string[]} matchIds - MatchID ranked gần nhất.
+ * @param {ReadonlyMap<string, MatchDetailsData>} detailsById - Chi tiết trận theo MatchID.
+ * @param {number | null} rrDelta - Tổng RR thay đổi qua các trận đó.
+ * @returns {CompetitivePerformance} Chỉ số tổng hợp, status "ready".
+ */
 export const buildCompetitivePerformance = (
   subject: string,
   matchIds: string[],
@@ -366,6 +418,7 @@ export const buildCompetitivePerformance = (
   };
 };
 
+/** buildMatchPerformanceBySubject – KDA/ACS/HS% từng subject từ MỘT trận live; thiếu stats → unavailable. */
 export const buildMatchPerformanceBySubject = (
   details: MatchDetailsData,
   subjects: string[]
@@ -426,6 +479,13 @@ export const buildMatchPerformanceBySubject = (
   );
 };
 
+/**
+ * fetchCompetitivePerformanceBatch – Hiệu suất ranked cho nhiều subject:
+ * cache còn hạn → lịch sử 5 trận (c=3) → details dedup (c=4) → ghi cache 5 phút.
+ * @param {object} credentials - access/entitlements token + region.
+ * @param {string[]} subjects - Danh sách PUUID cần tra.
+ * @returns {Promise<Record<string, CompetitivePerformance>>} Map subject → performance.
+ */
 export const fetchCompetitivePerformanceBatch = async (
   credentials: {
     accessToken: string;
@@ -531,6 +591,7 @@ export const fetchCompetitivePerformanceBatch = async (
   return resolved;
 };
 
+/** formatCompetitiveMetric – "—" khi null; ngược lại làm tròn digits số thập phân + suffix. */
 export const formatCompetitiveMetric = (
   value: number | null,
   digits: number,

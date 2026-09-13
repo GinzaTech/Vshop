@@ -5,8 +5,8 @@ const BUNDLE_ASSET_FALLBACKS: Record<
   string,
   { displayName: string; displayIcon?: string }
 > = {
-  // Patch 13.02 reached Riot's storefront before valorant-api.com. These
-  // entries are only used while the upstream metadata endpoint returns 404.
+  // Bundle ra mắt trước khi valorant-api.com kịp cập nhật metadata (13.02).
+  // Chỉ dùng khi metadata upstream trả 404 — luôn thử API chính trước.
   "4d368017-4f98-1e89-dbec-31abd2533eb9": {
     displayName: "Neo Frontier",
     displayIcon: "https://i.ytimg.com/vi/iYfYrsd09lo/maxresdefault.jpg",
@@ -26,6 +26,11 @@ const BUNDLE_ITEM_NAME_FALLBACKS: Record<string, string> = {
   "5d3cde59-4d50-e54b-9126-d7bfac8d18bc": "Neo Frontier Spray",
 };
 
+/** Tên hiển thị fallback cho item bundle khi thiếu metadata asset:
+ *  ưu tiên bảng tên cấu hình sẵn (Neo Frontier), sau đó "Loại #vị trí".
+ *  @param itemId - UUID item. @param typeId - UUID loại (VItemTypes).
+ *  @param itemIndex - Vị trí item trong bundle (0-based, dùng đánh số).
+ *  @returns Tên an toàn để render — không bao giờ rỗng. */
 export const getFallbackBundleItemName = (
   itemId: string,
   typeId: string,
@@ -48,6 +53,11 @@ export const getFallbackBundleItemName = (
   return `Bundle Item #${position}`;
 };
 
+/** Dựng asset bundle thay thế khi valorant-api.com không có metadata:
+ *  tên lấy từ fallback cấu hình sẵn hoặc item đầu tiên có tên thật.
+ *  @param bundle - Bundle schema từ StorefrontResponse.
+ *  @param items - Các item đã parse của bundle (tìm tên/ảnh đại diện).
+ *  @returns ValorantBundle đủ trường để render card bundle. */
 export const createFallbackBundleAsset = (
   bundle: BundleSchema,
   items: (SkinShopItem | AccessoryShopItem)[],
@@ -77,12 +87,11 @@ export const createFallbackBundleAsset = (
   };
 };
 
-// Export hàm parse dữ liệu shop từ StorefrontResponse thành cấu trúc có tổ chức
-// Chia shop thành: main (4 skin chính), bundles, night market, accessory (phụ kiện)
-// Parameters:
-//   - shop: StorefrontResponse từ API
-//   - cachedBundles: danh sách bundle đã cache (tránh fetch lại)
-// Returns: object chứa main, bundles, nightMarket, accessory, remainingSecs
+/** Parse StorefrontResponse thô thành cấu trúc UI dùng trực tiếp.
+ *  Chia 4 khu: main (4 skin ngày), bundles, nightMarket, accessory (tính KC).
+ *  @param shop - Response v3 từ getShop() (services/riot/account-api).
+ *  @param cachedBundles - Bundle đã cache, làm fallback khi asset 404.
+ *  @returns { main, bundles, nightMarket, accessory, remainingSecs }. */
 export async function parseShop(
   shop: StorefrontResponse,
   cachedBundles: BundleShopItem[] = []
@@ -90,7 +99,7 @@ export async function parseShop(
   /* SHOP CHÍNH (4 SKIN HÀNG NGÀY) */
   let singleItemStoreOffers = shop.SkinsPanelLayout.SingleItemStoreOffers;
   let main: SkinShopItem[] = [];
-  // Lấy các lookup map từ assets
+  // Lookup maps từ valorant-assets: tra UUID → asset (skin/buddy/spray...).
   const {
     skinByAnyId,     // Map UUID -> ValorantSkin (bao gồm level và chroma UUID)
     buddyByAnyId,    // Map UUID -> ValorantBuddyAccessory
@@ -100,7 +109,7 @@ export async function parseShop(
     titleById,       // Map UUID -> title
   } = getAssetLookups();
 
-  // Duyệt từng offer trong shop chính
+  // Duyệt 4 offer của shop chính; UUID không tra được → slot trống (undefined).
   for (let mainIndex = 0; mainIndex < singleItemStoreOffers.length; mainIndex++) {
     const offer = singleItemStoreOffers[mainIndex];
 
@@ -117,7 +126,7 @@ export async function parseShop(
 
   /* BUNDLE (GÓI SẢN PHẨM) */
   const bundles: BundleShopItem[] = [];
-  // Xử lý featured bundles (có thể là mảng hoặc object đơn)
+  // FeaturedBundle.Bundles có thể là mảng hoặc object đơn → chuẩn hóa mảng.
   const featuredBundles = shop.FeaturedBundle.Bundles?.length
     ? shop.FeaturedBundle.Bundles
     : shop.FeaturedBundle.Bundle
@@ -140,7 +149,7 @@ export async function parseShop(
     })
   );
 
-  // Parse từng bundle: xác định loại item, lấy thông tin hiển thị
+  // Parse từng bundle: phân loại item theo ItemTypeID, ghép asset + giá giảm.
   for (let bundleIndex = 0; bundleIndex < bundleResults.length; bundleIndex++) {
     const { bundle, bundleAsset } = bundleResults[bundleIndex];
     const allItems: (SkinShopItem | AccessoryShopItem)[] = [];

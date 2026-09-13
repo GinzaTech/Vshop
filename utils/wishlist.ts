@@ -119,7 +119,8 @@ let checkShopInFlight = false;
 // Export hàm kiểm tra shop: gọi API Riot, re-auth, lấy shop, so sánh với wishlist
 // Parameters:
 //   - wishlist: mảng các UUID của skin cần theo dõi
-// Returns: void (async, gửi notification qua expo-notifications)
+// Returns: boolean — true nếu chuỗi kiểm tra chạy trót lọt (kể cả không hit),
+//   false nếu bị chặn (đang phục hồi session, check đang chạy, lỗi phiên...)
 export async function checkShop(wishlist: string[]) {
   if (isSessionRecoveryPaused()) return false;
   if (checkShopInFlight) return false;
@@ -131,6 +132,14 @@ export async function checkShop(wishlist: string[]) {
   }
 }
 
+// checkShopInternal — Thân chính của checkShop (đã có in-flight guard).
+// Luồng: đảm bảo phiên hợp lệ (renew nếu cần) → lấy shop → so với wishlist
+// → gửi notification cho từng skin trùng. Before ghi notification, kiểm tra
+// lại accountKey để không spam thông báo của phiên cũ; lỗi phiên/cookie hết
+// hạn được nuốt im lặng để nhường flow /reauth.
+// Parameters:
+//   - wishlist: mảng UUID skin cần theo dõi
+// Returns: boolean — true nếu chạy xong chuỗi kiểm tra, false nếu bị chặn/lỗi
 async function checkShopInternal(wishlist: string[]) {
   if (isSessionRecoveryPaused()) return false;
   const Notifications = configureNotifications();

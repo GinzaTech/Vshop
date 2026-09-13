@@ -20,13 +20,31 @@ type ErrorBoundaryState = {
   error: Error | null;
 };
 
+/**
+ * ErrorBoundaryImpl – Class component bắt lỗi render của cây con.
+ * Khi có lỗi: hiển thị ErrorFallback thay vì children; khi sạch: render lại
+ * children như bình thường. State.error lưu Error đang được bắt (null = sạch).
+ */
 class ErrorBoundaryImpl extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // state khởi tạo: chưa có lỗi nào được bắt
   state: ErrorBoundaryState = { error: null };
 
+  /**
+   * getDerivedStateFromError – Lifecycle do React gọi khi cây con throw.
+   * @param error – Error được ném ra từ cây con.
+   * @returns State mới chứa error để render fallback UI.
+   */
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { error };
   }
 
+  /**
+   * componentDidCatch – Side effect khi bắt được lỗi render.
+   * Gửi error + componentStack lên Sentry (để debug production) và log console
+   * trong __DEV__. Không thay đổi state (đã xử lý ở getDerivedStateFromError).
+   * @param error – Error được ném ra.
+   * @param errorInfo – Thông tin React kèm componentStack của lỗi.
+   */
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     Sentry.captureException(error, {
       contexts: {
@@ -40,8 +58,16 @@ class ErrorBoundaryImpl extends React.Component<ErrorBoundaryProps, ErrorBoundar
     }
   }
 
+  /**
+   * handleReset – Xoá lỗi đang giữ trong state để thử render lại children.
+   * Được gọi từ nút "Thử lại" và "Về Trang chủ" của ErrorFallback.
+   */
   handleReset = () => this.setState({ error: null });
 
+  /**
+   * render – Render children khi bình thường, ErrorFallback khi có lỗi.
+   * @returns Cây con hoặc fallback UI tuỳ state.error.
+   */
   render() {
     if (this.state.error) {
       return <ErrorFallback error={this.state.error} onReset={this.handleReset} />;
@@ -50,7 +76,16 @@ class ErrorBoundaryImpl extends React.Component<ErrorBoundaryProps, ErrorBoundar
   }
 }
 
-/** ErrorFallback — UI hiển thị khi có lỗi render */
+/**
+ * ErrorFallback — UI hiển thị khi có lỗi render
+ * Màn hình full-screen (SafeAreaView + ScrollView) với icon cảnh báo, tiêu đề,
+ * message từ i18n, chi tiết error (chỉ __DEV__) và 2 nút hành động:
+ * "Thử lại" (reset state) và "Về Trang chủ" (reset + router.replace).
+ *
+ * @param error – Error đã được bắt, hiển thị stack trong dev.
+ * @param onReset – Callback xoá state.error của ErrorBoundaryImpl.
+ * @returns SafeAreaView chứa fallback UI.
+ */
 function ErrorFallback({ error, onReset }: { error: Error; onReset: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -174,4 +209,8 @@ const styles = StyleSheet.create({
   },
 });
 
+/**
+ * ErrorBoundary – Export component dưới dạng arrow alias của ErrorBoundaryImpl
+ * (giữ cùng tham chiếu class để dùng trong app root).
+ */
 export const ErrorBoundary = ErrorBoundaryImpl;

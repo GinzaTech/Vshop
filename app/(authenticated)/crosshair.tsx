@@ -12,8 +12,14 @@ import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { fullBackgroundSync } from "~/utils/app-sync";
 
-// CrosshairRender: component vẽ crosshair dựa trên style (type, color, thickness, gap)
-// Hỗ trợ 4 kiểu: cross, dot, box, circle
+/**
+ * CrosshairRender – Component vẽ preview crosshair dựa trên style
+ * (type, color, thickness, gap). Hỗ trợ 4 kiểu: cross, dot, box, circle.
+ *
+ * @param {Object} props - Props của component.
+ * @param {CrosshairData["style"]} props.style - Thông số crosshair cần vẽ.
+ * @returns {JSX.Element} View 40x40 chứa hình crosshair tương ứng.
+ */
 const CrosshairRender = ({ style }: { style: CrosshairData["style"] }) => {
   const { type, color, thickness = 2, gap = 2 } = style;
   const tickStyle = { backgroundColor: color, position: "absolute" as const };
@@ -53,7 +59,20 @@ const CrosshairRender = ({ style }: { style: CrosshairData["style"] }) => {
   );
 };
 
-// Component CrosshairDatabase: database crosshair với preview, tìm kiếm, lọc theo category
+/**
+ * CrosshairDatabase – Database crosshair với preview lớn, tìm kiếm và
+ * lọc theo category (All / Pro / Content / Fun).
+ *
+ * State:
+ * - selected: crosshair đang preview; nhấn vào item đã chọn lần nữa sẽ
+ *   copy code vào clipboard (badge "Copied" 2 giây).
+ * - search: từ khóa tìm kiếm (so khớp tên + team).
+ * - activeCategory: category đang lọc danh sách.
+ * - copiedName: tên crosshair vừa copy (để hiển thị badge).
+ * - filteredData (useMemo): danh sách đã lọc theo search + category.
+ *
+ * @returns {JSX.Element} Màn hình crosshair database.
+ */
 export default function CrosshairDatabase() {
   const { t } = useTranslation();
   // State quản lý
@@ -61,10 +80,13 @@ export default function CrosshairDatabase() {
   const [search, setSearch] = useState("");                                  // Từ khóa tìm kiếm
   const [activeCategory, setActiveCategory] = useState<string>("All");       // Category đang lọc
   const [copiedName, setCopiedName] = useState<string | null>(null);         // Tên crosshair vừa copy (hiển thị badge)
+  // Ref giữ timer ẩn badge "Copied" — phải clear khi unmount tránh leak
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // refreshApp: pull-to-refresh chạy full sync nền (force = true)
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
+  // Cleanup: hủy timer badge "Copied" khi unmount
   useEffect(
     () => () => {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);

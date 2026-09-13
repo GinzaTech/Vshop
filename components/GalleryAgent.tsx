@@ -24,6 +24,9 @@ interface Role {
 // agents: danh sách agent cần hiển thị
 // onAgentPress: callback khi nhấn vào một agent
 // selectedAgentId: uuid của agent đang được chọn (null nếu chưa chọn)
+// refreshing: trạng thái pull-to-refresh đang chạy (mặc định false)
+// onRefresh: callback pull-to-refresh; nếu không truyền thì không gắn
+//            RefreshControl và tắt bounce dọc
 interface AgentGridProps {
     agents: ValorantAgent[];
     onAgentPress: (agent: ValorantAgent) => void;
@@ -56,17 +59,23 @@ interface AgentModalProps {
     sortAbilities: (abilities: Ability[] | undefined) => Ability[];
 }
 
-// sortAbilities: Hàm sắp xếp abilities, đưa passive lên đầu danh sách
-// abilities: mảng abilities cần sắp xếp (có thể undefined)
-// Trả về: mảng Ability[] đã sắp xếp (passive trước, các ability khác sau)
+/**
+ * sortAbilities – Hàm sắp xếp abilities, đưa passive lên đầu danh sách
+ * @param abilities – Mảng abilities cần sắp xếp (có thể undefined)
+ * @returns Mảng Ability[] đã sắp xếp (passive trước, các ability khác sau)
+ */
 const sortAbilities = (abilities: Ability[] | undefined): Ability[] => {
     if (!abilities) return [];
     const passive = abilities.filter((ability) => ability.slot === "Passive");
     return [...passive, ...abilities.filter((ability) => ability.slot !== "Passive")];
 };
 
-// GalleryAgent: Hook chính quản lý state và logic cho thư viện agent
-// Trả về: object chứa các state và hàm xử lý
+/**
+ * GalleryAgent – Hook chính quản lý state và logic cho thư viện agent
+ * State nội bộ: agents, filteredAgents, selectedRole, selectedAgent,
+ * selectedAbility, showDescription. Tải agent list 1 lần khi mount.
+ * @returns Object chứa các state và hàm xử lý (xem khối return).
+ */
 const GalleryAgent = () => {
     // Hook dịch thuật i18n
     const { t } = useTranslation();
@@ -159,10 +168,17 @@ const GalleryAgent = () => {
     };
 };
 
-// RoleSelector: Component hiển thị danh sách các nút role để lọc
-// Props: roles (danh sách role), selectedRole (role đang chọn), onRoleSelect (callback)
-// Được memo hóa (React.memo) để tránh re-render không cần thiết
-// Layout: flex row, các nút role có icon + text, nút được chọn có gạch dưới
+/**
+ * RoleSelector – Component hiển thị danh sách các nút role để lọc
+ * Props: roles (danh sách role), selectedRole (role đang chọn), onRoleSelect (callback)
+ * Được memo hóa (React.memo) để tránh re-render không cần thiết
+ * Layout: flex row, các nút role có icon + text, nút được chọn có gạch dưới
+ *
+ * @param roles – Danh sách role khả dụng.
+ * @param selectedRole – Id role đang được chọn (null nếu không lọc).
+ * @param onRoleSelect – Callback khi chọn một role (nhận roleId).
+ * @returns View hàng ngang các nút role.
+ */
 export const RoleSelector: React.FC<RoleSelectorProps> = React.memo(({ roles, selectedRole, onRoleSelect }) => (
     <View style={styles.roleContainer}>
         {roles.map((role) => (
@@ -178,10 +194,15 @@ export const RoleSelector: React.FC<RoleSelectorProps> = React.memo(({ roles, se
     </View>
 ));
 
-// AgentItem: Component hiển thị một agent trong lưới (box)
-// Props: item (agent), onPress (callback), selected (boolean - đã chọn hay chưa)
-// Được memo hóa (React.memo)
-// Layout: box vuông, chứa ảnh displayIcon, nếu selected thì đổi màu nền
+/**
+ * AgentItem – Component hiển thị một agent trong lưới (box)
+ * Được memo hóa (React.memo); ảnh dùng CachedImage với cacheId ổn định.
+ *
+ * @param item – Agent cần hiển thị.
+ * @param onPress – Callback khi nhấn box (nhận agent được nhấn).
+ * @param selected – True nếu agent này đang được chọn (đổi màu nền).
+ * @returns View box vuông chứa ảnh displayIcon của agent.
+ */
 const AgentItem = React.memo(({ item, onPress, selected }: { item: ValorantAgent; onPress: (agent: ValorantAgent) => void; selected: boolean }) => (
     <View style={styles.boxWrap}>
         <TouchableOpacity
@@ -205,11 +226,20 @@ const AgentItem = React.memo(({ item, onPress, selected }: { item: ValorantAgent
     </View>
 ));
 
-// AgentGrid: Component hiển thị lưới agent (FlatList, 5 cột)
-// Props: agents (danh sách), onAgentPress (callback), selectedAgentId (uuid agent đang chọn)
-// Được memo hóa (React.memo)
-// renderItem được useCallback để tối ưu performance
+/**
+ * AgentGrid – Component hiển thị lưới agent (FlatList, 5 cột)
+ * Được memo hóa (React.memo); renderItem được useCallback để tối ưu performance
+ * Pull-to-refresh chỉ được gắn khi onRefresh được truyền vào.
+ *
+ * @param agents – Danh sách agent hiển thị.
+ * @param onAgentPress – Callback khi nhấn một agent.
+ * @param selectedAgentId – Uuid agent đang chọn (so sánh để highlight).
+ * @param refreshing – Trạng thái refresh đang chạy (mặc định false).
+ * @param onRefresh – Callback pull-to-refresh (không truyền → không gắn).
+ * @returns FlatList lưới agent 5 cột.
+ */
 export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgentPress, selectedAgentId, refreshing = false, onRefresh }) => {
+    // renderItem: render một AgentItem, memo theo onAgentPress/selectedAgentId
     const renderItem = useCallback(({ item }: { item: ValorantAgent }) => (
         <AgentItem
             item={item}
@@ -237,13 +267,22 @@ export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgent
     );
 });
 
-// AgentModal: Component Modal hiển thị chi tiết agent
-// Props: agent, onClose, selectedAbility, onAbilityPress, sortAbilities
-// Được memo hóa (React.memo)
-// Hiển thị: tên agent, ảnh fullPortrait, mô tả, lưới abilities
-//   abilities được sắp xếp (passive trước) và có thể nhấn để xem mô tả
-// Modal dạng slide, không transparent, full màn hình
+/**
+ * AgentModal – Component Modal hiển thị chi tiết agent
+ * Được memo hóa (React.memo)
+ * Hiển thị: tên agent, ảnh fullPortrait, mô tả, lưới abilities
+ *   abilities được sắp xếp (passive trước) và có thể nhấn để xem mô tả
+ * Modal dạng slide, không transparent, full màn hình
+ *
+ * @param agent – Agent cần hiển thị chi tiết (null/falsy → Modal ẩn).
+ * @param onClose – Callback khi đóng modal (bao gồm nút back Android).
+ * @param selectedAbility – Ability đang được chọn để xem mô tả.
+ * @param onAbilityPress – Callback khi nhấn một ability.
+ * @param sortAbilities – Hàm sắp xếp abilities (passive lên trước).
+ * @returns Modal chi tiết agent.
+ */
 export const AgentModal: React.FC<AgentModalProps> = React.memo(({ agent, onClose, selectedAbility, onAbilityPress, sortAbilities, }) => {
+  // reduceMotion: tắt animation slide nếu người dùng bật Reduce Motion
   const reduceMotion = useMotionPreference();
   return (
     <Modal visible={!!agent} transparent={false} animationType={reduceMotion ? "none" : "slide"} onRequestClose={onClose}>

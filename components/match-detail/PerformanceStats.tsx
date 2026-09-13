@@ -1,3 +1,7 @@
+// ===== PerformanceStats.tsx =====
+// Tập hợp section chi tiết hiệu suất trong tab Performance: panel chi tiết
+// một vòng (sự kiện chiến đấu, kinh tế), chỉ số theo bên (tấn công/phòng ngự),
+// bảng đối đầu và bảng vũ khí.
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
@@ -20,8 +24,16 @@ import type {
 } from "~/types/match-ui";
 import { formatDuration, formatMetric } from "~/utils/match-ui";
 
+// SPIKE_IMAGE: Ảnh spike dùng cho sự kiện plant trong timeline vòng
 const SPIKE_IMAGE = require("~/assets/images/spike.png");
 
+/**
+ * SectionHeading – Tiêu đề section dùng chung: tiêu đề lớn + phụ đề tuỳ chọn.
+ *
+ * @param title – Tiêu đề chính của section.
+ * @param subtitle – (tuỳ chọn) Dòng phụ thích bên dưới tiêu đề.
+ * @returns View tiêu đề section.
+ */
 const SectionHeading = ({ title, subtitle }: { title: string; subtitle?: string }) => (
   <View style={styles.sectionHeading}>
     <Text style={styles.sectionTitle}>{title}</Text>
@@ -29,24 +41,51 @@ const SectionHeading = ({ title, subtitle }: { title: string; subtitle?: string 
   </View>
 );
 
+/**
+ * formatEventTime – Format giây thành "phút:giây" (VD: 95 → "1:35").
+ * @param seconds – Thời điểm sự kiện trong vòng (giây).
+ * @returns Chuỗi "m:ss", giá trị âm được chặn về 0.
+ */
 const formatEventTime = (seconds: number) => {
   const safeSeconds = Math.max(0, Math.round(seconds));
   const minutes = Math.floor(safeSeconds / 60);
   return `${minutes}:${String(safeSeconds % 60).padStart(2, "0")}`;
 };
 
+/**
+ * eventRowTone – Chọn màu nền hàng sự kiện theo đội của chủ thể.
+ * @param team – Đội của chủ thể sự kiện (A/B/undefined).
+ * @returns Style nền tương ứng (teamA/teamB/neutral).
+ */
 const eventRowTone = (team?: MatchTeam) => {
   if (team === "A") return styles.eventRowTeamA;
   if (team === "B") return styles.eventRowTeamB;
   return styles.eventRowNeutral;
 };
 
+/**
+ * teamIndicatorTone – Chọn style dải màu cạnh ảnh agent theo đội.
+ * @param team – Đội của người chơi (A/B/undefined).
+ * @returns Style dải màu tương ứng (xanh A, đỏ B, xám neutral).
+ */
 const teamIndicatorTone = (team?: MatchTeam) => {
   if (team === "A") return styles.teamAIndicator;
   if (team === "B") return styles.teamBIndicator;
   return styles.neutralIndicator;
 };
 
+/**
+ * RoundCombatEvent – Một hàng sự kiện trong timeline vòng.
+ * Kill: [agent actor | thời điểm | vũ khí | khoảng cách | agent nạn nhân].
+ * Objective (plant/defuse/other): icon spike/shield + nhãn mục tiêu.
+ * Nền hàng và dải màu cạnh theo đội actor/nạn nhân.
+ *
+ * @param event – Sự kiện của vòng (kill, plant, defuse...).
+ * @param actor – Người chơi gây ra sự kiện (tuỳ chọn).
+ * @param target – Người chơi chịu sự kiện (tuỳ chọn, với kill).
+ * @param objectiveLabel – Nhãn i18n cho sự kiện objective (đã dịch).
+ * @returns View hàng sự kiện đã tô màu theo đội.
+ */
 function RoundCombatEvent({
   event,
   actor,
@@ -150,6 +189,17 @@ function RoundCombatEvent({
   );
 }
 
+/**
+ * RoundDetailPanel – Panel chi tiết vòng đang chọn trên timeline.
+ * Hiển thị: tóm tắt (đội thắng, kết quả, bên, thời lượng), timeline sự kiện
+ * chiến đấu (đã loại round_end, sort theo thời điểm) và tổng kết kinh tế
+ * (loadout TB, credits TB của 2 đội, format theo ngôn ngữ i18n).
+ *
+ * @param round – Vòng đang chọn; null → không render gì.
+ * @param selectedPlayerTeam – Đội của người chơi đang chọn (tính "bên").
+ * @param players – Danh sách người chơi (map id → agent/tên cho sự kiện).
+ * @returns Section chi tiết vòng, hoặc null nếu round rỗng.
+ */
 export function RoundDetailPanel({
   round,
   selectedPlayerTeam,
@@ -160,6 +210,7 @@ export function RoundDetailPanel({
   players: MatchPlayerRef[];
 }) {
   const { t, i18n } = useTranslation();
+  // numberFormatter: format số theo ngôn ngữ hiện tại (không số thập phân)
   const numberFormatter = React.useMemo(
     () =>
       new Intl.NumberFormat(i18n.language || "en", {
@@ -168,16 +219,20 @@ export function RoundDetailPanel({
     [i18n.language]
   );
   if (!round) return null;
+  // side: bên (attack/defense) của người chơi đang chọn trong vòng này
   const side =
     selectedPlayerTeam === "A"
       ? round.sideForTeamA
       : round.sideForTeamA === "attack"
         ? "defense"
         : "attack";
+  // playerById: map playerId → thông tin người chơi (tra cứu cho sự kiện)
   const playerById = new Map(players.map((player) => [player.playerId, player]));
+  // visibleEvents: sự kiện hiển thị (loại bỏ round_end, sort theo thời điểm)
   const visibleEvents = round.events
     .filter((event) => event.type !== "round_end")
     .sort((left, right) => left.timestampSeconds - right.timestampSeconds);
+  // Loadout/credits trung bình 2 đội; fallback về tổng kinh tế nếu thiếu
   const teamALoadout =
     round.teamAAverageLoadout ?? round.teamAEconomy;
   const teamBLoadout =
@@ -279,6 +334,15 @@ export function RoundDetailPanel({
   );
 }
 
+/**
+ * SideBlock – Khối chỉ số một bên (tấn công hoặc phòng ngự): dải màu cạnh,
+ * tiêu đề và lưới 4 chỉ số (K, D, A, K/D).
+ *
+ * @param title – Tiêu đề khối (đã dịch i18n).
+ * @param value – Dữ liệu chỉ số của bên đó.
+ * @param tone – Màu dải cạnh (accentBlue cho defense, warning cho attack).
+ * @returns View khối chỉ số có accent màu.
+ */
 const SideBlock = ({
   title,
   value,
@@ -311,6 +375,13 @@ const SideBlock = ({
   );
 };
 
+/**
+ * SideStatsGrid – Section tổng hợp chỉ số theo bên cho người chơi đang chọn.
+ * Chứa 2 SideBlock: phòng ngự (xanh) và tấn công (đỏ/vàng).
+ *
+ * @param stats – Chỉ số theo bên của người chơi.
+ * @returns Section với tiêu đề và 2 khối bên.
+ */
 export function SideStatsGrid({ stats }: { stats: PlayerSideStats }) {
   const { t } = useTranslation();
   return (
@@ -333,6 +404,13 @@ export function SideStatsGrid({ stats }: { stats: PlayerSideStats }) {
   );
 }
 
+/**
+ * OpponentBreakdownTable – Bảng đối đầu: số lần kill/chết và sát thương
+ * gây ra/nhận vào với từng đối thủ của người chơi đang chọn.
+ *
+ * @param opponents – Danh sách breakdown theo đối thủ (kills, deaths, dmg).
+ * @returns Section bảng đối đầu, hoặc text "partial" nếu rỗng.
+ */
 export function OpponentBreakdownTable({
   opponents,
 }: {
@@ -389,6 +467,13 @@ export function OpponentBreakdownTable({
   );
 }
 
+/**
+ * WeaponStatsTable – Bảng vũ khí: ảnh + tên, số kill và tổng sát thương
+ * của từng vũ khí người chơi đã dùng trong trận; hàng xen kẽ nền khác nhau.
+ *
+ * @param weapons – Danh sách hiệu suất vũ khí.
+ * @returns Section bảng vũ khí, hoặc text "partial" nếu rỗng.
+ */
 export function WeaponStatsTable({ weapons }: { weapons: WeaponPerformance[] }) {
   const { t } = useTranslation();
   return (

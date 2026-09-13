@@ -1,3 +1,6 @@
+// ===== MatchCard.tsx =====
+// Card một trận đấu trong lịch sử: kết quả, tỉ số, K/D/A, thứ hạng, map,
+// mode, RR và hàng chỉ số (K/D, HS%, ADR, ACS, TRS). Nhấn card → mở chi tiết.
 import React from "react";
 import {
   Pressable,
@@ -29,17 +32,37 @@ import {
 } from "~/utils/match-ui";
 import { MOTION_SPRING } from "~/constants/Motion";
 
+/**
+ * MatchCardProps – Props của MatchCard.
+ *
+ * @param match – Dữ liệu một trận (kết quả, tỉ số, agent, rank, chỉ số...).
+ * @param locale – Locale dùng format thời gian tương đối ("3 giờ trước").
+ * @param onPress – Callback khi bấm card, nhận matchId của trận.
+ */
 type MatchCardProps = {
   match: MatchHistoryItem;
   locale: string;
   onPress: (matchId: string) => void;
 };
 
+/**
+ * MetricProps – Props của Metric (ô chỉ số nhỏ dưới card).
+ *
+ * @param label – Nhãn chỉ số (VD: "K/D", "HS%").
+ * @param value – Giá trị đã format để hiển thị.
+ */
 type MetricProps = {
   label: string;
   value: string;
 };
 
+/**
+ * Metric – Ô chỉ số đơn giản (label trên, value dưới), chiếm 1/5 hàng metrics.
+ *
+ * @param label – Nhãn chỉ số.
+ * @param value – Giá trị hiển thị.
+ * @returns View chứa cặp label + value.
+ */
 const Metric = ({ label, value }: MetricProps) => (
   <View style={styles.metric}>
     <Text style={styles.metricLabel} numberOfLines={1}>
@@ -51,11 +74,30 @@ const Metric = ({ label, value }: MetricProps) => (
   </View>
 );
 
+/**
+ * formatRrChange – Format độ thay đổi RR (Ranked Rating).
+ * @param value – Số RR thay đổi; undefined nếu trận không tính rank.
+ * @returns "+12 RR" / "-8 RR" hoặc "--" nếu undefined.
+ */
 const formatRrChange = (value: number | undefined) => {
   if (value === undefined) return "--";
   return `${value > 0 ? "+" : ""}${value} RR`;
 };
 
+/**
+ * MatchCardComponent – Component nội bộ render card trận đấu.
+ * Tính màu/nhãn kết quả (thắng/hòa/thua), nhãn RR, accessibilityLabel đầy đủ
+ * rồi dựng layout: dải màu kết quả, ảnh agent + rank, tỉ số, K/D/A, badge
+ * thứ hạng, map/mode, khối RR và hàng 5 metric dưới cùng.
+ *
+ * @param match – Dữ liệu trận (xem MatchCardProps).
+ * @param locale – Locale cho format thời gian tương đối.
+ * @param onPress – Callback mở chi tiết trận với matchId.
+ * @returns Animated.View bọc Pressable card (có animation scale khi nhấn).
+ *
+ * Side effects: animation spring scale trên UI thread khi onPressIn/Out;
+ * không có timer/subscription nên không cần cleanup.
+ */
 function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -96,7 +138,9 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
     : "";
   const accessibilityLabel = `${resultLabel}, ${match.mapName}, ${match.teamScore} to ${match.opponentScore}, ${match.kills} kills, ${match.deaths} deaths, ${match.assists} assists${rrSummary}`;
 
+  // scale: shared value điều khiển animation nhấn (thu nhỏ 0.97 khi giữ)
   const scale = useSharedValue(1);
+  // animatedStyle: gắn scale vào transform của Animated.View
   const animatedStyle = useAnimatedStyle(
     () => ({ transform: [{ scale: scale.value }] }),
     [],
@@ -435,4 +479,8 @@ const styles = StyleSheet.create({
   },
 });
 
+/**
+ * MatchCard – Export memo hoá của MatchCardComponent để dùng trong FlatList
+ * lịch sử trận; chỉ re-render khi props (match/locale/onPress) thay đổi.
+ */
 export const MatchCard = React.memo(MatchCardComponent);

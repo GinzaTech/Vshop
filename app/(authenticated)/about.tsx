@@ -76,7 +76,13 @@ export default function AboutScreen() {
     [toggleOverrides]
   );
 
-  // ── Load data ────────────────────────────────────────────────────────────
+  /**
+   * fetchAll – Tải song song 4 nguồn: player info, riot client config,
+   * content (season/act) và override toggles đã lưu trong storage.
+   * Mỗi request tự catch về null để một lỗi không chặn nguồn còn lại.
+   * Side effects: setState playerInfo/riotConfig/content/toggleOverrides,
+   * setLoading(false) ở finally. Chạy khi mount + pull-to-refresh.
+   */
   const fetchAll = React.useCallback(async () => {
     if (!user.accessToken || !user.entitlementsToken || !user.region) {
       setLoading(false);
@@ -141,6 +147,7 @@ export default function AboutScreen() {
   };
 
   // ── Render helpers ────────────────────────────────────────────────────────
+  // renderInfoRow: một hàng label/value chỉ đọc (value selectable, 1 dòng)
   const renderInfoRow = (label: string, value: string) => (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -150,6 +157,7 @@ export default function AboutScreen() {
     </View>
   );
 
+  // renderBoolReadRow: hàng boolean, hiển thị Yes/No theo ngôn ngữ hiện tại
   const renderBoolReadRow = (label: string, value: boolean) =>
     renderInfoRow(label, value ? t("about_page.yes") : t("about_page.no"));
 
@@ -189,8 +197,10 @@ export default function AboutScreen() {
     );
   }
 
+  // Act và Episode đang hoạt động trong content (nếu API trả về)
   const activeAct = content?.Seasons?.find((s) => s.Type === "act" && s.IsActive);
   const activeEpisode = content?.Seasons?.find((s) => s.Type === "episode" && s.IsActive);
+  // Đang có ít nhất một feature toggle bị override cục bộ?
   const hasToggleOverrides = Object.keys(toggleOverrides).length > 0;
 
   const boolEntries = riotConfig

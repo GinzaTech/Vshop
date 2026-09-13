@@ -58,21 +58,26 @@ const shopBalancesInFlight = new Map<string, Promise<void>>();
 // refreshShopAndBalances đọc registry này để nhường đường — nếu full sync đang
 // chạy cho cùng account thì shop/balances sắp được ghi bởi sync đó rồi,
 // không được fetch đè song song (tránh double request + stale-overwrite).
-const fullSyncInFlight = new Set<string>();
+const fullSyncInFlight = new Map<string, number>();
 
 /** Đăng ký bắt đầu full sync cho một account (data-sync gọi) */
 export function beginFullSync(accountKey: string): void {
-  fullSyncInFlight.add(accountKey);
+  fullSyncInFlight.set(accountKey, (fullSyncInFlight.get(accountKey) ?? 0) + 1);
 }
 
 /** Gỡ đăng ký khi full sync kết thúc (thành công hay thất bại) */
 export function endFullSync(accountKey: string): void {
-  fullSyncInFlight.delete(accountKey);
+  const remaining = (fullSyncInFlight.get(accountKey) ?? 0) - 1;
+  if (remaining > 0) {
+    fullSyncInFlight.set(accountKey, remaining);
+  } else {
+    fullSyncInFlight.delete(accountKey);
+  }
 }
 
 /** Full sync cho account này có đang chạy không? */
 export function isFullSyncInFlight(accountKey: string): boolean {
-  return fullSyncInFlight.has(accountKey);
+  return (fullSyncInFlight.get(accountKey) ?? 0) > 0;
 }
 
 const createAccountSyncState = (): AccountSyncState => ({
@@ -132,7 +137,10 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
     return;
   }
 
-  const existingRequest = shopBalancesInFlight.get(accountKey);
+  // A request created with expired credentials must not absorb the first
+  // refresh after token renewal for the same account.
+  const requestKey = `${accountKey}|${user.accessToken}|${user.entitlementsToken}`;
+  const existingRequest = shopBalancesInFlight.get(requestKey);
   if (existingRequest) return existingRequest;
 
   const request = (async () => {
@@ -178,12 +186,12 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
     }
   })();
 
-  shopBalancesInFlight.set(accountKey, request);
+  shopBalancesInFlight.set(requestKey, request);
   try {
     await request;
   } finally {
-    if (shopBalancesInFlight.get(accountKey) === request) {
-      shopBalancesInFlight.delete(accountKey);
+    if (shopBalancesInFlight.get(requestKey) === request) {
+      shopBalancesInFlight.delete(requestKey);
     }
   }
 }
@@ -203,8 +211,11 @@ export async function refreshMatches(force = false): Promise<void> {
   if (!force && !isStale("matches", syncState.matches)) return;
 
   try {
-    await useMatchStore.getState().fetchMatches(user, force);
-    if (getAccountSessionKey(useUserStore.getState().user) === accountKey) {
+    const refreshed = await useMatchStore.getState().fetchMatches(user, force);
+    if (
+      refreshed &&
+      getAccountSessionKey(useUserStore.getState().user) === accountKey
+    ) {
       syncState.matches = Date.now();
     }
   } catch (error) {

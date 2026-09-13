@@ -34,8 +34,21 @@ import { refreshShopAndBalances } from "~/utils/app-sync";
 import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 
-// Component Bundles: hiển thị danh sách các bundle (gói hàng) trong shop
-// Cho phép xem thông tin bundle và các item bên trong qua modal
+/**
+ * Bundles — Component hiển thị danh sách bundle (gói skin) trong shop.
+ * Cho phép xem thông tin bundle và các item bên trong qua modal.
+ *
+ * State:
+ * - user (từ useUserStore): shops.bundles, balances.vp, remainingSecs.
+ * - selectedBundle: bundle đang mở modal chi tiết (null = modal đóng).
+ * - transparentModalTheme (useMemo): theme Paper với backdrop trong suốt
+ *   để BlurView tự render nền mờ phía sau modal.
+ * - blurTargetRef: tham chiếu BlurTargetView cho BlurView Android API mới.
+ *
+ * Effect: đồng bộ cờ ẩn primary navigation (accessibility) theo modal.
+ *
+ * @returns {JSX.Element} Danh sách bundle hoặc EmptyStateCard nếu trống.
+ */
 function Bundles() {
   // Hook dịch thuật đa ngôn ngữ
   const { t } = useTranslation();
@@ -60,12 +73,15 @@ function Bundles() {
     (chrome) => chrome.setPrimaryNavigationAccessibilityHidden,
   );
   const blurTargetRef = React.useRef<View | null>(null);
+  // refreshShop: pull-to-refresh làm mới shop + balances (force = true)
   const refreshShop = React.useCallback(
     () => refreshShopAndBalances(true),
     []
   );
   const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
 
+  // Effect: ẩn primary navigation (tab bar) khỏi accessibility tree khi
+  // modal bundle đang mở; cleanup đặt lại false khi unmount/đóng modal.
   React.useEffect(() => {
     setPrimaryNavigationAccessibilityHidden(Boolean(selectedBundle));
     return () => setPrimaryNavigationAccessibilityHidden(false);

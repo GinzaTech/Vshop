@@ -82,6 +82,10 @@ export const RADIUS = {
   button: 14,
 };
 
+/**
+ * SPACING – Thang khoảng cách (px) thống nhất: xxs(4) → xxl(32).
+ * Dùng cho margin/padding/gap thay vì số lẻ tự chọn.
+ */
 export const SPACING = {
   xxs: 4,
   xs: 8,
@@ -92,6 +96,9 @@ export const SPACING = {
   xxl: 32,
 } as const;
 
+/**
+ * TYPOGRAPHY – Thang cỡ chữ (px) thống nhất: caption(12) → display(28).
+ */
 export const TYPOGRAPHY = {
   caption: 12,
   bodySmall: 14,
@@ -101,6 +108,10 @@ export const TYPOGRAPHY = {
   display: 28,
 } as const;
 
+/**
+ * LAYOUT – Hằng số bố cục chung: padding màn hình, gap giữa section,
+ * vùng chạm tối thiểu (44px theo chuẩn accessibility) và chiều cao bottom nav.
+ */
 export const LAYOUT = {
   screenPadding: 20,
   compactScreenPadding: 16,
@@ -137,6 +148,11 @@ function createShadow(
   };
 }
 
+/**
+ * SHADOWS – Bộ bóng chia cấp (xs → lg) tạo bởi createShadow.
+ * none: không bóng; xs/sm: card, chip; md: panel nổi;
+ * lg: chỉ dành cho sheet/dialog/popover (không dùng cho card).
+ */
 export const SHADOWS = {
   none: {} as ViewStyle,
   xs: createShadow(1, 4, 0.04, 1),

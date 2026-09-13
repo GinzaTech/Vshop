@@ -15,6 +15,20 @@ import Animated, {
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
 
+/**
+ * LoadingScreenProps – Props của LoadingScreen.
+ *
+ * @param message – (mặc định "Loading") Thông báo trạng thái hiển thị cạnh
+ *                  spinner; cũng là accessibilityLabel của toàn màn hình.
+ * @param showRecoveryActions – Nếu true, hiển thị panel phục hồi khi Riot
+ *                              services không truy cập được (nút Retry...).
+ * @param canUseCachedData – Nếu true, hiển thị thêm nút "Use cached data"
+ *                           trong panel phục hồi.
+ * @param onRetry – Callback khi bấm "Retry now" (chỉ hiện khi
+ *                  showRecoveryActions).
+ * @param onUseCachedData – Callback khi bấm "Use cached data" (chỉ hiện khi
+ *                          canUseCachedData).
+ */
 type LoadingScreenProps = {
   message?: string;
   showRecoveryActions?: boolean;
@@ -23,6 +37,22 @@ type LoadingScreenProps = {
   onUseCachedData?: () => void;
 };
 
+/**
+ * LoadingScreen – Màn hình skeleton splash khi app đang fetch dữ liệu.
+ * Cấu trúc: brand VSHOP, hàng trạng thái (spinner + message), panel phục hồi
+ * (tuỳ chọn) và skeleton nhấp nháy mô phỏng bố cục màn hình chính.
+ *
+ * @param message – Thông báo trạng thái (xem LoadingScreenProps).
+ * @param showRecoveryActions – Bật panel phục hồi khi Riot services lỗi.
+ * @param canUseCachedData – Cho phép tiếp tục bằng dữ liệu cache.
+ * @param onRetry – Callback nút "Retry now".
+ * @param onUseCachedData – Callback nút "Use cached data".
+ * @returns View full màn hình (accessibilityRole progressbar).
+ *
+ * Side effects: animation pulse (withRepeat withTiming 850ms, yoyo) trên
+ * shared value `pulse`; tôn trọng Reduce Motion (giữ opacity tĩnh);
+ * cleanup: cancelAnimation(pulse) khi unmount hoặc dependency đổi.
+ */
 export default function LoadingScreen({
   message = "Loading",
   showRecoveryActions = false,
@@ -30,9 +60,14 @@ export default function LoadingScreen({
   onRetry,
   onUseCachedData,
 }: LoadingScreenProps) {
+  // reduceMotion: bật Reduce Motion thì skeleton đứng yên
   const reduceMotion = useReducedMotion();
+  // pulse: shared value 0..1 điều khiển độ mờ skeleton (yoyo vô hạn)
   const pulse = useSharedValue(1);
 
+  // Effect: chạy animation pulse lặp vô hạn (850ms, đảo chiều);
+  // nếu Reduce Motion bật thì giữ pulse = 1 (opacity tĩnh 100%).
+  // Cleanup: cancelAnimation khi unmount/dependency đổi.
   React.useEffect(() => {
     if (reduceMotion) {
       pulse.value = 1;
@@ -44,6 +79,7 @@ export default function LoadingScreen({
     };
   }, [pulse, reduceMotion]);
 
+  // skeletonAnimatedStyle: map pulse → opacity 0.5..1 cho khối skeleton
   const skeletonAnimatedStyle = useAnimatedStyle(() => ({
     opacity: 0.5 + pulse.value * 0.5,
   }));

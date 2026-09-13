@@ -1,15 +1,33 @@
+// ===== DailyMatchSummaryCard.tsx =====
+// Card tóm tắt một ngày trong lịch sử trận đấu: ngày + số trận + chỉ số
+// trung bình (K/D, ADR, ACS) hiển thị inline dạng compact.
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import type { DailyMatchSummary } from "~/types/match-ui";
 import { formatMetric } from "~/utils/match-ui";
 
+/**
+ * DailyMatchSummaryCardProps – Props của DailyMatchSummaryCard.
+ *
+ * @param summary – Dữ liệu tóm tắt một ngày: nhãn ngày, số trận,
+ *                  K/D, ADR, ACS trung bình.
+ */
 type DailyMatchSummaryCardProps = {
   summary: DailyMatchSummary;
 };
 
+// DIVIDER_COLOR: Màu đường viền card và đường phân cách giữa các metric
 const DIVIDER_COLOR = "#343A44";
 
+/**
+ * DailyMatchSummaryCardComponent – Component nội bộ render card tóm tắt.
+ * Layout: [ngày] [badge số trận] | K/D · ADR · ACS (căn phải).
+ * Thuần presentational, không có side effect.
+ *
+ * @param summary – Dữ liệu tóm tắt ngày cần hiển thị (xem props type).
+ * @returns View card với ngày, số trận và 3 chỉ số trung bình.
+ */
 function DailyMatchSummaryCardComponent({
   summary,
 }: DailyMatchSummaryCardProps) {
@@ -104,6 +122,10 @@ const styles = StyleSheet.create({
   },
 });
 
+/**
+ * DailyMatchSummaryCard – Export memo hoá để dùng trong FlatList lịch sử trận;
+ * chỉ re-render khi summary thay đổi tham chiếu.
+ */
 export const DailyMatchSummaryCard = React.memo(
   DailyMatchSummaryCardComponent
 );

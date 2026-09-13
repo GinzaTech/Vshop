@@ -1,3 +1,7 @@
+// ===== match-ui.ts (mocks) – Dữ liệu mẫu cho màn hình trận & lịch sử =====
+// Dùng cho Storybook/preview/dev harness. Ảnh agent/vũ khí lấy trực tiếp
+// từ CDN media.valorant-api.com nên hiển thị y như dữ liệu thật.
+
 import type {
   MatchDetailViewModel,
   MatchHistoryRecord,
@@ -8,8 +12,10 @@ import type {
   WeaponPerformance,
 } from "~/types/match-ui";
 
+/** MOCK_MATCH_ID – ID của trận mock đầu tiên (khớp mockMatchDetail.match.id). */
 export const MOCK_MATCH_ID = "mock-match-001";
 
+// 10 agent thật (uuid từ valorant-api.com) — 5 cho team A, 5 cho team B.
 const AGENTS = [
   ["601dbbe7-43ce-be57-2a40-4abd24953621", "KAY/O"],
   ["add6443a-41bd-e414-f6ad-e58d267f4e95", "Jett"],
@@ -23,6 +29,7 @@ const AGENTS = [
   ["5f8d3a7f-467b-97f3-062c-13acf203c006", "Breach"],
 ] as const;
 
+// Tên người chơi mẫu; phần tử đầu tiên là "chính mình" (isCurrentUser).
 const PLAYER_NAMES = [
   "KONA#004",
   "Sry my bad#SEA",
@@ -36,16 +43,23 @@ const PLAYER_NAMES = [
   "Quiet Aim#GG",
 ] as const;
 
+// UUID vũ khí thật để sinh ảnh displayicon (Phantom, Vandal, Operator).
 const PHANTOM_ID = "63e6c2b6-4a8e-869c-4371-06c05d3d7bc4";
 const VANDAL_ID = "9c82e19d-4575-0200-1a81-3eacf00cf872";
 const OPERATOR_ID = "a03b24d3-4319-996d-0f8c-94bbfba1dfc7";
 
+/** agentImage – URL ảnh agent theo kind (displayicon | fullportrait). */
 const agentImage = (agentId: string, kind: "displayicon" | "fullportrait") =>
   `https://media.valorant-api.com/agents/${agentId}/${kind}.png`;
 
+/** weaponImage – URL ảnh displayicon của vũ khí theo uuid. */
 const weaponImage = (weaponId: string) =>
   `https://media.valorant-api.com/weapons/${weaponId}/displayicon.png`;
 
+/**
+ * mockPlayers – 10 scoreboard player sinh theo quy luật: chỉ số giảm dần
+ * theo index (kill/acs/adr...), index < 5 thuộc team A, index 0 là người dùng.
+ */
 const mockPlayers: ScoreboardPlayer[] = AGENTS.map(([agentId, agentName], index) => {
   const kills = Math.max(5, 24 - index * 2);
   const deaths = 10 + index;
@@ -81,6 +95,7 @@ const mockPlayers: ScoreboardPlayer[] = AGENTS.map(([agentId, agentName], index)
   };
 });
 
+/** mockPlayerRefs – Danh sách tham chiếu gọn từ mockPlayers (cho UI phụ). */
 const mockPlayerRefs: MatchPlayerRef[] = mockPlayers.map((player) => ({
   playerId: player.playerId,
   playerName: player.playerName,
@@ -90,6 +105,10 @@ const mockPlayerRefs: MatchPlayerRef[] = mockPlayers.map((player) => ({
   isCurrentUser: Boolean(player.isCurrentUser),
 }));
 
+/**
+ * mockRounds – 25 round sinh theo chu kỳ: đội thắng, side attack/defense,
+ * kết thức round và 2 sự kiện (1 kill + round_end) xoay quanh "mock-kona".
+ */
 const mockRounds: RoundDetail[] = Array.from({ length: 25 }, (_, index) => {
   const winningTeam = index % 5 === 2 || index % 7 === 0 ? "B" : "A";
   const teamAKills = index % 3 === 0 ? 2 : 1;
@@ -126,6 +145,7 @@ const mockRounds: RoundDetail[] = Array.from({ length: 25 }, (_, index) => {
   };
 });
 
+/** mockWeapons – Hiệu suất 3 vũ khí chính (Phantom/Vandal/Operator). */
 const mockWeapons: WeaponPerformance[] = [
   {
     weaponId: PHANTOM_ID,
@@ -150,6 +170,11 @@ const mockWeapons: WeaponPerformance[] = [
   },
 ];
 
+/**
+ * buildMockPerformance – Dựng PlayerMatchPerformance cho một player:
+ * summary từ scoreboard, sideStats chia defense/attack theo tỉ lệ cố định,
+ * danh sách đối đầu với team kia và bảng vũ khí dùng chung.
+ */
 const buildMockPerformance = (
   player: ScoreboardPlayer,
   index: number
@@ -203,6 +228,10 @@ const buildMockPerformance = (
   };
 };
 
+/**
+ * mockMatchDetail – ViewModel chi tiết trận mock hoàn chỉnh:
+ * 13–11 trên Breeze, 25 round, kinh tế theo round và performance 10 người.
+ */
 export const mockMatchDetail: MatchDetailViewModel = {
   match: {
     id: MOCK_MATCH_ID,
@@ -236,8 +265,13 @@ export const mockMatchDetail: MatchDetailViewModel = {
   ),
 };
 
+// Mốc thời gian trận mock đầu tiên; các trận sau cách nhau 4.5 giờ.
 const MOCK_START = new Date("2026-07-23T08:37:00+07:00").getTime();
 
+/**
+ * mockMatchHistory – 8 bản ghi lịch sử ranked mock: xen kẽ thắng/thua,
+ * chỉ số giảm dần theo index, xoay vòng agent/map; bản ghi đầu trùng MOCK_MATCH_ID.
+ */
 export const mockMatchHistory: MatchHistoryRecord[] = Array.from(
   { length: 8 },
   (_, index) => {

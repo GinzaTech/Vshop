@@ -2,14 +2,25 @@ import React from "react";
 
 import SkinShowcaseCard from "~/components/SkinShowcaseCard";
 
+/**
+ * GalleryWeaponProps – Props của GalleryWeapon.
+ *
+ * @param item – Item vũ khí trong gallery (GalleryItem) cần hiển thị.
+ */
 interface GalleryWeaponProps {
   item: GalleryItem;
 }
 
 /**
- * Gallery shares Store's skin-card renderer. The gallery variant preserves
- * preview and double-tap wishlist behavior, while showing chroma count instead
- * of a VP price.
+ * GalleryWeapon – Card vũ khí trong gallery, tái dùng renderer của Store
+ * (SkinShowcaseCard) với variant="gallery": giữ nguyên preview và double-tap
+ * wishlist, nhưng hiển thị số chroma thay vì giá VP.
+ *
+ * @param item – Item gallery cần render (xem GalleryWeaponProps).
+ * @returns SkinShowcaseCard đã cấu hình cho gallery.
+ *
+ * React.memo comparator: chỉ re-render khi uuid, displayName, contentTierUuid,
+ * onWishlist, levels hoặc chromas đổi — bỏ qua thay đổi trường không liên quan.
  */
 const GalleryWeapon = React.memo(function GalleryWeapon({
   item,

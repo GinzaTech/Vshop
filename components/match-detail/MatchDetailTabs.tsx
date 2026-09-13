@@ -1,3 +1,5 @@
+// ===== MatchDetailTabs.tsx =====
+// Thanh tab màn chi tiết trận: chuyển giữa "Scoreboard" và "Performance".
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -7,13 +9,30 @@ import {
   MATCH_LAYOUT,
 } from "~/constants/MatchTheme";
 
+/**
+ * MatchDetailTab – Hai tab khả dụng: bảng tổng quan hoặc hiệu suất chi tiết.
+ */
 export type MatchDetailTab = "scoreboard" | "performance";
 
+/**
+ * MatchDetailTabsProps – Props của MatchDetailTabs.
+ *
+ * @param activeTab – Tab đang được chọn.
+ * @param onChange – Callback khi người dùng chọn tab khác.
+ */
 type MatchDetailTabsProps = {
   activeTab: MatchDetailTab;
   onChange: (tab: MatchDetailTab) => void;
 };
 
+/**
+ * MatchDetailTabs – Tab bar dạng tablist với indicator gạch chân tab active.
+ * Thuần presentational, không side effect.
+ *
+ * @param activeTab – Tab đang active.
+ * @param onChange – Callback đổi tab.
+ * @returns View tablist chứa 2 nút tab.
+ */
 export function MatchDetailTabs({
   activeTab,
   onChange,

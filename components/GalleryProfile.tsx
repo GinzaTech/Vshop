@@ -144,6 +144,7 @@ export interface WeaponMetadata {
   }[];
 }
 
+// WeaponMetadataMap: Map uuid vũ khí → metadata (tra cứu nhanh khi dựng card)
 export type WeaponMetadataMap = Record<string, WeaponMetadata>;
 
 // EquippedWeapon: Interface cho vũ khí đã trang bị (với skin, chroma, buddy)
@@ -193,10 +194,15 @@ export interface IdentityDetails {
   hideLevel: boolean;
 }
 
-// resolveCategory: Hàm xác định danh mục của vũ khí từ metadata
-// meta: WeaponMetadata (có thể undefined)
-// t: hàm dịch i18n (có thể undefined)
-// Trả về: tên danh mục (string) - ưu tiên shopData.categoryText, => category (phần cuối sau ::), => "Melee" nếu tên có melee, => "Other"
+/**
+ * resolveCategory – Hàm xác định danh mục của vũ khí từ metadata
+ * Ưu tiên shopData.categoryText, => category (phần cuối sau "::"),
+ * => "Melee" nếu tên có melee, => "Other"
+ *
+ * @param meta – WeaponMetadata (có thể undefined)
+ * @param t – Hàm dịch i18n (có thể undefined)
+ * @returns Tên danh mục (string) đã dịch nếu có hàm dịch
+ */
 export const resolveCategory = (meta?: WeaponMetadata, t?: TFunction): string => {
   if (!meta) return t ? t("equip_page.categories.Other") : "Other";
 
@@ -221,11 +227,15 @@ export const resolveCategory = (meta?: WeaponMetadata, t?: TFunction): string =>
   return t ? t("equip_page.categories.Other") : "Other";
 };
 
-// formatSpraySlot: Hàm format tên slot spray sang dạng có thể đọc được (dịch)
-// slot: tên slot gốc (có thể là UUID, key raw, hoặc tên có prefix)
-// t: hàm dịch i18n
-// Trả về: chuỗi đã dịch hoặc format
-// Xử lý: UUID template => key dịch, => sanitize (bỏ prefix, chuẩn hóa), => alias, => fallback default
+/**
+ * formatSpraySlot – Hàm format tên slot spray sang dạng có thể đọc được (dịch)
+ * Xử lý: UUID template => key dịch, => sanitize (bỏ prefix, chuẩn hóa),
+ * => alias, => fallback default
+ *
+ * @param slot – Tên slot gốc (có thể là UUID, key raw, hoặc tên có prefix)
+ * @param t – Hàm dịch i18n
+ * @returns Chuỗi đã dịch hoặc format
+ */
 export const formatSpraySlot = (slot: string, t: TFunction) => {
   // Thử tra cứu trực tiếp trong SPRAY_SLOT_TRANSLATIONS (với cả slot gốc và UPPERCASE)
   const upperSlot = slot.toUpperCase();
@@ -294,10 +304,13 @@ export const formatSpraySlot = (slot: string, t: TFunction) => {
   });
 };
 
-// buildMetadataTags: Hàm xây dựng mảng tag metadata cho weapon card
-// weapon: EquippedWeapon cần lấy metadata
-// Trả về: mảng string chứa chromaName (nếu khác skinName) và buddyName (nếu có)
-// Dùng Set để loại bỏ trùng lặp
+/**
+ * buildMetadataTags – Hàm xây dựng mảng tag metadata cho weapon card
+ * Dùng Set để loại bỏ trùng lặp
+ *
+ * @param weapon – EquippedWeapon cần lấy metadata
+ * @returns Mảng string chứa chromaName (nếu khác skinName) và buddyName (nếu có)
+ */
 export const buildMetadataTags = (weapon: EquippedWeapon) =>
   Array.from(
     new Set(

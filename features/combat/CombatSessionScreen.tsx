@@ -1,3 +1,9 @@
+// ===== CombatSessionScreen.tsx – Màn hình theo dõi trận đang chơi (landscape) =====
+// Màn hình duy nhất được phép khóa ngang (AGENTS.md mục 5): vào màn → lock
+// landscape, rời màn → trả về portrait. Hiển thị đội mình/đối thủ với rank,
+// hiệu suất ranked 5 trận (COMP) hoặc chỉ số trận live (MATCH), poll 10s.
+// Dữ liệu: useCombatStore (snapshot live/pregame) + session-insights (intel).
+
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -52,6 +58,10 @@ import {
   type StatsViewMode,
 } from "~/features/combat/session-insights";
 
+/**
+ * PregameSessionPlayer – Người chơi ở giai đoạn pregame (select agent):
+ * Subject (puuid), TeamID, CharacterID (agent), CompetitiveTier và trạng thái lock.
+ */
 type PregameSessionPlayer = {
   Subject: string;
   TeamID?: string;
@@ -64,18 +74,23 @@ export default function CombatSessionScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { width, height } = useWindowDimensions();
+  // Màn hình "chật" (điện thoại ngang nhỏ) → dùng layout compact.
   const isTight = width < 800 || height < 380;
   const user = useUserStore((state) => state.user);
   const assets = getAssets();
   const agents = getAgent().agents;
+  // Snapshot phiên trận từ store: state live/pregame/idle + tên theo subject.
   const snapshot = useCombatStore((state) => state.snapshot);
   const loading = useCombatStore((state) => state.loading);
   const fetchSession = useCombatStore((state) => state.fetchSession);
   const [orientationReady, setOrientationReady] = React.useState(false);
   const [orientationLocked, setOrientationLocked] = React.useState(false);
+  // Subject của người chơi đang mở modal chi tiết (null = đóng).
   const [selectedSubject, setSelectedSubject] = React.useState<string | null>(null);
+  // Nguồn chỉ số đang hiển thị: "competitive" (5 trận ranked) | "match" (trận live).
   const [statsViewMode, setStatsViewMode] =
     React.useState<StatsViewMode>("competitive");
+  // Intel rank + hiệu suất theo subject (chỉ số hiển thị từng người chơi).
   const [playerIntel, setPlayerIntel] = React.useState<Record<string, PlayerIntel>>({});
   const [competitivePerformance, setCompetitivePerformance] = React.useState<
     Record<string, CompetitivePerformance>
@@ -84,6 +99,7 @@ export default function CombatSessionScreen() {
     Record<string, MatchPerformance>
   >({});
 
+  // Back hardware khi modal đang mở → chỉ đóng modal, không thoát màn hình.
   React.useEffect(() => {
     if (!selectedSubject) return;
 
@@ -94,6 +110,10 @@ export default function CombatSessionScreen() {
     return () => subscription.remove();
   }, [selectedSubject]);
 
+  /**
+   * tierLookup – Map tier number → asset rank (icon/tên) từ set tier mới nhất
+   * của assets.competitiveTiers; set nào có tier max cao hơn sẽ được chọn.
+   */
   const tierLookup = React.useMemo(() => {
     const tierSets = Array.isArray(assets.competitiveTiers)
       ? assets.competitiveTiers
@@ -121,11 +141,13 @@ export default function CombatSessionScreen() {
     return map;
   }, [assets.competitiveTiers]);
 
+  /** loadSnapshot – Tải lại session (live/pregame/idle) từ useCombatStore. */
   const loadSnapshot = React.useCallback(async () => {
     await fetchSession(user);
   }, [fetchSession, user]);
   const { refreshing, onRefresh } = useAsyncRefresh(loadSnapshot);
 
+  // Focus effect 1: khóa landscape khi vào màn, trả portrait khi rời màn.
   useFocusEffect(
     React.useCallback(() => {
       let active = true;
@@ -153,6 +175,7 @@ export default function CombatSessionScreen() {
   // 10s tiếp tục chạy ngầm (6 request/phút) khi user đang ở tab khác.
   const [isScreenFocused, setIsScreenFocused] = React.useState(true);
 
+  // Focus effect 2: load snapshot ngay khi focus + đánh dấu screen có focus.
   useFocusEffect(
     React.useCallback(() => {
       setIsScreenFocused(true);
@@ -172,6 +195,7 @@ export default function CombatSessionScreen() {
     return () => clearInterval(interval);
   }, [isScreenFocused, loadSnapshot, snapshot.state]);
 
+  // Đạo hàm hiển thị: map/queue của trận hiện tại (live ưu tiên, fallback pregame).
   const matchData = snapshot.currentGameMatch;
   const pregameData = snapshot.pregameMatch;
   const activeMapId = matchData?.MapID || pregameData?.MapID;
@@ -184,6 +208,12 @@ export default function CombatSessionScreen() {
     pregameData?.Mode;
   const queueLabel = formatSessionQueueLabel(rawQueueLabel, t);
 
+  /**
+   * teams – Chuẩn hóa roster 2 đội theo snapshot state:
+   * - live: từ matchData.Players, đội mình xác định theo TeamID của user.
+   * - pregame: từ AllyTeam/EnemyTeam, ready = đã lock agent.
+   * Cả hai đều cắt còn MAX_TEAM_SIZE người mỗi đội.
+   */
   const teams = React.useMemo(() => {
     if (snapshot.state === "live" && matchData) {
       const current = matchData.Players.find((player) => player.Subject === user.id);
@@ -235,6 +265,8 @@ export default function CombatSessionScreen() {
     return { allies: [] as SessionPlayer[], enemies: [] as SessionPlayer[] };
   }, [matchData, pregameData, snapshot.state, user.id]);
 
+  // allPlayers: danh sách phẳng 10 người; playerSubjectKey: key ổn định
+  // (subject sort + join "|") để các effect fetch intel chỉ re-arm khi roster đổi.
   const allPlayers = React.useMemo(
     () => [...teams.allies, ...teams.enemies],
     [teams.allies, teams.enemies]
@@ -247,6 +279,8 @@ export default function CombatSessionScreen() {
     [allPlayers]
   );
 
+  // Effect: fetch intel rank từng người (MMR) — seed trạng thái loading,
+  // Promise.allSettled để lỗi 1 người không ảnh hưởng người khác; unmount guard.
   React.useEffect(() => {
     const subjects = playerSubjectKey ? playerSubjectKey.split("|") : [];
     if (
@@ -267,6 +301,7 @@ export default function CombatSessionScreen() {
       return next;
     });
 
+    // Fetch seasons + MMR từng người song song; lỗi từng người độc lập.
     const fetchRanks = async () => {
       const content = await getContent(
         user.accessToken,
@@ -311,6 +346,8 @@ export default function CombatSessionScreen() {
     user.region,
   ]);
 
+  // Effect: fetch hiệu suất ranked batch cho tất cả subject (có cache TTL).
+  // Lỗi toàn batch → đánh dấu "private" thay vì kẹt loading.
   React.useEffect(() => {
     const subjects = playerSubjectKey ? playerSubjectKey.split("|") : [];
     if (
@@ -373,6 +410,8 @@ export default function CombatSessionScreen() {
     user.region,
   ]);
 
+  // Effect: chỉ số trận live (chỉ chạy khi statsViewMode === "match" && live).
+  // Fetch match details + poll 10s; roster rỗng/mất data → EMPTY (unavailable).
   React.useEffect(() => {
     if (statsViewMode !== "match") return;
 
@@ -447,6 +486,11 @@ export default function CombatSessionScreen() {
     user.region,
   ]);
 
+  /**
+   * getPlayerPresentation – Tổng hợp dữ liệu hiển thị của 1 player:
+   * agent, intel rank, tên hiển thị (namesBySubject → agent → fallback),
+   * tier hiện tại/peak kèm icon và tên đã TitleCase.
+   */
   const getPlayerPresentation = React.useCallback(
     (player: SessionPlayer) => {
       const subjectKey = player.subject.toLocaleLowerCase("en-US");
@@ -484,6 +528,7 @@ export default function CombatSessionScreen() {
     [agents, playerIntel, snapshot.namesBySubject, t, tierLookup]
   );
 
+  // Người đang mở modal + người dùng hiện tại + chỉ số tương ứng của họ.
   const selectedPlayer = allPlayers.find(
     (player) => player.subject === selectedSubject
   ) || null;
@@ -505,6 +550,7 @@ export default function CombatSessionScreen() {
     currentPresentation?.displayName ||
     (user.TagLine ? `${user.name}#${user.TagLine}` : user.name) ||
     t("combat_session_page.player_fallback");
+  // Helper format chỉ số cho modal: "…" khi loading, "—" khi không có data.
   const selectedCompetitiveValue = (
     value: number | null,
     digits: number,
@@ -513,6 +559,7 @@ export default function CombatSessionScreen() {
     selectedPerformance.status === "loading"
       ? "…"
       : formatCompetitiveMetric(value, digits, suffix);
+  // Helper chỉ số trận live trong modal (giống trên nhưng 3 trạng thái).
   const selectedMatchValue = (
     value: number | null,
     digits: number,
@@ -523,6 +570,7 @@ export default function CombatSessionScreen() {
       : selectedMatchPerformance.status === "ready"
         ? formatCompetitiveMetric(value, digits, suffix)
         : "—";
+  // Bộ chỉ số hiển thị trong modal theo statsViewMode (KDA/HS/ACS hoặc K/D/WR/ACS/HS).
   const selectedModalStats: [string, string][] =
     statsViewMode === "match"
       ? [
@@ -550,6 +598,13 @@ export default function CombatSessionScreen() {
           ],
         ];
 
+  /**
+   * renderPlayerRow – Hàng một người chơi: avatar agent, tên + badge YOU,
+   * tên agent + cấp, rank hiện tại (icon + RR), dải chỉ số theo statsViewMode
+   * và khối peak rank + season ở mép phải. Bấm → mở modal chi tiết.
+   * @param {SessionPlayer} player - Người chơi cần render.
+   * @param {string} accent - Màu nhấn theo đội (cyan/red).
+   */
   const renderPlayerRow = (player: SessionPlayer, accent: string) => {
     const presentation = getPlayerPresentation(player);
     const subjectKey = player.subject.toLocaleLowerCase("en-US");
@@ -560,6 +615,7 @@ export default function CombatSessionScreen() {
       matchPerformance[subjectKey] || EMPTY_MATCH_PERFORMANCE;
     const rankLoading = presentation.intel.status === "loading";
     const performanceLoading = performance.status === "loading";
+    // Helper format trong hàng: "…" khi đang loading, còn lại qua formatCompetitiveMetric.
     const metricValue = (
       value: number | null,
       digits: number,
@@ -739,6 +795,15 @@ export default function CombatSessionScreen() {
     );
   };
 
+  /**
+   * renderTeam – Panel một đội: header (tên + side + số người), danh sách
+   * hàng người chơi, slot trống còn lại hoặc empty roster khi chưa có data.
+   * @param {SessionPlayer[]} players - Roster đã chuẩn hóa của đội.
+   * @param {string} label - Tên đội hiển thị (đã dịch).
+   * @param {string} accent - Màu nhấn chính (viền trên, chấm tên đội).
+   * @param {string} accentSoft - Nền nhạt của header.
+   * @param {string} sideLabel - Nhãn bên ("TEAM A"/"ALLY"...).
+   */
   const renderTeam = (
     players: SessionPlayer[],
     label: string,
@@ -778,9 +843,8 @@ export default function CombatSessionScreen() {
     );
   };
 
-  // Keep the session shell mounted until the native landscape lock has
-  // actually produced landscape dimensions. Rendering the dense desktop-like
-  // layout during that one-frame rotation was the source of the white band.
+  // Kiểm tra khóa orientation trước khi render shell dày đặc: tránh vẽ layout
+  // desktop-dense trong 1 frame xoay màn (nguồn của dải trắng giữa màn hình).
   const landscapeViewportReady = !orientationLocked || width >= height;
 
   if (!orientationReady || !landscapeViewportReady) {
@@ -792,6 +856,7 @@ export default function CombatSessionScreen() {
     );
   }
 
+  // Nhãn trạng thái phiên: LIVE / PREGAME / IDLE.
   const statusLabel =
     snapshot.state === "live"
       ? t("combat_session_page.session_live")
@@ -813,6 +878,7 @@ export default function CombatSessionScreen() {
       >
       <View style={[styles.landscapeContent, isTight && styles.landscapeContentTight]}>
         <View style={[styles.trackerHeader, isTight && styles.trackerHeaderTight]}>
+          {/* Header tracker: ảnh map nền + scrim + nhóm điều khiển trái/phải */}
           {mapImage ? (
             <Image
               cacheId={`map:${mapInfo?.uuid || activeMapId}:tracker`}
@@ -826,6 +892,7 @@ export default function CombatSessionScreen() {
           ) : null}
           <View style={styles.headerScrim} pointerEvents="none" />
 
+          {/* Khối trái: nút back + avatar/tên người dùng + rank hiện tại */}
           <View style={styles.headerPlayer}>
             <Pressable
               accessibilityRole="button"
@@ -866,6 +933,7 @@ export default function CombatSessionScreen() {
             </View>
           </View>
 
+          {/* Khối giữa: tên map + queue */}
           <View style={styles.headerMatch}>
             <Text style={styles.headerMapName} numberOfLines={1}>
               {mapInfo?.displayName || t("combat_session_page.no_map")}
@@ -875,6 +943,7 @@ export default function CombatSessionScreen() {
             </Text>
           </View>
 
+          {/* Khối phải: toggle COMP/MATCH + trạng thái live + nút refresh */}
           <View style={styles.headerActions}>
             <Pressable
               accessibilityRole="button"
@@ -958,6 +1027,7 @@ export default function CombatSessionScreen() {
           </View>
         </View>
 
+        {/* Thanh tóm tắt: số người chơi, map, queue, số người có rank data */}
         <View style={[styles.summaryBar, isTight && styles.summaryBarTight]}>
           <View style={styles.summaryItem}>
             <Icon name="account-group-outline" size={14} color={TRACKER_COLORS.cyan} />
@@ -994,6 +1064,7 @@ export default function CombatSessionScreen() {
           </View>
         </View>
 
+        {/* Idle → empty state; còn lại → bảng 2 đội */}
         {snapshot.state === "idle" ? (
           <View style={styles.emptyState}>
             {loading ? (
@@ -1033,6 +1104,7 @@ export default function CombatSessionScreen() {
       </View>
       </ScrollView>
 
+      {/* Modal chi tiết người chơi (backdrop bấm để đóng + panel thông tin) */}
       {selectedPlayer && selectedPresentation ? (
         <View style={styles.modalRoot}>
           <Pressable
@@ -1044,6 +1116,7 @@ export default function CombatSessionScreen() {
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.playerModal}>
+              {/* Header modal: avatar/tên/agent + switch COMP/MATCH + nút đóng */}
               <View style={styles.modalHeader}>
                 <View style={styles.modalIdentity}>
                   <View style={styles.modalAvatar}>
@@ -1137,6 +1210,7 @@ export default function CombatSessionScreen() {
                 </View>
               </View>
 
+              {/* Grid rank: card rank hiện tại + card peak (icon, tên, RR/season) */}
               <View style={styles.modalRankGrid}>
                 <View style={styles.modalRankCard}>
                   {selectedPresentation.currentIcon ? (
@@ -1198,6 +1272,7 @@ export default function CombatSessionScreen() {
                 </View>
               </View>
 
+              {/* Bộ chỉ số theo mode hiện tại (KDA/K-D/WR/ACS/HS) */}
               <View style={styles.modalStats}>
                 {selectedModalStats.map(([label, value]) => (
                   <View key={label} style={styles.modalStat}>
@@ -1207,6 +1282,7 @@ export default function CombatSessionScreen() {
                 ))}
               </View>
 
+              {/* Form gần đây (W/L/D + delta RR) — chỉ khi mode competitive & ready */}
               {statsViewMode === "competitive" &&
               selectedPerformance.status === "ready" ? (
                 <View style={styles.modalRecentForm}>
@@ -1273,6 +1349,7 @@ export default function CombatSessionScreen() {
                 </View>
               ) : null}
 
+              {/* Thông báo loading dữ liệu rank hoặc hồ sơ riêng tư */}
               {selectedPresentation.intel.status === "loading" ||
               (statsViewMode === "competitive"
                 ? selectedPerformance.status === "loading"

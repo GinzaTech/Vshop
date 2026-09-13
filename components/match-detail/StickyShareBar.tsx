@@ -1,3 +1,5 @@
+// ===== StickyShareBar.tsx =====
+// Thanh chia sẻ cố định đáy màn chi tiết trận, chèn safe-area bottom.
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -11,10 +13,23 @@ import {
   MATCH_SPACING,
 } from "~/constants/MatchTheme";
 
+/**
+ * StickyShareBarProps – Props của StickyShareBar.
+ *
+ * @param onShare – Callback khi bấm nút chia sẻ trận.
+ */
 type StickyShareBarProps = {
   onShare: () => void;
 };
 
+/**
+ * StickyShareBar – Thanh nút "Chia sẻ" full-width ghim dưới màn hình.
+ * Padding dưới tự thích ứng safe-area (insets.bottom, tối thiểu 6).
+ * Thuần presentational, không side effect.
+ *
+ * @param onShare – Callback chia sẻ (xem StickyShareBarProps).
+ * @returns View thanh ngang chứa nút share.
+ */
 export function StickyShareBar({ onShare }: StickyShareBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();

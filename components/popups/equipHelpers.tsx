@@ -12,9 +12,12 @@ export const EQUIPMENT_SECTIONS = [
   { key: "titles", labelKey: "equip_page.sections.titles" },
 ] as const;
 
+// EquipmentSectionKey: Union các key section hợp lệ, suy ra từ EQUIPMENT_SECTIONS
 export type EquipmentSectionKey =
   (typeof EQUIPMENT_SECTIONS)[number]["key"];
 
+// EquipmentAsset: Item thô của một thiết bị từ Valorant assets (có thể thiếu
+// nhiều trường ảnh; levels chứa danh sách cấp với icon riêng)
 type EquipmentAsset = {
   uuid: string;
   displayName: string;
@@ -32,6 +35,8 @@ type EquipmentAsset = {
   }[];
 };
 
+// EquipmentDisplayItem: Item đã chuẩn hoá cho equip page/galleries
+// id: UUID (hoặc fallback); subtitle: text phụ theo section; item: asset gốc
 export type EquipmentDisplayItem = {
   id: string;
   displayName: string;

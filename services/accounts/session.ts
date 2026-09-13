@@ -33,6 +33,9 @@ import {
   setInteractiveAuthentication,
 } from "~/utils/session-operations";
 
+/** Kết quả chuyển tài khoản: switched (OK) / reauth-required (cần đăng nhập lại
+ *  thủ công) / missing (không tìm thấy account) / busy (đang có tác vụ khác) /
+ *  failed (lỗi không phân loại được). */
 export type SwitchAccountResult =
   | { kind: "switched" }
   | { kind: "reauth-required" }
@@ -40,22 +43,31 @@ export type SwitchAccountResult =
   | { kind: "busy" }
   | { kind: "failed" };
 
+// Cờ module-level: chỉ cho phép MỘT luồng switch chạy trong cùng thời điểm.
 let switchInProgress = false;
 
+/** Đang có luồng chuyển tài khoản chạy hay không (UI dùng để khóa nút). */
 export const isAccountSwitchInProgress = () => switchInProgress;
+/** Phục hồi phiên (renew nền) có bị tạm dừng hay không — đúng khi đang switch
+ *  hoặc đang trong luồng đăng nhập tương tác (WebView login/sign-out). */
 export const isSessionRecoveryPaused = () =>
   switchInProgress || isInteractiveAuthentication();
 
+// Dedup renew phiên: key = generation|sessionKey|token cũ → promise chung.
+// Nhiều request nền cùng thấy token hết hạn chỉ tạo MỘT luồng renew thật.
 const renewalRequests = new Map<string, Promise<typeof defaultUser>>();
 
-// Android can lose session cookies after process death or a cancelled login.
-// A remaining Cloudflare cookie must not replace the saved Riot session.
+// Android có thể mất cookie phiên sau khi process chết hoặc login bị hủy;
+// cookie Cloudflare còn sót lại KHÔNG được thay thế phiên Riot đã lưu.
 const captureSessionCookies = async () => {
   const cookies = await captureRiotAuthCookies("network");
   return hasUnexpiredAuthCookies(cookies) ? cookies : [];
 };
 
-/** Drain native auth work before mounting a WebView or replacing its cookies. */
+/** Chuẩn bị luồng đăng nhập tương tác: khóa recovery nền và (tùy chọn)
+ *  dọn cookie trước khi mount WebView. Snapshot cookie phiên hiện tại được
+ *  lưu vào account đã lưu trước khi xóa, tránh mất phiên khi hủy login.
+ *  @param clearCookies - true để chụp + lưu cookie cũ rồi clear toàn bộ. */
 export async function prepareInteractiveAuthentication(clearCookies = false) {
   setInteractiveAuthentication(true);
   await runSessionOperation(async () => {
@@ -70,9 +82,13 @@ export async function prepareInteractiveAuthentication(clearCookies = false) {
   });
 }
 
+/** Kết thúc luồng đăng nhập tương tác — mở khóa recovery nền trở lại. */
 export const finishInteractiveAuthentication = () =>
   setInteractiveAuthentication(false);
 
+/** Đăng xuất tài khoản Riot hiện tại: reset user store, xóa toàn bộ account
+ *  đã lưu, dọn warm cache theo session, xóa cookie + region đã lưu.
+ *  Chạy trong runSessionOperation để không đụng độ tác vụ mạng khác. */
 export async function signOutRiotAccount() {
   setInteractiveAuthentication(true);
   disconnectChatService();
@@ -92,6 +108,7 @@ export async function signOutRiotAccount() {
   }
 }
 
+/** Tìm account đã lưu theo id (chuẩn hóa id trước khi so sánh). */
 const findSavedAccount = (accountId: string) => {
   const normalizedId = normalizeAccountId(accountId);
   return useAccountStore
@@ -101,6 +118,8 @@ const findSavedAccount = (accountId: string) => {
     );
 };
 
+/** Thay toàn bộ cookie jar native: xóa sạch nếu rỗng, ngược lại restore
+ *  snapshot cookie Riot. @returns true nếu restore thành công. */
 const replaceCookieJar = async (cookies?: readonly RiotAuthCookie[]) => {
   if (!cookies?.length) {
     await clearAllCookies(true);
@@ -109,7 +128,11 @@ const replaceCookieJar = async (cookies?: readonly RiotAuthCookie[]) => {
   return restoreRiotAuthCookies(cookies);
 };
 
-/** Khôi phục cookie của tài khoản đang active, chủ yếu khi hủy add/switch. */
+/**
+ * Khôi phục cookie của tài khoản ĐANG active vào cookie jar native — dùng chủ
+ * yếu khi người dùng hủy add/switch account để trạng thái native khớp store.
+ * @returns true nếu có cookie được restore; false nếu clear jar.
+ */
 export const restoreCurrentAccountAuthCookies = async () => {
   invalidateSessionOperations();
   return runSessionOperation(async () => {
@@ -122,6 +145,11 @@ export const restoreCurrentAccountAuthCookies = async () => {
 /**
  * Làm mới đúng tài khoản đang active. Cookie snapshot được khôi phục trước khi
  * gọi Riot và subject của token mới tiếp tục được kiểm tra trong auth-session.
+ * Có dedup: nhiều caller cùng seedUser/token cũ chia sẻ MỘT promise renew.
+ * assertCurrent được gọi quanh từng await — session đổi chủ giữa chừng sẽ
+ * ném SessionChangedError thay vì ghi token của tài khoản khác lên phiên mới.
+ * @param seedUser - User (token cũ) cần làm mới.
+ * @returns User mới đã thay access/id/entitlements token + region.
  */
 export function renewSavedAccountSession(
   seedUser: typeof defaultUser
@@ -190,6 +218,9 @@ export function renewSavedAccountSession(
   return request;
 }
 
+/** Chuyển sang tài khoản đã lưu: restore cookie đích → renew phiên nếu token
+ *  chết → sync toàn bộ dữ liệu lõi → chỉ hoàn tất khi mọi bước OK; lỗi bất kỳ
+ *  sẽ rollback store + cookie về tài khoản cũ. Trả { kind } (xem type trên). */
 export async function switchSavedAccount(
   accountId: string
 ): Promise<SwitchAccountResult> {
@@ -203,6 +234,9 @@ export async function switchSavedAccount(
   }
 }
 
+/** Nội bộ của switchSavedAccount (đã nằm trong runSessionOperation):
+ *  các bước chuẩn bị → restore/refresh cookie → activate → sync → commit.
+ *  Mọi bước bất đồng bộ đều chèn assertCurrent để hủy an toàn khi phiên đổi. */
 async function switchSavedAccountInternal(
   accountId: string
 ): Promise<SwitchAccountResult> {

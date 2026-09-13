@@ -41,6 +41,7 @@ function AccessoryShop() {
   const { t } = useTranslation();
   const user = useUserStore((state) => state.user);
   const [query, setQuery] = React.useState(""); // Input tìm kiếm
+  // refreshShop: pull-to-refresh làm mới accessory shop + balances
   const refreshShop = React.useCallback(
     () => refreshShopAndBalances(true),
     []

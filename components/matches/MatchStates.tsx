@@ -18,15 +18,24 @@ import {
   MATCH_SPACING,
 } from "~/constants/MatchTheme";
 
-// Single shared shimmer loop — ALL skeletons interpolate from this ONE value
-// One shared native-driver loop avoids per-component animation work.
+// Vòng lặp shimmer dùng chung — TẤT CẢ skeleton cùng interpolate từ MỘT giá trị
+// Một shared native-driver loop duy nhất tránh tốn animation work cho từng
+// component riêng lẻ.
 const shimmerValue = new Animated.Value(0);
 let shimmerLoop: Animated.CompositeAnimation | null = null;
 let shimmerSubscriberCount = 0;
 
 /**
- * Start the shared shimmer only after a skeleton mounts. Module-level starts
- * execute during Expo web SSR where requestAnimationFrame does not exist.
+ * useSharedShimmerLoop – Hook tham gia vòng lặp shimmer dùng chung (ref-count).
+ * Chỉ start loop khi có ít nhất một skeleton mount (tránh chạy lúc module-level
+ * trên Expo web SSR nơi requestAnimationFrame không tồn tại).
+ *
+ * @returns void (không trả giá trị)
+ *
+ * Side effects: tăng shimmerSubscriberCount; tạo và start Animated.loop
+ * (1200ms, ease in-out, native driver trừ web) nếu chưa có; tôn trọng
+ * Reduce Motion (không tham gia loop). Cleanup khi unmount: giảm counter,
+ * khi về 0 thì stop + reset loop và shimmerValue.
  */
 const useSharedShimmerLoop = () => {
   const reduceMotion = useMotionPreference();
@@ -59,6 +68,18 @@ const useSharedShimmerLoop = () => {
   }, [reduceMotion]);
 };
 
+/**
+ * MatchStatePanelProps – Props của MatchStatePanel (panel lỗi/rỗng).
+ *
+ * @param icon – Icon trạng thái: "history" (rỗng) hoặc "alert-circle-outline".
+ * @param title – Tiêu đề trạng thái.
+ * @param body – Mô tả chi tiết bên dưới tiêu đề.
+ * @param primaryLabel – Nhãn nút hành động chính (VD: "Thử lại").
+ * @param onPrimaryPress – Callback khi bấm nút chính.
+ * @param secondaryLabel – (tuỳ chọn) Nhãn nút phụ (VD: "Quay lại").
+ * @param onSecondaryPress – (tuỳ chọn) Callback nút phụ; cần đủ cả label
+ *                           mới render nút.
+ */
 type MatchStatePanelProps = {
   icon: "history" | "alert-circle-outline";
   title: string;
@@ -69,6 +90,20 @@ type MatchStatePanelProps = {
   onSecondaryPress?: () => void;
 };
 
+/**
+ * MatchStatePanel – Panel trạng thái (danh sách trống / lỗi tải).
+ * Hiển thị icon, title, body và hàng nút hành động (primary + secondary tuỳ
+ * chọn). Có accessibilityLiveRegion="polite" để screen reader đọc khi đổi.
+ *
+ * @param icon – Icon trạng thái.
+ * @param title – Tiêu đề.
+ * @param body – Mô tả.
+ * @param primaryLabel – Nhãn nút chính.
+ * @param onPrimaryPress – Callback nút chính.
+ * @param secondaryLabel – Nhãn nút phụ (tuỳ chọn).
+ * @param onSecondaryPress – Callback nút phụ (tuỳ chọn).
+ * @returns View panel căn giữa với các nút hành động.
+ */
 export function MatchStatePanel({
   icon,
   title,
@@ -113,6 +148,13 @@ export function MatchStatePanel({
   );
 }
 
+/**
+ * SkeletonBlock – Khối xám nhấp nháy dùng chung cho mọi skeleton.
+ * Opacity interpolate từ shimmerValue dùng chung (0.4 → 0.85 → 0.4).
+ *
+ * @param style – ViewStyle xác định kích thước/bo góc của khối.
+ * @returns Animated.View với opacity đồng bộ vòng lặp shimmer.
+ */
 const SkeletonBlock = ({ style }: { style: ViewStyle }) => {
   const opacity = shimmerValue.interpolate({
     inputRange: [0, 0.5, 1],
@@ -121,6 +163,12 @@ const SkeletonBlock = ({ style }: { style: ViewStyle }) => {
   return <Animated.View style={[styles.skeletonBlock, style, { opacity }]} />;
 };
 
+/**
+ * MatchCardSkeleton – Skeleton mô phỏng một MatchCard: hàng trên (avatar,
+ * dòng chữ, tỉ số, badge) + hàng 5 ô metric. Tham gia shimmer loop chung.
+ *
+ * @returns View skeleton có accessibilityLabel "Loading match".
+ */
 export const MatchCardSkeleton = React.memo(function MatchCardSkeleton() {
   useSharedShimmerLoop();
 
@@ -144,6 +192,12 @@ export const MatchCardSkeleton = React.memo(function MatchCardSkeleton() {
   );
 });
 
+/**
+ * MatchListSkeleton – Skeleton cả danh sách: khối "ngày" + 4 MatchCardSkeleton.
+ * Tham gia shimmer loop chung.
+ *
+ * @returns View chứa dãy skeleton của màn hình lịch sử trận.
+ */
 export function MatchListSkeleton() {
   useSharedShimmerLoop();
 
@@ -157,6 +211,12 @@ export function MatchListSkeleton() {
   );
 }
 
+/**
+ * MatchDetailSkeleton – Skeleton màn hình chi tiết trận: header (mode, map,
+ * meta), hàng tabs, khối chart + 7 hàng scoreboard. Tham gia shimmer chung.
+ *
+ * @returns View skeleton full màn hình chi tiết.
+ */
 export function MatchDetailSkeleton() {
   useSharedShimmerLoop();
 

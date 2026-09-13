@@ -196,14 +196,29 @@ function RootLayout() {
     (pathname === "/history" || pathname.startsWith("/match_details/"));
   const requiredScreenOrientation = getScreenOrientationForPathname(pathname);
 
+  /**
+   * requestStartupRetry — Yêu cầu vòng bootstrap thử lại ngay lập tức.
+   * Được bắn khi user bấm "Retry" trên LoadingScreen ở giai đoạn startup.
+   * Side effect: resolve promise đang chờ trong waitForRecovery với "retry"
+   * (reset backoff delay về 1.5s).
+   */
   const requestStartupRetry = useCallback(() => {
     startupWaitResolverRef.current?.("retry");
   }, []);
 
+  /**
+   * requestCachedStartup — Yêu cầu bootstrap dùng dữ liệu cache đã lưu.
+   * Được bắn khi user chọn "Use cached data" trên LoadingScreen (chỉ hiện
+   * khi hasUsableStartupCache cho phép). Side effect: điều hướng /profile
+   * bằng dữ liệu cache thay vì chờ sync thành công.
+   */
   const requestCachedStartup = useCallback(() => {
     startupWaitResolverRef.current?.("cache");
   }, []);
 
+  // Effect: Đồng bộ màu hệ điều hành (SystemUI) và animate màu SafeAreaView
+  // theo tone của top inset (dark/light). Re-run khi topInsetTone đổi hoặc
+  // khi Reduce Motion bật/tắt (duration = 0 nếu reduce motion).
   useEffect(() => {
     const topInsetColor =
       topInsetTone === "dark"
@@ -230,6 +245,8 @@ function RootLayout() {
     return () => clearTimeout(hideTimer);
   }, [hydrated]);
 
+  // Animated style: nội suy màu nền SafeAreaView giữa background app và đen
+  // theo tiến độ topInsetProgress (chạy trên UI thread bằng Reanimated).
   const topInsetAnimatedStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
       topInsetProgress.value,

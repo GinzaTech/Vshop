@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Only stamp the background match-sync TTL when the match store reports a successful refresh, so transient failures remain immediately retryable.
+- Scope shop/balance and Combat in-flight requests to the credentials that created them, allowing the first request after token renewal to run instead of joining an expired request.
+- Reference-count overlapping full-sync guards per account so one completed request cannot expose another full sync that is still running.
+
 ## [4.1.6] - 2026-09-13
 
 ### Fixed — logic audit

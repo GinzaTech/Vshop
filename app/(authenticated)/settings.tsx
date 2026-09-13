@@ -85,9 +85,15 @@ function Settings() {
   const [switchingAccountId, setSwitchingAccountId] = React.useState<
     string | null
   >(null);
+  // refreshApp: pull-to-refresh chạy full sync nền (force = true)
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
+  /**
+   * accountRows – Danh sách account đã lưu để render (memoized).
+   * Account hiện tại luôn đứng đầu: nếu chưa có trong savedAccounts thì
+   * chèn tạm bản build từ user; còn lại sort theo lastUsedAt giảm dần.
+   */
   const accountRows = React.useMemo(() => {
     const currentId = normalizeAccountId(user.id);
     const hasCurrentAccount = savedAccounts.some(
@@ -117,11 +123,21 @@ function Settings() {
     router.replace("/setup");
   };
 
+  // handleAddAccount: mở flow đăng nhập thêm account mới (mode "add").
+  // Side effects: chuẩn bị interactive auth, điều hướng /reauth?mode=add.
   const handleAddAccount = async () => {
     await prepareInteractiveAuthentication(true);
     router.push({ pathname: "/reauth", params: { mode: "add" } });
   };
 
+  /**
+   * handleSwitchAccount – Chuyển sang account đã lưu khác.
+   * @param {string} accountId – ID account đích. Bỏ qua nếu trùng account
+   *   hiện tại hoặc đang có một lần chuyển khác chạy (switchingAccountId).
+   * Theo kết quả: "switched" → /profile; "reauth-required" → /reauth
+   * mode "switch"; "failed" → Alert lỗi.
+   * Side effects: setState switchingAccountId, navigation.
+   */
   const handleSwitchAccount = async (accountId: string) => {
     if (
       normalizeAccountId(accountId) === normalizeAccountId(user.id) ||
@@ -158,6 +174,8 @@ function Settings() {
     }
   };
 
+  // confirmRemoveAccount: hiện Alert xác nhận trước khi xóa account đã lưu
+  // khỏi useAccountStore (action destructive, không ảnh hưởng account khác)
   const confirmRemoveAccount = (account: SavedAccount) => {
     Alert.alert(
       t("settings_page.accounts.remove_title"),

@@ -627,6 +627,12 @@ export class XMPPClient {
     }
   }
 
+  // Phương thức private: đánh dấu socket đã chết, dọn dẹp và chuyển sang
+  // trạng thái lỗi để tầng trên (chat-service) lên lịch reconnect.
+  // Chỉ xử lý nếu socket lỗi vẫn là socket đang hoạt động (bỏ qua socket cũ).
+  // Parameters:
+  //   - socket: socket gặp sự cố
+  //   - error: lỗi kèm theo (Error hoặc giá trị bất kỳ)
   private markSocketFailed(socket: XmppSocket, error: unknown) {
     if (this.client !== socket) return;
 

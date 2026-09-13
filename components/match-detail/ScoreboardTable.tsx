@@ -1,3 +1,6 @@
+// ===== ScoreboardTable.tsx =====
+// Bảng tổng quan trận: cột người chơi cố định (agent, tên, marker đội) +
+// vùng chỉ số cuộn ngang với nhiều cột sắp xếp được (ACS, K, D, K/D, ADR...).
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
@@ -28,11 +31,25 @@ import {
   formatSigned,
 } from "~/utils/match-ui";
 
+/**
+ * ScoreboardTableProps – Props của ScoreboardTable.
+ *
+ * @param players – Danh sách 10 người chơi trong trận (điểm số, agent, rank).
+ * @param onSelectPlayer – Callback khi bấm một người chơi (mở tab hiệu suất).
+ */
 type ScoreboardTableProps = {
   players: ScoreboardPlayer[];
   onSelectPlayer: (playerId: string) => void;
 };
 
+/**
+ * ColumnDefinition – Định nghĩa một cột chỉ số trong bảng.
+ *
+ * @property id – Định danh cột (khớp ScoreboardColumn).
+ * @property label – Nhãn hiển thị trên header.
+ * @property width – Độ rộng cột (px).
+ * @property sortable – (tuỳ chọn) Cột có sắp xếp được không.
+ */
 type ColumnDefinition = {
   id: ScoreboardColumn;
   label: string;
@@ -40,6 +57,12 @@ type ColumnDefinition = {
   sortable?: boolean;
 };
 
+/**
+ * numericValue – Lấy giá trị thô của một cột cho người chơi (dùng so sánh).
+ * @param player – Người chơi cần lấy giá trị.
+ * @param column – Cột cần lấy.
+ * @returns Số (đa số cột) hoặc chuỗi (cột rank); undefined nếu không có.
+ */
 const numericValue = (
   player: ScoreboardPlayer,
   column: ScoreboardColumn
@@ -48,6 +71,15 @@ const numericValue = (
   return player[column];
 };
 
+/**
+ * sortPlayers – Sắp xếp danh sách người chơi theo trạng thái sort hiện tại.
+ * Giá trị chuỗi so bằng localeCompare, số so bằng hiệu; undefined coi như
+ * -Infinity (xuất hiện cuối). Không mutate mảng gốc.
+ *
+ * @param players – Danh sách gốc.
+ * @param sort – Trạng thái sort { column, direction }.
+ * @returns Mảng mới đã sắp xếp (hoặc nguyên bản nếu chưa chọn sort).
+ */
 const sortPlayers = (
   players: ScoreboardPlayer[],
   sort: ScoreboardSortState
@@ -65,6 +97,13 @@ const sortPlayers = (
   });
 };
 
+/**
+ * cellText – Format nội dung text của một ô chỉ số theo loại cột.
+ * @param player – Người chơi của ô này.
+ * @param column – Cột cần format.
+ * @returns Chuỗi đã format (signed, metric 2 số lẻ, percent, hoặc rỗng
+ *          với cột rank).
+ */
 const cellText = (player: ScoreboardPlayer, column: ScoreboardColumn) => {
   if (column === "plusMinus" || column === "dda") {
     return formatSigned(player[column]);
@@ -77,11 +116,26 @@ const cellText = (player: ScoreboardPlayer, column: ScoreboardColumn) => {
   return formatMetric(player[column]);
 };
 
+/**
+ * signedCellColor – Màu text cho ô có dấu (+/-, DDA): xanh khi dương,
+ * đỏ khi âm, màu chữ thường khi 0/không hợp lệ.
+ * @param value – Giá trị signed cần tô màu.
+ * @returns Màu từ MATCH_COLORS.
+ */
 const signedCellColor = (value: number | undefined) => {
   if (!Number.isFinite(value) || value === 0) return MATCH_COLORS.textPrimary;
   return Number(value) > 0 ? MATCH_COLORS.win : MATCH_COLORS.loss;
 };
 
+/**
+ * ScoreboardStatsRow – Hàng chỉ số của một người chơi trong bảng (memo hoá).
+ * Cột "rank" hiển thị icon rank, cột "trs" icon + số, còn lại là text format
+ * (ô signed được tô màu theo dấu). Không side effect.
+ *
+ * @param player – Người chơi của hàng.
+ * @param columns – Định nghĩa các cột (id, nhãn, độ rộng).
+ * @returns View hàng chứa các ô chỉ số theo đúng thứ tự cột.
+ */
 const ScoreboardStatsRow = React.memo(function ScoreboardStatsRow({
   player,
   columns,
@@ -148,17 +202,31 @@ const ScoreboardStatsRow = React.memo(function ScoreboardStatsRow({
   );
 });
 
+/**
+ * ScoreboardTable – Bảng tổng quan chính (memo hoá).
+ * Cấu trúc 2 vùng: cột trái cố định (header + header đội A/B + hàng người
+ * chơi bấm được) và ScrollView ngang chứa header cột sắp xếp được + các hàng
+ * chỉ số. Sort 3 trạng thái: desc → asc → bỏ sắp xếp. Màn hẹp (<=380px)
+ * thu hẹp cột người chơi. Không side effect.
+ *
+ * @param players – Danh sách người chơi (xem ScoreboardTableProps).
+ * @param onSelectPlayer – Callback khi bấm người chơi.
+ * @returns Section bảng scoreboard hoặc trạng thái rỗng khi không có players.
+ */
 export const ScoreboardTable = React.memo(function ScoreboardTable({
   players,
   onSelectPlayer,
 }: ScoreboardTableProps) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
+  // playerColumnWidth: độ rộng cột người chơi, thu hẹp trên màn hình nhỏ
   const playerColumnWidth = width <= 380 ? 150 : 172;
+  // sort: trạng thái sắp xếp hiện tại { column, direction }
   const [sort, setSort] = React.useState<ScoreboardSortState>({
     column: null,
     direction: null,
   });
+  // columns: định nghĩa các cột chỉ số (nhãn i18n, độ rộng, sortable)
   const columns = React.useMemo<ColumnDefinition[]>(
     () => [
       { id: "acs", label: "ACS", width: 62, sortable: true },
@@ -180,7 +248,9 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
     ],
     [t]
   );
+  // totalStatsWidth: tổng độ rộng các cột chỉ số (đặt width cho vùng cuộn)
   const totalStatsWidth = columns.reduce((total, column) => total + column.width, 0);
+  // teamAPlayers/teamBPlayers: người chơi chia theo đội + đã sort theo sort
   const teamAPlayers = React.useMemo(
     () => sortPlayers(players.filter((player) => player.team === "A"), sort),
     [players, sort]
@@ -190,6 +260,7 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
     [players, sort]
   );
 
+  // cycleSort: chuyển trạng thái sort của một cột: desc → asc → bỏ sort
   const cycleSort = (column: ScoreboardColumn) => {
     setSort((current) => {
       if (current.column !== column || current.direction === null) {
@@ -200,6 +271,8 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
     });
   };
 
+  // renderFixedPlayer: hàng người chơi trong cột cố định trái
+  // (marker đội, avatar agent, tên + agent, tick account hiện tại)
   const renderFixedPlayer = (player: ScoreboardPlayer) => (
     <Pressable
       key={player.playerId}
@@ -242,6 +315,7 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
     </Pressable>
   );
 
+  // renderTeamHeader: header đội (A/B) của cột cố định trái
   const renderTeamHeader = (team: "A" | "B") => (
     <View
       style={[
@@ -257,6 +331,7 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
     </View>
   );
 
+  // renderStatsTeamHeader: header đội (A/B) trong vùng chỉ số cuộn ngang
   const renderStatsTeamHeader = (team: "A" | "B") => (
     <View
       style={[

@@ -4,20 +4,27 @@ import { Image, View } from "react-native";
 
 import { StyleProp, ImageStyle } from "react-native";
 
-// Interface định nghĩa props cho CurrencyIcon
-// icon: loại tiền tệ - "vp" | "rad" | "kc"
-// paper: nếu true, render icon trong khung hình vuông lớn hơn (dùng cho chế độ giấy/ticket)
-// style: style tùy chỉnh cho Image (chỉ dùng khi paper=false)
+/**
+ * props – Props cho CurrencyIcon
+ * icon: loại tiền tệ - "vp" | "rad" | "kc"
+ * paper: nếu true, render icon trong khung hình vuông lớn hơn (dùng cho chế độ giấy/ticket)
+ * style: style tùy chỉnh cho Image (chỉ dùng khi paper=false)
+ */
 interface props {
   icon: "vp" | "rad" | "kc";
   paper?: boolean;
   style?: StyleProp<ImageStyle>;
 }
 
-// CurrencyIcon: Component chính
-// Dựa vào props.icon để chọn ảnh tương ứng (vp.png, rad.png, kc.png)
-// Nếu paper=true: bọc trong View 40x40, ảnh 22x22, dùng cho chế độ hiển thị lớn
-// Nếu paper=false: ảnh 15x15, có thể tùy chỉnh style, dùng cho chế độ nhỏ (trong card, badge)
+/**
+ * CurrencyIcon – Component chính hiển thị icon tiền tệ
+ * Dựa vào props.icon để chọn ảnh tương ứng (vp.png, rad.png, kc.png)
+ * Nếu paper=true: bọc trong View 40x40, ảnh 22x22, dùng cho chế độ hiển thị lớn
+ * Nếu paper=false: ảnh 15x15, có thể tùy chỉnh style, dùng cho chế độ nhỏ (trong card, badge)
+ *
+ * @param props – Xem mô tả interface `props` phía trên.
+ * @returns Fragment chứa Image (hoặc View bọc Image ở chế độ paper).
+ */
 export default function CurrencyIcon(props: props) {
   return (
     <>

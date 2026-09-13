@@ -15,6 +15,12 @@ import { CachedImage as Image } from "~/components/CachedImage";
 
 import { COLORS, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
 
+/**
+ * MediaVideoProps – Props của MediaVideo.
+ *
+ * @param onLoad – Callback gọi khi video render frame đầu tiên (tắt spinner).
+ * @param uri – URL video cần phát.
+ */
 interface MediaVideoProps {
   onLoad: () => void;
   uri: string;
@@ -22,6 +28,15 @@ interface MediaVideoProps {
 
 export type MediaPopupGroup = "level" | "chroma";
 
+/**
+ * MediaPopupEntry – Một mục media trong popup viewer.
+ *
+ * @property cacheId – Cache key ổn định cho ảnh/video.
+ * @property group – Nhóm media: "level" (cấp) hoặc "chroma" (màu).
+ * @property kind – Loại media: "image" hoặc "video".
+ * @property label – Nhãn hiển thị (tên level/chroma) cho accessibility.
+ * @property uri – URL nguồn media.
+ */
 export interface MediaPopupEntry {
   cacheId: string;
   group: MediaPopupGroup;
@@ -30,6 +45,17 @@ export interface MediaPopupEntry {
   uri: string;
 }
 
+/**
+ * MediaVideo – Trình phát video expo-video trong popup.
+ * Player cấu hình: loop vô hạn, bật tiếng, tự play ngay khi tạo.
+ *
+ * @param onLoad – Callback khi frame đầu render xong (qua onFirstFrameRender).
+ * @param uri – URL video cần phát.
+ * @returns VideoView full khung, không native controls.
+ *
+ * Side effects: tạo video player (tự play, loop); player được giải phóng
+ * tự động bởi useVideoPlayer khi unmount.
+ */
 function MediaVideo({ onLoad, uri }: MediaVideoProps) {
   const player = useVideoPlayer(uri, (nextPlayer) => {
     nextPlayer.loop = true;
@@ -96,6 +122,17 @@ export const useMediaPopupStore = create<IStore>((set) => ({
 //   - Video dùng expo-video (auto play, loop, unmuted)
 //   - Hai nhóm Cấp/Màu có selector riêng bên dưới khung media
 
+/**
+ * MediaPopup – Popup viewer ảnh/video skin (memo không cần, export default).
+ * Render Portal + Modal chỉ khi entries khác rỗng (Portal mount lazily để
+ * tránh nằm dưới modal của màn khác trên Android). Ảnh dùng CachedImage,
+ * video dùng MediaVideo; overlay spinner hiển thị trong lúc load media.
+ *
+ * @returns Portal chứa Modal viewer, hoặc null khi không có media.
+ *
+ * Side effects: video player trong MediaVideo; effect reset loading=true khi
+ * entries/selectedIndex đổi. Không có timer/subscription riêng.
+ */
 function MediaPopup() {
   const entries = useMediaPopupStore((state) => state.entries);
   const text = useMediaPopupStore((state) => state.text);
@@ -104,10 +141,13 @@ function MediaPopup() {
     (state) => state.setSelectedIndex
   );
   const hideMediaPopup = useMediaPopupStore((state) => state.hideMediaPopup);
+  // loading: hiển thị overlay spinner trong khung media khi đang tải
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
   const { colors } = useTheme();
+  // activeEntry: media đang được chọn theo selectedIndex
   const activeEntry = entries[selectedIndex];
+  // sections: nhóm entries theo "level"/"chroma", chỉ giữ nhóm có item
   const sections = useMemo(
     () =>
       (["level", "chroma"] as const)
@@ -122,6 +162,7 @@ function MediaPopup() {
     [entries, t],
   );
 
+  // Effect: đổi media hoặc popup mở lại → bật lại overlay loading
   useEffect(() => {
     setLoading(true);
   }, [entries, selectedIndex]);

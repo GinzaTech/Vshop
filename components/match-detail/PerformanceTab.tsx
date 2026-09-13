@@ -1,3 +1,7 @@
+// ===== PerformanceTab.tsx =====
+// Tab "Performance" của màn chi tiết trận: dải agent 2 đội, tóm tắt hiệu suất
+// người chơi đang chọn, timeline vòng, chi tiết vòng, chỉ số theo bên,
+// bảng đối đầu và bảng vũ khí.
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -14,6 +18,15 @@ import { TeamAgentStrip } from "~/components/match-detail/TeamAgentStrip";
 import { MATCH_COLORS, MATCH_SPACING } from "~/constants/MatchTheme";
 import type { MatchDetailViewModel } from "~/types/match-ui";
 
+/**
+ * PerformanceTabProps – Props của PerformanceTab.
+ *
+ * @param data – ViewModel chi tiết trận (rounds, playerRefs, playerPerformance).
+ * @param selectedPlayerId – UUID người chơi đang được chọn để xem hiệu suất.
+ * @param selectedRoundNumber – Số vòng đang chọn trên timeline (null nếu chưa).
+ * @param onSelectPlayer – Callback khi chọn người chơi khác trong dải agent.
+ * @param onSelectRound – Callback khi chọn một vòng trên timeline.
+ */
 type PerformanceTabProps = {
   data: MatchDetailViewModel;
   selectedPlayerId: string;
@@ -22,6 +35,18 @@ type PerformanceTabProps = {
   onSelectRound: (roundNumber: number) => void;
 };
 
+/**
+ * PerformanceTab – Nội dung tab hiệu suất (memo hoá).
+ * Nếu không có dữ liệu performance cho người chơi đang chọn, hiển thị trạng
+ * thái "partial". Thuần presentational, không side effect.
+ *
+ * @param data – ViewModel trận (xem PerformanceTabProps).
+ * @param selectedPlayerId – Người chơi đang chọn.
+ * @param selectedRoundNumber – Vòng đang chọn.
+ * @param onSelectPlayer – Callback chọn người chơi.
+ * @param onSelectRound – Callback chọn vòng.
+ * @returns View chứa chuỗi section hiệu suất hoặc trạng thái thiếu dữ liệu.
+ */
 export const PerformanceTab = React.memo(function PerformanceTab({
   data,
   selectedPlayerId,

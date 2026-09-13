@@ -1,3 +1,6 @@
+// ===== PlayerPerformanceSummary.tsx =====
+// Khối tóm tắt hiệu suất người chơi đang chọn trong tab Performance:
+// ảnh full portrait agent, tên, rank và lưới chỉ số (điểm TB, K/D/A, K/D, ADR).
 import React from "react";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -11,15 +14,31 @@ import {
 import type { PlayerPerformanceSummary as PlayerSummary } from "~/types/match-ui";
 import { formatMetric } from "~/utils/match-ui";
 
+/**
+ * PlayerPerformanceSummaryProps – Props của PlayerPerformanceSummary.
+ *
+ * @param summary – Dữ liệu tóm tắt hiệu suất: tên, rank, ảnh agent,
+ *                  điểm TB, kills/deaths/assists, K/D, ADR.
+ */
 type PlayerPerformanceSummaryProps = {
   summary: PlayerSummary;
 };
 
+/**
+ * PlayerPerformanceSummary – Section tóm tắt người chơi (memo hoá).
+ * Màn hình hẹp (<= 380px) chuyển sang layout compact (ảnh nhỏ, chữ nhỏ hơn).
+ * Thuần presentational, không side effect.
+ *
+ * @param summary – Dữ liệu tóm tắt hiệu suất (xem props type).
+ * @returns View section với artwork agent + thông tin + lưới chỉ số.
+ */
 export const PlayerPerformanceSummary = React.memo(
   function PlayerPerformanceSummary({ summary }: PlayerPerformanceSummaryProps) {
     const { t } = useTranslation();
     const { width } = useWindowDimensions();
+    // compact: chế độ hẹp cho màn hình nhỏ
     const compact = width <= 380;
+    // metrics: các cặp [nhãn, giá trị đã format] hiển thị trong lưới
     const metrics = [
       [t("match_ui.performance.avg_score"), formatMetric(summary.averageScore)],
       ["K / D / A", `${summary.kills} / ${summary.deaths} / ${summary.assists}`],

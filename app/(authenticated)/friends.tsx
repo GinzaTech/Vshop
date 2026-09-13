@@ -38,7 +38,23 @@ const STATE_ICONS: Record<string, FriendStateInfo> = {
 // FRIEND_STATE_ORDER: thứ tự sắp xếp bạn bè theo trạng thái
 const FRIEND_STATE_ORDER: Record<string, number> = { chat: 0, mobile: 0, away: 1, offline: 2, dnd: 3 };
 
-// Component FriendsScreen: hiển thị danh sách bạn bè (Riot Friends) với trạng thái online/offline
+/**
+ * FriendsScreen – Hiển thị danh sách bạn bè (Riot Friends) kèm trạng thái
+ * online/offline, tìm kiếm theo Riot ID, pull-to-refresh và nút retry.
+ *
+ * State:
+ * - friendsObj/status (từ useChatStore): object bạn bè + trạng thái kết nối.
+ * - loadingRoster/loadError: trạng thái fetch roster khi màn hình focus.
+ * - searchVisible/searchQuery: thanh tìm kiếm gắn trên header.
+ * - friends (useMemo): sort theo trạng thái (online → away → offline → dnd),
+ *   cùng trạng thái thì sort theo tên alphabet.
+ * - visibleFriends (useMemo): friends đã lọc theo Riot ID (name#tag).
+ *
+ * useFocusEffect: yêu cầu roster mới mỗi lần điều hướng vào màn hình,
+ * không xóa cache cũ trong lúc tải.
+ *
+ * @returns {JSX.Element} Màn hình danh sách bạn bè.
+ */
 export default function FriendsScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -51,6 +67,9 @@ export default function FriendsScreen() {
   const [searchVisible, setSearchVisible] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
 
+  // useLayoutEffect: gắn nút toggle tìm kiếm vào header bên phải của screen.
+  // Re-run khi searchVisible đổi để đổi icon magnify/close (đóng thanh tìm
+  // kiếm cũng reset query). Cleanup do React Navigation tự quản.
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -99,12 +118,20 @@ export default function FriendsScreen() {
     [friendsObj]
   );
 
+  // Query đã trim + lowercase — ổn định làm dependency cho memo lọc bên dưới
   const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
+  // visibleFriends: danh sách bạn bè đã lọc theo Riot ID (name#tag)
   const visibleFriends = React.useMemo(
     () => filterFriendsByRiotId(friends, normalizedSearchQuery),
     [friends, normalizedSearchQuery],
   );
 
+  /**
+   * refreshFriends – Gọi API lấy lại roster bạn bè với credentials mới nhất
+   * (đọc trực tiếp qua useUserStore.getState() thay vì closure để tránh
+   * dùng token stale). Throw Error nếu thiếu accessToken/entitlements/region/id.
+   * Side effects: network XMPP; được dùng cho focus refresh + pull-to-refresh.
+   */
   const refreshFriends = React.useCallback(async () => {
     const latestUser = useUserStore.getState().user;
     if (
@@ -147,6 +174,8 @@ export default function FriendsScreen() {
   );
 
   const { refreshing, onRefresh } = useAsyncRefresh(refreshFriends);
+  // retryFriends: thử lại fetch roster từ nút Retry trên empty state
+  // (cùng luồng với refreshFriends nhưng đặt lại loading/error state cục bộ)
   const retryFriends = React.useCallback(() => {
     setLoadingRoster(true);
     setLoadError(null);

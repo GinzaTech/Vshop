@@ -31,6 +31,15 @@ interface Props {
 //   - Ngược lại => trả về ảnh mặc định "noimage.png"
 //   - Phụ thuộc: [item, screenshotModeEnabled]
 
+/**
+ * ShopAccessoryItem – Component hiển thị một thẻ (card) phụ kiện trong shop.
+ * Bao gồm: hình ảnh, badge loại, tên, giá tiền (KC).
+ *
+ * @param item – Đối tượng AccessoryShopItem cần hiển thị (xem Props).
+ * @returns View card phụ kiện (visualFrame + content).
+ *
+ * Side effects: không có (thuần presentational).
+ */
 export default function ShopAccessoryItem({ item }: Props) {
   const { t } = useTranslation();
   const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);

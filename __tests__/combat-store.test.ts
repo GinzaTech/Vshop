@@ -115,6 +115,40 @@ describe("combat store request ownership", () => {
     expect(useCombatStore.getState().snapshot.partyId).toBe("party-two");
   });
 
+  it("starts a fresh request after credentials rotate for the same account", async () => {
+    const oldParty = deferred<{ CurrentPartyID: string } | null>();
+    mockGetPartyPlayer
+      .mockReturnValueOnce(oldParty.promise)
+      .mockResolvedValueOnce({ CurrentPartyID: "party-fresh" });
+    mockGetParty.mockImplementation(
+      async (_access, _entitlements, _region, partyId) => ({
+        ID: partyId,
+        Members: [],
+      }),
+    );
+
+    const oldUser = user("one");
+    const renewedUser = {
+      ...oldUser,
+      accessToken: "access-one-renewed",
+      entitlementsToken: "entitlements-one-renewed",
+    };
+    const first = useCombatStore.getState().fetchSession(oldUser);
+    const second = useCombatStore.getState().fetchSession(renewedUser);
+
+    await act(async () => {
+      await second;
+    });
+    expect(mockGetPartyPlayer).toHaveBeenCalledTimes(2);
+    expect(useCombatStore.getState().snapshot.partyId).toBe("party-fresh");
+
+    oldParty.resolve({ CurrentPartyID: "party-stale" });
+    await act(async () => {
+      await first;
+    });
+    expect(useCombatStore.getState().snapshot.partyId).toBe("party-fresh");
+  });
+
   it("preserves a good snapshot when a refresh fails", async () => {
     mockGetPartyPlayer.mockResolvedValue({ CurrentPartyID: "party-one" });
     mockGetParty.mockResolvedValue({ ID: "party-one", Members: [] });

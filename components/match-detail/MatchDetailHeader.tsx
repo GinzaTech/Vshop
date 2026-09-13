@@ -1,3 +1,6 @@
+// ===== MatchDetailHeader.tsx =====
+// Header màn chi tiết trận: ảnh map full-bleed phủ scrim, mode + tên map,
+// tỉ số 2 đội (A vs B), nút đóng và hàng meta (thời điểm, thời lượng).
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -13,12 +16,28 @@ import {
 import type { MatchDetailViewModel } from "~/types/match-ui";
 import { formatDuration, humanizeMatchMode } from "~/utils/match-ui";
 
+/**
+ * MatchDetailHeaderProps – Props của MatchDetailHeader.
+ *
+ * @param match – Dữ liệu trận cần hiển thị (mode, map, tỉ số, thời gian...).
+ * @param locale – Locale dùng format ngày giờ bắt đầu trận.
+ * @param onClose – Callback khi bấm nút đóng chi tiết.
+ */
 type MatchDetailHeaderProps = {
   match: MatchDetailViewModel["match"];
   locale: string;
   onClose: () => void;
 };
 
+/**
+ * MatchDetailHeader – Header chi tiết trận (memo không bắt buộc, export thường).
+ * Ngày giờ invalid (NaN) hiển thị "--". Thuần presentational, không side effect.
+ *
+ * @param match – Dữ liệu trận (xem MatchDetailHeaderProps).
+ * @param locale – Locale cho định dạng ngày giờ.
+ * @param onClose – Callback nút đóng.
+ * @returns View header với ảnh nền map, tỉ số và meta.
+ */
 export function MatchDetailHeader({
   match,
   locale,

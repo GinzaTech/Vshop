@@ -1,3 +1,11 @@
+// ===== MatchTheme.ts – Token theme tối (dark theme) cho màn hình trận đấu =====
+// Dùng riêng cho các screen lịch sử trận / scoreboard (nền tối) thay vì
+// DesignSystem (theme sáng) để giữ đúng mood "in-game tracker".
+
+/**
+ * MATCH_COLORS – Bảng màu màn hình trận: nền, bề mặt, chữ, thắng/thua,
+ * màu team A/B, màu chart và skeleton loading.
+ */
 export const MATCH_COLORS = {
   appBackground: "#101216",
   surface: "#171A1F",
@@ -28,6 +36,7 @@ export const MATCH_COLORS = {
   skeleton: "#262B32",
 } as const;
 
+/** MATCH_SPACING – Thang khoảng cách (px) cho màn hình trận. */
 export const MATCH_SPACING = {
   xs: 4,
   sm: 8,
@@ -38,6 +47,7 @@ export const MATCH_SPACING = {
   xxxl: 32,
 } as const;
 
+/** MATCH_RADIUS – Bán kính bo góc cho card, modal, scoreboard của màn trận. */
 export const MATCH_RADIUS = {
   small: 4,
   medium: 6,
@@ -46,6 +56,10 @@ export const MATCH_RADIUS = {
   modalTop: 28,
 } as const;
 
+/**
+ * MATCH_LAYOUT – Hằng số bố cục màn trận: giới hạn chiều rộng nội dung,
+ * vùng chạm tối thiểu và kích thước cố định của các hàng scoreboard/share bar.
+ */
 export const MATCH_LAYOUT = {
   maxContentWidth: 820,
   minTouchTarget: 44,

@@ -155,6 +155,8 @@ export function FloatingTabBar({
   const pendingTabNameRef = useRef<string | null>(null);
   const activeRoute = state.routes[state.index];
 
+  // Effect: Reset cờ pendingTabNameRef khi route key đổi — điều hướng đã
+  // hoàn tất, cho phép nhấn lại tab đó ở lần tiếp theo (chống double-press).
   useEffect(() => {
     pendingTabNameRef.current = null;
   }, [activeRoute?.key]);
@@ -232,10 +234,14 @@ export function FloatingTabBar({
     activeVisibleIndex * tabButtonWidth +
     (tabButtonWidth - INDICATOR_SIZE) / 2;
   const indicatorTranslateX = useSharedValue(indicatorTargetX);
+  // Cleanup: hủy animation indicator + collapse khi unmount để tránh leak
+  // shared value animation (rule cleanup của AGENTS.md).
   useEffect(() => () => {
     cancelAnimation(indicatorTranslateX);
     cancelAnimation(collapseProgress);
   }, [indicatorTranslateX, collapseProgress]);
+  // Hook preload các tab chính khi runtime rảnh; pausePreload tạm dừng
+  // preload của tab vừa được nhấn để ưu tiên navigation thật.
   const pausePreload = usePrimaryTabPreload({
     routes: visibleRoutes,
     activeKey: activeRoute.key,
@@ -243,6 +249,13 @@ export function FloatingTabBar({
     preload: navigation.preload,
     descriptors,
   });
+  /**
+   * moveIndicator — Di chuyển sliding indicator tới vị trí tab đích.
+   * @param {number} target – Vị trí X đích (px) của indicator.
+   * @param {boolean} jump – true thì nhảy thẳng không animate (mount đầu
+   *   hoặc Back từ sub-screen). Bỏ qua nếu target không đổi để không
+   *   khởi động lại animation đang chạy (trừ khi jump/reduce motion).
+   */
   const moveIndicator = useCallback((target: number, jump = false) => {
     // The route confirmation must not restart an animation begun by onPress.
     if (!jump && !reduceMotionEnabled && lastIndicatorTarget.current === target) return;

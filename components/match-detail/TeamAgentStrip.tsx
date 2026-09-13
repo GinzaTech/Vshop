@@ -1,3 +1,7 @@
+// ===== TeamAgentStrip.tsx =====
+// Dải ngang avatar agent của cả 2 đội trong tab Performance; bấm để chọn
+// người chơi xem hiệu suất. Đội A/B phân biệt màu viền, tài khoản hiện tại
+// có thêm shadow.
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -10,12 +14,29 @@ import {
 } from "~/constants/MatchTheme";
 import type { MatchPlayerRef } from "~/types/match-ui";
 
+/**
+ * TeamAgentStripProps – Props của TeamAgentStrip.
+ *
+ * @param players – Danh sách người chơi 2 đội (id, tên, agent, đội, isCurrentUser).
+ * @param selectedPlayerId – UUID người chơi đang được chọn.
+ * @param onSelectPlayer – Callback khi bấm chọn một người chơi.
+ */
 type TeamAgentStripProps = {
   players: MatchPlayerRef[];
   selectedPlayerId: string;
   onSelectPlayer: (playerId: string) => void;
 };
 
+/**
+ * TeamAgentStrip – ScrollView ngang các avatar agent bấm được (memo hoá).
+ * Mỗi avatar: viền màu theo đội, viền sáng khi selected, glow cho user hiện
+ * tại. Thuần presentational, không side effect.
+ *
+ * @param players – Danh sách người chơi (xem TeamAgentStripProps).
+ * @param selectedPlayerId – Người chơi đang chọn.
+ * @param onSelectPlayer – Callback chọn người chơi.
+ * @returns ScrollView ngang chứa avatar các người chơi.
+ */
 export const TeamAgentStrip = React.memo(function TeamAgentStrip({
   players,
   selectedPlayerId,

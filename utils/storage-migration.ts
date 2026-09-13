@@ -1,12 +1,26 @@
+/** Giá trị lưu trong storage: chuỗi, hoặc null khi key không tồn tại. */
 export type StorageValue = string | null;
 
+/**
+ * AppStorage - Interface storage tối thiểu dùng chung cho app (tương thích
+ * AsyncStorage và MMKV adapter). Mỗi method có thể trả về trực tiếp (MMKV
+ * đồng bộ) hoặc Promise (AsyncStorage).
+ */
 export type AppStorage = {
   getItem: (key: string) => Promise<StorageValue> | StorageValue;
   setItem: (key: string, value: string) => Promise<void> | void;
   removeItem: (key: string) => Promise<void> | void;
 };
 
-/** Read-through migration that deletes plaintext legacy data after copying. */
+/**
+ * withLegacyMigration — Bọc storage đích với migration đọc-qua (read-through)
+ * từ storage cũ: getItem đọc target trước, miss thì đọc fallback, sao chép
+ * giá trị sang target rồi XOÁ bản plaintext cũ trên fallback (chuyển dần dữ
+ * liệu AsyncStorage cũ sang MMKV mã hoá mà không mất dữ liệu).
+ * @param {AppStorage} target - Storage đích (mới), nơi dữ liệu được chuẩn hoá về
+ * @param {AppStorage} fallback - Storage cũ, chỉ đọc để migrate rồi xoá key
+ * @returns {AppStorage} Storage wrapper có hành vi migration tự động
+ */
 export const withLegacyMigration = (
   target: AppStorage,
   fallback: AppStorage

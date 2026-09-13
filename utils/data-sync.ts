@@ -117,6 +117,9 @@ function matchIdsEqual(
  * @param region - Region
  * @returns SyncReport — chi tiết gì đã thay đổi
  */
+// Map chống gọi trùng syncAllData: key = generation|accountKey|accessToken.
+// Hai nơi gọi song song (vd AppWarmup + pull-to-refresh) với cùng phiên sẽ
+// nhận chung promise. Entry được xoá khi request settle.
 const syncRequests = new Map<string, Promise<SyncReport>>();
 
 export function syncAllData(
@@ -143,6 +146,12 @@ export function syncAllData(
   return request;
 }
 
+// syncAllDataInternal — Thân chính của syncAllData (đã có dedup ở wrapper).
+// Luồng: assert phiên còn hợp lệ → đọc cache → làm mới entitlement/session
+// (buildAuthenticatedUser) → stamp TTL shop/balances ngay → fetch song song
+// client config + matches + profile → diff với cache → markStartupCacheReady.
+// Mỗi bước đều assertCurrent: nếu generation/account/token đổi giữa chừng
+// (re-auth, switch account) thì throw SessionChangedError và bỏ kết quả.
 async function syncAllDataInternal(
   user: typeof useUserStore extends { getState: () => { user: infer U } } ? U : never,
   region: string

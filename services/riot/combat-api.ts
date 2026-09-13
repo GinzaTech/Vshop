@@ -3,10 +3,10 @@ import { buildRiotApiUrl } from "~/services/riot/endpoints";
 import type { CurrentGameMatchResponse, PartyResponse } from "~/services/riot/api-types";
 import { API_DEBUG_LOGGING, extraHeaders } from "~/services/riot/request-context";
 
-// Export hàm lấy MatchID của trận đấu pregame (trước khi vào game)
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực và người dùng
-// Returns: Promise<string> UUID của trận đấu
+/** Lấy MatchID trận pregame hiện tại (GET pregame/v1/players/:userId).
+ *  Được lockAgent/selectAgent/quit tái dùng để biết trận đang chờ.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @returns UUID trận pregame. Throw khi HTTP lỗi (axios mặc định). */
 export async function getMatchID(
   accessToken: string,
   entitlementsToken: string,
@@ -25,11 +25,11 @@ export async function getMatchID(
   return res.data.MatchID;
 }
 
-// Export hàm lock (chọn) agent trong pregame lobby
-// Parameters:
-//   - accesstoken, entitlementsToken, userId, region: thông tin xác thực
-//   - agentId: UUID của agent muốn chọn
-// Returns: Promise<LockCharacterResponse>
+/** Lock (khóa vĩnh viễn) agent trong pregame — POST pregame/.../lock/:agentId.
+ *  LƯU Ý: hành động THAY ĐỔI tài khoản — chỉ gọi từ nút UI rõ ràng.
+ *  Lấy MatchID mới nhất qua getMatchID trước khi gọi.
+ *  @param agentId - UUID agent muốn khóa.
+ *  @returns LockCharacterResponse từ Riot. */
 export async function lockAgent(
   accesstoken: string,
   entitlementsToken: string,
@@ -50,10 +50,9 @@ export async function lockAgent(
   return res.data;
 }
 
-// Export hàm thoát pregame lobby
-// Parameters:
-//   - accesstoken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: response payload or null
+/** Thoát pregame lobby — POST pregame/v1/matches/:matchId/quit.
+ *  Hành động thay đổi tài khoản; MatchID được tra mới qua getMatchID.
+ *  @returns Payload của Riot (thường rỗng). Throw khi HTTP lỗi. */
 export async function quitPreGameLobby(
   accesstoken: string,
   entitlementsToken: string,
@@ -75,10 +74,10 @@ export async function quitPreGameLobby(
 // ---------------------------------------------------------------------------
 // Pre-game (trước trận đấu)
 // ---------------------------------------------------------------------------
-// Export hàm lấy thông tin người chơi trong pregame
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<{ Subject, MatchID, Version } | null>
+/** Lấy thông tin người chơi trong pregame (MatchID trận đang chờ chọn agent).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @returns { Subject, MatchID, Version } khi HTTP 200; null khi không
+ *  ở trong pregame hoặc lỗi (validateStatus nên không throw). */
 export async function getPreGamePlayer(
   accessToken: string,
   entitlementsToken: string,
@@ -98,11 +97,10 @@ export async function getPreGamePlayer(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm lấy thông tin trận đấu pregame
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - matchId: UUID trận đấu
-// Returns: Promise<LockCharacterResponse | null>
+/** Lấy chi tiết trận pregame (đội, agent đồng đội đã chọn...).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param matchId - UUID trận pregame.
+ *  @returns LockCharacterResponse khi HTTP 200; null khi lỗi/không có trận. */
 export async function getPreGameMatch(
   accessToken: string,
   entitlementsToken: string,
@@ -122,11 +120,10 @@ export async function getPreGameMatch(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm chọn agent (khóa) trong pregame
-// Parameters:
-//   - accessToken, entitlementsToken, userId, region: thông tin xác thực
-//   - agentId: UUID agent muốn chọn
-// Returns: response payload or null
+/** Chọn (chưa khóa) agent trong pregame — POST .../select/:agentId.
+ *  Hành động thay đổi tài khoản: chỉ gọi từ tương tác UI của người dùng.
+ *  @param agentId - UUID agent muốn chọn.
+ *  @returns Payload khi HTTP 200; null khi lỗi (không throw). */
 export async function selectAgent(
   accessToken: string,
   entitlementsToken: string,
@@ -151,10 +148,10 @@ export async function selectAgent(
 // ---------------------------------------------------------------------------
 // Core-game (trận đấu đang diễn ra)
 // ---------------------------------------------------------------------------
-// Export hàm lấy thông tin người chơi trong trận đấu đang diễn ra
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<{ Subject, MatchID, Version } | null>
+/** Lấy thông tin người chơi trong trận đang diễn ra (core-game player).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @returns { Subject, MatchID, Version } khi HTTP 200; null khi không
+ *  trong trận (validateStatus nên không throw). */
 export async function getCurrentGamePlayer(
   accessToken: string,
   entitlementsToken: string,
@@ -174,11 +171,10 @@ export async function getCurrentGamePlayer(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm lấy thông tin trận đấu đang diễn ra
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - matchId: UUID trận đấu
-// Returns: Promise<CurrentGameMatchResponse | null>
+/** Lấy chi tiết trận đang diễn ra (players, loadout, character selectors...).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param matchId - UUID trận core-game.
+ *  @returns CurrentGameMatchResponse khi HTTP 200; null khi lỗi. */
 export async function getCurrentGameMatch(
   accessToken: string,
   entitlementsToken: string,
@@ -201,10 +197,10 @@ export async function getCurrentGameMatch(
 // ---------------------------------------------------------------------------
 // Party (nhóm chơi)
 // ---------------------------------------------------------------------------
-// Export hàm lấy thông tin party của người chơi (gồm CurrentPartyID)
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<{ CurrentPartyID, ... } | null>
+/** Lấy thông tin party của người chơi (chứa CurrentPartyID hiện tại).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @returns Payload kèm CurrentPartyID khi HTTP 200; null khi không
+ *  có party/lỗi (validateStatus nên không throw). */
 export async function getPartyPlayer(
   accessToken: string,
   entitlementsToken: string,
@@ -236,11 +232,10 @@ export async function getPartyPlayer(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm lấy thông tin chi tiết party theo ID
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - partyId: UUID party
-// Returns: Promise<PartyResponse | null>
+/** Lấy chi tiết party theo ID (members, MUCName, State...).
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param partyId - UUID party (đi vào slot matchId của endpoints).
+ *  @returns PartyResponse khi HTTP 200; null khi lỗi/không có party. */
 export async function getParty(
   accessToken: string,
   entitlementsToken: string,
@@ -271,12 +266,10 @@ export async function getParty(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm lấy MUC token cho party chat (XMPP)
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - partyId: UUID party
-// Returns: Promise<PartyChatTokenResponse | null>
-// Throw error nếu không lấy được token
+/** Lấy MUC token cho party chat XMPP. Throw Error khi HTTP ≠ 200
+ *  (kèm message/errorCode từ Riot) — khác các hàm trả null cùng file.
+ *  @param partyId - UUID party cần token chat.
+ *  @returns PartyChatTokenResponse (Token không được log — đã redact). */
 export async function getPartyMucToken(
   accessToken: string,
   entitlementsToken: string,
@@ -323,11 +316,9 @@ export async function getPartyMucToken(
   return res.data;
 }
 
-// Export hàm set trạng thái ready/unready trong party
-// Parameters:
-//   - accessToken, entitlementsToken, region, partyId, userId: thông tin xác thực
-//   - ready: true = ready, false = unready
-// Returns: Promise<PartyResponse | null>
+/** Bật/tắt trạng thái sẵn sàng trong party — POST .../setReady.
+ *  @param ready - true = ready, false = unready.
+ *  @returns PartyResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function setPartyReady(
   accessToken: string,
   entitlementsToken: string,
@@ -351,10 +342,9 @@ export async function setPartyReady(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm tạo mã mời party
-// Parameters:
-//   - accessToken, entitlementsToken, region, partyId: thông tin xác thực
-// Returns: Promise<PartyResponse | null>
+/** Tạo (bật) mã mời party — POST parties/v1/parties/:id/invitecode.
+ *  @param partyId - UUID party của host.
+ *  @returns PartyResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function generatePartyInviteCode(
   accessToken: string,
   entitlementsToken: string,
@@ -375,10 +365,9 @@ export async function generatePartyInviteCode(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm xóa mã mời party
-// Parameters:
-//   - accessToken, entitlementsToken, region, partyId: thông tin xác thực
-// Returns: Promise<PartyResponse | null>
+/** Xóa (tắt) mã mời party — DELETE cùng endpoint invitecode.
+ *  @param partyId - UUID party của host.
+ *  @returns PartyResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function disablePartyInviteCode(
   accessToken: string,
   entitlementsToken: string,
@@ -398,11 +387,10 @@ export async function disablePartyInviteCode(
   return res.status === 200 ? res.data : null;
 }
 
-// Export hàm tham gia party bằng mã mời
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - inviteCode: mã mời
-// Returns: Promise<{ CurrentPartyID?, ... } | null>
+/** Tham gia party bằng mã mời — POST parties/v1/players/joinbycode/:code.
+ *  @param inviteCode - Mã mời (được encodeURIComponent khi build URL).
+ *  @returns Payload kèm CurrentPartyID (nếu join OK) khi HTTP 200;
+ *  null khi mã sai/hết hạn/lỗi khác (không throw). */
 export async function joinPartyByCode(
   accessToken: string,
   entitlementsToken: string,
@@ -432,11 +420,10 @@ export async function joinPartyByCode(
 // ---------------------------------------------------------------------------
 // Pre-Game Loadouts (trang bị trong pregame)
 // ---------------------------------------------------------------------------
-// Export hàm lấy loadouts của người chơi trong pregame
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - matchId: UUID trận đấu
-// Returns: Promise<PregameLoadoutsResponse | null>
+/** Lấy loadout (skin) của TẤT CẢ người chơi trong trận pregame.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param matchId - UUID trận pregame.
+ *  @returns PregameLoadoutsResponse khi HTTP 200; null khi lỗi. */
 export async function getPregameLoadouts(
   accessToken: string,
   entitlementsToken: string,
@@ -459,11 +446,10 @@ export async function getPregameLoadouts(
 // ---------------------------------------------------------------------------
 // Current Game Loadouts (trang bị trong trận đang diễn ra)
 // ---------------------------------------------------------------------------
-// Export hàm lấy loadouts của người chơi trong trận đang diễn ra
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - matchId: UUID trận đấu
-// Returns: Promise<CurrentGameLoadoutsResponse | null>
+/** Lấy loadout (skin) của TẤT CẢ người chơi trong trận đang diễn ra.
+ *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
+ *  @param matchId - UUID trận core-game.
+ *  @returns CurrentGameLoadoutsResponse khi HTTP 200; null khi lỗi. */
 export async function getCurrentGameLoadouts(
   accessToken: string,
   entitlementsToken: string,
@@ -486,11 +472,10 @@ export async function getCurrentGameLoadouts(
 // ---------------------------------------------------------------------------
 // Quit Current Game (thoát trận đang diễn ra)
 // ---------------------------------------------------------------------------
-// Export hàm thoát khỏi trận đấu đang diễn ra
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - matchId: UUID trận đấu
-// Returns: response payload or null
+/** Thoát trận đang diễn ra — POST core-game/v1/matches/:matchId/quit.
+ *  Hành động thay đổi tài khoản: chỉ gọi từ UI có xác nhận của user.
+ *  @param matchId - UUID trận core-game.
+ *  @returns Payload khi HTTP 200; null khi lỗi (không throw). */
 export async function quitCurrentGame(
   accessToken: string,
   entitlementsToken: string,
@@ -513,10 +498,11 @@ export async function quitCurrentGame(
 // ---------------------------------------------------------------------------
 // Party: Remove Player (xóa người chơi khỏi party)
 // ---------------------------------------------------------------------------
-// Export hàm xóa người chơi khỏi party
-// Parameters:
-//   - accessToken, entitlementsToken, region, userId: thông tin xác thực
-// Returns: Promise<void>
+/** Rời khỏi party hiện tại — DELETE parties/v1/players/:userId.
+ *  Khác các hàm trả null: throw Error khi status ngoài 2xx — caller cần
+ *  biết rõ rời party thất bại để rollback UI.
+ *  @param userId - PUUID của người rời party (chính mình).
+ *  @returns void khi thành công. */
 export async function removeFromParty(
   accessToken: string,
   entitlementsToken: string,
@@ -542,11 +528,10 @@ export async function removeFromParty(
 // ---------------------------------------------------------------------------
 // Party: Enter Matchmaking Queue (vào hàng chờ)
 // ---------------------------------------------------------------------------
-// Export hàm tham gia hàng chờ matchmaking
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - partyId: UUID party
-// Returns: Promise<PartyResponse | null>
+/** Vào hàng chờ matchmaking cho party — POST .../matchmaking/join.
+ *  Hành động thay đổi tài khoản (bắt đầu tìm trận).
+ *  @param partyId - UUID party (host thực hiện).
+ *  @returns PartyResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function enterMatchmakingQueue(
   accessToken: string,
   entitlementsToken: string,
@@ -570,11 +555,10 @@ export async function enterMatchmakingQueue(
 // ---------------------------------------------------------------------------
 // Party: Leave Matchmaking Queue (rời hàng chờ)
 // ---------------------------------------------------------------------------
-// Export hàm rời khỏi hàng chờ matchmaking
-// Parameters:
-//   - accessToken, entitlementsToken, region: thông tin xác thực
-//   - partyId: UUID party
-// Returns: Promise<PartyResponse | null>
+/** Rời hàng chờ matchmaking — POST .../matchmaking/leave.
+ *  Hành động thay đổi tài khoản (hủy tìm trận).
+ *  @param partyId - UUID party.
+ *  @returns PartyResponse khi HTTP 200; null khi lỗi (không throw). */
 export async function leaveMatchmakingQueue(
   accessToken: string,
   entitlementsToken: string,

@@ -13,8 +13,20 @@ import { COLORS } from "~/constants/DesignSystem";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { fullBackgroundSync } from "~/utils/app-sync";
 
-// Component chính: Agent - hiển thị danh sách các Agent theo vai trò (role)
-// Cho phép lọc agent theo role, chọn agent và xem chi tiết kỹ năng
+/**
+ * Agent — Component chính hiển thị danh sách Agent theo vai trò (role).
+ * Cho phép lọc agent theo role, chọn agent và xem chi tiết kỹ năng.
+ *
+ * Dữ liệu/hàm (từ hook useAgentGallery — chi tiết trong comment trong body):
+ * filteredAgents, selectedRole, selectedAgent, selectedAbility,
+ * filterByRole, handleAgentPress, sortAbilities, setSelectedAgent,
+ * setSelectedAbility. Pull-to-refresh qua useAsyncRefresh(refreshApp).
+ *
+ * Layout: thanh chọn 4 role → AgentGrid (lưới agent) → AgentModal
+ * (chi tiết kỹ năng, chỉ render khi có selectedAgent).
+ *
+ * @returns {JSX.Element} Màn hình thư viện Agent.
+ */
 const Agent = () => {
   // Lấy dữ liệu và hàm từ custom hook useAgentGallery
   // filteredAgents: danh sách agent đã được lọc theo role
@@ -28,6 +40,7 @@ const Agent = () => {
   // setSelectedAbility: hàm set kỹ năng được chọn
   const { filteredAgents, selectedRole, selectedAgent, selectedAbility, filterByRole,
     handleAgentPress, sortAbilities, setSelectedAgent, setSelectedAbility } = useAgentGallery();
+  // refreshApp: pull-to-refresh chạy full sync nền (force = true)
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 

@@ -1,3 +1,8 @@
+// ===== CollectionCheckerExport.tsx =====
+// Tính năng xuất ảnh "bộ sưu tập skin hiếm trở lên" (native only):
+// dựng offline một sheet 1080px ngoài màn hình (header, hồ sơ, summary,
+// lưới skin card), chờ ảnh load xong rồi chụp bằng view-shot và lưu vào
+// Thư viện qua expo-media-library. Provider cung cấp context cho nút export.
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
@@ -20,25 +25,33 @@ import {
 import { getContentTierVisual } from "~/utils/content-tier";
 import type { CompetitiveRankSummary } from "~/utils/profile-cache";
 
+// BASE_WIDTH: Bề rộng logic thiết kế gốc của sheet (trước khi scale)
 const BASE_WIDTH = 360;
+// OUTPUT_WIDTH_PX: Bề rộng ảnh đầu ra mong muốn (1080px)
 const OUTPUT_WIDTH_PX = 1080;
+// GRID_COLUMNS/GRID_GAP/PAGE_PADDING: Bố cục lưới skin card trên sheet
 const GRID_COLUMNS = 6;
 const GRID_GAP = 3;
 const PAGE_PADDING = 8;
+// IMAGE_LOAD_TIMEOUT_MS: Chờ ảnh tối đa 4s trước khi chụp dù chưa đủ
 const IMAGE_LOAD_TIMEOUT_MS = 4_000;
+// Batch render: thêm 24 card mỗi 16ms để tránh jank khi dựng sheet lớn
 const EXPORT_RENDER_BATCH_SIZE = 24;
 const EXPORT_RENDER_BATCH_DELAY_MS = 16;
+// Chỉ các tier từ Premium trở lên mới được xuất (khớp theo key hoặc UUID)
 const EXPORTABLE_TIER_KEYS = new Set(["premium", "exclusive", "ultra"]);
 const EXPORTABLE_TIER_UUIDS = new Set([
   "60bca009-4182-7998-dee7-b8a2558dc369",
   "e046854e-406c-37f4-6607-19a9ba8426fc",
   "411e4a55-4e59-7757-41f0-86a53f101bb5",
 ]);
+// TIER_SORT_PRIORITY: Thứ tự ưu tiên sort theo tier (ultra lên đầu)
 const TIER_SORT_PRIORITY: Record<string, number> = {
   ultra: 0,
   exclusive: 1,
   premium: 2,
 };
+// WEAPON_SORT_PRIORITY: Map tên vũ khí → vị trí theo WEAPON_NAME_ORDER
 const WEAPON_SORT_PRIORITY = new Map(
   WEAPON_NAME_ORDER.map((weaponName, index) => [
     weaponName.trim().toLowerCase(),
@@ -46,12 +59,15 @@ const WEAPON_SORT_PRIORITY = new Map(
   ])
 );
 
+// CheckerBalances: Số dư 3 loại tiền tệ (VP, Radianite, KC)
 type CheckerBalances = {
   vp: number;
   rad: number;
   kc: number;
 };
 
+// CollectionCheckerProfile: Hồ sơ hiển thị trên ảnh (tên, region, level,
+// avatar, rank, số dư)
 export type CollectionCheckerProfile = {
   gameName: string;
   tagLine?: string;
@@ -63,6 +79,14 @@ export type CollectionCheckerProfile = {
   balances: CheckerBalances;
 };
 
+/**
+ * CollectionCheckerExportProps – Props của provider.
+ *
+ * @param items – Toàn bộ vũ khí trong bộ sưu tập (chỉ item đủ tier được xuất).
+ * @param profile – Hồ sơ người chơi in lên ảnh.
+ * @param disabled – (mặc định false) Tắt nút xuất từ bên ngoài.
+ * @param children – Node con (nơi đặt CollectionCheckerExport).
+ */
 type CollectionCheckerExportProps = {
   items: OwnedWeaponCollectionItem[];
   profile: CollectionCheckerProfile;
@@ -70,10 +94,17 @@ type CollectionCheckerExportProps = {
   children: React.ReactNode;
 };
 
+// CheckerStyles: Kiểu stylesheet động trả về từ createCheckerStyles(scale)
 type CheckerStyles = ReturnType<typeof createCheckerStyles>;
 
+// MediaLibraryModule: Kiểu module expo-media-library (require động)
 type MediaLibraryModule = typeof import("expo-media-library");
 
+/**
+ * getMediaLibrary – Lấy module expo-media-library theo cách require động.
+ * @returns Module expo-media-library đã cast kiểu.
+ * @throws Error nếu chạy trên web (module không khả dụng).
+ */
 const getMediaLibrary = (): MediaLibraryModule => {
   if (Platform.OS === "web") {
     throw new Error("Media library is unavailable on web.");
@@ -82,6 +113,7 @@ const getMediaLibrary = (): MediaLibraryModule => {
   return require("expo-media-library") as MediaLibraryModule;
 };
 
+// CollectionExportContextValue: Giá trị context cho nút export con
 type CollectionExportContextValue = {
   disabled: boolean;
   exporting: boolean;
@@ -90,9 +122,11 @@ type CollectionExportContextValue = {
   styles: CheckerStyles;
 };
 
+// Context chia sẻ trạng thái export từ Provider xuống nút con
 const CollectionExportContext =
   React.createContext<CollectionExportContextValue | null>(null);
 
+// TIER_COLORS: Màu nhận diện từng content tier trên card/badge
 const TIER_COLORS: Record<string, string> = {
   ultra: "#d9a934",
   exclusive: "#c77946",
@@ -102,6 +136,11 @@ const TIER_COLORS: Record<string, string> = {
   standard: "#777284",
 };
 
+/**
+ * formatGeneratedAt – Format timestamp thành nhãn "HH:mm - dd/MM/yyyy".
+ * @param timestamp – Mốc thời gian (ms).
+ * @returns Chuỗi thời gian đã format cho footer ảnh.
+ */
 const formatGeneratedAt = (timestamp: number) => {
   const date = new Date(timestamp);
   const pad = (value: number) => value.toString().padStart(2, "0");
@@ -111,15 +150,31 @@ const formatGeneratedAt = (timestamp: number) => {
   )}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 };
 
+/**
+ * formatNumber – Format số theo en-US (phân cách nghìn bằng dấu phẩy).
+ * @param value – Số cần format.
+ * @returns Chuỗi đã format (VD: 12345 → "12,345").
+ */
 const formatNumber = (value: number) =>
   new Intl.NumberFormat("en-US").format(value);
 
+/**
+ * getTierKey – Lấy key tier thường hoá (lowercase, trim) của một item.
+ * @param item – Item bộ sưu tập cần xác định tier.
+ * @returns Key tier (VD: "ultra", "premium") suy từ label tier.
+ */
 const getTierKey = (item: OwnedWeaponCollectionItem) =>
   getContentTierVisual(item.contentTierUuid, item.contentTierName)
     .label
     .trim()
     .toLowerCase();
 
+/**
+ * isExportableTier – Kiểm tra item có đủ điều kiện xuất ảnh không.
+ * Ưu tiên so khớp UUID tier (chính xác); thiếu UUID thì fallback theo key.
+ * @param item – Item cần kiểm tra.
+ * @returns true nếu tier thuộc nhóm premium trở lên.
+ */
 const isExportableTier = (item: OwnedWeaponCollectionItem) => {
   const tierUuid = item.contentTierUuid?.trim().toLowerCase();
 
@@ -130,6 +185,15 @@ const isExportableTier = (item: OwnedWeaponCollectionItem) => {
   return EXPORTABLE_TIER_KEYS.has(getTierKey(item));
 };
 
+/**
+ * compareExportItems – Comparator sort thứ tự card trên ảnh.
+ * Thứ tự: (1) loại vũ khí theo WEAPON_NAME_ORDER, (2) tên vũ khí alphabet,
+ * (3) tier theo TIER_SORT_PRIORITY, (4) tên skin alphabet.
+ *
+ * @param left – Item bên trái phép so sánh.
+ * @param right – Item bên phải phép so sánh.
+ * @returns Số âm/0/dương theo thứ tự chuẩn comparator JS.
+ */
 const compareExportItems = (
   left: OwnedWeaponCollectionItem,
   right: OwnedWeaponCollectionItem
@@ -160,6 +224,19 @@ const compareExportItems = (
   return left.skinName.localeCompare(right.skinName);
 };
 
+/**
+ * CheckerImage – Ảnh cached dùng trong sheet export, báo ready về provider.
+ * onLoadEnd lẫn onError đều gọi onReady(readyKey) để bộ đếm ảnh không kẹt
+ * khi có ảnh lỗi.
+ *
+ * @param cacheId – Cache key cho CachedImage.
+ * @param uri – URL ảnh.
+ * @param style – Style ảnh.
+ * @param contentFit – (mặc định "contain") Kiểu fit ảnh.
+ * @param onReady – Callback báo ảnh đã load xong (hoặc lỗi) với key.
+ * @param readyKey – (mặc định = cacheId) Key định danh dùng khi báo ready.
+ * @returns CachedImage đã nối callback onReady.
+ */
 function CheckerImage({
   cacheId,
   uri,
@@ -175,6 +252,7 @@ function CheckerImage({
   onReady: (key: string) => void;
   readyKey?: string;
 }) {
+  // handleReady: memo hoá callback báo ready (tránh re-subscribe cache ảnh)
   const handleReady = React.useCallback(
     () => onReady(readyKey),
     [onReady, readyKey]
@@ -195,6 +273,12 @@ function CheckerImage({
   );
 }
 
+/**
+ * BrandMark – Logo "V" xoay 45 độ (hình kim cương) của Vshop trên ảnh.
+ *
+ * @param styles – Styles động của sheet (CheckerStyles).
+ * @returns View logo brand.
+ */
 function BrandMark({ styles }: { styles: CheckerStyles }) {
   return (
     <View style={styles.brandMark}>
@@ -203,6 +287,15 @@ function BrandMark({ styles }: { styles: CheckerStyles }) {
   );
 }
 
+/**
+ * CheckerHeader – Dải header trên cùng của sheet: đường accent, ảnh art phủ
+ * gradient tối và khối brand (logo + VSHOP.APP / COLLECTION).
+ *
+ * @param profile – Hồ sơ (dùng avatarUri làm ảnh art nếu có).
+ * @param styles – Styles động của sheet.
+ * @param onImageReady – Callback báo ảnh header đã load xong.
+ * @returns View header của sheet.
+ */
 function CheckerHeader({
   profile,
   styles,
@@ -241,6 +334,16 @@ function CheckerHeader({
   );
 }
 
+/**
+ * CheckerProfile – Panel hồ sơ: avatar (hoặc chữ cái fallback), RIOT ID,
+ * dòng meta region + thời điểm tạo, khối LEVEL.
+ *
+ * @param profile – Hồ sơ người chơi.
+ * @param generatedAt – Timestamp lúc bắt đầu export (in lên ảnh).
+ * @param styles – Styles động của sheet.
+ * @param onImageReady – Callback báo ảnh avatar đã load xong.
+ * @returns View panel hồ sơ.
+ */
 function CheckerProfile({
   profile,
   generatedAt,
@@ -252,6 +355,7 @@ function CheckerProfile({
   styles: CheckerStyles;
   onImageReady: (key: string) => void;
 }) {
+  // riotId: "gameName#tagLine" (fallback "VALORANT" nếu thiếu tên)
   const riotId = `${profile.gameName || "VALORANT"}${
     profile.tagLine ? `#${profile.tagLine}` : ""
   }`;
@@ -297,6 +401,16 @@ function CheckerProfile({
   );
 }
 
+/**
+ * StatCell – Một ô chỉ số nhỏ trong hàng summary (nhãn + giá trị tô màu).
+ *
+ * @param label – Nhãn ô (VD: "SKINS", "VP").
+ * @param value – Giá trị hiển thị.
+ * @param color – (tuỳ chọn) Màu chữ giá trị.
+ * @param wide – (tuỳ chọn) Ô dùng bản rộng (statCellWide).
+ * @param styles – Styles động của sheet.
+ * @returns View ô chỉ số.
+ */
 function StatCell({
   label,
   value,
@@ -322,6 +436,16 @@ function StatCell({
   );
 }
 
+/**
+ * CheckerSummary – Panel summary: rank hiện tại/đỉnh cao + hàng stat cells
+ * (tổng skin, đếm từng tier, số dư VP/RP/KC).
+ *
+ * @param profile – Hồ sơ (rank + số dư).
+ * @param items – Danh sách item dùng đếm theo tier.
+ * @param styles – Styles động của sheet.
+ * @param onImageReady – Callback báo ảnh rank đã load xong.
+ * @returns View panel tổng quan.
+ */
 function CheckerSummary({
   profile,
   items,
@@ -333,6 +457,7 @@ function CheckerSummary({
   styles: CheckerStyles;
   onImageReady: (key: string) => void;
 }) {
+  // tierCounts: đếm số item theo từng tier (memo theo items)
   const tierCounts = React.useMemo(() => {
     const counts: Record<string, number> = {
       ultra: 0,
@@ -423,6 +548,12 @@ function CheckerSummary({
   );
 }
 
+/**
+ * PromoCard – Card quảng cáo đầu lưới: "MY SKINS TẠI Vshop" với brand mark.
+ *
+ * @param styles – Styles động của sheet.
+ * @returns View card promo.
+ */
 function PromoCard({ styles }: { styles: CheckerStyles }) {
   return (
     <View style={[styles.skinCard, styles.promoCard]}>
@@ -434,6 +565,15 @@ function PromoCard({ styles }: { styles: CheckerStyles }) {
   );
 }
 
+/**
+ * CheckerSkinCard – Card một skin trong lưới: viền + đường tier theo màu tier,
+ * badge VSHOP, ảnh skin (hoặc icon fallback), footer chấm rarity + tên skin.
+ *
+ * @param item – Item bộ sưu tập cần render.
+ * @param styles – Styles động của sheet.
+ * @param onImageReady – Callback báo ảnh skin đã load xong.
+ * @returns View card skin.
+ */
 function CheckerSkinCard({
   item,
   styles,
@@ -443,6 +583,7 @@ function CheckerSkinCard({
   styles: CheckerStyles;
   onImageReady: (key: string) => void;
 }) {
+  // tier: key tier của item; tierColor: màu tương ứng (fallback standard)
   const tier = getTierKey(item);
   const tierColor = TIER_COLORS[tier] || TIER_COLORS.standard;
 
@@ -481,6 +622,21 @@ function CheckerSkinCard({
   );
 }
 
+/**
+ * CheckerSheet – Sheet hoàn chỉnh được chụp thành ảnh: header + hồ sơ +
+ * summary + lưới card (promo + skin cards) + footer branding.
+ * Đặt ngoài màn hình (left âm) để không hiển thị cho người dùng.
+ *
+ * @param items – Danh sách item đã render theo batch.
+ * @param profile – Hồ sơ người chơi.
+ * @param generatedAt – Timestamp in lên ảnh.
+ * @param logicalWidth – Bề rộng logic của sheet (px device-independent).
+ * @param styles – Styles động của sheet.
+ * @param onImageReady – Callback báo một ảnh đã load xong.
+ * @param onLayoutReady – Callback báo sheet đã layout xong.
+ * @param exportRef – Ref View đích cho captureRef.
+ * @returns View sheet offline sẵn sàng chụp.
+ */
 function CheckerSheet({
   items,
   profile,
@@ -554,6 +710,22 @@ function CheckerSheet({
   );
 }
 
+/**
+ * CollectionCheckerExportProvider – Provider quản lý toàn bộ quy trình export.
+ * Luồng: handleDownload (xin quyền media, dựng state export) → mount
+ * CheckerSheet ngoài màn hình → render batch 24 card/lần cho đến khi đủ →
+ * chờ ảnh ready (tối đa IMAGE_LOAD_TIMEOUT_MS) → saveCheckerImage tự chạy
+ * (captureRef + lưu Thư viện + Toast) → finishExport dọn state.
+ *
+ * @param items – Toàn bộ vũ khí bộ sưu tập (lọc tier rồi sort).
+ * @param profile – Hồ sơ người chơi.
+ * @param disabled – (mặc định false) Cờ tắt nút export.
+ * @param children – Node con nhận context.
+ * @returns Provider context + CheckerSheet (khi đang export).
+ *
+ * Side effects: 2 effect setTimeout (batch render + timeout chờ ảnh) đều có
+ * cleanup clearTimeout; captureRef ghi file tạm; Toast hiển thị kết quả.
+ */
 export function CollectionCheckerExportProvider({
   items,
   profile,
@@ -561,53 +733,73 @@ export function CollectionCheckerExportProvider({
   children,
 }: CollectionCheckerExportProps) {
   const exportRef = React.useRef<View>(null);
+  // loadedImageKeysRef: tập key ảnh đã ready (chống đếm trùng)
   const loadedImageKeysRef = React.useRef(new Set<string>());
+  // captureStartedRef: đảm bảo capture chỉ bắt đầu một lần mỗi lượt export
   const captureStartedRef = React.useRef(false);
+  // pixelRatio/logicalWidth/scale: tính kích thước sheet theo mật độ màn
   const pixelRatio = PixelRatio.get();
   const logicalWidth = OUTPUT_WIDTH_PX / pixelRatio;
   const scale = logicalWidth / BASE_WIDTH;
   const styles = React.useMemo(() => createCheckerStyles(scale), [scale]);
+  // exporting: đang trong quy trình export (nút hiển thị spinner)
   const [exporting, setExporting] = React.useState(false);
+  // sheetMounted: sheet offline có được mount không
   const [sheetMounted, setSheetMounted] = React.useState(false);
+  // layoutReady: sheet đã đo layout xong (onLayout đã fire)
   const [layoutReady, setLayoutReady] = React.useState(false);
+  // readyImageCount: số ảnh đã load xong trong sheet
   const [readyImageCount, setReadyImageCount] = React.useState(0);
+  // imageWaitExpired: đã hết 4s chờ ảnh (chấp nhận chụp dù thiếu ảnh)
   const [imageWaitExpired, setImageWaitExpired] = React.useState(false);
+  // generatedAt: timestamp in lên ảnh (set khi bắt đầu export)
   const [generatedAt, setGeneratedAt] = React.useState(Date.now());
+  // exportItems/exportProfile: dữ liệu của lượt export đang chạy
   const [exportItems, setExportItems] = React.useState<
     OwnedWeaponCollectionItem[]
   >([]);
   const [exportProfile, setExportProfile] =
     React.useState<CollectionCheckerProfile | null>(null);
+  // renderedItemCount: số card đã được render (tăng theo batch)
   const [renderedItemCount, setRenderedItemCount] = React.useState(0);
 
+  // eligibleItems: item đủ tier + đã sort theo thứ tự chuẩn (memo theo items)
   const eligibleItems = React.useMemo(
     () => items.filter(isExportableTier).sort(compareExportItems),
     [items]
   );
+  // renderedItems: phần item đã render hiển thị trên sheet
   const renderedItems = React.useMemo(
     () => exportItems.slice(0, renderedItemCount),
     [exportItems, renderedItemCount]
   );
+  // allItemsRendered: mọi item đã được render hết chưa
   const allItemsRendered =
     exportItems.length > 0 && renderedItemCount >= exportItems.length;
+  // expectedImageCount: tổng số ảnh cần chờ (skin + avatar + rank)
   const expectedImageCount =
     exportItems.reduce((count, item) => count + (item.image ? 1 : 0), 0) +
     (exportProfile?.avatarUri ? 2 : 0) +
     (exportProfile?.rank?.currentIcon ? 1 : 0);
+  // imagesReady: không có ảnh nào cần chờ, hoặc đã đủ số ảnh ready
   const imagesReady =
     expectedImageCount === 0 || readyImageCount >= expectedImageCount;
+  // exportReady: mọi điều kiện chụp đã thoả
   const exportReady =
     sheetMounted &&
     allItemsRendered &&
     layoutReady &&
     (imagesReady || imageWaitExpired);
 
+  // markImageReady: ghi nhận một ảnh ready (đếm theo Set để không trùng)
   const markImageReady = React.useCallback((key: string) => {
     if (loadedImageKeysRef.current.has(key)) return;
     loadedImageKeysRef.current.add(key);
     setReadyImageCount(loadedImageKeysRef.current.size);
   }, []);
 
+  // Effect: render batch tiếp theo mỗi 16ms cho tới khi render đủ items;
+  // cleanup: clearTimeout khi dependency đổi/unmount.
   React.useEffect(() => {
     if (!sheetMounted || allItemsRendered) return;
 
@@ -620,6 +812,8 @@ export function CollectionCheckerExportProvider({
     return () => clearTimeout(timeout);
   }, [allItemsRendered, exportItems.length, sheetMounted]);
 
+  // Effect: nếu ảnh chưa đủ sau khi render xong → sau 4s cho phép chụp
+  // (đặt imageWaitExpired); cleanup: clearTimeout.
   React.useEffect(() => {
     if (!sheetMounted || !allItemsRendered || imagesReady) return;
 
@@ -630,6 +824,7 @@ export function CollectionCheckerExportProvider({
     return () => clearTimeout(timeout);
   }, [allItemsRendered, imagesReady, sheetMounted]);
 
+  // finishExport: reset toàn bộ state/flags của lượt export về ban đầu
   const finishExport = React.useCallback(() => {
     setSheetMounted(false);
     setExporting(false);
@@ -640,6 +835,9 @@ export function CollectionCheckerExportProvider({
     setRenderedItemCount(0);
   }, []);
 
+  // saveCheckerImage: chụp sheet thành JPG 0.92 và lưu vào Thư viện.
+  // Chờ 2 frame (rAF lồng) để đảm bảo layout ổn định trước khi capture.
+  // Toast thông báo thành công/lỗi; cuối cùng luôn gọi finishExport.
   const saveCheckerImage = React.useCallback(async () => {
     try {
       const MediaLibrary = getMediaLibrary();
@@ -681,12 +879,16 @@ export function CollectionCheckerExportProvider({
     }
   }, [finishExport]);
 
+  // Effect: khi mọi điều kiện chụp thoả → bắt đầu capture đúng một lần
   React.useEffect(() => {
     if (!exportReady || captureStartedRef.current) return;
     captureStartedRef.current = true;
     void saveCheckerImage();
   }, [exportReady, saveCheckerImage]);
 
+  // handleDownload: điểm vào của nút export.
+  // Chặn khi disabled/đang export/không có item; web hiển thị Toast không hỗ
+  // trợ; native xin quyền media rồi dựng state để mount sheet offline.
   const handleDownload = React.useCallback(async () => {
     if (disabled || exporting || eligibleItems.length === 0) return;
 
@@ -749,6 +951,7 @@ export function CollectionCheckerExportProvider({
     }
   }, [disabled, eligibleItems, exporting, items.length, profile]);
 
+  // contextValue: giá trị context cung cấp cho nút CollectionCheckerExport
   const contextValue = React.useMemo<CollectionExportContextValue>(
     () => ({
       disabled,
@@ -781,7 +984,15 @@ export function CollectionCheckerExportProvider({
   );
 }
 
+/**
+ * CollectionCheckerExport – Nút vuông tải ảnh (dùng context từ Provider).
+ * Disabled khi bị khoá ngoài/đang export/không có item xuất được; hiển thị
+ * spinner thay icon download trong lúc đang export.
+ *
+ * @returns Nút Pressable xuất ảnh, hoặc null nếu không có Provider.
+ */
 export function CollectionCheckerExport() {
+  // exportContext: đọc context; không có Provider → không render gì
   const exportContext = React.useContext(CollectionExportContext);
 
   if (!exportContext) {
@@ -795,6 +1006,7 @@ export function CollectionCheckerExport() {
     onDownload,
     styles,
   } = exportContext;
+  // buttonDisabled: gộp các điều kiện khoá nút
   const buttonDisabled = disabled || exporting || !hasExportableItems;
 
   return (
@@ -819,8 +1031,18 @@ export function CollectionCheckerExport() {
   );
 }
 
+/**
+ * createCheckerStyles – Sinh toàn bộ style sheet scale theo mật độ màn hình.
+ * Tính hệ số s() từ scale (logicalWidth/BASE_WIDTH) rồi nhân vào mọi kích
+ * thước để ảnh đầu ra luôn chuẩn 1080px trên mọi thiết bị.
+ *
+ * @param scale – Hệ số scale = (OUTPUT_WIDTH_PX / pixelRatio) / BASE_WIDTH.
+ * @returns StyleSheet.create object gồm style nút export + mọi phần sheet.
+ */
 function createCheckerStyles(scale: number) {
+  // s: nhân một giá trị thiết kế (px logic 360) với hệ số scale
   const s = (value: number) => value * scale;
+  // gridWidth/cardWidth/cardHeight: kích thước lưới card theo scale
   const gridWidth = s(BASE_WIDTH - PAGE_PADDING * 2);
   const cardWidth =
     (gridWidth - s(GRID_GAP * (GRID_COLUMNS - 1))) / GRID_COLUMNS;

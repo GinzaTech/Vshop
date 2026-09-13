@@ -1,3 +1,7 @@
+// ===== EconomyChart.tsx =====
+// Biểu đồ kinh tế (credits) theo từng vòng trong màn chi tiết trận đấu.
+// Cho phép chọn chỉ số hiển thị (chênh lệch / tổng / từng đội / loadout /
+// đã tiêu), vẽ line chart bằng View xoay, marker bấm được và tooltip vòng.
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
@@ -18,6 +22,12 @@ import {
 } from "~/constants/MatchTheme";
 import type { EconomyPoint } from "~/types/match-ui";
 
+/**
+ * EconomyMetric – Các chỉ số kinh tế có thể chọn để vẽ biểu đồ.
+ * - difference: chênh lệch kinh tế A vs B (mặc định)
+ * - total: tổng kinh tế 2 đội | teamA/teamB: kinh tế từng đội
+ * - loadout: chênh lệch loadout trung bình | spent: chênh lệch đã tiêu
+ */
 type EconomyMetric =
   | "difference"
   | "total"
@@ -26,15 +36,29 @@ type EconomyMetric =
   | "loadout"
   | "spent";
 
+/**
+ * EconomyChartProps – Props của EconomyChart.
+ *
+ * @param points – Dữ liệu kinh tế từng vòng (roundNumber, economy,
+ *                 loadout, spent, winningTeam của đội A/B).
+ */
 type EconomyChartProps = {
   points: EconomyPoint[];
 };
 
+// Kích thước khung vẽ: đỉnh plot, chiều cao plot, chiều cao tổng, khoảng cách
+// ngang giữa 2 điểm vòng liên tiếp
 const PLOT_TOP = 16;
 const PLOT_HEIGHT = 152;
 const CHART_HEIGHT = 205;
 const POINT_GAP = 44;
 
+/**
+ * compactCredits – Format số credits gọn cho nhãn trục/marker.
+ * @param value – Số credits (có thể âm).
+ * @returns "1.5k" / "-12k" (>=10k làm tròn nguyên, ngược lại 1 chữ số thập
+ *          phân) hoặc số nguyên thường nếu < 1000.
+ */
 const compactCredits = (value: number) => {
   const absolute = Math.abs(value);
   const sign = value < 0 ? "-" : "";
@@ -45,6 +69,12 @@ const compactCredits = (value: number) => {
   return `${Math.round(value)}`;
 };
 
+/**
+ * metricValue – Lấy giá trị của một chỉ số tại một điểm dữ liệu.
+ * @param point – Điểm kinh tế của một vòng.
+ * @param metric – Chỉ số cần lấy (xem EconomyMetric).
+ * @returns Giá trị số tương ứng với metric.
+ */
 const metricValue = (point: EconomyPoint, metric: EconomyMetric) => {
   if (metric === "total") return point.teamAEconomy + point.teamBEconomy;
   if (metric === "teamA") return point.teamAEconomy;
@@ -53,6 +83,15 @@ const metricValue = (point: EconomyPoint, metric: EconomyMetric) => {
   return point.difference;
 };
 
+/**
+ * lineStyle – Sinh style của đoạn thẳng nối 2 điểm (dùng View xoay).
+ * @param x1 – Hoành độ điểm đầu.
+ * @param y1 – Tung độ điểm đầu.
+ * @param x2 – Hoành độ điểm cuối.
+ * @param y2 – Tung độ điểm cuối.
+ * @param color – Màu đoạn thẳng (dương/âm).
+ * @returns ViewStyle absolute với left/top/width/transform rotate tương ứng.
+ */
 const lineStyle = (
   x1: number,
   y1: number,
@@ -73,13 +112,29 @@ const lineStyle = (
   };
 };
 
+/**
+ * EconomyChart – Biểu đồ kinh tế theo vòng (memo hoá).
+ * State nội bộ: metric đang chọn, menu chọn metric mở/closed, vòng được chọn
+ * (hiển thị tooltip). Vẽ: nhãn trục Y, grid line, đoạn thẳng nối các điểm
+ * (màu theo dấu giá trị), marker bấm được + marker đội thắng + nhãn số vòng.
+ * Có screen reader summary cho toàn bộ chart.
+ *
+ * @param points – Dữ liệu kinh tế từng vòng (xem EconomyChartProps).
+ * @returns Section chứa tiêu đề, menu chọn metric, tooltip và biểu đồ.
+ *
+ * Side effects: không có timer/subscription/animation; state thuần UI.
+ */
 export const EconomyChart = React.memo(function EconomyChart({
   points,
 }: EconomyChartProps) {
   const { t } = useTranslation();
+  // metric: chỉ số kinh tế đang vẽ (mặc định: chênh lệch)
   const [metric, setMetric] = React.useState<EconomyMetric>("difference");
+  // menuOpen: menu chọn metric có đang mở không
   const [menuOpen, setMenuOpen] = React.useState(false);
+  // selectedRound: số vòng được bấm để xem tooltip (null = chưa chọn)
   const [selectedRound, setSelectedRound] = React.useState<number | null>(null);
+  // options: danh sách metric + nhãn i18n cho menu chọn
   const options: { id: EconomyMetric; label: string }[] = [
     { id: "difference", label: t("match_ui.economy.difference") },
     { id: "total", label: t("match_ui.economy.total") },
@@ -88,16 +143,21 @@ export const EconomyChart = React.memo(function EconomyChart({
     { id: "loadout", label: t("match_ui.economy.loadout") },
     { id: "spent", label: t("match_ui.economy.spent") },
   ];
+  // activeLabel: nhãn i18n của metric đang chọn (hiển thị trên nút)
   const activeLabel = options.find((option) => option.id === metric)?.label ?? "";
+  // values: mảng giá trị của metric tại từng vòng (memo theo metric/points)
   const values = React.useMemo(
     () => points.map((point) => metricValue(point, metric)),
     [metric, points]
   );
+  // maxMagnitude: biên độ trục Y, làm tròn lên bội 5000 (tối thiểu 5000)
   const maxMagnitude = React.useMemo(() => {
     const rawMax = Math.max(5_000, ...values.map((value) => Math.abs(value)));
     return Math.ceil(rawMax / 5_000) * 5_000;
   }, [values]);
+  // chartWidth: chiều rộng chart (tối thiểu 300, mở rộng theo số vòng)
   const chartWidth = Math.max(300, (points.length - 1) * POINT_GAP + 40);
+  // yForValue: đổi giá trị số → tung độ pixel trong plot
   const yForValue = React.useCallback(
     (value: number) =>
       PLOT_TOP +
@@ -105,9 +165,11 @@ export const EconomyChart = React.memo(function EconomyChart({
       (value / maxMagnitude) * (PLOT_HEIGHT / 2 - 9),
     [maxMagnitude]
   );
+  // selectedPoint: điểm dữ liệu của vòng đang chọn trong tooltip
   const selectedPoint = points.find(
     (point) => point.roundNumber === selectedRound
   );
+  // gridValues: 5 mức grid line trên trục Y (max, max/2, 0, -max/2, -max)
   const gridValues = [
     maxMagnitude,
     maxMagnitude / 2,
@@ -115,6 +177,7 @@ export const EconomyChart = React.memo(function EconomyChart({
     -maxMagnitude / 2,
     -maxMagnitude,
   ];
+  // screenReaderSummary: mô tả toàn bộ chart cho screen reader
   const screenReaderSummary = `${t("match_ui.economy.title")}. ${points.length} rounds. ${t("match_ui.economy.difference")}: ${values.map((value) => Math.round(value)).join(", ")}`;
 
   return (

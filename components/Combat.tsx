@@ -13,15 +13,25 @@ import {
 } from "~/utils/valorant-api";
 import { useCombatStore } from "~/hooks/useCombatStore";
 
-// Hàm tiện ích: tạo Promise delay, dùng để chờ giữa các lần poll snapshot
-// ms: số mili-giây cần chờ
+/**
+ * wait – Hàm tiện ích: tạo Promise delay, dùng để chờ giữa các lần poll snapshot
+ * @param ms – Số mili-giây cần chờ
+ * @returns Promise<void> resolve sau khi hết thời gian chờ (không trả giá trị)
+ */
 const wait = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 
-// useCombat: Hook chính, quản lý logic combat (chọn agent, lock, party ready, hủy)
-// Trả về: object chứa các state, hàm xử lý, và dữ liệu session
+/**
+ * useCombat – Hook chính, quản lý logic combat (chọn agent, lock, party ready, hủy)
+ * Trả về: object chứa các state, hàm xử lý, và dữ liệu session
+ *
+ * Lưu ý: các handler gọi trực tiếp API Riot làm thay đổi trạng thái thật
+ * (lock agent, thoát lobby, party ready) — chỉ chạy theo thao tác người dùng.
+ * Side effects: fetch session tự động qua useEffect khi credentials đổi;
+ * không có timer/subscription cần cleanup trong hook này.
+ */
 const useCombat = () => {
   // Hook dịch thuật i18n
   const { t } = useTranslation();
