@@ -41,9 +41,9 @@ Navigation motion uses shared timing tokens, transition-aware tab preloading and
 
 # English
 
-## Release 4.1.5 highlights
+## Release 4.1.6 highlights
 
-Unreleased session reliability changes: token renewal is shared across callers and serialized with native cookie/account operations. Temporary service failures preserve the session, WebView completion can retry without deleting Riot cookies, and late requests cannot replace newer credentials. Interactive login is requested only when Riot requires it. Localized Riot callbacks such as /vi-vn/opt_in/ are accepted, and tracking-only cookie jars cannot overwrite saved login cookies. Unused helpers/UI primitives and the unused Stripe integration have been removed; primary tab transitions now share one runtime/test configuration. Removing Stripe from an installed native binary requires a new native build. These source changes do not imply a new APK or published OTA.
+The 4.1.6 production APK hardens startup synchronization, session recovery, match-history caching and Riot chat reconnection. Token renewal is shared across callers and serialized with native cookie/account operations. Temporary service failures preserve the session, stale responses cannot replace newer credentials, and localized Riot callbacks such as `/vi-vn/opt_in/` are accepted. Unused helpers, assets and the unused Stripe integration have been removed from the repository and native build.
 
 - **Cleaner Combat flow:** removes the Party Chat pager while preserving party codes, join/leave controls, ready state and agent selection.
 - **Truthful direct-chat presence:** chat headers now show the selected friend as `Online` or `Offline` instead of reporting only the Riot socket state.
@@ -386,9 +386,9 @@ Install via QR code or APK from the Expo dashboard.
 
 # Tiếng Việt
 
-## Điểm nổi bật bản 4.1.5
+## Điểm nổi bật bản 4.1.6
 
-Thay đổi chưa phát hành về phiên đăng nhập: các luồng dùng chung một lần làm mới token và thao tác cookie được thực hiện tuần tự. Lỗi dịch vụ tạm thời giữ nguyên phiên; lỗi hoàn tất WebView có thể thử lại mà không xóa cookie Riot; response cũ không được ghi đè credentials mới. Chỉ yêu cầu đăng nhập khi Riot cần xác thực lại. Callback Riot theo ngôn ngữ như /vi-vn/opt_in/ được nhận diện; cookie chỉ còn dữ liệu chống bot không được ghi đè cookie đăng nhập đã lưu. Đã bỏ helper/UI primitive không dùng và tích hợp Stripe chưa sử dụng; cấu hình chuyển tab được dùng chung giữa runtime và test. Cần build native mới để bỏ SDK Stripe khỏi binary đã cài. Những thay đổi source này chưa được phát hành thành APK hoặc OTA.
+APK production 4.1.6 tăng độ ổn định cho đồng bộ lúc khởi động, phục hồi phiên, cache lịch sử đấu và kết nối lại Riot chat. Các luồng dùng chung một lần làm mới token và thao tác cookie được thực hiện tuần tự. Lỗi dịch vụ tạm thời giữ nguyên phiên, response cũ không được ghi đè credentials mới và callback Riot theo ngôn ngữ như `/vi-vn/opt_in/` được nhận diện. Helper, asset không dùng và tích hợp Stripe chưa sử dụng đã được loại khỏi repository và native build.
 
 - **Combat gọn hơn:** bỏ trang vuốt Chat tổ đội nhưng vẫn giữ mã tổ đội, tham gia/rời đội, trạng thái sẵn sàng và chọn đặc vụ.
 - **Presence chat chính xác:** tiêu đề chat riêng hiển thị người bạn đang `Online` hoặc `Offline`, thay vì chỉ báo trạng thái socket Riot.

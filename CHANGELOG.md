@@ -6,9 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Fixed — logic audit (4.1.6)
+## [4.1.6] - 2026-09-13
 
-Full logic-layer audit recorded in `LOGIC_AUDIT.md` (8 high, 15 medium, 16 low findings; all fixed, UI untouched). Highlights:
+### Fixed — logic audit
+
+Completed a full logic-layer audit (8 high, 15 medium, 16 low findings; all fixed, UI untouched). Highlights:
 
 - **Startup duplicate fetches eliminated.** Profile warm cache now records rank schema version even for unranked accounts, so the profile screen stops re-fetching loadout, ownership and MMR on every cold start. `getRiotClientConfig` gained a 5-minute cache and in-flight dedup shared by data-sync and chat service. A full-sync registry prevents background shop refreshes from racing the startup sync, and shop/balances TTLs are stamped as soon as that data lands instead of at the end of the sync.
 - **Session writes are token-safe.** `refreshShopAndBalances` verifies the access token before writing the store, so a slow shop response can no longer overwrite freshly renewed credentials with an expired token.
@@ -23,6 +25,7 @@ Full logic-layer audit recorded in `LOGIC_AUDIT.md` (8 high, 15 medium, 16 low f
 - Removed five unreferenced helpers/UI primitives and the unused Stripe SDK/provider integration. Existing installed binaries retain the SDK until rebuilt; no native release was produced.
 - Consolidated cookie implementation behind native/default entry points while preserving the web fallback, and made navigation tests exercise the same tab-motion factory used by the app.
 - Removed Quokka's obsolete `src/**/*.ts` preload glob and removed obsolete design-system/payment documentation. Vexo configuration remains unchanged.
+- Removed four unreferenced legacy images, stale manual Riot API artifacts and two completed one-off audit/test reports from the tracked repository.
 
 ### Fixed
 
@@ -46,9 +49,17 @@ Full logic-layer audit recorded in `LOGIC_AUDIT.md` (8 high, 15 medium, 16 low f
 
 - Motion pass (2026-09-11): TypeScript, zero-warning ESLint, 37 suites / 244 tests and Android export passed (9.64 MiB total / 7.16 MiB Hermes; budget passed). Full `check` remains blocked by production audit advisories 1193726 and 1193727 for transitive `js-yaml`. No connected Android device was available for FPS/gesture verification.
 
-- `pnpm run check`: TypeScript, zero-warning ESLint, 35 Jest suites / 240 tests and the production audit policy passed. The audit retains four documented transitive Expo/Metro advisories.
-- Android production export passed with 38 assets; export budget passed (9.63 MiB total / 7.16 MiB Hermes). The temporary export from this cleanup was deleted after verification.
-- Live Android testing confirmed localized login completion and successful silent renewal with identity preservation and concurrent-call deduplication. Verification of all four supplied accounts remains incomplete after USB disconnected; the old development binary also exhibited Hermes SIGSEGV crashes while DevTools was used. The redesigned tab animation has not yet been visually verified on a device. No APK, OTA, commit or push was produced for these changes.
+- `pnpm run check`: TypeScript, zero-warning ESLint, 38 Jest suites / 254 tests and the production audit policy passed with eight documented transitive advisories.
+- Android production export passed with 38 assets. The temporary verification export was deleted after completion.
+- Live Android testing confirmed localized login completion and successful silent renewal with identity preservation and concurrent-call deduplication. Verification of all four supplied accounts remains incomplete after USB disconnected; the old development binary also exhibited Hermes SIGSEGV crashes while DevTools was used. The redesigned tab animation has not yet been visually verified on a device.
+
+### Build metadata
+
+- App/runtime version: `4.1.6`
+- Android version code: `87`
+- iOS build number: `39`
+- EAS production build: `5fd89b69-62e1-4e09-8218-de29a167e713` (`FINISHED`)
+- Android artifact: production APK, channel `production`
 
 ## [4.1.5 OTA 2] - 2026-09-04
 
@@ -446,7 +457,8 @@ Full logic-layer audit recorded in `LOGIC_AUDIT.md` (8 high, 15 medium, 16 low f
 - iOS build number: `30`
 - Production profile: `eas build --profile production --platform android`
 
-[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.5...HEAD
+[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.6...HEAD
+[4.1.6]: https://github.com/GinzaTech/Vshop/compare/v4.1.5...v4.1.6
 [4.1.5]: https://github.com/GinzaTech/Vshop/compare/v4.1.4...v4.1.5
 [4.1.4]: https://github.com/GinzaTech/Vshop/compare/v4.1.3...v4.1.4
 [4.1.3]: https://github.com/GinzaTech/Vshop/compare/v4.1.2...v4.1.3
