@@ -99,6 +99,7 @@ export type MatchHistoryRecord = {
  */
 export type SeasonPerformanceStats = {
   calculationVersion: number;
+  dataCompleteness?: "full" | "partial" | "rank-only";
   seasonId: string;
   seasonName: string;
   matchCount: number;

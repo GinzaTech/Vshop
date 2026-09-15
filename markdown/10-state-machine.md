@@ -39,6 +39,25 @@ stateDiagram-v2
 Focus/background là điều kiện **polling**, không phải một giá trị `snapshot.state`.
 Ngừng poll không có nghĩa trận đấu thật trên server đã kết thúc.
 
+## Snapshot archive mùa
+
+```mermaid
+stateDiagram-v2
+    [*] --> Missing
+    Missing --> Observed: match Competitive đã hydrate
+    Missing --> RankOnly: chỉ còn tổng MMR theo season
+    Observed --> Partial: có một phần detail xác minh
+    Observed --> Complete: đủ dữ liệu đã quan sát
+    Partial --> Complete: bổ sung detail / history
+    RankOnly --> Partial: tìm lại được match detail
+    RankOnly --> Complete: archive đầy đủ hơn xuất hiện
+    Complete --> Complete: merge record mới, chống trùng Match ID
+```
+
+Merge không hạ chất lượng snapshot hoặc thay dữ liệu không rỗng bằng lần crawl
+rỗng. Mỗi write được tuần tự theo account + Act trước khi publish payload mới.
+
 Nguồn: [Combat store](../hooks/useCombatStore.ts),
 [polling](../features/combat/useCombatSessionPolling.ts),
-[request runtime](../features/matches/request-runtime.ts).
+[request runtime](../features/matches/request-runtime.ts),
+[archive repository](../services/matches/match-archive-core.ts).

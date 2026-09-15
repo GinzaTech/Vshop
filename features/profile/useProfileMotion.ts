@@ -8,12 +8,16 @@ import {
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import { runWhenIdle, type IdleTask } from "~/utils/idle-task";
 import { type RankSplitContentMode } from "~/components/profile/RankSplitGroup";
-import { type StatsDashboardTab } from "~/components/profile/PlayerStatsDashboard";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { TabKey } from "~/components/GalleryProfile";
 import { COLORS } from "~/constants/DesignSystem";
+import { MOTION_TIMING } from "~/constants/Motion";
 import { getProfileChromeTone, PROFILE_INFO_COLORS } from "~/features/profile/profile-visual-policy";
 import { PROFILE_HERO_EXPANDED_FALLBACK_HEIGHT } from "~/features/profile/profile-transition";
+import {
+  type ProfileDashboardTab,
+  useProfileDashboardTabStore,
+} from "~/features/profile/useProfileDashboardTabStore";
 import type { useProfileSession } from "./useProfileSession";
 type ProfileNavContentMode = "profile" | "stats";
 const PROFILE_MODE_MORPH_DURATION_MS = 420;
@@ -31,8 +35,6 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   const setPrimaryNavigationTone = useSystemChromeStore(
       (state) => state.setPrimaryNavigationTone
   );
-  const [statsDashboardTab, setStatsDashboardTab] =
-      React.useState<StatsDashboardTab>("overview");
   const [profileNavContentMode, setProfileNavContentMode] =
       React.useState<ProfileNavContentMode>("profile");
   const [statsDashboardMounted, setStatsDashboardMounted] =
@@ -42,7 +44,9 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   const skinWhitespacePagerOriginRef = React.useRef(0);
   const segmentProgress = useSharedValue(0); // 0..2: tab pager đang hiển thị
   const segmentLayoutProgress = useSharedValue(0); // 0..1: layout profile→stats
-  const statsTabProgress = useSharedValue(0); // 0..1: overview→details
+  const statsTabProgress = useSharedValue(
+    useProfileDashboardTabStore.getState().activeTab === "details" ? 1 : 0
+  ); // 0..1: overview→details
   const segmentContainerWidth = useSharedValue(
       Math.max(0, viewportWidth - 32)
   );
@@ -183,6 +187,32 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
       [COLORS.PURE_WHITE, PROFILE_INFO_COLORS.background]
     ),
   }));
+  const profilePageBackgroundAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      pageModeProgress.value,
+      [0, 1],
+      [COLORS.PURE_WHITE, PROFILE_INFO_COLORS.background]
+    ),
+  }));
+  const profileHeaderTitleAnimatedStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+      pageModeProgress.value,
+      [0, 1],
+      [COLORS.TEXT_PRIMARY, PROFILE_INFO_COLORS.textPrimary]
+    ),
+  }));
+  const profileBalancePillAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      pageModeProgress.value,
+      [0, 1],
+      [COLORS.PURE_BLACK, PROFILE_INFO_COLORS.card]
+    ),
+    borderColor: interpolateColor(
+      pageModeProgress.value,
+      [0, 1],
+      ["transparent", PROFILE_INFO_COLORS.border]
+    ),
+  }));
 
   // handleRegionPress: double-tap pill region → mở/thu hàng stats của hero card.
   const handleRegionPress = React.useCallback(() => {
@@ -307,14 +337,15 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   );
   // handleStatsDashboardTabChange: đổi tab dashboard (overview/details) + chạy indicator.
   const handleStatsDashboardTabChange = React.useCallback(
-      (tab: StatsDashboardTab) => {
-        setStatsDashboardTab(tab);
-        statsTabProgress.value = withTiming(tab === "overview" ? 0 : 1, {
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          reduceMotion: ReduceMotion.System,
-        });
-      },
+      (tab: ProfileDashboardTab) => {
+      const dashboardTabStore = useProfileDashboardTabStore.getState();
+      if (dashboardTabStore.activeTab === tab) return;
+      dashboardTabStore.setActiveTab(tab);
+      statsTabProgress.value = withTiming(
+        tab === "overview" ? 0 : 1,
+        MOTION_TIMING.tab
+      );
+    },
       [statsTabProgress]
   );
 
@@ -328,15 +359,18 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
     return () => clearTimeout(fetchTimer);
   }, [fetchMatches, hasAuth, isPlayerInfoMode, user]);
   return {
-    activeTab, setActiveTab, reduceMotionEnabled, statsDashboardTab, profileNavContentMode,
+    activeTab, setActiveTab, reduceMotionEnabled, profileNavContentMode,
     statsDashboardMounted, profilePagerRef, skinWhitespacePagerOriginRef, handleSegmentContainerLayout,
     handlePagerScroll, segmentIndicatorAnimatedStyle, profileSegmentLayerAnimatedStyle,
     statsSegmentLayerAnimatedStyle, loadoutSegmentLabelAnimatedStyle, skinsSegmentLabelAnimatedStyle,
     collectionSegmentLabelAnimatedStyle, isPlayerInfoMode, profileModeTransitioning,
     profileModeInteractionLockedRef, profileModeInteractionTimerRef, rankSplitContentMode,
     heroModeProgress, rankSplitProgress, statsVisibilityProgress, pageModeProgress,
+    statsTabProgress,
     profileExpandedHeroHeight, dashboardPreloadTaskRef, legacyContentAnimatedStyle,
-    statsDashboardLayerAnimatedStyle, profileBodyBackgroundAnimatedStyle, handleRegionPress,
+    statsDashboardLayerAnimatedStyle, profileBodyBackgroundAnimatedStyle,
+    profilePageBackgroundAnimatedStyle, profileHeaderTitleAnimatedStyle,
+    profileBalancePillAnimatedStyle, handleRegionPress,
     toggleHeroMode, handleStatsDashboardTabChange,
   };
 }

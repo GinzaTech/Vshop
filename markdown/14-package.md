@@ -10,6 +10,7 @@ flowchart TD
     Components[components/ UI dùng lại]
     Hooks[hooks/ stores và lifecycle]
     Accounts[services/accounts/]
+    MatchServices[services/matches/]
     Riot[services/riot/]
     Public[services/valorant/]
     Http[services/http/]
@@ -28,6 +29,10 @@ flowchart TD
     Hooks --> Riot
     Accounts --> Hooks
     Accounts --> Utils
+    Features --> MatchServices
+    Hooks --> MatchServices
+    MatchServices --> Utils
+    MatchServices --> Types
     Utils --> Riot
     Utils --> Public
     Riot --> Http
@@ -46,3 +51,5 @@ runtime chỉ để chia file; import chỉ dùng type cần dùng `import type`
 
 Nguồn: [DIRECTORY_STRUCTURE](../DIRECTORY_STRUCTURE.md),
 [valorant facade](../utils/valorant-api.ts), [match facade](../utils/match-ui.ts).
+Kho theo Act nằm sau [services/matches](../services/matches/match-archive-core.ts),
+không được triển khai trực tiếp trong route hoặc component Profile.

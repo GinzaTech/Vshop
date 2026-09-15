@@ -80,7 +80,10 @@ import { markAppInteractive } from "~/utils/startup-performance";
 import { hasUsableStartupCache } from "~/utils/startup-cache";
 import { renewSavedAccountSession } from "~/services/accounts/session";
 import { isSessionChangedError } from "~/utils/session-operations";
-import { isDevelopmentDemoRoute } from "~/utils/demo-mode";
+import {
+  captureRootBootstrapRoute,
+  type RootBootstrapRouteSnapshot,
+} from "~/utils/root-bootstrap-route";
 
 type CustomHeaderProps = {
   options: { title?: string };
@@ -179,6 +182,7 @@ function RootLayout() {
   const topInsetTone = useSystemChromeStore((state) => state.topInsetTone);
   const topInsetProgress = useSharedValue(topInsetTone === "dark" ? 1 : 0);
   const bootstrappedRef = useRef(false);
+  const bootstrapRouteRef = useRef<RootBootstrapRouteSnapshot | null>(null);
   const nativeSplashHiddenRef = useRef(false);
   const touchSequenceRef = useRef(0);
   const startupWaitResolverRef = useRef<
@@ -190,11 +194,14 @@ function RootLayout() {
     visible: false,
     canUseCachedData: false,
   });
-  const allowDemoRoute = isDevelopmentDemoRoute({
-    demo,
-    isDev: __DEV__,
-    pathname,
-  });
+  if (hydrated && accountsHydrated) {
+    bootstrapRouteRef.current = captureRootBootstrapRoute(
+      bootstrapRouteRef.current,
+      { demo, isDev: __DEV__, pathname }
+    );
+  }
+  const bootstrapPathname = bootstrapRouteRef.current?.pathname ?? pathname;
+  const allowDemoRoute = bootstrapRouteRef.current?.allowDemoRoute ?? false;
   const requiredScreenOrientation = getScreenOrientationForPathname(pathname);
 
   /**
@@ -327,7 +334,9 @@ function RootLayout() {
 
     if (allowDemoRoute) {
       setIsPreloading(false);
-      markAppInteractive(pathname === "/profile" ? "profile-demo" : "match-demo");
+      markAppInteractive(
+        bootstrapPathname === "/profile" ? "profile-demo" : "match-demo"
+      );
       void SplashScreen.hideAsync();
       return;
     }
@@ -483,7 +492,14 @@ function RootLayout() {
       // LoadingScreen vĩnh viễn.
       bootstrappedRef.current = false;
     };
-  }, [accountsHydrated, allowDemoRoute, hydrated, pathname, router, setUser]);
+  }, [
+    accountsHydrated,
+    allowDemoRoute,
+    bootstrapPathname,
+    hydrated,
+    router,
+    setUser,
+  ]);
 
   /**
    * handleGlobalTouchStart — Handler global cho mọi touch event.

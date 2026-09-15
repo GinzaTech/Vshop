@@ -8,7 +8,7 @@ flowchart LR
     subgraph Local[Thiết bị và mạng cục bộ]
         PC[Máy phát triển: Metro]
         Phone[Android hoặc iOS chạy VShop]
-        Store[(Storage trên thiết bị)]
+        Store[(MMKV cache + SQLite match archive + secure session)]
         PC -. Dev client: LAN hoặc ADB reverse .-> Phone
         Phone --- Store
     end
@@ -27,7 +27,10 @@ Client HTTP Riot, public API và telemetry độc lập (timeout lần lượt 1
 8s). Riot URL được tạo từ registry; shard được validate. XMPP kiểm tra host
 Riot hợp lệ và chứng chỉ TLS. Metro/trace là đường phát triển, không phải
 backend bắt buộc của bản production.
+SQLite chỉ là kho cục bộ trong sandbox ứng dụng; không mở cổng mạng và không
+đồng bộ credential ra dịch vụ riêng của VShop.
 
 Nguồn: [HTTP clients](../services/http/clients.ts), [endpoints](../services/riot/endpoints.ts),
 [XMPP](../utils/xmpp-client.ts), [chat service](../utils/chat-service.ts),
 [Expo config](../app.json), [tracer](../utils/flow-tracer.ts).
+Kho local: [match archive native](../services/matches/match-archive.native.ts).

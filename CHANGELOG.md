@@ -6,6 +6,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.1.8] - 2026-09-16
+
+### Changed
+
+- Completed Profile's player-data dark canvas through the status-bar/header area, moved data cards to the shared charcoal palette, compacted the horizontal 38-Act selector while preserving 44 dp touch targets, and kept Overview/Details panels pre-rendered on hardware-backed layers.
+- Advanced the source/runtime candidate to `4.1.8` (Android `89`, iOS `41`) because the new `expo-sqlite` native module requires a rebuilt binary and must not be delivered to the `4.1.7` runtime by OTA.
+- Aligned the Expo SDK 57 package set to its compatible patch releases, including React Native `0.86.3`; Expo Doctor now passes all 21 checks and the frozen lockfile passes the workspace supply-chain policy.
+
+### Fixed
+
+- Load historical competitive records across Valorant year/Episode/Act labels. The selected Act now crawls updates beyond the former 600-match ceiling, falls back to retained match history for full combat details, then uses Riot's per-season MMR totals when old details have expired; unavailable combat metrics render as `--` rather than false zeroes.
+- Added a durable, account-scoped match archive: native builds merge observed Competitive summaries and per-Act statistics into SQLite, while web/test builds use the existing storage adapter. Archived rows are deduplicated by Match ID, isolated by account + Act, retain up to the newest 1,000 records per Act independently of the 200-record working cache, and never persist Riot credentials or full match-detail payloads.
+- Validate an observed archive record before reading its queue/season fields, so malformed persisted or adapter data is ignored instead of aborting the full archive batch.
+- Isolate the Profile dashboard-tab state from the full Profile screen and animate the already-rendered panel layers on the UI thread, removing the visible Overview/Details hitch.
+- Latch the launch route used by root bootstrap so navigating to Store, Settings or another authenticated route cannot cancel/restart startup and redirect back to Profile seconds later.
+
+### Validation
+
+- Full `pnpm run check` passed after dependency alignment: strict TypeScript, zero-warning ESLint, 73 Jest suites / 770 tests, production dependency-audit policy, and Android export/budget (9.91 MiB total; 7.44 MiB JS/Hermes).
+- Match archive services reached 95.94% statements, 86.71% branches and 100% functions/lines in the full run; the archive core reached 95.65% statements, 86.52% branches and 100% functions/lines. Full-run season-action coverage reached 94.24% statements, 82.32% branches, 100% functions and 98.50% lines.
+- A locally rebuilt `4.1.8` / Android `89` development client on Android 15 confirmed 38 selectable Acts, full dark Overview/Details surfaces, V26 Act IV rank totals (323 matches) and Episode 5 Act III rank totals (51 matches); combat metrics unavailable from retained Riot data render as `--` instead of fabricated values.
+- Native SQLite inspection confirmed three account-scoped Act rows after the device flow: a complete current-Act snapshot with retained match records plus rank-only snapshots for V26 Act IV and Episode 5 Act III. No credentials or full match-detail payloads were written.
+- Twenty alternating Overview/Details taps rendered 588 frames at P50 9 ms, P90 11 ms, P95 11 ms and P99 13 ms; the current gfxinfo jank metric reported 2.04% (the legacy high-refresh metric reported 51.36%) with zero missed VSync. No package-scoped crash, ANR, JavaScript exception or SQLite error appeared in the sampled logcat.
+- After navigating from Profile to Store and waiting 12 seconds, Store remained foreground, confirming the root bootstrap no longer redirects the active route back to Profile.
+- Mermaid 12 parsed all 20 diagram blocks and all 109 local links in `markdown/` resolved.
+
+### Build metadata
+
+- App/runtime version: `4.1.8`; Android version code: `89`; iOS build number: `41`.
+- The final EAS production build and GitHub Release asset are pending this source commit. Completed candidate build `ebcdfbea-913a-4b67-84d1-9b00c2a81382` is superseded because it predates the malformed-archive guard and Expo SDK 57 patch alignment; it is not the 4.1.8 release artifact.
+- Final build ID, artifact URL, SHA-256 and signature evidence will be recorded in a follow-up documentation commit after verification.
+
 ## [4.1.7] - 2026-09-15
 
 ### Changed
@@ -498,7 +530,9 @@ Completed a full logic-layer audit (8 high, 15 medium, 16 low findings; all fixe
 - iOS build number: `30`
 - Production profile: `eas build --profile production --platform android`
 
-[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.6...HEAD
+[Unreleased]: https://github.com/GinzaTech/Vshop/compare/v4.1.8...HEAD
+[4.1.8]: https://github.com/GinzaTech/Vshop/compare/v4.1.7...v4.1.8
+[4.1.7]: https://github.com/GinzaTech/Vshop/compare/v4.1.6...v4.1.7
 [4.1.6]: https://github.com/GinzaTech/Vshop/compare/v4.1.5...v4.1.6
 [4.1.5]: https://github.com/GinzaTech/Vshop/compare/v4.1.4...v4.1.5
 [4.1.4]: https://github.com/GinzaTech/Vshop/compare/v4.1.3...v4.1.4

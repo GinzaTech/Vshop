@@ -9,7 +9,7 @@ flowchart LR
     M["matchStore : MatchState<br/>authKey = ap|demo-player"]
     P["profileCache : ProfileWarmCache<br/>authKey = ap|demo-player"]
     C["currentStats : SeasonPerformanceStats<br/>seasonId = demo-current"]
-    H["historicalStats : SeasonPerformanceStats<br/>seasonId = demo-old<br/>wins = 6; losses = 3; draws = 1"]
+    H["historicalStats : SeasonPerformanceStats<br/>seasonId = demo-old<br/>dataCompleteness = rank-only<br/>wins = 6; losses = 3; draws = 1"]
     V["profileView : UI state<br/>selectedSeasonId = demo-old"]
     R["row : MatchHistoryRecord<br/>MatchID = demo-match<br/>stats.result = draw"]
     U -->|accountKey trùng| M
@@ -22,8 +22,11 @@ flowchart LR
 ```
 
 Chọn Act cũ không được thay `seasonStats` của Act hiện tại. Với ví dụ trên,
-win rate = 6 / (6 + 3 + 1) = 60%; huỷ/chưa rõ không vào mẫu số.
+win rate = 6 / (6 + 3 + 1) = 60%; huỷ/chưa rõ không vào mẫu số. Snapshot
+`rank-only` giữ được thắng/thua nhưng K/D, ADR, ACS, HS và KAST phải hiển thị
+`--` vì Riot không còn match detail tương ứng.
 
 Nguồn: [MatchState](../features/matches/store-types.ts),
 [dữ liệu mùa Profile](../features/profile/profile-season-data.ts),
-[season summary](../features/matches/season-summary.ts).
+[season summary](../features/matches/season-summary.ts),
+[MMR fallback](../features/matches/season-mmr-summary.ts).

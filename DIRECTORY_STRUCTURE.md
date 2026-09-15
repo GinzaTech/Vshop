@@ -1,6 +1,6 @@
 # VShop architecture
 
-Tài liệu này mô tả cấu trúc đang được sử dụng. `app/` chỉ chịu trách nhiệm routing và ghép màn hình; network, state, UI dùng lại và domain logic không được đặt trực tiếp trong route.
+Tài liệu này mô tả cấu trúc đang được sử dụng ở release `4.1.8`. `app/` chỉ chịu trách nhiệm routing và ghép màn hình; network, state, UI dùng lại và domain logic không được đặt trực tiếp trong route.
 
 Bộ [17 loại sơ đồ](markdown/README.md) mô tả luồng, dữ liệu, thành phần và
 deployment; [LOGIC_AUDIT.md](LOGIC_AUDIT.md) ghi kết quả kiểm tra và phần chưa xác minh.
@@ -53,6 +53,10 @@ Vshop/
 │   │   ├── match-api.ts         history, MMR và match details
 │   │   ├── combat-api.ts        party, pregame và coregame
 │   │   └── progression-api.ts   contracts, content và leaderboard
+│   ├── matches/
+│   │   ├── match-archive-core.ts repository, validate và merge archive theo Act
+│   │   ├── match-archive.native.ts SQLite driver cho Android/iOS
+│   │   └── match-archive-storage.ts storage adapter cho web/test
 │   └── valorant/
 │       └── public-api.ts        facade duy nhất cho valorant-api.com
 ├── utils/                       domain helpers, cache, sync và compatibility
@@ -63,6 +67,7 @@ Vshop/
 │   ├── primary-tab-motion.ts    cấu hình chuyển tab dùng bởi runtime và test
 │   ├── auth-session.ts          tạo/khôi phục session
 │   ├── session-events.ts        phân loại lỗi auth/network
+│   ├── root-bootstrap-route.ts  chốt route khởi động, không redirect đè route mới
 │   └── ...
 ├── types/                       shared declarations/view-model types
 ├── __tests__/                   unit và API contract tests
@@ -75,7 +80,7 @@ Vshop/
 
 ## Luồng phụ thuộc
 
-### Ranh giới logic sau đợt audit 2026-09-15
+### Ranh giới logic sau đợt audit 2026-09-16
 
 - `services/accounts/session-cache.ts` chụp/khôi phục dữ liệu khi switch thất bại
   và dọn cache khi logout; session generation vô hiệu hoá request cũ.
@@ -84,10 +89,15 @@ Vshop/
   cache theo loại dữ liệu; credential không xuất hiện trong key persist.
 - `hooks/useMatchStore.ts` là facade cho `features/matches/`: history, detail,
   season, hydration, request lifetime và snapshot dữ liệu.
+- `services/matches/` giữ archive match đã quan sát theo account + Act. Native
+  dùng SQLite/WAL và primary key kép; web/test dùng `appStorage`. Repository
+  tuần tự hoá write, validate payload, chống trùng Match ID và giữ tối đa 1.000
+  summary mỗi Act mà không persist credential hoặc full match detail.
 - `utils/match-ui.ts` giữ API tương thích, còn chuyển đổi dữ liệu nằm trong
   `utils/match-transform/`; `utils/match-result.ts` là nguồn xác định outcome.
-- `PlayerStatsDashboard` ghép các section/primitives và dùng các helper
-  `player-stats-data`, `player-stats-format`; không sao chép logic win rate.
+- `PlayerInfoView` ghép dashboard Tổng quan/Chi tiết và dùng các helper
+  `player-stats-data`, `player-stats-format`; tab state nằm trong
+  `useProfileDashboardTabStore`, không sao chép logic win rate.
 - Các hook dữ liệu màn hình theo dõi tài khoản, token và vòng đời. Combat
   polling chỉ hoạt động khi màn hình có focus và app ở foreground.
 - `utils/log-redaction.ts` là boundary chẩn đoán chung. Flow trace và API log
@@ -128,6 +138,8 @@ Quy tắc:
 - Profile được ghép tại `features/profile/ProfileScreen.tsx`; `useProfileSession`,
   `useProfileState`, `useProfileFetch` quản lý dữ liệu, các hook Loadout/Hero/Collection
   tính dữ liệu hiển thị, Picker/Mutations xử lý thao tác, Motion/Pager quản lý chuyển cảnh.
+- `useProfileDashboardTabStore` tách lựa chọn Tổng quan/Chi tiết khỏi toàn màn
+  Profile; hai panel render sẵn và đổi lớp bằng Reanimated shared value.
 - `services/accounts/session-cache.ts` snapshot/restore dữ liệu khi switch thất bại;
   `utils/storage-migration.ts` tuần tự hoá write/remove, loại read cũ khi hydrate.
 - `utils/match-result.ts` là nguồn quy tắc win/loss/draw/cancelled/unknown;

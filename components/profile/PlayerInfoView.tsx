@@ -8,13 +8,14 @@
 //   - Chi tiết: panel hàng nhãn/giá trị từ season stats + rank
 // Nguồn dữ liệu: seasonStats + match detail theo Act (props); không có số liệu
 // giả. Mùa lịch sử được tải theo nhu cầu từ store, không crawl đồng loạt.
-// Hoạt ảnh chuyển tab: nội dung "co vào rồi nở ra" (scale 0.94 → 1) mỗi khi
-// đổi tab Tổng quan/Chi tiết hoặc tab Đặc vụ/Bản đồ, tôn trọng Reduce Motion.
+// Hai panel Tổng quan/Chi tiết luôn được layout sẵn để đổi tab không phải dựng
+// lại card. Bảng Đặc vụ/Bản đồ vẫn dùng motion nhẹ và tôn trọng Reduce Motion.
 
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
   ActivityIndicator,
+  type LayoutChangeEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +26,7 @@ import Animated, {
   Easing,
   interpolate,
   ReduceMotion,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -38,6 +40,7 @@ import { MOTION_DURATION } from "~/constants/Motion";
 import {
   getProfileContentBottomPadding,
   PROFILE_INFO_COLORS,
+  PROFILE_SEASON_SELECTOR_LAYOUT,
   PROFILE_INFO_TYPOGRAPHY,
 } from "~/features/profile/profile-visual-policy";
 import {
@@ -50,6 +53,10 @@ import type {
 } from "~/types/match-ui";
 import type { CompetitiveRankSummary } from "~/utils/profile-cache";
 import type { LeaderboardSeasonOption } from "~/utils/leaderboard-seasons";
+import {
+  type ProfileDashboardTab,
+  useProfileDashboardTabStore,
+} from "~/features/profile/useProfileDashboardTabStore";
 
 // ============================================================================
 // Design tokens — ánh xạ từ design system chung để hai mode Profile đồng nhất
@@ -292,7 +299,7 @@ const LifetimeSummary = ({ stats }: { stats: SeasonPerformanceStats | null }) =>
 // SeasonSelector — chọn nhiều Act, hiển thị rõ mùa đang xem trên cả hai tab
 // ============================================================================
 
-const SeasonSelector = ({
+const SeasonSelector = React.memo(function SeasonSelector({
   loading,
   onSelect,
   seasons,
@@ -304,14 +311,15 @@ const SeasonSelector = ({
   seasons: readonly LeaderboardSeasonOption[];
   selectedSeasonId: string | null;
   selectedSeasonName: string;
-}) => (
-  <View style={styles.seasonPanel}>
+}) {
+  return (
+    <View style={styles.seasonPanel}>
     <View style={styles.seasonHeaderRow}>
       <View style={styles.seasonIconWrap}>
         <Icon
           color={PLAYER_INFO_TOKENS.accent}
           name="calendar-range"
-          size={17}
+          size={16}
         />
       </View>
       <View style={styles.seasonTitleBlock}>
@@ -346,6 +354,7 @@ const SeasonSelector = ({
               accessibilityRole="tab"
               accessibilityState={{ disabled, selected }}
               disabled={disabled}
+              hitSlop={PROFILE_SEASON_SELECTOR_LAYOUT.chipHitSlop}
               onPress={() => onSelect(season.id)}
               style={({ pressed }) => [
                 styles.seasonChip,
@@ -369,8 +378,9 @@ const SeasonSelector = ({
         })}
       </ScrollView>
     ) : null}
-  </View>
-);
+    </View>
+  );
+});
 
 // ============================================================================
 // PerformanceCard — "Phong độ" grid 2×2 (spec §7.5)
@@ -709,16 +719,20 @@ const DetailSectionCard = ({
  * @param stats – Season stats thật.
  * @param rank – Tóm tắt rank cạnh tranh (nullable).
  */
-const DetailsPanel = ({
+const DetailsPanel = React.memo(function DetailsPanel({
   stats,
   rank,
 }: {
   stats: SeasonPerformanceStats | null;
   rank: CompetitiveRankSummary | null;
-}) => {
+}) {
+  const detailedStats =
+    stats?.dataCompleteness === "rank-only" ? null : stats;
   // killsPerRound: kills trung bình mỗi vòng (giữ công thức dashboard cũ)
   const killsPerRound =
-    stats && stats.roundsPlayed > 0 ? stats.kills / stats.roundsPlayed : null;
+    detailedStats && detailedStats.roundsPlayed > 0
+      ? detailedStats.kills / detailedStats.roundsPlayed
+      : null;
 
   return (
     <View>
@@ -780,12 +794,12 @@ const DetailsPanel = ({
       <DetailSectionCard
         title="Tổng kết"
         rows={[
-          { label: "HẠ GỤC", value: formatInteger(stats?.kills) },
-          { label: "BỊ HẠ", value: formatInteger(stats?.deaths) },
-          { label: "BẮN ĐẦU", value: formatInteger(stats?.headshots) },
-          { label: "SÁT THƯƠNG", value: formatInteger(stats?.damage) },
-          { label: "ĐIỂM", value: formatInteger(stats?.score) },
-          { label: "VÒNG", value: formatInteger(stats?.roundsPlayed) },
+          { label: "HẠ GỤC", value: formatInteger(detailedStats?.kills) },
+          { label: "BỊ HẠ", value: formatInteger(detailedStats?.deaths) },
+          { label: "BẮN ĐẦU", value: formatInteger(detailedStats?.headshots) },
+          { label: "SÁT THƯƠNG", value: formatInteger(detailedStats?.damage) },
+          { label: "ĐIỂM", value: formatInteger(detailedStats?.score) },
+          { label: "VÒNG", value: formatInteger(detailedStats?.roundsPlayed) },
         ]}
       />
       <DetailSectionCard
@@ -802,6 +816,63 @@ const DetailsPanel = ({
       />
     </View>
   );
+});
+
+const OverviewPanel = React.memo(function OverviewPanel({
+  agentRows,
+  mapRows,
+  stats,
+}: {
+  agentRows: AggregateRow[];
+  mapRows: AggregateRow[];
+  stats: SeasonPerformanceStats | null;
+}) {
+  return (
+    <>
+      <View style={[styles.elevatedCard, styles.summaryCard]}>
+        <SectionDividerHeader title="TỔNG THỂ" />
+        <LifetimeSummary stats={stats} />
+      </View>
+      <PerformanceCard stats={stats} />
+      <StatsTableCard agentRows={agentRows} mapRows={mapRows} />
+    </>
+  );
+});
+
+type DashboardPanelShellProps = React.PropsWithChildren<{
+  animatedStyle: React.ComponentProps<typeof Animated.View>["style"];
+  onLayout: (event: LayoutChangeEvent) => void;
+  panel: ProfileDashboardTab;
+  panelTestID: string;
+  panelStyle?: React.ComponentProps<typeof Animated.View>["style"];
+}>;
+
+/** Chỉ shell nhỏ này subscribe tab; nội dung, selector và ScrollView không render lại. */
+const DashboardPanelShell = ({
+  animatedStyle,
+  children,
+  onLayout,
+  panel,
+  panelTestID,
+  panelStyle,
+}: DashboardPanelShellProps) => {
+  const activeTab = useProfileDashboardTabStore((state) => state.activeTab);
+  const active = activeTab === panel;
+
+  return (
+    <Animated.View
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? "auto" : "no-hide-descendants"}
+      onLayout={onLayout}
+      pointerEvents={active ? "auto" : "none"}
+      renderToHardwareTextureAndroid
+      shouldRasterizeIOS
+      style={[styles.tabPanel, panelStyle, animatedStyle]}
+      testID={panelTestID}
+    >
+      {children}
+    </Animated.View>
+  );
 };
 
 // ============================================================================
@@ -812,8 +883,6 @@ const DetailsPanel = ({
  * PlayerInfoViewProps – Props giống hệt PlayerStatsDashboard để thay thế
  * trực tiếp trong ProfileScreen mà không đổi luồng dữ liệu.
  *
- * @param activeTab – Tab đang hiển thị ("overview" | "details") — điều khiển
- *   từ segment sticky phía trên; đổi tab kích hoạt hiệu ứng co/nở nội dung.
  * @param competitiveRank – Tóm tắt rank cạnh tranh (null nếu chưa có).
  * @param loading – Đang sync dữ liệu lần đầu (hiện skeleton).
  * @param matches – Danh sách trận (đã lọc competitive nội bộ để aggregate).
@@ -823,7 +892,6 @@ const DetailsPanel = ({
  * @param seasonStats – Thống kê season/act hiện tại (null → skeleton).
  */
 type PlayerInfoViewProps = {
-  activeTab: "overview" | "details";
   competitiveRank: CompetitiveRankSummary | null;
   loading: boolean;
   matches: MatchHistoryRecord[];
@@ -834,6 +902,7 @@ type PlayerInfoViewProps = {
   seasonOptions: LeaderboardSeasonOption[];
   seasonStats: SeasonPerformanceStats | null;
   seasonStatsById: Record<string, SeasonPerformanceStats>;
+  tabProgress: SharedValue<number>;
 };
 
 /**
@@ -842,7 +911,6 @@ type PlayerInfoViewProps = {
  * + act + bảng agent/map đều tính từ props thật.
  */
 const PlayerInfoView = ({
-  activeTab,
   competitiveRank,
   loading,
   matches,
@@ -853,8 +921,15 @@ const PlayerInfoView = ({
   seasonOptions,
   seasonStats,
   seasonStatsById,
+  tabProgress,
 }: PlayerInfoViewProps) => {
   const insets = useSafeAreaInsets();
+  const overviewPanelAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(tabProgress.value, [0, 1], [1, 0]),
+  }));
+  const detailsPanelAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(tabProgress.value, [0, 1], [0, 1]),
+  }));
   const initialSeasonId =
     seasonStats?.seasonId ??
     seasonOptions.find((season) => season.isActive)?.id ??
@@ -938,21 +1013,27 @@ const PlayerInfoView = ({
     () => aggregateMatches(competitiveMatches, "maps"),
     [competitiveMatches]
   );
-
-  // tabMorph + contentAnimatedStyle: hiệu ứng "co vào – nở ra" toàn nội dung
-  // mỗi khi activeTab đổi (Tổng quan ↔ Chi tiết): co còn 0.96/opacity 0.5 rồi
-  // nở về 1/1 theo MOTION_TIMING, tự động tôn trọng Reduce Motion hệ thống.
-  const tabMorph = useSharedValue(1);
-  React.useEffect(() => {
-    tabMorph.value = withSequence(
-      withTiming(0.96, { duration: 110, reduceMotion: ReduceMotion.System }),
-      withTiming(1, MORPH_TIMING)
-    );
-  }, [activeTab, selectedSeasonId, tabMorph]);
-  const contentAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(tabMorph.value, [0.96, 1], [0.5, 1]),
-    transform: [{ scale: tabMorph.value }],
-  }));
+  const [tabPanelHeights, setTabPanelHeights] = React.useState({
+    details: 0,
+    overview: 0,
+  });
+  const handleTabPanelLayout = React.useCallback(
+    (panel: "details" | "overview", event: LayoutChangeEvent) => {
+      const measuredHeight = Math.ceil(event.nativeEvent.layout.height);
+      if (measuredHeight <= 0) return;
+      setTabPanelHeights((current) =>
+        current[panel] === measuredHeight
+          ? current
+          : { ...current, [panel]: measuredHeight }
+      );
+    },
+    []
+  );
+  const tabPanelStackHeight = Math.max(
+    1,
+    tabPanelHeights.details,
+    tabPanelHeights.overview
+  );
 
   const showSkeleton = loading && !selectedStats;
   const selectedSeasonName =
@@ -983,29 +1064,37 @@ const PlayerInfoView = ({
       {showSkeleton ? (
         <PlayerInfoSkeleton />
       ) : (
-      <Animated.View style={contentAnimatedStyle}>
-        {/* TỔNG THỂ — chỉ hiển thị ở tab Tổng quan (giữ số liệu lifetime riêng) */}
-        {activeTab === "overview" ? (
-          <View>
-            <View style={[styles.elevatedCard, styles.summaryCard]}>
-              <SectionDividerHeader title="TỔNG THỂ" />
-              <LifetimeSummary stats={selectedStats} />
-            </View>
-            {/* 3. Phong độ — grid 2×2 của Act đang chọn */}
-            <PerformanceCard stats={selectedStats} />
-            {/* 4. Đặc vụ / Bản đồ — bảng top 6 */}
-            <StatsTableCard agentRows={agentRows} mapRows={mapRows} />
-          </View>
-        ) : (
-          // Tab Chi tiết: rank + combat + tổng kết + thành tích
-          <View style={styles.detailsGap}>
-            <DetailsPanel
-              stats={selectedStats}
-              rank={selectedIsCurrent ? competitiveRank : null}
-            />
-          </View>
-        )}
-      </Animated.View>
+      <View
+        style={[styles.tabPanelStack, { height: tabPanelStackHeight }]}
+        testID="profile-tab-panel-stack"
+      >
+        {/* Hai panel luôn được mount và đo sẵn; đổi tab chỉ đổi opacity/touch,
+            không kích hoạt lại layout của toàn bộ card trên JS thread. */}
+        <DashboardPanelShell
+          animatedStyle={overviewPanelAnimatedStyle}
+          onLayout={(event) => handleTabPanelLayout("overview", event)}
+          panel="overview"
+          panelTestID="profile-overview-panel"
+        >
+          <OverviewPanel
+            agentRows={agentRows}
+            mapRows={mapRows}
+            stats={selectedStats}
+          />
+        </DashboardPanelShell>
+        <DashboardPanelShell
+          animatedStyle={detailsPanelAnimatedStyle}
+          onLayout={(event) => handleTabPanelLayout("details", event)}
+          panel="details"
+          panelTestID="profile-details-panel"
+          panelStyle={styles.detailsGap}
+        >
+          <DetailsPanel
+            stats={selectedStats}
+            rank={selectedIsCurrent ? competitiveRank : null}
+          />
+        </DashboardPanelShell>
+      </View>
       )}
     </ScrollView>
   );
@@ -1021,6 +1110,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: PROFILE_INFO_COLORS.background },
   screenPaddingBottom: { paddingHorizontal: 12, paddingTop: 10, gap: 12 },
   screenPadding: { gap: 12 },
+  tabPanelStack: { minHeight: 1, position: "relative" },
+  tabPanel: { left: 0, position: "absolute", right: 0, top: 0 },
 
   // Skeleton
   skeletonRow: { flexDirection: "row", gap: 12 },
@@ -1090,29 +1181,29 @@ const styles = StyleSheet.create({
 
   // ── Chọn mùa ──
   seasonPanel: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: PLAYER_INFO_TOKENS.border,
     backgroundColor: PLAYER_INFO_TOKENS.bgElevated,
-    paddingVertical: 12,
+    paddingVertical: PROFILE_SEASON_SELECTOR_LAYOUT.panelPaddingVertical,
   },
   seasonHeaderRow: {
-    minHeight: 38,
+    minHeight: 30,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
   },
   seasonIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: PROFILE_SEASON_SELECTOR_LAYOUT.iconSize,
+    height: PROFILE_SEASON_SELECTOR_LAYOUT.iconSize,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: PLAYER_INFO_TOKENS.surfaceSubtle,
     borderWidth: 1,
     borderColor: PLAYER_INFO_TOKENS.borderSubtle,
   },
-  seasonTitleBlock: { flex: 1, minWidth: 0, marginLeft: 10 },
+  seasonTitleBlock: { flex: 1, minWidth: 0, marginLeft: 8 },
   seasonEyebrow: {
     color: PLAYER_INFO_TOKENS.textMuted,
     fontSize: 9,
@@ -1121,7 +1212,7 @@ const styles = StyleSheet.create({
   },
   seasonTitle: {
     color: PLAYER_INFO_TOKENS.textPrimary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     marginTop: 2,
   },
@@ -1132,17 +1223,17 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   seasonChipRow: {
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingTop: 12,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingTop: 8,
   },
   seasonChip: {
-    minHeight: 38,
-    maxWidth: 190,
+    minHeight: PROFILE_SEASON_SELECTOR_LAYOUT.chipHeight,
+    maxWidth: 170,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: PLAYER_INFO_TOKENS.borderSubtle,
     backgroundColor: PLAYER_INFO_TOKENS.surfaceSubtle,

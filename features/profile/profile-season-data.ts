@@ -12,6 +12,11 @@ export type ProfileSeasonPageInspection<T extends ProfileSeasonUpdate> = {
   shouldStop: boolean;
 };
 
+export type ProfileSeasonTimeWindow = {
+  endTimeMs: number;
+  startTimeMs: number;
+};
+
 const normalizeSeasonId = (value: string | null | undefined) =>
   value?.trim().toLocaleLowerCase("en-US") ?? "";
 
@@ -38,6 +43,42 @@ export function resolveProfileSeason(
   );
 
   return requested ?? seasons.find((season) => season.isActive) ?? seasons[0] ?? null;
+}
+
+/**
+ * Suy ra khoảng thời gian của Act từ danh sách mới → cũ. Mốc bắt đầu Act mới
+ * hơn chính là mốc kết thúc độc quyền của Act đang chọn.
+ */
+export function resolveProfileSeasonTimeWindow(
+  seasons: readonly LeaderboardSeasonOption[],
+  selectedSeasonId: string
+): ProfileSeasonTimeWindow | null {
+  const selectedIndex = seasons.findIndex(
+    (season) => normalizeSeasonId(season.id) === normalizeSeasonId(selectedSeasonId)
+  );
+  if (selectedIndex < 0) return null;
+
+  const startTimeMs = Date.parse(seasons[selectedIndex].startTime);
+  if (!Number.isFinite(startTimeMs)) return null;
+  const newerSeason = selectedIndex > 0 ? seasons[selectedIndex - 1] : null;
+  const parsedEndTimeMs = newerSeason ? Date.parse(newerSeason.startTime) : Infinity;
+
+  return {
+    endTimeMs: Number.isFinite(parsedEndTimeMs) ? parsedEndTimeMs : Infinity,
+    startTimeMs,
+  };
+}
+
+/** Chuẩn hóa timestamp Riot; một số response cũ dùng giây thay vì mili-giây. */
+export function normalizeProfileMatchStartTime(value: string | number) {
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue)) {
+    return numericValue > 0 && numericValue < 1_000_000_000_000
+      ? numericValue * 1_000
+      : numericValue;
+  }
+  const parsedValue = Date.parse(String(value));
+  return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
 
 /**

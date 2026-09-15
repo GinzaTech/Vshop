@@ -10,11 +10,14 @@ export const WIFI_INITIAL_DETAILS = 30;                   // Hydrate hết 30 tr
 export const MATCH_DETAIL_RETRY_DELAY_MS = 600;           // Delay giữa các lần retry khi fetch detail lỗi
 export const SEASON_STATS_CACHE_TTL_MS = 2 * 60 * 60 * 1000;   // TTL stats season: 2 giờ
 export const SEASON_UPDATES_PAGE_SIZE = 20;                    // Số trận competitiveupdates/request
+// Cho phép tìm xuyên nhiều Episode/Act. Nếu chạm trần, caller coi kết quả là
+// chưa hoàn tất và không cache nhầm thành mùa 0 trận.
+export const MAX_SEASON_UPDATES_PAGES = 250;
 // Negative-cache cho lần tính season stats THẤT BẠI: không cho phép re-crawl
 // cả Act (vài phút request) mỗi khi user identity đổi, chỉ retry sau 15 phút
 // hoặc khi user chủ động pull-to-refresh (force).
 export const SEASON_STATS_FAILURE_TTL_MS = 15 * 60 * 1000;
-export const SEASON_STATS_CALCULATION_VERSION = 8;        // Outcome-aware: exclude cancelled/unknown matches.
+export const SEASON_STATS_CALCULATION_VERSION = 12;       // V12: rank-only MMR fallback cho mùa ngoài match-history retention.
 export const SEASON_DETAIL_REQUEST_DELAY_MS = 1_000;      // Nghỉ giữa 2 request detail (chống rate-limit)
 // Trần số match được persist xuống storage. Hydrate "load more" có thể phình
 // vô hạn theo tháng dùng; cap này giữ giá trị MMKV ở mức hợp lý. Danh sách

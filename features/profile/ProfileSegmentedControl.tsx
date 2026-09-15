@@ -10,7 +10,10 @@ import Animated from "react-native-reanimated";
 import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";
 import type { TabKey } from "~/components/GalleryProfile";
-import type { StatsDashboardTab } from "~/components/profile/PlayerStatsDashboard";
+import {
+  type ProfileDashboardTab,
+  useProfileDashboardTabStore,
+} from "~/features/profile/useProfileDashboardTabStore";
 
 type AnimatedViewStyle = React.ComponentProps<typeof Animated.View>["style"];
 type AnimatedTextStyle = React.ComponentProps<typeof Animated.Text>["style"];
@@ -27,7 +30,6 @@ type AnimatedTextStyle = React.ComponentProps<typeof Animated.Text>["style"];
  * @param {AnimatedViewStyle} profileSegmentLayerAnimatedStyle - Opacity/motion lớp profile.
  * @param {AnimatedViewStyle} segmentIndicatorAnimatedStyle - Vị trí/width indicator chạy.
  * @param {AnimatedTextStyle} skinsSegmentLabelAnimatedStyle - Màu nhãn tab skins.
- * @param {StatsDashboardTab} statsDashboardTab - Tab stats đang chọn (overview/details).
  * @param {AnimatedViewStyle} statsSegmentLayerAnimatedStyle - Opacity/motion lớp stats.
  * @param {{value: TabKey; label: string}[]} tabItems - Danh sách tab chính + nhãn.
  */
@@ -35,14 +37,13 @@ interface ProfileSegmentedControlProps {
   activeTab: TabKey;
   collectionSegmentLabelAnimatedStyle: AnimatedTextStyle;
   handleSegmentContainerLayout: (event: LayoutChangeEvent) => void;
-  handleStatsDashboardTabChange: (tab: StatsDashboardTab) => void;
+  handleStatsDashboardTabChange: (tab: ProfileDashboardTab) => void;
   handleTabChange: (tab: TabKey) => void;
   loadoutSegmentLabelAnimatedStyle: AnimatedTextStyle;
   profileNavContentMode: "profile" | "stats";
   profileSegmentLayerAnimatedStyle: AnimatedViewStyle;
   segmentIndicatorAnimatedStyle: AnimatedViewStyle;
   skinsSegmentLabelAnimatedStyle: AnimatedTextStyle;
-  statsDashboardTab: StatsDashboardTab;
   statsSegmentLayerAnimatedStyle: AnimatedViewStyle;
   tabItems: { value: TabKey; label: string }[];
 }
@@ -58,10 +59,13 @@ export function ProfileSegmentedControl({
   profileSegmentLayerAnimatedStyle,
   segmentIndicatorAnimatedStyle,
   skinsSegmentLabelAnimatedStyle,
-  statsDashboardTab,
   statsSegmentLayerAnimatedStyle,
   tabItems,
 }: ProfileSegmentedControlProps) {
+  const statsDashboardTab = useProfileDashboardTabStore(
+    (state) => state.activeTab
+  );
+
   return (
       <View
           onLayout={handleSegmentContainerLayout}
@@ -128,7 +132,7 @@ export function ProfileSegmentedControl({
             }
             style={[styles.segmentLayer, statsSegmentLayerAnimatedStyle]}
         >
-          {(["overview", "details"] as StatsDashboardTab[]).map((tab, index) => {
+          {(["overview", "details"] as ProfileDashboardTab[]).map((tab, index) => {
             const active = statsDashboardTab === tab;
             return (
                 <TouchableOpacity

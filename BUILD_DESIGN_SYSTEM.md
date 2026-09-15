@@ -94,7 +94,8 @@ Quy tắc:
 7. Tab preload dùng `usePrimaryTabPreload` và `runIdleSequence`: dừng ngay khi bấm tab/transitionStart, tiếp tục sau transitionEnd và idle, mỗi lượt chỉ mount một scene. Không restart hàng đợi theo identity của navigation; cleanup cả listener, idle task và timer khi unmount.
 8. Màn phụ dùng fade 140 ms; root stack dùng slide 220 ms với nền cố định và gesture back. `useMotionPreference` cập nhật Reduce Motion khi OS thay đổi, kể cả sau khi app đã mở.
 9. Profile pager/list và ScrollView Bundles/More/Shop bật clipping riêng Android để giảm view ngoài vùng nhìn. Khi thay đổi layout/transform phải kiểm tra lại nội dung khi cuộn, chuyển trang con và quay lại tab; không unmount React state để tối ưu chuyển cảnh.
-9. Skeleton native-driver phải đặt `isInteraction: false` để không giữ hàng đợi render danh sách. Không dùng `LayoutAnimation.configureNext` toàn cục trước request bất đồng bộ của danh sách.
+10. Profile player-data dùng một dark canvas xuyên qua status bar/header/body. Hai panel Tổng quan/Chi tiết được render sẵn, giữ cùng kích thước container và chỉ chuyển `opacity`/`transform` bằng shared value để tránh card tách lớp hoặc khựng layout.
+11. Skeleton native-driver phải đặt `isInteraction: false` để không giữ hàng đợi render danh sách. Không dùng `LayoutAnimation.configureNext` toàn cục trước request bất đồng bộ của danh sách.
 
 ## 5. Lists, loading và refresh
 
@@ -168,6 +169,13 @@ Sau khi build:
 3. cài sạch trên thiết bị thật;
 4. kiểm tra login, shop, profile, refresh, match history, TLS chat và update channel;
 5. phát hành GitHub Release nếu smoke test đạt.
+
+### Bằng chứng release 4.1.8
+
+- Version/runtime `4.1.8`, Android `versionCode 89`, iOS `buildNumber 41`.
+- Build production cuối và asset GitHub đang chờ source commit này. Candidate `ebcdfbea-913a-4b67-84d1-9b00c2a81382` đã hoàn tất nhưng bị thay thế vì có trước guard archive và đợt căn chỉnh patch Expo SDK 57; không dùng candidate này làm artifact release.
+- `pnpm run check` đạt 73 suite / 770 test, strict TypeScript, ESLint không warning, audit policy và Android export/budget 9,91 MiB/7,44 MiB; Expo Doctor đạt 21/21. Build/asset GitHub không thay thế kiểm tra cài đặt trên thiết bị.
+- Build ID, URL, SHA-256 và bằng chứng chữ ký cuối sẽ được ghi bằng commit tài liệu tiếp theo sau khi APK đạt `FINISHED` và asset được upload/xác minh.
 
 ## 10. Artifact policy
 

@@ -36,7 +36,10 @@ gantt
 Đĩa có một thứ tự bổ sung: clear startup marker chờ write trước đó; migration
 storage cũng tuần tự hoá copy/write/remove theo key. Read cũ trả về sau một
 write/reset mới bị loại, tránh hydrate lại dữ liệu đã xoá.
+Archive mùa áp dụng hàng đợi write riêng cho từng `(accountKey, seasonId)`;
+request khác scope có thể tiến triển độc lập nhưng không được merge chéo account.
 
 Nguồn: [session generation](../utils/session-operations.ts),
 [request runtime](../features/matches/request-runtime.ts),
-[startup queue](../utils/startup-cache.ts), [storage migration](../utils/storage-migration.ts).
+[startup queue](../utils/startup-cache.ts), [storage migration](../utils/storage-migration.ts),
+[archive write queue](../services/matches/match-archive-core.ts).

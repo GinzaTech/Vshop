@@ -15,8 +15,9 @@ flowchart TB
     Public[Public Valorant facade]
     HTTP[Isolated HTTP clients]
     Persist[Storage adapters + migration]
+    Archive[Match archive repository]
     Chat[XMPP client + chat service]
-    Native[Native modules: cookie, secure key, image, background]
+    Native[Native modules: cookie, secure key, SQLite, image, background]
     Shell --> UI
     Shell --> Session
     UI --> Primitives
@@ -30,6 +31,9 @@ flowchart TB
     Riot --> HTTP
     Public --> HTTP
     Stores --> Persist
+    Stores --> Archive
+    Archive --> Persist
+    Archive --> Native
     Persist --> Native
     Session --> Native
     UI --> Chat
@@ -42,3 +46,4 @@ chẩn đoán opt-in, không phải dependency cần thiết để app hoạt đ
 
 Nguồn: [cấu trúc dự án](../DIRECTORY_STRUCTURE.md), [HTTP clients](../services/http/clients.ts),
 [match facade](../utils/match-ui.ts), [storage](../utils/storage.ts).
+Archive contract: [services/matches](../services/matches/match-archive-core.ts).

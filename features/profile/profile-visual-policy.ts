@@ -15,20 +15,28 @@ type ProfileChromeTone = {
  */
 export const PROFILE_INFO_COLORS = {
   accent: COLORS.VALORANT_VIOLET,
-  background: COLORS.ACCENT_DEEP,
+  background: COLORS.PURE_BLACK,
   border: COLORS.ON_DARK_BORDER,
   borderSubtle: COLORS.ON_DARK_BORDER,
-  card: COLORS.VALORANT_DARK_BLUE,
+  card: COLORS.ACCENT_DEEP,
   divider: COLORS.ON_DARK_BORDER,
   negative: COLORS.WARNING,
   positive: COLORS.SUCCESS,
   sectionAccent: COLORS.VALORANT_RED,
   skeletonBase: COLORS.PURE_BLACK,
   skeletonHighlight: COLORS.VALORANT_DARK_BLUE,
-  surfaceSubtle: COLORS.PURE_BLACK,
+  surfaceSubtle: COLORS.VALORANT_DARK_BLUE,
   textMuted: COLORS.TEXT_TERTIARY,
   textPrimary: COLORS.PURE_WHITE,
   textSecondary: COLORS.ON_DARK_TEXT,
+} as const;
+
+/** Kích thước hiển thị gọn, nhưng hitSlop vẫn giữ vùng chạm tối thiểu 44dp. */
+export const PROFILE_SEASON_SELECTOR_LAYOUT = {
+  chipHeight: 30,
+  chipHitSlop: { bottom: 7, left: 3, right: 3, top: 7 },
+  iconSize: 28,
+  panelPaddingVertical: 8,
 } as const;
 
 /** Một thang số nổi bật duy nhất giúp bảng tổng quan không bị lệch cấp độ. */
@@ -39,14 +47,14 @@ export const PROFILE_INFO_TYPOGRAPHY = {
 } as const;
 
 /**
- * Header hệ thống vẫn sáng ở cả hai mode; vùng dữ liệu tự đổi nền bên dưới.
+ * Player info dùng chrome tối để canvas dữ liệu phủ liền mạch tới status bar.
  */
 export function getProfileChromeTone(
-  _mode: ProfileVisualMode
+  mode: ProfileVisualMode
 ): ProfileChromeTone {
   return {
     primaryNavigation: "dark",
-    topInset: "light",
+    topInset: mode === "player-info" ? "dark" : "light",
   };
 }
 

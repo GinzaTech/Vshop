@@ -11,8 +11,11 @@ erDiagram
     ACCOUNT ||--o| PROFILE_CACHE : co_cache
     ACCOUNT ||--o{ HISTORY_RECORD : xem
     ACCOUNT ||--o{ SEASON_STATS : tong_hop
+    ACCOUNT ||--o{ MATCH_SEASON_ARCHIVE : luu_theo_account
     SEASON ||--o{ SEASON_STATS : theo_act
+    SEASON ||--o{ MATCH_SEASON_ARCHIVE : khoa_theo_act
     SEASON ||--o{ HISTORY_RECORD : gom
+    MATCH_SEASON_ARCHIVE ||--o{ HISTORY_RECORD : payload_tom_tat
     MATCH ||--o{ HISTORY_RECORD : tham_chieu
     MATCH ||--o{ MATCH_PLAYER : co
     ACCOUNT ||--o{ MATCH_PLAYER : tham_gia
@@ -89,6 +92,14 @@ erDiagram
         number cancelled
         number unknown
     }
+    MATCH_SEASON_ARCHIVE {
+        string accountKey PK
+        string seasonId PK
+        number schemaVersion
+        number updatedAt
+        string syncStatus
+        string payload
+    }
 ```
 
 `protectedCredentials` và `result` ở đây là thuộc tính **khái niệm**: credential
@@ -96,9 +107,16 @@ nằm trong saved-account/session được bảo vệ, còn result lịch sử t
 trong `stats.result`. `EQUIPPED_ITEM` là góc nhìn chuẩn hoá từ mảng loadout,
 không phải một bảng đang tồn tại. `ACCOUNT` không có bảng riêng.
 
+Trên native, `MATCH_SEASON_ARCHIVE` tương ứng bảng SQLite
+`match_season_archives` với primary key kép `(account_key, season_id)`; `payload`
+giữ snapshot JSON đã validate. `HISTORY_RECORD` và `SEASON_STATS` trong hình là
+các object nằm trong payload, không phải bảng con SQL. Web/test dùng cùng
+repository contract nhưng lưu qua `appStorage`.
+
 Chat giữ friends/messages trong RAM; wishlist là danh sách asset UUID cục bộ,
 không gán một quan hệ sở hữu account giả vì store wishlist không chia theo account.
 
 Nguồn: [SavedAccount](../utils/saved-accounts.ts), [match types](../types/match-ui.ts),
 [Profile cache](../utils/profile-cache.ts), [chat store](../utils/chat-store.ts),
-[wishlist store](../hooks/useWishlistStore.ts).
+[wishlist store](../hooks/useWishlistStore.ts),
+[match archive](../services/matches/match-archive-core.ts).

@@ -1,12 +1,13 @@
 # Bộ sơ đồ kiến trúc VShop
 
-Mô tả mã nguồn **4.1.7** tại checkout VShop ngày **15-09-2026**, gồm các thay đổi
-của đợt audit logic. Đây là tài liệu kiến trúc, không phải chứng nhận
+Mô tả mã nguồn **4.1.8** tại checkout VShop ngày **16-09-2026**, gồm audit logic,
+Profile dark canvas, dữ liệu nhiều Act và archive SQLite account-scoped. Đây là tài liệu kiến trúc, không phải chứng nhận
 mọi luồng đã được chạy trên thiết bị hoặc xác minh trên hạ tầng Riot.
 
 VShop là ứng dụng Expo/React Native, dùng Zustand và cache cục bộ, gọi dịch vụ
-Riot/Valorant bên ngoài. Repository **không triển khai database SQL hay backend
-VShop riêng**. Không đưa token, cookie, tài khoản thật hoặc địa chỉ LAN thật vào sơ đồ.
+Riot/Valorant bên ngoài. Repository **không triển khai backend/database server
+VShop riêng**; SQLite chỉ là archive cục bộ trong sandbox ứng dụng native.
+Không đưa token, cookie, tài khoản thật hoặc địa chỉ LAN thật vào sơ đồ.
 
 ## Danh mục 17 loại sơ đồ
 
@@ -51,8 +52,8 @@ Nguồn đối chiếu: [quy tắc dự án](../AGENTS.md),
 Tình trạng kiểm chứng source/device được ghi riêng trong audit; các sơ đồ không
 đại diện cho deployment hay thay đổi tài khoản thật.
 
-Kiểm tra tài liệu: 19 khối Mermaid trong 17 loại sơ đồ parse thành công bằng
-Mermaid 12.0.0; 93 liên kết file nội bộ tồn tại. Đây là kiểm tra cú pháp/liên kết,
+Kiểm tra tài liệu release 4.1.8 phải parse toàn bộ khối Mermaid và đối chiếu các
+liên kết file nội bộ. Đây là kiểm tra cú pháp/liên kết,
 không phải bằng chứng chạy toàn bộ luồng app. Tham khảo ký pháp
 [Mermaid](https://mermaid.js.org/config/usage.html) và
 [Gantt cho Timing minh hoạ](https://mermaid.js.org/syntax/gantt.html).

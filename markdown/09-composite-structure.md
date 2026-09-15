@@ -15,6 +15,7 @@ flowchart TB
         Picker[PickerOptions + Pickers]
         Mutation[useProfileMutations]
         Motion[Motion + Pager + CollapsibleHeader]
+        StatsTabs[Dashboard tab store + UI-thread progress]
         View[Hero, EquipmentSections, PickerModal, Dashboard]
         Session --> State
         Session --> Fetch
@@ -27,6 +28,8 @@ flowchart TB
         Mutation --> State
         State --> Motion
         Motion --> View
+        StatsTabs --> View
+        Motion --> StatsTabs
     end
     U --> View
     View -->|Refresh / chọn Act| Fetch
@@ -38,8 +41,12 @@ flowchart TB
 ```
 
 Không có dependency từ HTTP client quay ngược vào UI. Các hook được tách theo
-trách nhiệm; store liên tài khoản và state picker/motion cục bộ có vòng đời khác nhau.
+trách nhiệm; store liên tài khoản và state picker/motion cục bộ có vòng đời khác
+nhau. Tab Tổng quan/Chi tiết dùng store UI riêng để không render lại toàn bộ
+Profile; hai panel đã layout sẵn chỉ đổi lớp bằng shared value trên UI thread.
 
 Nguồn: [ProfileScreen](../features/profile/ProfileScreen.tsx),
 [fetch](../features/profile/useProfileFetch.ts), [mutations](../features/profile/useProfileMutations.ts),
-[motion](../features/profile/useProfileMotion.ts), [pager](../features/profile/useProfilePager.ts).
+[motion](../features/profile/useProfileMotion.ts),
+[dashboard tab store](../features/profile/useProfileDashboardTabStore.ts),
+[pager](../features/profile/useProfilePager.ts).

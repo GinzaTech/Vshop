@@ -1,5 +1,42 @@
 # LOGIC_AUDIT.md — Kiểm toán & Sửa lỗi tầng logic VShop
 
+## Follow-up release 4.1.8 — 2026-09-16
+
+Phần này cập nhật bằng chứng hiện tại; audit 2026-09-15 và 2026-09-13 được giữ
+nguyên phía dưới như lịch sử quyết định.
+
+- Profile: canvas dữ liệu tối phủ status bar/header/body; lịch 38 Act gọn hơn;
+  Tổng quan/Chi tiết giữ hai layer đã render và chuyển bằng UI-thread progress.
+- Dữ liệu nhiều mùa: crawl competitive updates vượt giới hạn cũ, dùng history/detail
+  còn giữ và fallback MMR theo season. Snapshot `rank-only` để metric combat không
+  còn nguồn là `--`, không biến thành số 0 giả.
+- Archive: native dùng `expo-sqlite` với key account + Act, web/test dùng storage
+  adapter; merge tối đa 1.000 summary Competitive mỗi Act, không lưu credential
+  hoặc full detail. Write được tuần tự và payload được validate trước khi hydrate.
+- Outcome: win/loss/draw/cancelled/unknown dùng chung contract; cancelled/unknown
+  không bị tính thành thua và không vào mẫu số win rate.
+- Bootstrap: route khởi động được latch; điều hướng sau đó không bị completion cũ
+  chuyển ngược về Profile.
+
+### Kiểm chứng 4.1.8
+
+- `pnpm run check`: strict TypeScript, ESLint không warning, 73 suite / 770 test,
+  production audit policy và Android export/budget đều PASS. Export 9,91 MiB,
+  JS/Hermes 7,44 MiB; thư mục export tạm đã được dọn. Expo Doctor đạt 21/21
+  sau khi căn chỉnh toàn bộ patch tương thích SDK 57 và React Native 0.86.3.
+- Kiểm thử Android 15 trên development client 4.1.8/code89 xác nhận 38 Act,
+  canvas tối, dữ liệu rank V26 Act IV và Episode 5 Act III, SQLite account-scoped,
+  không có crash/ANR/JS exception/SQLite error trong logcat đã lấy mẫu.
+- 20 lần đổi Tổng quan/Chi tiết: 588 frame, P50 9 ms, P90/P95 11 ms, P99 13 ms,
+  2,04% jank theo metric hiện tại và zero missed VSync. Đây là mẫu flow cụ thể,
+  không phải chứng nhận hiệu năng cho mọi thiết bị.
+- Candidate EAS `ebcdfbea-913a-4b67-84d1-9b00c2a81382` đã `FINISHED` nhưng bị
+  thay thế vì có trước guard archive và căn chỉnh dependency. Bản production
+  cuối phải build lại từ commit source 4.1.8, sau đó mới ghi build ID/checksum
+  và phát hành; bằng chứng UI ở trên thuộc development client cùng native version.
+- Quét release phải tiếp tục loại `.env`, token/cookie, keystore, APK và output
+  build khỏi commit. APK chỉ được đính kèm GitHub Release, không nằm trong Git.
+
 ## Đợt sửa tiếp theo — 2026-09-15
 
 Kế hoạch ECC: tái hiện lỗi bằng test; triển khai song song theo phạm vi file;
@@ -43,7 +80,7 @@ Test phải điều khiển thứ tự resolve promise và kiểm tra cả state
 - Review cuối có thêm RED thật: chỉ đổi entitlements token vẫn cho loadout
   cũ cập nhật Profile. Bổ sung guard token thứ hai; suite hook 10/10 GREEN,
   gồm regression đổi từng token riêng lẻ.
-- 17 loại sơ đồ: 19 khối Mermaid parse thành công, 93 liên kết nội bộ tồn tại.
+- 17 loại sơ đồ: 20 khối Mermaid parse thành công, 109 liên kết nội bộ tồn tại.
   Xem [mục lục](markdown/README.md); mô hình ERD là logical cache model, không SQL.
 - Thiết bị Android từng kết nối, cài dev `com.android.vshop` 4.1.6/code87.
   Dev Launcher gặp lỗi nối Metro; sau khi đổi binding Metro, ADB mất thiết bị.

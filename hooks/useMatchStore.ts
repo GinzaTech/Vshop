@@ -12,6 +12,25 @@ export type { MatchCacheSnapshot } from "~/features/matches/store-types";
 
 let runtime: MatchRequestRuntime;
 
+function capPersistedSeasonMatches(
+  seasonMatchesById: MatchState["seasonMatchesById"]
+): MatchState["seasonMatchesById"] {
+  return Object.entries(seasonMatchesById).reduceRight<{
+    remaining: number;
+    seasons: MatchState["seasonMatchesById"];
+  }>(
+    (result, [seasonId, matches]) => {
+      const retained = matches.slice(0, result.remaining);
+      if (retained.length === 0) return result;
+      return {
+        remaining: result.remaining - retained.length,
+        seasons: { [seasonId]: retained, ...result.seasons },
+      };
+    },
+    { remaining: MAX_PERSISTED_MATCHES, seasons: {} }
+  ).seasons;
+}
+
 export const useMatchStore = create<MatchState>()(
   persist(
     (set, get) => {
@@ -57,6 +76,14 @@ export const useMatchStore = create<MatchState>()(
             persistedVersion === MATCH_STORE_VERSION
               ? persisted.seasonStats ?? null
               : null,
+          seasonStatsById:
+            persistedVersion === MATCH_STORE_VERSION
+              ? persisted.seasonStatsById ?? {}
+              : {},
+          seasonMatchesById:
+            persistedVersion === MATCH_STORE_VERSION
+              ? persisted.seasonMatchesById ?? {}
+              : {},
           seasonOptions:
             persistedVersion === MATCH_STORE_VERSION
               ? persisted.seasonOptions ?? []
@@ -78,6 +105,8 @@ export const useMatchStore = create<MatchState>()(
         totalMatches: state.totalMatches,
         historyEndIndex: state.historyEndIndex,
         seasonStats: state.seasonStats,
+        seasonStatsById: state.seasonStatsById,
+        seasonMatchesById: capPersistedSeasonMatches(state.seasonMatchesById),
         seasonOptions: state.seasonOptions,
       }),
 

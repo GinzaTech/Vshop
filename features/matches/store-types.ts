@@ -71,6 +71,8 @@ export type PersistedMatchState = Pick<
   | "totalMatches"
   | "historyEndIndex"
   | "seasonStats"
+  | "seasonStatsById"
+  | "seasonMatchesById"
   | "seasonOptions"
 >;
 

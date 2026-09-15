@@ -41,10 +41,12 @@ Navigation motion uses shared timing tokens, transition-aware tab preloading and
 
 # English
 
-## Release 4.1.7 source highlights
+## Release 4.1.8 source highlights
 
-Profile now has a coordinated reversible player-data transition, dark detail backgrounds,
-consistent number hierarchy and historical Act selection. Account rollback restores
+Profile now has a coordinated reversible player-data transition, a full dark canvas,
+consistent number hierarchy and historical Act selection backed by a durable archive
+of matches observed by this installation, retained Riot details or Riot's per-season
+ranked totals. Account rollback restores
 domain data; request generations and both credentials prevent stale writes, including
 storage hydration after logout. Diagnostic logs are opt-in in development and OAuth
 callbacks require per-attempt state/nonce correlation.
@@ -53,6 +55,11 @@ See the [17 architecture diagram types](markdown/README.md),
 [audit and verification limits](LOGIC_AUDIT.md) and [release notes](CHANGELOG.md).
 Source checks, real-device UI testing and a finished EAS APK are separate results;
 the version number alone does not certify an available production artifact.
+
+The final signed `VShop-4.1.8-production-89.apk` will be linked here after an
+EAS production build from the committed 4.1.8 source reaches `FINISHED` and
+its GitHub Release asset checksum is verified. The earlier completed candidate
+was superseded after the archive input guard and SDK 57 patch alignment.
 
 ## Release 4.1.6 highlights
 
@@ -92,7 +99,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 | **Combat** | Live pregame/session information, party management, silent leave-party action, agent select and real-time match board |
 | **Social** | Friends list with presence and resilient 1:1 Riot XMPP messaging |
 | **Reference** | Skin gallery, equipment browser, agent database, crosshair codes, leaderboard |
-| **Performance** | Offline-first MMKV cache, delta sync, gzip compression, adaptive TTL on 4G |
+| **Performance** | Offline-first MMKV working cache, per-Act SQLite match archive on native, delta sync, gzip compression, adaptive TTL on 4G |
 | **UX** | Animated loading screen, skeleton shimmer, press-scale cards, sliding tab indicator, screen transitions |
 
 ## Tech Stack
@@ -102,7 +109,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 | **Framework** | React Native 0.86 + Expo SDK 57 |
 | **Routing** | Expo Router (file-based) |
 | **State** | Zustand 5 + persist middleware |
-| **Storage** | MMKV cache + AES-256 MMKV session storage with a Keychain/Keystore-protected key; AsyncStorage migration/fallback |
+| **Storage** | MMKV working cache + native SQLite match archive; AES-256 MMKV session storage with a Keychain/Keystore-protected key; AsyncStorage migration/fallback |
 | **Animations** | react-native-reanimated 4.5 with centralized motion tokens |
 | **UI** | react-native-paper, custom glassmorphism design system |
 | **i18n** | react-i18next (18 languages) |
@@ -129,7 +136,7 @@ responses before they reach the UI.
 | **Screens and components** | Route orchestration, user interaction and presentation; no persistent transport ownership | `app/`, `components/` |
 | **Domain state** | User session, match history, profile warm cache, combat snapshot, wishlist and feature state | `hooks/`, `utils/chat-store.ts` |
 | **Services** | Riot HTTP calls, RSO session construction, XMPP, synchronization, asset loading and image prefetch | `utils/` |
-| **Persistence** | Zustand cache persistence over MMKV; Riot sessions use encrypted MMKV on native and tab-scoped `sessionStorage` on web | `utils/storage.ts` |
+| **Persistence** | Zustand cache persistence over MMKV; durable match summaries use per-account/per-Act SQLite on native; Riot sessions use encrypted MMKV on native and tab-scoped `sessionStorage` on web | `utils/storage.ts`, `services/matches/` |
 | **Contracts and assets** | Riot DTOs, normalized match UI types, design tokens, images and 18 translation bundles | `types/`, `constants/`, `assets/` |
 
 ### Startup and authentication
@@ -188,7 +195,8 @@ browser JavaScript.
 | **User/session** | Persisted as `user-session` | Region + user ID identify the session; JWT expiry is checked with a safety buffer before reuse |
 | **Profile** | `profile-warm-cache`, 5-minute TTL, newest 3 accounts | Per-component freshness and schema versions; in-flight requests include credential identity and session generation |
 | **Match history** | `match-history-cache`, 30-minute TTL | Persists summaries and season metrics; detail payloads stay in a 10-entry in-memory LRU |
-| **Season metrics** | Per-Act results with calculation version, 2-hour TTL | Selected-Act competitive updates identify matches; partial detail sets are accepted, zero successful details fail; cancelled/unknown outcomes do not enter win rate |
+| **Observed-match archive** | Native SQLite keyed by account + Act; existing storage adapter on web/test | Keeps the newest 1,000 hydrated Competitive summaries per Act beyond the 200-record working-cache limit, deduplicates Match IDs and stores neither credentials nor full detail payloads |
+| **Season metrics** | Per-Act UI cache with calculation version and 2-hour TTL, backed by the durable archive | Archive, competitive updates and retained history provide available metrics; older Acts fall back to Riot MMR win/loss totals, leaving unavailable combat metrics blank; cancelled/unknown outcomes do not enter win rate |
 | **Combat** | Memory-only snapshot | Party, pregame and live endpoints are resolved together; stale responses are discarded and live sessions poll every 10 seconds |
 | **Chat** | Memory-only Zustand store | One XMPP client per credential/region key; messages and presence are normalized by Riot PUUID and deduplicated |
 | **Assets** | File-system cache, 24-hour TTL, plus memory lookup maps | Public metadata is language-aware; in-flight loads and bundle requests are shared |
@@ -211,7 +219,7 @@ RSO session
   -> Profile tabs render immediately, then refresh stale sections
 ```
 
-**Match history and current-Act statistics**
+**Match history and multi-Act statistics**
 
 ```text
 Match history pages + competitive updates
@@ -219,13 +227,16 @@ Match history pages + competitive updates
   -> choose request concurrency from network profile
   -> hydrate 15 records on cellular or 30 on Wi-Fi
   -> normalize players, teams, rounds, economy, weapons and rank changes
-  -> persist summaries; keep full detail payloads in memory
+  -> persist the 200-record working set and merge hydrated Competitive summaries
+     into the account + Act archive; keep full detail payloads in memory
 
-Active Act from Riot content
-  -> page through every competitive update for that Act
-  -> fetch each unique match detail with bounded retries
-  -> calculate wins/losses, K/D, HS, ACS, ADR, KAST and weapon aggregates
-  -> publish only when the complete detail set is available
+Selected Act from Riot content (newest to oldest)
+  -> hydrate the local archive first; a completed historical snapshot needs no re-crawl
+  -> page through competitive updates until the Act is found or safely passed
+  -> fall back to retained match history and verify queue + seasonId in match detail
+  -> calculate wins/losses, K/D, HS, ACS, ADR and KAST from available details
+  -> if old details have expired, use Riot MMR's per-season game/win totals
+  -> render unavailable combat metrics as -- and persist the per-Act result
 ```
 
 When a populated match cache expires, the normal refresh checks only the newest
@@ -398,7 +409,8 @@ pnpm dlx eas-cli@latest build --profile development --platform android
 pnpm dlx eas-cli@latest build --profile production --platform android
 ```
 
-Install via QR code or APK from the Expo dashboard.
+Install via QR code or APK from the Expo dashboard. The current signed APK is
+also attached to [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/releases/tag/v4.1.8).
 
 ## Credits
 
@@ -411,10 +423,12 @@ Install via QR code or APK from the Expo dashboard.
 
 # Tiếng Việt
 
-## Điểm nổi bật mã nguồn 4.1.7
+## Điểm nổi bật mã nguồn 4.1.8
 
-Profile dùng một chuyển động hai chiều đồng bộ, nền chi tiết tối, phân cấp số liệu
-nhất quán và chọn được Act cũ. Rollback tài khoản phục hồi cả dữ liệu; request kiểm
+Profile dùng một chuyển động hai chiều đồng bộ, nền dữ liệu tối toàn màn hình,
+phân cấp số liệu nhất quán và chọn được Act cũ bằng kho trận đã được bản cài này
+quan sát, match detail còn lưu hoặc tổng xếp hạng theo mùa của Riot. Rollback tài
+khoản phục hồi cả dữ liệu; request kiểm
 tra generation cùng hai token, storage loại kết quả hydrate cũ sau logout. Log
 chẩn đoán chỉ bật khi opt-in ở dev; callback OAuth kiểm tra state/nonce từng lần.
 
@@ -422,6 +436,11 @@ Xem [17 loại sơ đồ kiến trúc](markdown/README.md),
 [audit và giới hạn kiểm chứng](LOGIC_AUDIT.md), [changelog](CHANGELOG.md).
 Check mã nguồn, test UI máy thật và APK EAS hoàn tất là ba kết quả riêng biệt;
 chỉ tăng version không có nghĩa bản production đã tồn tại.
+
+APK ký cuối `VShop-4.1.8-production-89.apk` sẽ được gắn tại đây sau khi build
+EAS production từ source 4.1.8 đã commit đạt `FINISHED` và checksum asset trên
+GitHub Release được xác minh. Bản candidate hoàn tất trước đó đã bị thay thế
+sau khi bổ sung guard dữ liệu archive và căn chỉnh patch Expo SDK 57.
 
 ## Điểm nổi bật bản 4.1.6
 
@@ -460,7 +479,7 @@ Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHA
 | **Combat** | Thông tin pregame/live, quản lý party, rời party im lặng, chọn agent và bảng trận đấu trực tiếp |
 | **Xã hội** | Danh sách bạn bè, nhắn tin Riot XMPP ổn định hơn và chat party |
 | **Tham khảo** | Thư viện skin, trình duyệt trang bị, database agent, mã crosshair, bảng xếp hạng |
-| **Hiệu năng** | Cache MMKV offline-first, delta sync, nén gzip, TTL thích ứng trên 4G |
+| **Hiệu năng** | Working cache MMKV offline-first, kho trận SQLite theo Act trên native, delta sync, nén gzip, TTL thích ứng trên 4G |
 | **Trải nghiệm** | Màn hình loading animation, skeleton shimmer, hiệu ứng bấm card, thanh tab trượt, chuyển màn hình mượt |
 
 ## Công nghệ
@@ -470,7 +489,7 @@ Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHA
 | **Framework** | React Native 0.86 + Expo SDK 57 |
 | **Routing** | Expo Router (file-based) |
 | **State** | Zustand 5 + persist middleware |
-| **Storage** | MMKV cho cache + MMKV AES-256 cho session với khóa được bảo vệ bởi Keychain/Keystore; tự migrate/fallback AsyncStorage |
+| **Storage** | MMKV cho working cache + SQLite native cho kho trận; MMKV AES-256 cho session với khóa được bảo vệ bởi Keychain/Keystore; tự migrate/fallback AsyncStorage |
 | **Animation** | react-native-reanimated 4.5 và motion token tập trung |
 | **UI** | react-native-paper, design system glassmorphism tùy chỉnh |
 | **Đa ngôn ngữ** | react-i18next (18 ngôn ngữ) |
@@ -497,7 +516,7 @@ dữ liệu tới UI.
 | **Màn hình và component** | Điều phối route, tương tác và hiển thị; không sở hữu transport lâu dài | `app/`, `components/` |
 | **Domain state** | Session người dùng, lịch sử đấu, profile warm cache, combat snapshot, wishlist và feature state | `hooks/`, `utils/chat-store.ts` |
 | **Service** | Riot HTTP, dựng RSO session, XMPP, đồng bộ, tải và cache asset | `utils/` |
-| **Lưu trữ** | Cache Zustand qua MMKV; Riot session dùng MMKV mã hóa trên native và `sessionStorage` theo tab trên web | `utils/storage.ts` |
+| **Lưu trữ** | Cache Zustand qua MMKV; summary trận lâu dài dùng SQLite theo tài khoản/Act trên native; Riot session dùng MMKV mã hóa trên native và `sessionStorage` theo tab trên web | `utils/storage.ts`, `services/matches/` |
 | **Contract và asset** | Riot DTO, kiểu match UI đã chuẩn hóa, design token, hình ảnh và 18 bộ ngôn ngữ | `types/`, `constants/`, `assets/` |
 
 ### Khởi động và xác thực
@@ -551,7 +570,8 @@ HttpOnly.
 | **User/session** | Persist bằng key `user-session` | Region + user ID định danh session; JWT được kiểm tra với khoảng an toàn trước khi dùng lại |
 | **Profile** | `profile-warm-cache`, TTL 5 phút, giữ 3 tài khoản gần nhất | Freshness và version theo từng thành phần; request phân biệt credential identity và session generation |
 | **Lịch sử đấu** | `match-history-cache`, TTL 30 phút | Persist bản tóm tắt và thống kê mùa; detail đầy đủ chỉ ở LRU RAM tối đa 10 trận |
-| **Thống kê mùa** | Persist theo từng Act và calculation version, TTL 2 giờ | Updates của Act được chọn là nguồn trận; chấp nhận detail một phần, lỗi nếu không tải được detail nào; huỷ/chưa rõ không tính vào win rate |
+| **Kho trận đã quan sát** | SQLite native theo tài khoản + Act; web/test dùng storage adapter sẵn có | Giữ tối đa 1.000 summary Competitive mới nhất mỗi Act ngoài giới hạn 200 record của working cache, chống trùng Match ID và không lưu credential hay full detail |
+| **Thống kê mùa** | UI cache từng Act có calculation version và TTL 2 giờ, được chống lưng bởi kho lâu dài | Archive, updates và history còn lưu cung cấp metric hiện có; Act quá cũ fallback tổng thắng/thua từ Riot MMR và để trống metric combat không còn nguồn; huỷ/chưa rõ không tính vào win rate |
 | **Combat** | Snapshot chỉ nằm trong RAM | Party, pregame và live được ghép chung; response cũ bị bỏ và trận live poll mỗi 10 giây |
 | **Chat** | Zustand store chỉ trong RAM | Một XMPP client cho mỗi bộ credential/region; message và presence chuẩn hóa theo Riot PUUID |
 | **Asset** | File cache 24 giờ và lookup map trong RAM | Metadata công khai theo ngôn ngữ; các lần load và request bundle dùng chung Promise |
@@ -573,7 +593,7 @@ RSO session
   -> các tab Profile render ngay từ cache rồi refresh phần đã stale
 ```
 
-**Lịch sử đấu và thống kê Act hiện tại**
+**Lịch sử đấu và thống kê nhiều Act**
 
 ```text
 Các trang match history + competitive updates
@@ -581,13 +601,16 @@ Các trang match history + competitive updates
   -> chọn concurrency theo loại mạng
   -> hydrate 15 trận trên mạng di động hoặc 30 trận trên Wi-Fi
   -> chuẩn hóa player, team, round, economy, vũ khí và thay đổi rank
-  -> persist summary; giữ detail nặng trong RAM
+  -> persist working set 200 record và gộp summary Competitive đã hydrate vào
+     kho theo tài khoản + Act; giữ detail nặng trong RAM
 
-Act hiện tại từ Riot content
-  -> phân trang toàn bộ competitive update thuộc Act
-  -> lấy từng match detail duy nhất với retry có giới hạn
-  -> tính win/loss, K/D, HS, ACS, ADR, KAST và thống kê vũ khí
-  -> chỉ publish khi có đủ toàn bộ detail
+Act được chọn từ Riot content (mới nhất đến cũ nhất)
+  -> hydrate kho cục bộ trước; snapshot Act cũ đã hoàn tất không cần crawl lại
+  -> phân trang competitive updates tới khi gặp hoặc đi qua Act
+  -> fallback match history còn lưu và xác nhận queue + seasonId bằng detail
+  -> tính win/loss, K/D, HS, ACS, ADR, KAST từ các detail lấy được
+  -> nếu detail Act cũ đã hết hạn, dùng tổng trận/thắng theo mùa từ Riot MMR
+  -> metric combat không còn nguồn hiển thị --; kết quả từng Act được persist
 ```
 
 Khi match cache đã có dữ liệu nhưng hết TTL, refresh thông thường chỉ kiểm tra
@@ -757,7 +780,8 @@ pnpm dlx eas-cli@latest build --profile development --platform android
 pnpm dlx eas-cli@latest build --profile production --platform android
 ```
 
-Cài qua QR code hoặc file APK từ dashboard Expo.
+Cài qua QR code hoặc file APK từ dashboard Expo. APK đã ký hiện tại cũng được
+đính kèm tại [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/releases/tag/v4.1.8).
 
 ## Ghi công
 

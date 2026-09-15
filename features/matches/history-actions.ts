@@ -4,11 +4,28 @@ import { getAccountSessionKey as getMatchAuthKey } from "~/utils/saved-accounts"
 import { getCompetitiveUpdates, playerMatchHistory } from "~/utils/valorant-api";
 import { loadAssets, loadAgent } from "~/utils/valorant-assets";
 import { getNetworkProfile } from "~/utils/network";
+import { archiveObservedMatches } from "~/services/matches/match-archive";
 import { buildMatchHistoryRecord, compactRankUpdate, createMatchAssetCatalog, enrichMatchHistoryAssets } from "~/utils/match-ui";
 import { MATCH_HISTORY_LIMIT, INITIAL_FETCH_TOTAL, MATCH_CACHE_TTL_MS, DELTA_FETCH_LIMIT, CELLULAR_INITIAL_DETAILS, WIFI_INITIAL_DETAILS } from "./cache-policy";
 import { hydrateMatchBatch } from "./hydrate-batch";
 import type { MatchState } from "./store-types";
 import type { MatchActionContext } from "./request-runtime";
+
+const archiveObservedMatchesSafely = async (
+  authKey: string,
+  matches: readonly MatchHistoryRecord[]
+) => {
+  try {
+    await archiveObservedMatches(authKey, matches);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn(
+        "[matchStore] archive write failed",
+        sanitizeErrorForLog(error)
+      );
+    }
+  }
+};
 
 export function createHistoryActions({
   setState: set, getState: get, runtime,
@@ -169,6 +186,7 @@ export function createHistoryActions({
               (match) => hydratedById.get(match.MatchID) || match
             ),
           }));
+          void archiveObservedMatchesSafely(authKey, hydrated);
         } catch (error) {
           if (__DEV__) {
             console.warn("Failed to load more match history", sanitizeErrorForLog(error));
@@ -303,6 +321,7 @@ export function createHistoryActions({
 
             // Hydrate từng trận mới (1 lần/viết, không batch)
             const catalog = createMatchAssetCatalog();
+            const hydratedForArchive: MatchHistoryRecord[] = [];
             for (const raw of newRawMatches) {
               const details = await get().fetchMatchDetails(user, raw.MatchID);
               if (!scope.isCurrent()) return false;
@@ -317,6 +336,7 @@ export function createHistoryActions({
                 user.id,
                 catalog
               );
+              hydratedForArchive.push(record);
               // RETRY match đã tồn tại → REPLACE thay vì append (tránh
               // trùng lặp trong danh sách). Match mới → append + sort.
               set((current) => {
@@ -340,6 +360,10 @@ export function createHistoryActions({
                 };
               });
             }
+            void archiveObservedMatchesSafely(
+              getMatchAuthKey(user),
+              hydratedForArchive
+            );
             if (__DEV__) {
               console.log(`[matchStore] delta sync: +${newRawMatches.length} new matches`);
             }
@@ -511,6 +535,10 @@ export function createHistoryActions({
               (match) => hydratedById.get(match.MatchID) || match
             ),
           });
+          void archiveObservedMatchesSafely(
+            getMatchAuthKey(user),
+            hydrated
+          );
           return true;
         } catch (error) {
           if (__DEV__) console.error("Failed to fetch matches globally", sanitizeErrorForLog(error));

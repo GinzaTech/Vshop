@@ -71,15 +71,18 @@ function Profile() {
     cachedLoadoutSnapshot, cachedProfile, user, isProfileDemo, cachedCompetitiveRank,
   });
   const {
-    activeTab, setActiveTab, reduceMotionEnabled, statsDashboardTab, profileNavContentMode,
+    activeTab, setActiveTab, reduceMotionEnabled, profileNavContentMode,
     statsDashboardMounted, profilePagerRef, skinWhitespacePagerOriginRef, handleSegmentContainerLayout,
     handlePagerScroll, segmentIndicatorAnimatedStyle, profileSegmentLayerAnimatedStyle,
     statsSegmentLayerAnimatedStyle, loadoutSegmentLabelAnimatedStyle, skinsSegmentLabelAnimatedStyle,
     collectionSegmentLabelAnimatedStyle, isPlayerInfoMode, profileModeTransitioning,
     profileModeInteractionLockedRef, profileModeInteractionTimerRef, rankSplitContentMode,
     heroModeProgress, rankSplitProgress, statsVisibilityProgress, pageModeProgress,
+    statsTabProgress,
     profileExpandedHeroHeight, dashboardPreloadTaskRef, legacyContentAnimatedStyle,
-    statsDashboardLayerAnimatedStyle, profileBodyBackgroundAnimatedStyle, handleRegionPress,
+    statsDashboardLayerAnimatedStyle, profileBodyBackgroundAnimatedStyle,
+    profilePageBackgroundAnimatedStyle, profileHeaderTitleAnimatedStyle,
+    profileBalancePillAnimatedStyle, handleRegionPress,
     toggleHeroMode, handleStatsDashboardTabChange,
   } = useProfileMotion({
     viewportWidth, hasAuth, fetchMatches, user,
@@ -249,10 +252,14 @@ function Profile() {
                 </View>
             ) : null}
           </TouchableOpacity>
-          <Animated.Text style={styles.topHeaderTitle}>
+          <Animated.Text
+            style={[styles.topHeaderTitle, profileHeaderTitleAnimatedStyle]}
+          >
             Vshop
           </Animated.Text>
-          <Animated.View style={styles.topBalancePill}>
+          <Animated.View
+            style={[styles.topBalancePill, profileBalancePillAnimatedStyle]}
+          >
             <Text style={styles.topBalanceText}>{user.balances.vp} {t("vp")}</Text>
           </Animated.View>
         </View>
@@ -292,7 +299,6 @@ function Profile() {
         profileSegmentLayerAnimatedStyle={profileSegmentLayerAnimatedStyle}
         segmentIndicatorAnimatedStyle={segmentIndicatorAnimatedStyle}
         skinsSegmentLabelAnimatedStyle={skinsSegmentLabelAnimatedStyle}
-        statsDashboardTab={statsDashboardTab}
         statsSegmentLayerAnimatedStyle={statsSegmentLayerAnimatedStyle}
         tabItems={tabItems}
       />
@@ -525,7 +531,9 @@ function Profile() {
         profile={collectionCheckerProfile}
         disabled={refreshing}
     >
-      <View style={styles.container}>
+      <Animated.View
+        style={[styles.container, profilePageBackgroundAnimatedStyle]}
+      >
         {renderPageHeader()}
         <GestureDetector gesture={profileContentPanGesture}>
           <Animated.View
@@ -581,7 +589,6 @@ function Profile() {
               >
                 <PlayerInfoView
                     key={`player-info:${authKey}`}
-                    activeTab={statsDashboardTab}
                     competitiveRank={competitiveRank}
                     loading={
                       isProfileDemo
@@ -596,6 +603,7 @@ function Profile() {
                     seasonOptions={dashboardSeasonOptions}
                     seasonStats={dashboardSeasonStats}
                     seasonStatsById={dashboardSeasonStatsById}
+                    tabProgress={statsTabProgress}
                 />
               </Animated.View>
           ) : null}
@@ -619,7 +627,7 @@ function Profile() {
           setIdentityPickerQuery={setIdentityPickerQuery}
           updatingLoadout={updatingLoadout}
         />
-      </View>
+      </Animated.View>
     </CollectionCheckerExportProvider>
   );
 }

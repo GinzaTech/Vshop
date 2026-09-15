@@ -168,6 +168,7 @@ export const summarizeSeasonMatches = (
 
   const result = {
     calculationVersion: SEASON_STATS_CALCULATION_VERSION,
+    dataCompleteness: "full" as const,
     seasonId: season.id,
     seasonName: season.name,
     ...totals,
