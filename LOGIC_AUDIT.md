@@ -58,6 +58,16 @@ Test phải điều khiển thứ tự resolve promise và kiểm tra cả state
 - Hook ECC phát hiện chuỗi password giả trong test redaction; fixture đã được
   rút gọn, vẫn kiểm tra đúng việc loại dữ liệu khỏi trace. Không tắt hook.
   `.easignore` loại cả checkout ECC và config OpenCode cục bộ khỏi upload.
+- Sau push, [GitHub run 34946014574](https://github.com/GinzaTech/Vshop/actions/runs/34946014574)
+  tái hiện lỗi CI thật: setup-java không tìm được file Gradle vì `android/` chỉ
+  sinh ở bước prebuild sau đó. Cache key được chuyển sang hai file tracked
+  `pnpm-lock.yaml` và `app.json`, theo input
+  [cache-dependency-path của setup-java](https://github.com/actions/setup-java/blob/b6effb05e454b25005698d916606bdc6ffcbf961/README.md#usage).
+  Đây là sửa CI, không thay đổi payload APK. Kết quả job mới phải xem trên GitHub,
+  không suy ra PASS CI chỉ từ kiểm tra local.
+- EAS request [ac5a743b-f822-47aa-a965-82ab78957873](https://expo.dev/accounts/hyeon004/projects/vshop/builds/ac5a743b-f822-47aa-a965-82ab78957873)
+  dùng source `21c34db`, version 4.1.7/code88, production; trạng thái khi ghi:
+  IN_PROGRESS. Chỉ FINISHED cùng link artifact mới chứng minh có APK.
 
 ### Các invariant bổ sung đã có regression
 

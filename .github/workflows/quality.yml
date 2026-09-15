@@ -55,6 +55,10 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
+          # Native Gradle files are generated only by the later Expo prebuild.
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            app.json
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

@@ -27,6 +27,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Extract match store, match transforms and dashboard logic into focused modules while retaining compatibility entry points. Add regression tests for stale writes, cache clearing, partial failures and rendered result labels.
 - Include Android export and bundle-budget verification in `pnpm run check`, with automatic cleanup; CI now uses that same command without duplicate export steps.
+- Key GitHub's Gradle dependency cache from tracked Expo configuration and lockfile; generated native Gradle files do not exist at the Java setup step.
 - Move the ignored, obsolete npm lockfile to a recoverable local backup; pnpm remains the only package manager.
 - Exclude the local ECC checkout and private OpenCode configuration from EAS upload archives.
 - Split Profile into cohesive state, fetching, derived data, picker, mutation and motion hooks. Add 17 architecture diagram types under `markdown/` with code references.
@@ -36,6 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - App/runtime version: `4.1.7`; Android version code: `88`; iOS build number: `40`.
 - Target: EAS Android profile/channel `production`, signed APK. No OTA publication is included in this release preparation.
+- EAS build request: [`ac5a743b-f822-47aa-a965-82ab78957873`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/ac5a743b-f822-47aa-a965-82ab78957873), app source commit `21c34db`; status at this note: `IN_PROGRESS`. A following CI/docs-only fix does not change the app payload.
 - A production artifact is available only when EAS reports `FINISHED` with an artifact URL. See [audit verification](LOGIC_AUDIT.md) for source/device evidence and limitations.
 
 ### Validation
