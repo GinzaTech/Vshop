@@ -1,270 +1,173 @@
-// Import thư viện FileSystem của expo để làm việc với file hệ thống
 import * as FileSystem from "expo-file-system/legacy";
-// Import Platform từ react-native để kiểm tra platform (web, ios, android)
 import { Platform } from "react-native";
-import {
-  type AxiosResponse,
-  type InternalAxiosRequestConfig,
-} from "axios";
+import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import { sanitizeErrorForLog, sanitizeUrlForLog } from "./log-redaction";
 
-type TimedAxiosConfig = InternalAxiosRequestConfig & {
-  metadata?: { startTime?: number };
-};
-
-type TimedAxiosResponse<T = unknown> = Omit<AxiosResponse<T>, "config"> & {
-  config: TimedAxiosConfig;
-};
-
-type AxiosLikeError = {
-  message?: string;
-  config?: TimedAxiosConfig;
-  response?: {
-    status?: number;
-    statusText?: string;
-  };
-};
-
-// Đường dẫn thư mục chứa file log API
-const LOG_DIR = FileSystem.cacheDirectory + "api-logs/";
-// Đường dẫn file log chính
-const LOG_FILE = LOG_DIR + "requests.log";
-// Dung lượng tối đa của file log trước khi rotate (5MB)
-const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB before rotation
-// Số lượng entry tối đa lưu trong bộ đệm trước khi ghi file
-const MAX_LOG_ENTRIES = 500;
-
-// Type định nghĩa cấu trúc một entry log
+type TimedAxiosConfig = InternalAxiosRequestConfig & { metadata?: { startTime?: number } };
+type TimedAxiosResponse<T = unknown> = Omit<AxiosResponse<T>, "config"> & { config: TimedAxiosConfig };
 type LogEntry = {
-  ts: string;         // Timestamp (ISO string)
-  method?: string;    // Phương thức HTTP (GET, POST,...)
-  url: string;         // URL của request
-  status?: number;    // Mã trạng thái HTTP response
-  statusText?: string;// Text mô tả trạng thái HTTP
-  durationMs?: number;// Thời gian thực thi request (ms)
-  responseSize?: number;// Kích thước response (bytes)
-  error?: string;     // Thông báo lỗi nếu có
+  ts: string; method?: string; url: string; status?: number; statusText?: string;
+  durationMs?: number; responseSize?: number; error?: string;
+};
+const LOG_DIR = FileSystem.cacheDirectory + "api-logs/";
+const LOG_FILE = LOG_DIR + "requests.log";
+const MAX_LOG_ENTRIES = 500;
+const MAX_LOG_SIZE = 5 * 1024 * 1024;
+let logBuffer: LogEntry[] = [];
+let flushTimeout: ReturnType<typeof setTimeout> | null = null;
+let ioTail: Promise<void> = Promise.resolve();
+let epoch = 0;
+let initialized = false;
+let disabledCleanup: Promise<void> | null = null;
+
+const isEnabled = () => __DEV__ && process.env.EXPO_PUBLIC_API_LOGGING === "1" && Platform.OS !== "web";
+const finite = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+const clearBuffer = () => {
+  epoch += 1;
+  logBuffer = [];
+  if (flushTimeout) clearTimeout(flushTimeout);
+  flushTimeout = null;
 };
 
-// Bộ đệm lưu các log entry chưa được ghi xuống file
-let logBuffer: LogEntry[] = [];
-// Timeout cho việc lên lịch ghi log (debounce 3 giây)
-let flushTimeout: ReturnType<typeof setTimeout> | null = null;
-// Promise đảm bảo thư mục log đã được khởi tạo
-let initPromise: Promise<void> | null = null;
-// Promise theo dõi quá trình ghi log xuống file
-let flushPromise: Promise<void> | null = null;
+/** Serialize deletion, initialization and writes so a late flush cannot recreate old logs. */
+function enqueue(work: () => Promise<void>): Promise<void> {
+  const next = ioTail.then(work);
+  ioTail = next.catch(() => undefined);
+  return next;
+}
 
-/**
- * Đảm bảo thư mục log đã tồn tại, nếu chưa thì tạo mới.
- * Không làm gì trên nền tảng web.
- */
-async function ensureDir() {
-  if (Platform.OS === "web") return;
-  const info = await FileSystem.getInfoAsync(LOG_DIR);
-  if (!info.exists) {
-    await FileSystem.makeDirectoryAsync(LOG_DIR, { intermediates: true });
+async function deleteLogs() {
+  initialized = false;
+  await FileSystem.deleteAsync(LOG_DIR, { idempotent: true });
+}
+
+function disableLogging(): Promise<void> {
+  clearBuffer();
+  if (Platform.OS === "web") return Promise.resolve();
+  if (!disabledCleanup) {
+    disabledCleanup = enqueue(deleteLogs).catch(() => {
+      disabledCleanup = null; // Retry cleanup on the next call; never expose old logs.
+    });
   }
+  return disabledCleanup;
 }
 
-/**
- * Kiểm tra và thực hiện xoay vòng (rotate) file log nếu kích thước vượt quá MAX_LOG_SIZE.
- * File cũ được đổi tên thành requests_prev.log.
- * Không làm gì trên nền tảng web.
- */
-async function rotateIfNeeded() {
-  if (Platform.OS === "web") return;
-  try {
-    const info = await FileSystem.getInfoAsync(LOG_FILE);
-    if (info.exists && info.size && info.size > MAX_LOG_SIZE) {
-      await FileSystem.deleteAsync(LOG_DIR + "requests_prev.log", {
-        idempotent: true,
-      });
-      await FileSystem.moveAsync({
-        from: LOG_FILE,
-        to: LOG_DIR + "requests_prev.log",
-      });
-    }
-  } catch {}
+async function ensureFreshDirectory() {
+  if (initialized) return;
+  // Existing files may predate redaction. Start a fresh diagnostic session.
+  await deleteLogs();
+  await FileSystem.makeDirectoryAsync(LOG_DIR, { intermediates: true });
+  initialized = true;
 }
 
-/**
- * Ghi toàn bộ dữ liệu trong bộ đệm (logBuffer) xuống file log.
- * Sử dụng cơ chế batch để tránh ghi trùng lặp đồng thời.
- * Nếu ghi thất bại, dữ liệu được giữ lại trong bộ đệm (giới hạn MAX_LOG_ENTRIES).
- */
 async function flushBuffer(): Promise<void> {
-  if (Platform.OS === "web") return;
-  if (flushPromise) {
-    await flushPromise;
-    if (logBuffer.length > 0) {
-      await flushBuffer();
-    }
-    return;
-  }
-  if (logBuffer.length === 0) return;
-
+  if (!isEnabled()) return disableLogging();
+  disabledCleanup = null;
+  if (flushTimeout) clearTimeout(flushTimeout);
+  flushTimeout = null;
   const batch = logBuffer;
   logBuffer = [];
-  flushPromise = (async () => {
+  const generation = epoch;
+  await enqueue(async () => {
+    if (!batch.length || generation !== epoch || !isEnabled()) return;
     try {
-      await ensureDir();
-      await rotateIfNeeded();
-
-      const newLines = batch.map((e) => JSON.stringify(e)).join("\n") + "\n";
+      await ensureFreshDirectory();
+      const info = await FileSystem.getInfoAsync(LOG_FILE);
+      if (info.exists && info.size > MAX_LOG_SIZE) {
+        await FileSystem.deleteAsync(LOG_DIR + "requests_prev.log", { idempotent: true });
+        await FileSystem.moveAsync({ from: LOG_FILE, to: LOG_DIR + "requests_prev.log" });
+      }
       const existing = await FileSystem.readAsStringAsync(LOG_FILE).catch(() => "");
-      await FileSystem.writeAsStringAsync(LOG_FILE, existing + newLines);
+      if (!isEnabled() || generation !== epoch) return;
+      await FileSystem.writeAsStringAsync(LOG_FILE, existing + batch.map((entry) => JSON.stringify(entry)).join("\n") + "\n");
     } catch {
-      // Nếu ghi thất bại, append ngược lại vào buffer, giới hạn MAX_LOG_ENTRIES entry cuối
-      logBuffer = [...batch, ...logBuffer].slice(-MAX_LOG_ENTRIES);
+      if (isEnabled() && generation === epoch) logBuffer = [...batch, ...logBuffer].slice(-MAX_LOG_ENTRIES);
     }
-  })().finally(() => {
-    flushPromise = null;
   });
-
-  await flushPromise;
+  if (!isEnabled()) await disableLogging();
 }
 
-/**
- * Lên lịch ghi log sau 3 giây (debounce).
- * Gọi lại flushBuffer() nếu không có lịch nào đang chờ.
- */
-function scheduleFlush() {
-  if (flushTimeout) clearTimeout(flushTimeout);
-  flushTimeout = setTimeout(() => {
-    flushTimeout = null;
-    void flushBuffer();
-  }, 3000);
-}
-
-/**
- * Public API: Thêm một entry log vào bộ đệm.
- * Nếu bộ đệm đầy (>= MAX_LOG_ENTRIES), ghi ngay lập tức, nếu không thì lên lịch sau 3s.
- * @param entry - LogEntry cần ghi log
- */
 export function logApiCall(entry: LogEntry) {
-  if (Platform.OS === "web") return;
-  logBuffer.push(entry);
-
-  if (logBuffer.length >= MAX_LOG_ENTRIES) {
-    void flushBuffer();
-  } else {
-    scheduleFlush();
+  if (!isEnabled()) { void disableLogging(); return; }
+  disabledCleanup = null;
+  // Allowlist fields and copy scalars immediately; never retain caller-owned data.
+  const safe: LogEntry = {
+    ts: new Date().toISOString(),
+    method: entry.method && /^(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)$/i.test(entry.method) ? entry.method.toUpperCase() : undefined,
+    url: sanitizeUrlForLog(entry.url), status: finite(entry.status),
+    durationMs: finite(entry.durationMs), responseSize: finite(entry.responseSize),
+    ...(entry.error === undefined ? {} : { error: sanitizeErrorForLog(entry.error).message }),
+  };
+  logBuffer = [...logBuffer, safe].slice(-MAX_LOG_ENTRIES);
+  if (logBuffer.length >= MAX_LOG_ENTRIES) void flushBuffer();
+  else {
+    if (flushTimeout) clearTimeout(flushTimeout);
+    flushTimeout = setTimeout(() => { flushTimeout = null; void flushBuffer(); }, 3000);
   }
 }
 
-/**
- * Public API: Ghi log một Axios request.
- * Thường được dùng làm interceptor request.
- * @param config - Cấu hình Axios request
- * @returns config - Trả về chính config để chain interceptor
- */
 export function logAxiosRequest<T extends TimedAxiosConfig>(config: T): T {
-  const entry: LogEntry = {
-    ts: new Date().toISOString(),
-    method: config.method?.toUpperCase(),
-    url: config.url || "",
-  };
-  logApiCall(entry);
+  if (!isEnabled()) { void disableLogging(); return config; }
+  logApiCall({ ts: "", method: config.method, url: config.url ?? "" });
   return config;
 }
 
-/**
- * Public API: Ghi log một Axios response.
- * Thường được dùng làm interceptor response.
- * Ghi lại status, thời gian thực thi, kích thước response.
- * @param response - Đối tượng response từ Axios
- * @returns response - Trả về chính response để chain interceptor
- */
 export function logAxiosResponse<T>(response: TimedAxiosResponse<T>) {
-  const contentLength = Number(
-    response.headers?.["content-length"]
-  );
-  const entry: LogEntry = {
-    ts: new Date().toISOString(),
-    method: response.config?.method?.toUpperCase(),
-    url: response.config?.url || "",
-    status: response.status,
-    statusText: response.statusText,
-    durationMs: response.config?.metadata?.startTime
-      ? Date.now() - response.config.metadata.startTime
-      : undefined,
-    responseSize: Number.isFinite(contentLength)
-      ? contentLength
-      : typeof response.data === "string"
-        ? response.data.length
-        : undefined,
-  };
-  logApiCall(entry);
+  if (!isEnabled()) { void disableLogging(); return response; }
+  const start = response.config.metadata?.startTime;
+  logApiCall({ ts: "", method: response.config.method, url: response.config.url ?? "", status: response.status,
+    durationMs: start === undefined ? undefined : Math.max(0, Date.now() - start),
+    responseSize: finite(Number(response.headers?.["content-length"])),
+  });
   return response;
 }
 
-/**
- * Public API: Ghi log một Axios error.
- * Thường được dùng làm interceptor error.
- * @param error - Đối tượng lỗi từ Axios
- * @returns Promise.reject(error) - Trả về Promise bị reject để chain interceptor
- */
-export function logAxiosError(error: unknown) {
-  const axiosError =
-    typeof error === "object" && error !== null
-      ? (error as AxiosLikeError)
-      : null;
-  const requestStartedAt = axiosError?.config?.metadata?.startTime;
-  const entry: LogEntry = {
-    ts: new Date().toISOString(),
-    method: axiosError?.config?.method?.toUpperCase(),
-    url: axiosError?.config?.url || "",
-    status: axiosError?.response?.status,
-    statusText: axiosError?.response?.statusText,
-    durationMs:
-      typeof requestStartedAt === "number"
-        ? Math.max(0, Date.now() - requestStartedAt)
-        : undefined,
-    error: axiosError?.message || String(error),
-  };
-  logApiCall(entry);
+export function logAxiosError(error: unknown): Promise<never> {
+  if (isEnabled()) {
+    const config = axiosConfig(error);
+    const start = config?.metadata?.startTime;
+    const safe = sanitizeErrorForLog(error);
+    logApiCall({ ts: "", method: config?.method, url: config?.url ?? "", status: safe.status,
+      durationMs: start === undefined ? undefined : Math.max(0, Date.now() - start), error: safe.message });
+  } else void disableLogging();
   return Promise.reject(error);
 }
 
-/**
- * Public API: Đọc toàn bộ nội dung file log.
- * Đảm bảo dữ liệu trong bộ đệm được ghi trước khi đọc.
- * @returns Promise<string> - Nội dung file log hoặc thông báo
- */
+function axiosConfig(error: unknown): TimedAxiosConfig | undefined {
+  if (!error || typeof error !== "object" || !("config" in error)) return undefined;
+  return error.config && typeof error.config === "object" ? error.config as TimedAxiosConfig : undefined;
+}
+
 export async function readApiLogs(): Promise<string> {
   if (Platform.OS === "web") return "Logging not available on web";
+  if (!isEnabled()) { await disableLogging(); return "API logging is disabled"; }
   try {
+    await initApiLogger();
     await flushBuffer();
-    const exists = await FileSystem.getInfoAsync(LOG_FILE);
-    if (exists.exists) {
-      return await FileSystem.readAsStringAsync(LOG_FILE);
-    }
-    return "No logs available";
-  } catch {
-    return "Failed to read logs";
-  }
+    if (!isEnabled()) return "API logging is disabled";
+    const generation = epoch;
+    const info = await FileSystem.getInfoAsync(LOG_FILE);
+    if (!info.exists) return "No logs available";
+    const contents = await FileSystem.readAsStringAsync(LOG_FILE);
+    return generation === epoch && isEnabled() ? contents : "API logging is disabled";
+  } catch { return "Failed to read logs"; }
 }
 
-/**
- * Public API: Xóa toàn bộ thư mục log.
- * Ghi dữ liệu đệm trước khi xóa để tránh mất log.
- */
 export async function clearApiLogs() {
+  clearBuffer();
   if (Platform.OS === "web") return;
-  try {
-    await flushBuffer();
-    await FileSystem.deleteAsync(LOG_DIR, { idempotent: true });
-  } catch {}
+  try { await enqueue(deleteLogs); }
+  catch { /* A failed deletion must not resurrect pending entries. */ }
 }
 
-/**
- * Public API: Khởi tạo API Logger (tạo thư mục log nếu chưa có).
- * Sử dụng initPromise để tránh khởi tạo nhiều lần.
- */
 export async function initApiLogger() {
-  if (Platform.OS === "web") return;
-  if (!initPromise) {
-    initPromise = ensureDir();
-  }
-  return initPromise;
+  if (!isEnabled()) return disableLogging();
+  disabledCleanup = null;
+  const generation = epoch;
+  await enqueue(async () => {
+    if (isEnabled() && generation === epoch) await ensureFreshDirectory();
+  });
 }
+
+// Schedule after module evaluation so startup removes legacy files even without requests.
+void Promise.resolve().then(() => { if (!isEnabled()) return disableLogging(); });

@@ -41,6 +41,19 @@ Navigation motion uses shared timing tokens, transition-aware tab preloading and
 
 # English
 
+## Release 4.1.7 source highlights
+
+Profile now has a coordinated reversible player-data transition, dark detail backgrounds,
+consistent number hierarchy and historical Act selection. Account rollback restores
+domain data; request generations and both credentials prevent stale writes, including
+storage hydration after logout. Diagnostic logs are opt-in in development and OAuth
+callbacks require per-attempt state/nonce correlation.
+
+See the [17 architecture diagram types](markdown/README.md),
+[audit and verification limits](LOGIC_AUDIT.md) and [release notes](CHANGELOG.md).
+Source checks, real-device UI testing and a finished EAS APK are separate results;
+the version number alone does not certify an available production artifact.
+
 ## Release 4.1.6 highlights
 
 The 4.1.6 production APK hardens startup synchronization, session recovery, match-history caching and Riot chat reconnection. Token renewal is shared across callers and serialized with native cookie/account operations. Temporary service failures preserve the session, stale responses cannot replace newer credentials, and localized Riot callbacks such as `/vi-vn/opt_in/` are accepted. Unused helpers, assets and the unused Stripe integration have been removed from the repository and native build.
@@ -173,16 +186,16 @@ browser JavaScript.
 | Domain | Persistence and lifetime | Consistency rules |
 |---|---|---|
 | **User/session** | Persisted as `user-session` | Region + user ID identify the session; JWT expiry is checked with a safety buffer before reuse |
-| **Profile** | `profile-warm-cache`, 5-minute TTL, newest 3 accounts | Loadout and rank have explicit schema versions; requests are deduplicated by `region\|userId` |
+| **Profile** | `profile-warm-cache`, 5-minute TTL, newest 3 accounts | Per-component freshness and schema versions; in-flight requests include credential identity and session generation |
 | **Match history** | `match-history-cache`, 30-minute TTL | Persists summaries and season metrics; detail payloads stay in a 10-entry in-memory LRU |
-| **Season metrics** | Persisted with a calculation version, 2-hour TTL | Active-Act competitive update IDs are the source of truth; incomplete detail sets are rejected rather than producing partial statistics |
+| **Season metrics** | Per-Act results with calculation version, 2-hour TTL | Selected-Act competitive updates identify matches; partial detail sets are accepted, zero successful details fail; cancelled/unknown outcomes do not enter win rate |
 | **Combat** | Memory-only snapshot | Party, pregame and live endpoints are resolved together; stale responses are discarded and live sessions poll every 10 seconds |
 | **Chat** | Memory-only Zustand store | One XMPP client per credential/region key; messages and presence are normalized by Riot PUUID and deduplicated |
 | **Assets** | File-system cache, 24-hour TTL, plus memory lookup maps | Public metadata is language-aware; in-flight loads and bundle requests are shared |
 
-Persisted Profile and Match results carry an `authKey`. Their async actions
-compare that key again before committing a response, so a slow request from a
-previous account cannot overwrite the current account. In-flight Promise
+Persisted Profile and Match results carry an `authKey`. Async writes check the
+live account, both credentials and session generation, not just that persisted
+key. In-flight Promise
 registries deduplicate identical user, profile, match-detail, bundle and
 player-name requests.
 
@@ -300,11 +313,11 @@ available in Expo Go or web builds.
 
 ### 4. Node.js
 - [Download Node.js v22+](https://nodejs.org/)
-- Verify: `node -v` and `npm -v`
+- Verify: `node -v` and `pnpm -v` (use the version in `packageManager`).
 
 ### 5. Expo CLI
 ```bash
-npm install -g eas-cli
+pnpm add -g eas-cli
 expo login
 ```
 
@@ -316,21 +329,33 @@ git clone https://github.com/GinzaTech/Vshop.git
 cd Vshop
 
 # Install dependencies
-npm install
+pnpm install --frozen-lockfile
 ```
 
 ## Development
 
 ```bash
 # Start Metro bundler
-npm start
+pnpm start
 
 # Run on Android device/emulator
-npm run android
+pnpm run android
 
 # Clear Metro cache (if needed)
-npx expo start --clear
+pnpm exec expo start --clear
 ```
+
+`pnpm run check` runs TypeScript, zero-warning ESLint, app-wide tests/coverage,
+dependency audit, Android export and bundle budget. `check:source` and
+`check:android` are available separately; the Android step removes its own
+temporary export directory on success or failure.
+
+Diagnostics are off by default. Opt in only in a development build with
+`EXPO_PUBLIC_FLOW_TRACING=1` or `EXPO_PUBLIC_API_LOGGING=1`, then restart Metro.
+Storage values and credentials are excluded/redacted, URL identifiers are
+removed, and legacy API log files are cleared. Do not enable diagnostics for
+normal use or share unreviewed logs. Source/component tests do not prove
+real-device UI behavior; see [the current audit](LOGIC_AUDIT.md).
 
 ### Demo Mode (Match UI)
 
@@ -385,6 +410,18 @@ Install via QR code or APK from the Expo dashboard.
 ---
 
 # Tiếng Việt
+
+## Điểm nổi bật mã nguồn 4.1.7
+
+Profile dùng một chuyển động hai chiều đồng bộ, nền chi tiết tối, phân cấp số liệu
+nhất quán và chọn được Act cũ. Rollback tài khoản phục hồi cả dữ liệu; request kiểm
+tra generation cùng hai token, storage loại kết quả hydrate cũ sau logout. Log
+chẩn đoán chỉ bật khi opt-in ở dev; callback OAuth kiểm tra state/nonce từng lần.
+
+Xem [17 loại sơ đồ kiến trúc](markdown/README.md),
+[audit và giới hạn kiểm chứng](LOGIC_AUDIT.md), [changelog](CHANGELOG.md).
+Check mã nguồn, test UI máy thật và APK EAS hoàn tất là ba kết quả riêng biệt;
+chỉ tăng version không có nghĩa bản production đã tồn tại.
 
 ## Điểm nổi bật bản 4.1.6
 
@@ -512,16 +549,16 @@ HttpOnly.
 | Domain | Cách lưu và thời hạn | Quy tắc nhất quán |
 |---|---|---|
 | **User/session** | Persist bằng key `user-session` | Region + user ID định danh session; JWT được kiểm tra với khoảng an toàn trước khi dùng lại |
-| **Profile** | `profile-warm-cache`, TTL 5 phút, giữ 3 tài khoản gần nhất | Loadout/rank có version cache riêng; request chống trùng theo `region\|userId` |
+| **Profile** | `profile-warm-cache`, TTL 5 phút, giữ 3 tài khoản gần nhất | Freshness và version theo từng thành phần; request phân biệt credential identity và session generation |
 | **Lịch sử đấu** | `match-history-cache`, TTL 30 phút | Persist bản tóm tắt và thống kê mùa; detail đầy đủ chỉ ở LRU RAM tối đa 10 trận |
-| **Thống kê mùa** | Persist kèm calculation version, TTL 2 giờ | Danh sách competitive update của Act là nguồn chuẩn; thiếu detail thì hủy kết quả thay vì tính số liệu thiếu |
+| **Thống kê mùa** | Persist theo từng Act và calculation version, TTL 2 giờ | Updates của Act được chọn là nguồn trận; chấp nhận detail một phần, lỗi nếu không tải được detail nào; huỷ/chưa rõ không tính vào win rate |
 | **Combat** | Snapshot chỉ nằm trong RAM | Party, pregame và live được ghép chung; response cũ bị bỏ và trận live poll mỗi 10 giây |
 | **Chat** | Zustand store chỉ trong RAM | Một XMPP client cho mỗi bộ credential/region; message và presence chuẩn hóa theo Riot PUUID |
 | **Asset** | File cache 24 giờ và lookup map trong RAM | Metadata công khai theo ngôn ngữ; các lần load và request bundle dùng chung Promise |
 
-Kết quả Profile và Match được persist đều mang `authKey`. Trước khi ghi
-response, async action của hai domain này kiểm tra lại key để request chậm của
-tài khoản trước không thể ghi đè tài khoản đang dùng. Các registry Promise đang
+Kết quả Profile và Match được persist đều mang `authKey`. Trước khi ghi,
+async action kiểm tra tài khoản hiện tại, cả hai credential và generation,
+không chỉ key đã persist. Các registry Promise đang
 chạy chống gọi trùng cho user, Profile, match detail, bundle và tên người chơi.
 
 ### Pipeline dữ liệu theo domain
@@ -635,11 +672,11 @@ trong Expo Go hoặc bản web.
 
 ### 4. Node.js
 - [Tải Node.js v22+](https://nodejs.org/)
-- Kiểm tra: `node -v` và `npm -v`
+- Kiểm tra: `node -v` và `pnpm -v` (dùng phiên bản trong `packageManager`).
 
 ### 5. Expo CLI
 ```bash
-npm install -g eas-cli
+pnpm add -g eas-cli
 expo login
 ```
 
@@ -651,21 +688,33 @@ git clone https://github.com/GinzaTech/Vshop.git
 cd Vshop
 
 # Cài dependencies
-npm install
+pnpm install --frozen-lockfile
 ```
 
 ## Phát triển
 
 ```bash
 # Khởi động Metro bundler
-npm start
+pnpm start
 
 # Chạy trên thiết bị/máy ảo Android
-npm run android
+pnpm run android
 
 # Xóa cache Metro (khi cần)
-npx expo start --clear
+pnpm exec expo start --clear
 ```
+
+`pnpm run check` bao gồm TypeScript, ESLint không warning, test/coverage toàn
+app, audit dependency, Android export và giới hạn dung lượng bundle. Có thể
+chạy riêng `check:source` hoặc `check:android`; bước Android tự dọn thư mục
+export tạm của lần chạy, kể cả khi lỗi.
+
+Trace và API logging mặc định tắt. Chỉ bật để chẩn đoán bản dev bằng
+`EXPO_PUBLIC_FLOW_TRACING=1` hoặc `EXPO_PUBLIC_API_LOGGING=1`, rồi khởi động
+lại Metro. Giá trị storage/credential bị loại hoặc che, định danh trong URL
+bị xoá và log API cũ được dọn. Không bật thường xuyên hoặc chia sẻ log chưa
+kiểm tra. Test source/component không thay thế kiểm thử UI trên thiết bị;
+kết quả hiện tại nằm trong [LOGIC_AUDIT.md](LOGIC_AUDIT.md).
 
 ### Chế độ Demo (UI Lịch sử đấu)
 

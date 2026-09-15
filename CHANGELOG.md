@@ -6,11 +6,44 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.1.7] - 2026-09-15
+
+### Changed
+
+- Refined Profile's player-data mode with a dark readable canvas, consistent numeric hierarchy, an on-demand multi-Act selector, localized detail labels, and floating-navigation-safe spacing. Removed the compact-card slogan and synchronized the hero, segment, body background, and first data section on one reversible UI-thread transition.
+
 ### Fixed
 
+- Restore match/profile data alongside user/cookie state when account switching fails; clear domain caches and invalidate pending writes on logout.
+- Scope Riot caches and background sync to credentials and session generation, preserve successful profile components on partial failure, and recheck startup eligibility after asynchronous storage reads.
+- Distinguish win, loss, draw, cancelled and unknown match outcomes in history and statistics; exclude cancelled/unknown results from the win-rate denominator.
+- Stop stale account responses from updating About, Contracts and Leaderboard; pause Combat polling outside an active screen and clean up refresh callbacks.
+- Disable flow tracing and persistent API logs unless explicitly enabled in development; redact credentials/identifiers and bind interactive OAuth callbacks to per-attempt random state and nonce.
 - Only stamp the background match-sync TTL when the match store reports a successful refresh, so transient failures remain immediately retryable.
 - Scope shop/balance and Combat in-flight requests to the credentials that created them, allowing the first request after token renewal to run instead of joining an expired request.
 - Reference-count overlapping full-sync guards per account so one completed request cannot expose another full sync that is still running.
+
+### Maintenance
+
+- Extract match store, match transforms and dashboard logic into focused modules while retaining compatibility entry points. Add regression tests for stale writes, cache clearing, partial failures and rendered result labels.
+- Include Android export and bundle-budget verification in `pnpm run check`, with automatic cleanup; CI now uses that same command without duplicate export steps.
+- Move the ignored, obsolete npm lockfile to a recoverable local backup; pnpm remains the only package manager.
+- Exclude the local ECC checkout and private OpenCode configuration from EAS upload archives.
+- Split Profile into cohesive state, fetching, derived data, picker, mutation and motion hooks. Add 17 architecture diagram types under `markdown/` with code references.
+- Raise remediated-domain coverage floors to 80% per metric without removing app UI from the full coverage report; global 80% coverage remains outstanding.
+
+### Build metadata
+
+- App/runtime version: `4.1.7`; Android version code: `88`; iOS build number: `40`.
+- Target: EAS Android profile/channel `production`, signed APK. No OTA publication is included in this release preparation.
+- A production artifact is available only when EAS reports `FINISHED` with an artifact URL. See [audit verification](LOGIC_AUDIT.md) for source/device evidence and limitations.
+
+### Validation
+
+- Full `pnpm run check` passed: strict typecheck, zero-warning lint, 66 suites / 728 tests, dependency audit policy and Android export/budget (9.77 MiB total; 7.30 MiB JS/Hermes).
+- Full-app coverage: 44.50% lines, 38.66% branches/functions, 44.65% statements. Selected remediated domains pass 80% floors; the whole app does not meet 80%.
+- The audit policy accepts eight known transitive advisories; this is not a zero-vulnerability result.
+- Real-device UI testing of this source remains **NOT VERIFIED** after the USB device disconnected. Component/hook tests and export are not a substitute for the Profile transition, historical-Act and navigation checks on hardware.
 
 ## [4.1.6] - 2026-09-13
 

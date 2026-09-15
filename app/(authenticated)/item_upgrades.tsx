@@ -23,6 +23,7 @@ import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 // Hằng số ID loại skin vũ khí (weapon skin type)
 const WEAPON_SKIN_TYPE_ID = "e7c63390-eda7-46e0-bb7a-a6abdacd2433";
@@ -91,7 +92,7 @@ export default function ItemUpgradesScreen() {
       );
       setUpgrades(data);
     } catch (err) {
-      if (__DEV__) console.error("Failed to fetch item upgrades:", err);
+      if (__DEV__) console.error("Failed to fetch item upgrades:", sanitizeErrorForLog(err));
     } finally {
       setLoading(false);
     }

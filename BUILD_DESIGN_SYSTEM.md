@@ -122,10 +122,14 @@ pnpm install --frozen-lockfile
 pnpm run check
 pnpm dlx expo-doctor@1.20.3
 pnpm run test:api
-pnpm exec expo export --platform android --output-dir .expo-production-check
 ```
 
 `test:api` cần mạng và chỉ kiểm tra public read-only endpoints. Nếu upstream tạm lỗi, ghi nhận riêng; không bỏ qua `pnpm run check`.
+
+`check` chạy `check:source` (typecheck, lint, test/coverage, audit) rồi
+`check:android` (Android export và bundle budget). Export dùng thư mục tạm
+riêng dưới `.codex-tmp/` và tự dọn sau khi hoàn tất hoặc lỗi. Không cần chạy
+export lần thứ hai; bản export không phải APK đã build/cài trên thiết bị.
 
 ## 8. Versioning
 
@@ -135,7 +139,7 @@ Trước native release:
 2. tăng `expo.android.versionCode`;
 3. tăng `expo.ios.buildNumber` nếu phát hành iOS;
 4. cập nhật `CHANGELOG.md` và release highlights trong `README.md`;
-5. chạy check + Android export;
+5. chạy `pnpm run check` (đã gồm Android export);
 6. commit và push source đã kiểm chứng.
 
 Runtime version dùng policy `appVersion`, vì vậy thay app version tạo runtime OTA mới.

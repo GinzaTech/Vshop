@@ -18,6 +18,51 @@ const createMemoryStorage = (initial: Record<string, string> = {}) => {
 };
 
 describe("storage migration", () => {
+  it("does not resurrect a removed session when a legacy read completes late", async () => {
+    const encrypted = createMemoryStorage();
+    let resolve!: (value: string) => void;
+    const legacy = createMemoryStorage();
+    legacy.storage.getItem = () => new Promise<string>((done) => { resolve = done; });
+    const storage = withLegacyMigration(encrypted.storage, legacy.storage);
+    const reading = storage.getItem("user-session");
+    await new Promise<void>((done) => setImmediate(done));
+    await storage.removeItem("user-session");
+    resolve("old-session");
+    await expect(reading).resolves.toBeNull();
+    expect(encrypted.values.has("user-session")).toBe(false);
+  });
+
+  it("does not hydrate an old value after a new store snapshot was written", async () => {
+    const encrypted = createMemoryStorage();
+    let resolve!: (value: string) => void;
+    encrypted.storage.getItem = () => new Promise<string>((done) => { resolve = done; });
+    const storage = withLegacyMigration(encrypted.storage, createMemoryStorage().storage);
+    const reading = storage.getItem("match-history-cache");
+    await new Promise<void>((done) => setImmediate(done));
+    await storage.setItem("match-history-cache", "empty-after-logout");
+    resolve("old-account-matches");
+    await expect(reading).resolves.toBeNull();
+    expect(encrypted.values.get("match-history-cache")).toBe("empty-after-logout");
+  });
+
+  it("serializes logout behind an already-started migration copy", async () => {
+    const encrypted = createMemoryStorage();
+    const legacy = createMemoryStorage({ account: "old" });
+    let finish!: () => void;
+    encrypted.storage.setItem = async (key, value) => {
+      await new Promise<void>((done) => { finish = done; });
+      encrypted.values.set(key, value);
+    };
+    const storage = withLegacyMigration(encrypted.storage, legacy.storage);
+    const reading = storage.getItem("account");
+    await new Promise<void>((done) => setImmediate(done));
+    const removing = storage.removeItem("account");
+    finish();
+    await removing;
+    await expect(reading).resolves.toBeNull();
+    expect(encrypted.values.has("account")).toBe(false);
+  });
+
   it("copies a legacy session once and removes its plaintext source", async () => {
     const encrypted = createMemoryStorage();
     const legacy = createMemoryStorage({ "user-session": "legacy-session" });

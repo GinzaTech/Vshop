@@ -80,6 +80,7 @@ import { markAppInteractive } from "~/utils/startup-performance";
 import { hasUsableStartupCache } from "~/utils/startup-cache";
 import { renewSavedAccountSession } from "~/services/accounts/session";
 import { isSessionChangedError } from "~/utils/session-operations";
+import { isDevelopmentDemoRoute } from "~/utils/demo-mode";
 
 type CustomHeaderProps = {
   options: { title?: string };
@@ -156,7 +157,7 @@ const CustomHeader = ({ options, navigation }: CustomHeaderProps) => (
  * useEffect #3: Bootstrap flow (xem chi tiết bên trong).
  *
  * Bootstrap flow:
- *   1. Nếu allowMatchDemo (debug) → bỏ qua, ẩn splash.
+ *   1. Nếu allowDemoRoute (debug) → bỏ qua, ẩn splash.
  *   2. Đọc region từ AsyncStorage hoặc user store.
  *   3. Nếu không có region → điều hướng đến /setup.
  *   4. Nếu có region + session khả dụng → gọi buildAuthenticatedUser.
@@ -189,11 +190,11 @@ function RootLayout() {
     visible: false,
     canUseCachedData: false,
   });
-  const demoValue = Array.isArray(demo) ? demo[0] : demo;
-  const allowMatchDemo =
-    __DEV__ &&
-    (demoValue === "1" || demoValue === "true") &&
-    (pathname === "/history" || pathname.startsWith("/match_details/"));
+  const allowDemoRoute = isDevelopmentDemoRoute({
+    demo,
+    isDev: __DEV__,
+    pathname,
+  });
   const requiredScreenOrientation = getScreenOrientationForPathname(pathname);
 
   /**
@@ -324,9 +325,9 @@ function RootLayout() {
 
     bootstrappedRef.current = true;
 
-    if (allowMatchDemo) {
+    if (allowDemoRoute) {
       setIsPreloading(false);
-      markAppInteractive("match-demo");
+      markAppInteractive(pathname === "/profile" ? "profile-demo" : "match-demo");
       void SplashScreen.hideAsync();
       return;
     }
@@ -482,7 +483,7 @@ function RootLayout() {
       // LoadingScreen vĩnh viễn.
       bootstrappedRef.current = false;
     };
-  }, [accountsHydrated, allowMatchDemo, hydrated, router, setUser]);
+  }, [accountsHydrated, allowDemoRoute, hydrated, pathname, router, setUser]);
 
   /**
    * handleGlobalTouchStart — Handler global cho mọi touch event.

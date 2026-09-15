@@ -13,11 +13,6 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.PURE_WHITE,
     overflow: "hidden",
   },
-  // Nền tối khi chuyển sang player info mode
-  statsBackground: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: COLORS.PURE_BLACK,
-  },
   profilePager: {
     flex: 1,
   },
@@ -115,11 +110,26 @@ export const styles = StyleSheet.create({
   },
   // ── Hero card: tên, subtitle, meta, stats, rank ──
   heroCard: {
+    position: "relative",
     marginHorizontal: 16,
-    marginTop: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    marginTop: 10,
     borderRadius: RADIUS.card,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  heroExpandedLayer: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    left: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  heroCompactLayer: {
+    ...StyleSheet.absoluteFill,
+  },
+  heroCompactPressTarget: {
+    flex: 1,
   },
   heroTopRow: {
     flexDirection: "row",
@@ -158,7 +168,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   heroModeLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     textAlign: "center",
   },
@@ -173,7 +183,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.ON_DARK_BORDER,
   },
   heroRegionText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
     letterSpacing: 0.6,
@@ -183,10 +193,10 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    marginTop: 12,
+    marginTop: 8,
   },
   heroTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
@@ -198,38 +208,29 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.14)",
   },
   heroTagText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
     letterSpacing: 0.3,
-  },
-  // Subtitle typewriter (thu/mở theo mode)
-  heroSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.ON_DARK_TEXT,
-  },
-  heroSubtitleViewport: {
-    overflow: "hidden",
   },
   // Hàng meta pill (cấp tài khoản, trạng thái sync)
   heroMetaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginTop: 10,
+    marginTop: 8,
   },
   heroMetaPill: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 5,
     borderRadius: RADIUS.chip,
     backgroundColor: COLORS.ON_DARK_BORDER,
   },
   heroMetaText: {
     marginLeft: 6,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
     color: COLORS.PURE_WHITE,
   },
@@ -243,7 +244,7 @@ export const styles = StyleSheet.create({
   heroStatsViewport: {
     position: "relative",
     height: 64,
-    marginTop: 12,
+    marginTop: 8,
   },
   heroStatCard: {
     flex: 1,
@@ -274,7 +275,7 @@ export const styles = StyleSheet.create({
   },
   heroStatLabel: {
     marginLeft: 6,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     color: "rgba(255,255,255,0.72)",
   },
@@ -283,7 +284,7 @@ export const styles = StyleSheet.create({
   },
   heroStatValue: {
     marginTop: 8,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
@@ -292,8 +293,12 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 10,
-    marginTop: 10,
+    marginTop: 8,
     height: 64,
+  },
+  heroRankHalf: {
+    flex: 1,
+    minWidth: 0,
   },
   // ── Nội dung chính từng tab + trạng thái ──
   pageScroll: {
@@ -649,7 +654,7 @@ export const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 10,
     marginBottom: 8,
   },
   segmentLayer: {
@@ -677,7 +682,7 @@ export const styles = StyleSheet.create({
     zIndex: 1,
   },
   segmentLabel: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
   },
   // ── Section identity trên trang loadout ──

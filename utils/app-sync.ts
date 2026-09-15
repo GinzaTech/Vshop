@@ -13,6 +13,8 @@ import { useUserStore } from "~/hooks/useUserStore";
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { getNetworkProfile } from "./network";
 import { getAccountSessionKey } from "./saved-accounts";
+import { getSessionGeneration } from "./session-operations";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 // ===== Base TTL (milliseconds) =====
 // Ghi chú: `matches` phải bằng MATCH_CACHE_TTL_MS trong useMatchStore (30 phút)
@@ -59,14 +61,25 @@ const shopBalancesInFlight = new Map<string, Promise<void>>();
 // chạy cho cùng account thì shop/balances sắp được ghi bởi sync đó rồi,
 // không được fetch đè song song (tránh double request + stale-overwrite).
 const fullSyncInFlight = new Map<string, number>();
+let trackingGeneration = 0;
+
+/** Invalidate pending writers and forget discarded session timestamps. */
+export function clearSyncTracking(): void {
+  trackingGeneration += 1;
+  accountSyncStates.clear();
+  shopBalancesInFlight.clear();
+  fullSyncInFlight.clear();
+}
 
 /** Đăng ký bắt đầu full sync cho một account (data-sync gọi) */
-export function beginFullSync(accountKey: string): void {
+export function beginFullSync(accountKey: string): number {
   fullSyncInFlight.set(accountKey, (fullSyncInFlight.get(accountKey) ?? 0) + 1);
+  return trackingGeneration;
 }
 
 /** Gỡ đăng ký khi full sync kết thúc (thành công hay thất bại) */
-export function endFullSync(accountKey: string): void {
+export function endFullSync(accountKey: string, expectedGeneration = trackingGeneration): void {
+  if (expectedGeneration !== trackingGeneration) return;
   const remaining = (fullSyncInFlight.get(accountKey) ?? 0) - 1;
   if (remaining > 0) {
     fullSyncInFlight.set(accountKey, remaining);
@@ -132,6 +145,8 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
 
   const accountKey = getAccountSessionKey(user);
 
+  const requestGeneration = trackingGeneration;
+  const sessionGeneration = getSessionGeneration();
   // Full sync đang chạy cho account này → nhường, không fetch đè
   if (isFullSyncInFlight(accountKey)) {
     return;
@@ -139,7 +154,7 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
 
   // A request created with expired credentials must not absorb the first
   // refresh after token renewal for the same account.
-  const requestKey = `${accountKey}|${user.accessToken}|${user.entitlementsToken}`;
+  const requestKey = `${sessionGeneration}|${accountKey}|${user.accessToken}|${user.entitlementsToken}`;
   const existingRequest = shopBalancesInFlight.get(requestKey);
   if (existingRequest) return existingRequest;
 
@@ -166,7 +181,10 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
         // phép ghi đè session mới.
         if (
           getAccountSessionKey(currentUser) !== accountKey ||
-          currentUser.accessToken !== user.accessToken
+          currentUser.accessToken !== user.accessToken ||
+          currentUser.entitlementsToken !== user.entitlementsToken ||
+          sessionGeneration !== getSessionGeneration() ||
+          requestGeneration !== trackingGeneration
         ) {
           return;
         }
@@ -182,7 +200,7 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
         syncState.balances = syncedAt;
       }
     } catch (error) {
-      if (__DEV__) console.warn("[app-sync] shop/balances refresh failed", error);
+      if (__DEV__) console.warn("[app-sync] shop/balances refresh failed", sanitizeErrorForLog(error));
     }
   })();
 
@@ -201,10 +219,12 @@ export async function refreshShopAndBalances(force = false): Promise<void> {
  * Delegate cho useMatchStore.fetchMatches (đã có dedup + cache).
  */
 export async function refreshMatches(force = false): Promise<void> {
+  const requestGeneration = trackingGeneration;
+  const sessionGeneration = getSessionGeneration();
   const store = useUserStore.getState();
   const user = store.user;
 
-  if (!user.accessToken || !user.region || !user.id) return;
+  if (!user.accessToken || !user.entitlementsToken || !user.region || !user.id) return;
 
   const accountKey = getAccountSessionKey(user);
   const syncState = getAccountSyncState(accountKey);
@@ -214,12 +234,16 @@ export async function refreshMatches(force = false): Promise<void> {
     const refreshed = await useMatchStore.getState().fetchMatches(user, force);
     if (
       refreshed &&
+      requestGeneration === trackingGeneration &&
+      sessionGeneration === getSessionGeneration() &&
+      useUserStore.getState().user.accessToken === user.accessToken &&
+      useUserStore.getState().user.entitlementsToken === user.entitlementsToken &&
       getAccountSessionKey(useUserStore.getState().user) === accountKey
     ) {
       syncState.matches = Date.now();
     }
   } catch (error) {
-    if (__DEV__) console.warn("[app-sync] matches refresh failed", error);
+    if (__DEV__) console.warn("[app-sync] matches refresh failed", sanitizeErrorForLog(error));
   }
 }
 

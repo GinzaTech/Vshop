@@ -4,7 +4,6 @@
 import React from "react";
 import {
   FlatList,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,7 +17,6 @@ import { useTranslation } from "react-i18next";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { useUserStore } from "~/hooks/useUserStore";
-import { getLeaderboard, getContent } from "~/utils/valorant-api";
 import { fetchCompetitiveTiers, getAssets } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
@@ -26,10 +24,9 @@ import {
   COMPETITIVE_TIER_IDS,
   TIER_COLORS,
 } from "~/constants/LeaderboardData";
-import {
-  buildLeaderboardSeasonOptions,
-  type LeaderboardSeasonOption,
-} from "~/utils/leaderboard-seasons";
+import { useLeaderboardData } from "~/hooks/useLeaderboardData";
+import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 // Kiểu: thông tin một tier cạnh tranh (tên, icon các loại)
 type CompetitiveTierInfo = {
@@ -82,126 +79,12 @@ export default function LeaderboardScreen() {
   // Thông tin user từ store
   const user = useUserStore((state) => state.user);
 
-  // State: danh sách người chơi từ API
-  const [players, setPlayers] = React.useState<LeaderboardResponse["Players"]>([]);
-  // State: trạng thái đang tải
-  const [loading, setLoading] = React.useState(true);
-  // State: trạng thái kéo xuống để làm mới
-  const [refreshing, setRefreshing] = React.useState(false);
-  // State: từ khóa tìm kiếm
+  const { players, loading, refreshing, totalPlayers, seasons, selectedSeason, selectSeason, onRefresh: handleRefresh } = useLeaderboardData(user);
   const [searchQuery, setSearchQuery] = React.useState("");
-  // State: tổng số người chơi trên leaderboard
-  const [totalPlayers, setTotalPlayers] = React.useState(0);
-  // State: danh sách mùa giải có sẵn
-  const [seasons, setSeasons] = React.useState<LeaderboardSeasonOption[]>([]);
-  // State: ID mùa giải đang được chọn
-  const [selectedSeason, setSelectedSeason] = React.useState<string | null>(null);
-  // State: Map tra cứu thông tin tier (khởi tạo từ assets có sẵn)
   const [tierLookup, setTierLookup] = React.useState(() =>
     buildTierLookup(getAssets().competitiveTiers as CompetitiveTierSet[])
   );
-  // Ref đếm thứ tự request: response của request cũ bị bỏ qua nếu user
-  // đổi season nhanh (chỉ request mới nhất được phép setState).
-  const leaderboardRequestId = React.useRef(0);
-
-  // FIX (M9): credentials đọc qua ref thay vì closure — trước đây
-  // fetchLeaderboard phụ thuộc toàn bộ object `user` nên bị tái tạo (và effect
-  // init re-run getContent + leaderboard) MỖI lần setUser chạy nền (balance
-  // tick, sync). Giờ effect chỉ re-run khi có/không có credentials.
-  const credentialsRef = React.useRef({
-    accessToken: user.accessToken,
-    entitlementsToken: user.entitlementsToken,
-    region: user.region,
-  });
-  React.useEffect(() => {
-    credentialsRef.current = {
-      accessToken: user.accessToken,
-      entitlementsToken: user.entitlementsToken,
-      region: user.region,
-    };
-  }, [user.accessToken, user.entitlementsToken, user.region]);
-  const hasCredentials = Boolean(
-    user.accessToken && user.entitlementsToken && user.region
-  );
-
-  /**
-   * fetchLeaderboard – Gọi API lấy dữ liệu bảng xếp hạng theo seasonId
-   * @param seasonId – ID của mùa giải cần lấy
-   */
-  const fetchLeaderboard = React.useCallback(
-    async (seasonId: string, options: { showLoading?: boolean } = {}) => {
-      const { showLoading = true } = options;
-      const requestId = ++leaderboardRequestId.current;
-      const { accessToken, entitlementsToken, region } = credentialsRef.current;
-      if (!accessToken || !entitlementsToken || !region) {
-        if (showLoading) setLoading(false);
-        return;
-      }
-      if (showLoading) setLoading(true);
-      try {
-        const data = await getLeaderboard(
-          accessToken,
-          entitlementsToken,
-          region,
-          seasonId,
-          { startIndex: 0, size: 100 }
-        );
-        if (requestId !== leaderboardRequestId.current) return;
-        if (data) {
-          setPlayers(data.Players ?? []);
-          setTotalPlayers(data.totalPlayers ?? 0);
-        }
-        // FIX (M9): khi API trả null/fail, GIỮ danh sách đang hiển thị
-        // (stale-while-error) thay vì setPlayers([]) — trước đây một lỗi
-        // mạng transient biến bảng xếp hạng thành "không có kết quả" dù
-        // dữ liệu cũ vẫn đáng tin. UI loading state vẫn báo đúng trạng thái.
-      } catch (err) {
-        if (requestId !== leaderboardRequestId.current) return;
-        if (__DEV__) console.error("Failed to fetch leaderboard:", err);
-      } finally {
-        if (showLoading && requestId === leaderboardRequestId.current) {
-          setLoading(false);
-        }
-      }
-    },
-    []
-  );
-
-  // Effect: Lấy danh sách mùa giải (season) và tải leaderboard mặc định
-  // FIX (M9): deps chỉ dựa vào `hasCredentials` (primitive) + callback ổn định
-  // — không còn re-init mỗi lần user identity đổi.
-  React.useEffect(() => {
-    const init = async () => {
-      const { accessToken, entitlementsToken, region } = credentialsRef.current;
-      if (!accessToken || !entitlementsToken || !region) return;
-      try {
-        const content = await getContent(
-          accessToken,
-          entitlementsToken,
-          region
-        );
-        if (content) {
-          // Hiển thị toàn bộ Act đã bắt đầu, mới nhất trước.
-          const seasonList = buildLeaderboardSeasonOptions(content.Seasons);
-          setSeasons(seasonList);
-          if (seasonList.length > 0) {
-            const defaultSeason =
-              seasonList.find((season) => season.isActive) ?? seasonList[0];
-            setSelectedSeason(defaultSeason.id);
-            fetchLeaderboard(defaultSeason.id);
-          } else {
-            setLoading(false);
-          }
-        } else {
-          setLoading(false);
-        }
-      } catch (err) {
-        if (__DEV__) console.error("Failed to fetch content:", err);
-        setLoading(false);
-      }
-    };
-    init();
-  }, [fetchLeaderboard, hasCredentials]);
+  React.useEffect(() => { setSearchQuery(""); }, [user.id, user.region]);
 
   // Effect: Nếu chưa có tierLookup, fetch competitive tiers từ API
   React.useEffect(() => {
@@ -216,7 +99,7 @@ export default function LeaderboardScreen() {
         }
       })
       .catch((err) => {
-        if (__DEV__) console.error("Failed to fetch competitive tiers:", err);
+        if (__DEV__) console.error("Failed to fetch competitive tiers:", sanitizeErrorForLog(err));
       });
 
     return () => {
@@ -244,27 +127,9 @@ export default function LeaderboardScreen() {
    */
   const handleSeasonChange = (seasonId: string) => {
     if (seasonId === selectedSeason) return;
-    setSelectedSeason(seasonId);
     setSearchQuery("");
-    fetchLeaderboard(seasonId);
+    selectSeason(seasonId);
   };
-
-  /**
-   * handleRefresh – Pull-to-refresh bảng xếp hạng theo mùa đang chọn.
-   * Gọi fetchLeaderboard với showLoading: false (không hiện loading toàn
-   * màn hình, chỉ xoay RefreshControl). Bỏ qua nếu chưa chọn mùa hoặc
-   * đang có một lần refresh khác chạy.
-   */
-  const handleRefresh = React.useCallback(async () => {
-    if (!selectedSeason || refreshing) return;
-
-    setRefreshing(true);
-    try {
-      await fetchLeaderboard(selectedSeason, { showLoading: false });
-    } finally {
-      setRefreshing(false);
-    }
-  }, [fetchLeaderboard, refreshing, selectedSeason]);
 
   /**
    * renderPlayerRow – Render một hàng người chơi trong danh sách
@@ -422,12 +287,9 @@ export default function LeaderboardScreen() {
           )
         }
         refreshControl={
-          <RefreshControl
+          <AppRefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[COLORS.ACCENT]}
-            tintColor={COLORS.ACCENT}
-            progressBackgroundColor={COLORS.SURFACE}
           />
         }
         alwaysBounceVertical

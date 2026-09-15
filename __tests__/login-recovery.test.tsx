@@ -1,20 +1,28 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { Alert } from "react-native";
+import { Buffer } from "buffer";
 import LoginWebView from "~/components/LoginWebView";
 import { defaultUser } from "~/utils/valorant-user";
 
 const mockBuildUser = jest.fn();
-const mockActivateUser = jest.fn();
+let mockActiveUser = defaultUser;
+const mockActivateUser = jest.fn((user: typeof defaultUser) => { mockActiveUser = user; });
 const mockSaveAccount = jest.fn();
 const mockReplace = jest.fn();
 const mockClearCookies = jest.fn();
+const mockRandomBytes = jest.fn();
+jest.mock("expo-crypto", () => ({ getRandomBytesAsync: (length: number) => mockRandomBytes(length) }));
 jest.mock("expo-router", () => ({ useRouter: () => ({ replace: mockReplace }) }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock("@react-native-async-storage/async-storage", () => ({ getItem: async () => "ap", setItem: jest.fn() }));
 jest.mock("react-native-webview", () => ({ __esModule: true, default: "RiotWebView" }));
 jest.mock("~/components/Loading", () => () => null);
-jest.mock("~/hooks/useUserStore", () => ({ useUserStore: (selector: (state: object) => unknown) => selector({ activateUser: mockActivateUser }) }));
+jest.mock("~/hooks/useUserStore", () => ({
+  useUserStore: Object.assign((selector: (state: object) => unknown) => selector({ activateUser: mockActivateUser }), {
+    getState: () => ({ user: mockActiveUser }),
+  }),
+}));
 jest.mock("~/hooks/useAccountStore", () => ({ useAccountStore: { getState: () => ({ saveAccount: mockSaveAccount }) } }));
 jest.mock("~/hooks/useMatchStore", () => ({ useMatchStore: { getState: () => ({ fetchMatches: async () => undefined }) } }));
 jest.mock("~/hooks/useProfileCacheStore", () => ({ useProfileCacheStore: { getState: () => ({ setProfileCache: jest.fn() }) } }));
@@ -35,11 +43,20 @@ describe("WebView login completion recovery", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
     let renderer!: TestRenderer.ReactTestRenderer;
     try {
+      mockRandomBytes.mockResolvedValueOnce(new Uint8Array(32).fill(1))
+        .mockResolvedValueOnce(new Uint8Array(32).fill(2));
       mockBuildUser.mockRejectedValueOnce({ code: "ERR_NETWORK" });
       await act(async () => { renderer = TestRenderer.create(<LoginWebView />); });
       const webview = renderer.root.find((node) => node.type === ("RiotWebView" as React.ElementType));
+      const authorization = new URL(webview.props.source.uri);
+      const state = authorization.searchParams.get("state");
+      const nonce = authorization.searchParams.get("nonce");
+      expect(state).toBeTruthy();
+      expect(nonce).toBeTruthy();
+      const idToken = `e30.${Buffer.from(JSON.stringify({ nonce })).toString("base64url")}.signature`;
+      const callback = `https://playvalorant.com/opt_in#${new URLSearchParams({ access_token: "access", id_token: idToken, state: state! })}`;
       await act(async () => {
-        webview.props.onNavigationStateChange({ url: "https://playvalorant.com/opt_in#access_token=access&id_token=id" });
+        webview.props.onNavigationStateChange({ url: callback });
       });
       expect(mockClearCookies).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();

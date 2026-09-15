@@ -16,6 +16,7 @@ import { getNetworkProfile } from "./network";
 import { jwtDecode } from "jwt-decode";
 // Import Buffer từ buffer để decode base64
 import { Buffer } from "buffer";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 // Map các region -> chat host fallback (khi không lấy được từ server)
 const fallbackChatHosts: Record<string, string> = {
@@ -165,7 +166,7 @@ function getPartyIdFromPresence(status: string) {
     return typeof partyId === "string" && partyId ? partyId : null;
   } catch (error) {
     if (__DEV__) {
-      console.log("[XMPP] Failed to parse party presence", error);
+      console.log("[XMPP] Failed to parse party presence", sanitizeErrorForLog(error));
     }
     return null;
   }
@@ -439,7 +440,7 @@ export async function initChatService(
       // Chat retries with exponential backoff and session recovery may replace
       // stale credentials shortly afterwards. Avoid an intrusive LogBox error
       // for this recoverable state while keeping the failure visible in logs.
-      if (__DEV__) console.log("[XMPP] Initialization failed; retry scheduled", error);
+      if (__DEV__) console.log("[XMPP] Initialization failed; retry scheduled", sanitizeErrorForLog(error));
       activeConnectionKey = connectionKey;
       useChatStore.getState().setStatus("error");
       scheduleReconnect(
@@ -657,7 +658,7 @@ async function resolveRosterNames(
     // chỉ vì 1 lỗi mạng transient. Key được reset trong callback retry để
     // roster event kế tiếp có thể trigger lại nếu cần.
     if (__DEV__) {
-      console.log("[XMPP] Failed to resolve roster names", error);
+      console.log("[XMPP] Failed to resolve roster names", sanitizeErrorForLog(error));
     }
     return false;
   }

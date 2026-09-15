@@ -2,6 +2,9 @@
 
 Tài liệu này mô tả cấu trúc đang được sử dụng. `app/` chỉ chịu trách nhiệm routing và ghép màn hình; network, state, UI dùng lại và domain logic không được đặt trực tiếp trong route.
 
+Bộ [17 loại sơ đồ](markdown/README.md) mô tả luồng, dữ liệu, thành phần và
+deployment; [LOGIC_AUDIT.md](LOGIC_AUDIT.md) ghi kết quả kiểm tra và phần chưa xác minh.
+
 ## Cấu trúc chính
 
 ```text
@@ -72,6 +75,26 @@ Vshop/
 
 ## Luồng phụ thuộc
 
+### Ranh giới logic sau đợt audit 2026-09-15
+
+- `services/accounts/session-cache.ts` chụp/khôi phục dữ liệu khi switch thất bại
+  và dọn cache khi logout; session generation vô hiệu hoá request cũ.
+- `services/riot/request-scope.ts` quản lý danh tính request trong bộ nhớ.
+  `client-config-cache`, `mmr-cache`, `player-name-cache`, `loadout-cache` tách
+  cache theo loại dữ liệu; credential không xuất hiện trong key persist.
+- `hooks/useMatchStore.ts` là facade cho `features/matches/`: history, detail,
+  season, hydration, request lifetime và snapshot dữ liệu.
+- `utils/match-ui.ts` giữ API tương thích, còn chuyển đổi dữ liệu nằm trong
+  `utils/match-transform/`; `utils/match-result.ts` là nguồn xác định outcome.
+- `PlayerStatsDashboard` ghép các section/primitives và dùng các helper
+  `player-stats-data`, `player-stats-format`; không sao chép logic win rate.
+- Các hook dữ liệu màn hình theo dõi tài khoản, token và vòng đời. Combat
+  polling chỉ hoạt động khi màn hình có focus và app ở foreground.
+- `utils/log-redaction.ts` là boundary chẩn đoán chung. Flow trace và API log
+  chỉ bật rõ ràng ở dev; OAuth state/nonce nằm ở `services/accounts/interactive-auth.ts`.
+
+### Luồng chuẩn
+
 ```text
 route → component/store → service → HTTP client → upstream API
                        ↘ cache/domain helper
@@ -101,6 +124,14 @@ Quy tắc:
 - `useCombatStore`: snapshot pregame/live/party; các màn combat tự polling khi cần.
 - `utils/app-sync.ts`: điều phối shop, balance, match và background sync.
 - `useAsyncRefresh`: chống nhiều gesture refresh chạy đồng thời và reset spinner trong `finally`.
+
+- Profile được ghép tại `features/profile/ProfileScreen.tsx`; `useProfileSession`,
+  `useProfileState`, `useProfileFetch` quản lý dữ liệu, các hook Loadout/Hero/Collection
+  tính dữ liệu hiển thị, Picker/Mutations xử lý thao tác, Motion/Pager quản lý chuyển cảnh.
+- `services/accounts/session-cache.ts` snapshot/restore dữ liệu khi switch thất bại;
+  `utils/storage-migration.ts` tuần tự hoá write/remove, loại read cũ khi hydrate.
+- `utils/match-result.ts` là nguồn quy tắc win/loss/draw/cancelled/unknown;
+  `utils/match-ui.ts` và `hooks/useMatchStore.ts` giữ vai trò facade tương thích.
 
 Màn hình có empty state không được thay `FlatList` bằng card tĩnh. Đặt card trong `ListEmptyComponent` và dùng `flexGrow: 1` để Android/iOS vẫn nhận gesture kéo xuống.
 
@@ -134,7 +165,7 @@ pnpm run typecheck       # TypeScript strict
 pnpm run lint            # ESLint, không cho warning
 pnpm run test:ci         # unit + endpoint contract + coverage
 pnpm run test:api        # gọi mạng thật các public API app đang dùng
-pnpm run check           # typecheck + lint + test:ci + production dependency audit
+pnpm run check           # typecheck + lint + test:ci + audit + Android export/budget
 ```
 
 API Riot cần access token/entitlements token chỉ được integration-test bằng session thử nghiệm hợp lệ. Các endpoint thay đổi trạng thái như lock agent, quit game, queue, loadout và party không được tự động gọi trong smoke test để tránh thay đổi tài khoản thật; URL/missing-param/encoding của chúng được kiểm tra đầy đủ bằng contract test.

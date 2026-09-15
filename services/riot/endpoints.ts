@@ -88,6 +88,19 @@ const requireValue = (value: string | null | undefined, label: string) => {
   return normalized;
 };
 
+/** Interactive OAuth uses a fresh cryptographic challenge for every mounted attempt. */
+export function buildRiotInteractiveAuthUrl(attempt: { state: string; nonce: string }): string {
+  const params = new URLSearchParams({
+    redirect_uri: "https://playvalorant.com/opt_in",
+    client_id: "play-valorant-web-prod",
+    response_type: "token id_token",
+    scope: "account openid",
+    state: requireValue(attempt.state, "state"),
+    nonce: requireValue(attempt.nonce, "nonce"),
+  });
+  return `https://auth.riotgames.com/authorize?${params.toString()}`;
+}
+
 /** Normalize region → shard và chặn shard không hỗ trợ trước khi build URL. */
 const requireShard = (region: string | null | undefined) => {
   const shard = normalizeValorantShard(region);
@@ -216,4 +229,3 @@ export function buildRiotApiUrl(params: RiotEndpointParams): string {
       return `${pd}/restrictions/v3/penalties`;
   }
 }
-

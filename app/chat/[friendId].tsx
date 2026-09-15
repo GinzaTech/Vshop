@@ -35,6 +35,7 @@ import { useUserStore } from "~/hooks/useUserStore";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { useTranslation } from "react-i18next";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 const COMPOSER_MIN_HEIGHT = 48;
 const COMPOSER_MAX_HEIGHT = 120;
@@ -214,7 +215,7 @@ export default function ChatScreen() {
       setText(""); // Reset input sau khi gửi
       setInputHeight(COMPOSER_MIN_HEIGHT);
     } catch (error) {
-      if (__DEV__) console.warn("[chat] Could not send message", error);
+      if (__DEV__) console.warn("[chat] Could not send message", sanitizeErrorForLog(error));
       setSendError(t("chat_page.send_failed"));
     } finally {
       setSending(false);

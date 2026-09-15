@@ -1,5 +1,9 @@
 import { act } from "react-test-renderer";
 import { useCombatStore } from "~/hooks/useCombatStore";
+import { invalidateSessionOperations } from "~/utils/session-operations";
+
+const mockActiveUser = { user: { accessToken: "access-one", entitlementsToken: "entitlements-one", id: "one", region: "ap" } };
+jest.mock("~/hooks/useUserStore", () => ({ useUserStore: { getState: () => mockActiveUser } }));
 
 const mockGetPartyPlayer = jest.fn();
 const mockGetPreGamePlayer = jest.fn();
@@ -45,6 +49,8 @@ const deferred = <T,>() => {
 describe("combat store request ownership", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockActiveUser.user = user("one");
+    useCombatStore.getState().resetSession();
     jest.spyOn(console, "log").mockImplementation(() => undefined);
     jest.spyOn(console, "warn").mockImplementation(() => undefined);
     useCombatStore.setState({
@@ -67,10 +73,71 @@ describe("combat store request ownership", () => {
     mockGetPreGameMatch.mockResolvedValue(null);
     mockGetCurrentGameMatch.mockResolvedValue(null);
     mockGetPlayerNames.mockResolvedValue([]);
+    mockGetPartyPlayer.mockReset().mockResolvedValue(null);
+  });
+
+  it.each(["account", "token", "generation"])("discards an in-flight snapshot after %s changed without another fetch", async (changed) => {
+    const party = deferred<{ CurrentPartyID: string } | null>();
+    mockGetPartyPlayer.mockReturnValueOnce(party.promise);
+    const request = useCombatStore.getState().fetchSession(user("one"));
+    if (changed === "account") mockActiveUser.user = user("two");
+    if (changed === "token") mockActiveUser.user = { ...user("one"), entitlementsToken: "rotated" };
+    if (changed === "generation") invalidateSessionOperations();
+    party.resolve({ CurrentPartyID: "stale-party" });
+    mockGetParty.mockResolvedValue({ ID: "stale-party", Members: [] });
+    await request;
+    expect(mockGetParty).not.toHaveBeenCalled();
+    expect(useCombatStore.getState().snapshot.partyId).toBeNull();
+    expect(useCombatStore.getState().lastUpdated).toBe(0);
+    expect(useCombatStore.getState().loading).toBe(false);
+  });
+
+  it("ignores a delayed caller from an old account, including an empty stale caller", async () => {
+    mockActiveUser.user = user("two");
+    await useCombatStore.getState().fetchSession(user("two"));
+    await useCombatStore.getState().fetchSession(user("one"));
+    await useCombatStore.getState().fetchSession({ ...user("one"), accessToken: "" });
+    expect(mockGetPartyPlayer).toHaveBeenCalledTimes(1);
+    expect(useCombatStore.getState().sessionKey).toBe("ap|two");
+  });
+
+  it("resets on a current signed-out caller", async () => {
+    mockActiveUser.user = { ...user("one"), accessToken: "" };
+    await useCombatStore.getState().fetchSession(mockActiveUser.user);
+    expect(mockGetPartyPlayer).not.toHaveBeenCalled();
+    expect(useCombatStore.getState()).toMatchObject({ loading: false, sessionKey: null });
+  });
+
+  it.each(["pregame", "live"])("builds a %s snapshot with deduplicated normalized names", async (phase) => {
+    mockGetPartyPlayer.mockResolvedValue({ CurrentPartyID: "party" });
+    mockGetParty.mockResolvedValue({ ID: "party", Members: [{ Subject: "ONE" }] });
+    if (phase === "pregame") {
+      mockGetPreGamePlayer.mockResolvedValue({ MatchID: "pre" });
+      mockGetPreGameMatch.mockResolvedValue({ ID: "pre", AllyTeam: { Players: [{ Subject: "one" }] }, EnemyTeam: { Players: [{ Subject: "TWO" }] } });
+    } else {
+      mockGetCurrentGamePlayer.mockResolvedValue({ MatchID: "live" });
+      mockGetCurrentGameMatch.mockResolvedValue({ MatchID: "live", Players: [{ Subject: "ONE" }, { Subject: "TWO" }, { Subject: "" }] });
+    }
+    mockGetPlayerNames.mockResolvedValue([{ Subject: "ONE", GameName: "Player", TagLine: "TAG" }, { Subject: "TWO", GameName: "Other", TagLine: "" }]);
+    await expect(useCombatStore.getState().fetchSession(user("one"))).resolves.toMatchObject({ state: phase, namesBySubject: { one: "Player#TAG", two: "Other" } });
+    expect(mockGetPlayerNames).toHaveBeenCalledWith("access-one", "entitlements-one", ["one", "two"], "ap");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("reset invalidates a pending response and allows a new request for the same credentials", async () => {
+    const oldParty = deferred<{ CurrentPartyID: string } | null>();
+    mockGetPartyPlayer.mockReturnValueOnce(oldParty.promise).mockResolvedValueOnce(null);
+    const oldRequest = useCombatStore.getState().fetchSession(user("one"));
+    useCombatStore.getState().resetSession();
+    expect(useCombatStore.getState()).toMatchObject({ sessionKey: null, loading: false, lastUpdated: 0 });
+    await useCombatStore.getState().fetchSession(user("one"));
+    expect(mockGetPartyPlayer).toHaveBeenCalledTimes(2);
+    oldParty.resolve({ CurrentPartyID: "old-party" });
+    await oldRequest;
+    expect(useCombatStore.getState().snapshot.partyId).toBeNull();
   });
 
   it("deduplicates concurrent refreshes for the same account", async () => {
@@ -101,6 +168,7 @@ describe("combat store request ownership", () => {
     );
 
     const first = useCombatStore.getState().fetchSession(user("one"));
+    mockActiveUser.user = user("two");
     const second = useCombatStore.getState().fetchSession(user("two"));
     await act(async () => {
       await second;
@@ -134,6 +202,7 @@ describe("combat store request ownership", () => {
       entitlementsToken: "entitlements-one-renewed",
     };
     const first = useCombatStore.getState().fetchSession(oldUser);
+    mockActiveUser.user = renewedUser;
     const second = useCombatStore.getState().fetchSession(renewedUser);
 
     await act(async () => {

@@ -1,27 +1,24 @@
 import { riotApiClient as axios } from "~/services/riot/client";
+import { createRequestScope } from "~/services/riot/request-scope";
+import { clearCachedPlayerNames } from "~/services/riot/player-name-cache";
+import { getCachedCompetitiveMMR, clearCachedCompetitiveMMR, type CompetitiveMMRResult } from "~/services/riot/mmr-cache";
+import { clearRiotLoadoutCache } from "~/services/riot/loadout-api";
 import { buildRiotApiUrl } from "~/services/riot/endpoints";
 import type { CompetitiveMMRResponse, ValorantSessionResponse } from "~/services/riot/api-types";
 import type { RiotPlayerRequestOptions } from "~/services/riot/loadout-api";
-import { extraHeaders, getPlayerResourceKey, getRiotClientVersionForRequests, logValorantApiDebug, logValorantApiResponse, maskSecretForLog, setRiotClientVersionOverride } from "~/services/riot/request-context";
+import { extraHeaders, getRiotClientVersionForRequests, logValorantApiDebug, logValorantApiResponse, maskSecretForLog, setRiotClientVersionOverride } from "~/services/riot/request-context";
 
-// Tên người chơi theo name-service: Subject = PUUID, GameName + TagLine hiển thị.
-type PlayerName = { Subject: string; GameName: string; TagLine: string };
+export { getPlayerNames } from "~/services/riot/player-name-cache";
 
-// TTL cache tên người chơi: 1 giờ — tên hiếm khi đổi nên cache dài là an toàn.
-const PLAYER_NAME_CACHE_TTL_MS = 60 * 60 * 1000;
+const clientVersionScope = createRequestScope();
 
-// Trần cache tên (LRU): giữ 500 entry gần dùng nhất, chống phình bộ nhớ.
-const PLAYER_NAME_CACHE_MAX_SIZE = 500;
-
-// Cache tên (memory only): key "region|subject" → { value, expiresAt, lastAccessed }.
-const playerNameCache = new Map<
-  string,
-  { value: PlayerName; expiresAt: number; lastAccessed: number }
->();
-
-// Request tên đang bay theo TỪNG subject: các consumer có danh sách chỉ
-// trùng một phần vẫn dùng chung request — không bắn trùng PUT /name-service.
-const playerNameRequests = new Map<string, Promise<void>>();
+/** Logout/failed account switches invalidate pending completions as well as data. */
+export function clearRiotPlayerCaches() {
+  clearCachedPlayerNames();
+  clearCachedCompetitiveMMR();
+  clientVersionScope.clear();
+  clearRiotLoadoutCache();
+}
 
 /** Lấy lịch sử trận (match-history v1) — phân trang theo startIndex/endIndex.
  *  @param params - startIndex/endIndex (endIndex INCLUSIVE) và queue lọc
@@ -96,14 +93,18 @@ export async function hydrateRiotClientVersionFromSession(
   accessToken: string,
   entitlementsToken: string,
   region: string,
-  userId: string
+  userId: string,
+  assertCallerCurrent?: () => void
 ) {
+  const scope = clientVersionScope.observe("client-version", accessToken, entitlementsToken);
   const session = await getValorantSession(
     accessToken,
     entitlementsToken,
     region,
     userId
   ).catch(() => null);
+  scope.assertCurrent();
+  assertCallerCurrent?.();
   const sessionVersion = session?.clientVersion?.trim();
 
   if (!sessionVersion) {
@@ -113,77 +114,17 @@ export async function hydrateRiotClientVersionFromSession(
   return setRiotClientVersionOverride(sessionVersion);
 }
 
-// getCompetitiveMMR: MMR competitive (rank, RR, leaderboard info của player).
-// Cache 5 phút + dedup in-flight theo "region|userId"; force=true bỏ qua cache.
-// Tự retry 1 lần sau khi hydrate client version từ session nếu lần đầu lỗi.
-// Returns: CompetitiveMMRResponse khi OK; {} (object rỗng) khi thất bại.
-type CompetitiveMMRResult =
-  | CompetitiveMMRResponse
-  | Record<string, never>;
-
-// TTL cache MMR: 5 phút — đủ ngắn để bắt thay đổi RR sau mỗi trận competitive.
-const COMPETITIVE_MMR_CACHE_TTL_MS = 5 * 60 * 1000;
-
-// Cache MMR (memory only): key "region|userId" → { value, expiresAt }.
-const competitiveMmrCache = new Map<
-  string,
-  { value: CompetitiveMMRResponse; expiresAt: number }
->();
-
-// Request MMR đang bay theo "region|userId" — caller sau join promise này.
-const competitiveMmrRequests = new Map<
-  string,
-  Promise<CompetitiveMMRResult>
->();
-
-/**
- * Lấy MMR competitive của người chơi (có cache 5 phút + dedup in-flight).
- * @param accessToken - Bearer token xác thực Riot.
- * @param entitlementsToken - JWT quyền (X-Riot-Entitlements-JWT).
- * @param region - Shard hợp lệ. @param userId - PUUID.
- * @param options - { force?: boolean } để bỏ qua cache (pull-to-refresh).
- * @returns CompetitiveMMRResponse hoặc {} — object rỗng nghĩa là thất bại.
- */
-export async function getCompetitiveMMR(
+/** Read cached MMR; refresh work is scoped by credentials and session generation. */
+export function getCompetitiveMMR(
   accessToken: string,
   entitlementsToken: string,
   region: string,
   userId: string,
   options: RiotPlayerRequestOptions = {}
 ): Promise<CompetitiveMMRResult> {
-  const cacheKey = getPlayerResourceKey(region, userId);
-  const cached = competitiveMmrCache.get(cacheKey);
-
-  if (!options.force && cached && cached.expiresAt > Date.now()) {
-    return cached.value;
-  }
-
-  const existingRequest = competitiveMmrRequests.get(cacheKey);
-  if (existingRequest) {
-    return existingRequest;
-  }
-
-  const request = requestCompetitiveMMR(
-    accessToken,
-    entitlementsToken,
-    region,
-    userId
-  )
-    .then((response) => {
-      if (Object.keys(response).length > 0) {
-        competitiveMmrCache.set(cacheKey, {
-          value: response as CompetitiveMMRResponse,
-          expiresAt: Date.now() + COMPETITIVE_MMR_CACHE_TTL_MS,
-        });
-      }
-      return response;
-    })
-    .finally(() => {
-      competitiveMmrRequests.delete(cacheKey);
-    });
-
-  competitiveMmrRequests.set(cacheKey, request);
-  return request;
+  return getCachedCompetitiveMMR(accessToken, entitlementsToken, region, userId, options,
+    (assertCurrent) => requestCompetitiveMMR(accessToken, entitlementsToken, region, userId, assertCurrent)
+  );
 }
 
 /** Nội bộ: request MMR và retry khi client version lệch với session. */
@@ -191,7 +132,8 @@ async function requestCompetitiveMMR(
   accessToken: string,
   entitlementsToken: string,
   region: string,
-  userId: string
+  userId: string,
+  assertCurrent: () => void
 ): Promise<CompetitiveMMRResult> {
   // Wrapper request MMR (tái dùng cho cả lần đầu và lần retry).
   const requestMmr = () => axios.request<CompetitiveMMRResponse>({
@@ -213,6 +155,7 @@ async function requestCompetitiveMMR(
   });
 
   const res = await requestMmr();
+  assertCurrent();
   logValorantApiDebug("MMR_FetchPlayer response", {
     status: res.status,
     statusText: res.statusText,
@@ -230,8 +173,10 @@ async function requestCompetitiveMMR(
     accessToken,
     entitlementsToken,
     region,
-    userId
+    userId,
+    assertCurrent
   );
+  assertCurrent();
 
   if (sessionVersion && sessionVersion !== currentVersion) {
     const retryRes = await requestMmr();
@@ -324,105 +269,4 @@ export async function getCompetitiveUpdates(
   });
   logValorantApiResponse("CompetitiveUpdates", res.data);
   return res.status === 200 ? res.data : null;
-}
-
-// ---------------------------------------------------------------------------
-// getPlayerNames - Giải mã danh sách UUID subject thành GameName/TagLine
-// PUT /name-service với cache LRU 1h (max 500) + dedup in-flight per subject
-// ---------------------------------------------------------------------------
-/** Tra tên hàng loạt subject. Subject còn cache hạn không được fetch lại;
- *  phần thiếu gộp thành MỘT PUT — consumer gọi sau join request đang bay.
- *  @param accessToken - Bearer token. @param entitlementsToken - JWT quyền.
- *  @param subjects - Mảng PUUID (trùng/viết hoa được chuẩn hóa trước).
- *  @param region - Shard hợp lệ (đi vào cache key).
- *  @returns PlayerName[] CHỈ gồm subject tra được; subject thiếu bị lược
- *  bỏ — caller phải hiển thị fallback (vd "?"). */
-export async function getPlayerNames(
-  accessToken: string,
-  entitlementsToken: string,
-  subjects: string[],
-  region: string
-): Promise<PlayerName[]> {
-  // Chuẩn hóa: lọc rỗng, lowercase, khử trùng lặp (Set).
-  const normalizedSubjects = Array.from(
-    new Set(subjects.filter(Boolean).map((subject) => subject.toLowerCase()))
-  );
-  const now = Date.now();
-  // Chỉ fetch các subject chưa có cache hoặc cache đã hết hạn (TTL 1h).
-  const missingSubjects = normalizedSubjects.filter((subject) => {
-    const cached = playerNameCache.get(`${region}|${subject}`);
-    return !cached || cached.expiresAt <= now;
-  });
-
-  if (missingSubjects.length > 0) {
-    const pendingRequests = new Set<Promise<void>>();
-    const subjectsToFetch = missingSubjects.filter((subject) => {
-      const pending = playerNameRequests.get(`${region}|${subject}`);
-      if (pending) {
-        pendingRequests.add(pending);
-        return false;
-      }
-      return true;
-    });
-
-    if (subjectsToFetch.length > 0) {
-      const request = axios
-        .request<PlayerName[]>({
-          url: buildRiotApiUrl({ name: "name", region }),
-          method: "PUT",
-          headers: {
-            ...extraHeaders(),
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-            "X-Riot-Entitlements-JWT": entitlementsToken,
-          },
-          data: subjectsToFetch,
-          validateStatus: () => true,
-        })
-        .then((res) => {
-          if (res.status !== 200 || !Array.isArray(res.data)) {
-            throw new Error(
-              `Name Service returned ${res.status} instead of a player list`
-            );
-          }
-
-          res.data.forEach((entry) => {
-            const cacheKey = `${region}|${entry.Subject.toLowerCase()}`;
-            if (playerNameCache.size >= PLAYER_NAME_CACHE_MAX_SIZE) {
-              const oldestKey = [...playerNameCache.entries()].sort(
-                (a, b) => a[1].lastAccessed - b[1].lastAccessed
-              )[0]?.[0];
-              if (oldestKey) playerNameCache.delete(oldestKey);
-            }
-            playerNameCache.set(cacheKey, {
-              value: entry,
-              expiresAt: Date.now() + PLAYER_NAME_CACHE_TTL_MS,
-              lastAccessed: Date.now(),
-            });
-          });
-        })
-        .finally(() => {
-          subjectsToFetch.forEach((subject) => {
-            playerNameRequests.delete(`${region}|${subject}`);
-          });
-        });
-
-      subjectsToFetch.forEach((subject) => {
-        playerNameRequests.set(`${region}|${subject}`, request);
-      });
-      pendingRequests.add(request);
-    }
-
-    await Promise.all(pendingRequests);
-  }
-
-  // Trả kết quả từ cache theo thứ tự input; touch LRU (cập nhật lastAccessed).
-  return normalizedSubjects.flatMap((subject) => {
-    const cached = playerNameCache.get(`${region}|${subject}`);
-    if (cached && cached.expiresAt > Date.now()) {
-      cached.lastAccessed = Date.now();
-      return [cached.value];
-    }
-    return [];
-  });
 }

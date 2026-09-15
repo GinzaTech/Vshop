@@ -25,11 +25,6 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import { useCombatStore } from "~/hooks/useCombatStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import {
-  getCompetitiveMMR,
-  getContent,
-  matchDetails,
-} from "~/utils/valorant-api";
-import {
   getAgent,
   getAssets,
   type CompetitiveTierAsset,
@@ -39,21 +34,20 @@ import { formatSessionQueueLabel } from "~/utils/valorant-session";
 import { lockScreenOrientation } from "~/utils/screen-orientation";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { useRiotScreenSession } from "~/hooks/useRiotScreenSession";
+import { useCombatScreenActivity } from "~/features/combat/useCombatScreenActivity";
+import { useCombatSessionPolling } from "~/features/combat/useCombatSessionPolling";
+import { useCombatPlayerIntel } from "~/features/combat/useCombatPlayerIntel";
+import { useCombatMatchPerformance } from "~/features/combat/useCombatMatchPerformance";
+import { useCombatSnapshot } from "~/features/combat/useCombatSnapshot";
 import { styles, TRACKER_COLORS } from "~/features/combat/combat-session.styles";
 import {
-  buildMatchPerformanceBySubject,
-  buildPlayerIntel,
   EMPTY_COMPETITIVE_PERFORMANCE,
   EMPTY_INTEL,
   EMPTY_MATCH_PERFORMANCE,
-  fetchCompetitivePerformanceBatch,
   formatCompetitiveMetric,
   MAX_TEAM_SIZE,
   toTitleCase,
-  type CompetitivePerformance,
-  type ContentSeason,
-  type MatchPerformance,
-  type PlayerIntel,
   type SessionPlayer,
   type StatsViewMode,
 } from "~/features/combat/session-insights";
@@ -77,12 +71,12 @@ export default function CombatSessionScreen() {
   // Màn hình "chật" (điện thoại ngang nhỏ) → dùng layout compact.
   const isTight = width < 800 || height < 380;
   const user = useUserStore((state) => state.user);
+  const session = useRiotScreenSession(user);
   const assets = getAssets();
   const agents = getAgent().agents;
   // Snapshot phiên trận từ store: state live/pregame/idle + tên theo subject.
-  const snapshot = useCombatStore((state) => state.snapshot);
+  const snapshot = useCombatSnapshot(session);
   const loading = useCombatStore((state) => state.loading);
-  const fetchSession = useCombatStore((state) => state.fetchSession);
   const [orientationReady, setOrientationReady] = React.useState(false);
   const [orientationLocked, setOrientationLocked] = React.useState(false);
   // Subject của người chơi đang mở modal chi tiết (null = đóng).
@@ -90,14 +84,9 @@ export default function CombatSessionScreen() {
   // Nguồn chỉ số đang hiển thị: "competitive" (5 trận ranked) | "match" (trận live).
   const [statsViewMode, setStatsViewMode] =
     React.useState<StatsViewMode>("competitive");
-  // Intel rank + hiệu suất theo subject (chỉ số hiển thị từng người chơi).
-  const [playerIntel, setPlayerIntel] = React.useState<Record<string, PlayerIntel>>({});
-  const [competitivePerformance, setCompetitivePerformance] = React.useState<
-    Record<string, CompetitivePerformance>
-  >({});
-  const [matchPerformance, setMatchPerformance] = React.useState<
-    Record<string, MatchPerformance>
-  >({});
+  const activity = useCombatScreenActivity();
+  const loadSnapshot = useCombatSessionPolling(session, snapshot.state === "live", activity);
+  const { refreshing, onRefresh } = useAsyncRefresh(loadSnapshot, session);
 
   // Back hardware khi modal đang mở → chỉ đóng modal, không thoát màn hình.
   React.useEffect(() => {
@@ -141,12 +130,6 @@ export default function CombatSessionScreen() {
     return map;
   }, [assets.competitiveTiers]);
 
-  /** loadSnapshot – Tải lại session (live/pregame/idle) từ useCombatStore. */
-  const loadSnapshot = React.useCallback(async () => {
-    await fetchSession(user);
-  }, [fetchSession, user]);
-  const { refreshing, onRefresh } = useAsyncRefresh(loadSnapshot);
-
   // Focus effect 1: khóa landscape khi vào màn, trả portrait khi rời màn.
   useFocusEffect(
     React.useCallback(() => {
@@ -169,31 +152,6 @@ export default function CombatSessionScreen() {
       };
     }, [])
   );
-
-  // FIX (L7): track focus — route nằm trong Tabs nên JS component vẫn mounted
-  // (dù native view bị detach) khi user chuyển tab. Không có gate này, poll
-  // 10s tiếp tục chạy ngầm (6 request/phút) khi user đang ở tab khác.
-  const [isScreenFocused, setIsScreenFocused] = React.useState(true);
-
-  // Focus effect 2: load snapshot ngay khi focus + đánh dấu screen có focus.
-  useFocusEffect(
-    React.useCallback(() => {
-      setIsScreenFocused(true);
-      void loadSnapshot();
-      return () => {
-        setIsScreenFocused(false);
-      };
-    }, [loadSnapshot])
-  );
-
-  React.useEffect(() => {
-    // Poll CHỈ khi: trận đang live VÀ màn hình đang focus
-    if (snapshot.state !== "live" || !isScreenFocused) return;
-    const interval = setInterval(() => {
-      void loadSnapshot();
-    }, 10_000);
-    return () => clearInterval(interval);
-  }, [isScreenFocused, loadSnapshot, snapshot.state]);
 
   // Đạo hàm hiển thị: map/queue của trận hiện tại (live ưu tiên, fallback pregame).
   const matchData = snapshot.currentGameMatch;
@@ -279,212 +237,13 @@ export default function CombatSessionScreen() {
     [allPlayers]
   );
 
-  // Effect: fetch intel rank từng người (MMR) — seed trạng thái loading,
-  // Promise.allSettled để lỗi 1 người không ảnh hưởng người khác; unmount guard.
-  React.useEffect(() => {
-    const subjects = playerSubjectKey ? playerSubjectKey.split("|") : [];
-    if (
-      subjects.length === 0 ||
-      !user.accessToken ||
-      !user.entitlementsToken ||
-      !user.region
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    setPlayerIntel((current) => {
-      const next = { ...current };
-      subjects.forEach((subject) => {
-        next[subject] = current[subject] || EMPTY_INTEL;
-      });
-      return next;
-    });
-
-    // Fetch seasons + MMR từng người song song; lỗi từng người độc lập.
-    const fetchRanks = async () => {
-      const content = await getContent(
-        user.accessToken,
-        user.entitlementsToken,
-        user.region
-      ).catch(() => null);
-      const seasons = (content?.Seasons || []) as ContentSeason[];
-      const results = await Promise.allSettled(
-        subjects.map(async (subject) => {
-          const mmr = await getCompetitiveMMR(
-            user.accessToken,
-            user.entitlementsToken,
-            user.region,
-            subject
-          );
-          return [subject, buildPlayerIntel(mmr, seasons)] as const;
-        })
-      );
-      if (cancelled) return;
-
-      setPlayerIntel((current) => {
-        const next = { ...current };
-        results.forEach((result, index) => {
-          const subject = subjects[index];
-          next[subject] =
-            result.status === "fulfilled"
-              ? result.value[1]
-              : { ...EMPTY_INTEL, status: "private" };
-        });
-        return next;
-      });
-    };
-
-    void fetchRanks();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    playerSubjectKey,
-    user.accessToken,
-    user.entitlementsToken,
-    user.region,
-  ]);
-
-  // Effect: fetch hiệu suất ranked batch cho tất cả subject (có cache TTL).
-  // Lỗi toàn batch → đánh dấu "private" thay vì kẹt loading.
-  React.useEffect(() => {
-    const subjects = playerSubjectKey ? playerSubjectKey.split("|") : [];
-    if (
-      subjects.length === 0 ||
-      !user.accessToken ||
-      !user.entitlementsToken ||
-      !user.region
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    setCompetitivePerformance((current) => {
-      const next = { ...current };
-      subjects.forEach((subject) => {
-        next[subject] =
-          current[subject] || EMPTY_COMPETITIVE_PERFORMANCE;
-      });
-      return next;
-    });
-
-    void fetchCompetitivePerformanceBatch(
-      {
-        accessToken: user.accessToken,
-        entitlementsToken: user.entitlementsToken,
-        region: user.region,
-      },
-      subjects
-    )
-      .then((performanceBySubject) => {
-        if (!cancelled) {
-          setCompetitivePerformance((current) => ({
-            ...current,
-            ...performanceBySubject,
-          }));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setCompetitivePerformance((current) => {
-            const next = { ...current };
-            subjects.forEach((subject) => {
-              next[subject] = {
-                ...EMPTY_COMPETITIVE_PERFORMANCE,
-                status: "private",
-              };
-            });
-            return next;
-          });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    playerSubjectKey,
-    user.accessToken,
-    user.entitlementsToken,
-    user.region,
-  ]);
-
-  // Effect: chỉ số trận live (chỉ chạy khi statsViewMode === "match" && live).
-  // Fetch match details + poll 10s; roster rỗng/mất data → EMPTY (unavailable).
-  React.useEffect(() => {
-    if (statsViewMode !== "match") return;
-
-    const subjects = playerSubjectKey ? playerSubjectKey.split("|") : [];
-    const matchId = matchData?.MatchID;
-    if (
-      snapshot.state !== "live" ||
-      subjects.length === 0 ||
-      !matchId ||
-      !user.accessToken ||
-      !user.entitlementsToken ||
-      !user.region
-    ) {
-      setMatchPerformance(
-        subjects.reduce<Record<string, MatchPerformance>>((next, subject) => {
-          next[subject] = EMPTY_MATCH_PERFORMANCE;
-          return next;
-        }, {})
-      );
-      return;
-    }
-
-    let cancelled = false;
-    setMatchPerformance((current) =>
-      subjects.reduce<Record<string, MatchPerformance>>((next, subject) => {
-        next[subject] =
-          current[subject]?.status === "ready"
-            ? current[subject]
-            : { ...EMPTY_MATCH_PERFORMANCE, status: "loading" };
-        return next;
-      }, {})
-    );
-
-    const fetchMatchPerformance = async () => {
-      const details = await matchDetails(
-        user.accessToken,
-        user.entitlementsToken,
-        user.region,
-        matchId
-      ).catch(() => null);
-      if (cancelled) return;
-
-      setMatchPerformance(
-        details
-          ? buildMatchPerformanceBySubject(details, subjects)
-          : subjects.reduce<Record<string, MatchPerformance>>(
-              (next, subject) => {
-                next[subject] = EMPTY_MATCH_PERFORMANCE;
-                return next;
-              },
-              {}
-            )
-      );
-    };
-
-    void fetchMatchPerformance();
-    const interval = setInterval(() => {
-      void fetchMatchPerformance();
-    }, 10_000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [
-    matchData?.MatchID,
-    playerSubjectKey,
-    snapshot.state,
-    statsViewMode,
-    user.accessToken,
-    user.entitlementsToken,
-    user.region,
-  ]);
+  const { playerIntel, competitivePerformance } = useCombatPlayerIntel(
+    session, playerSubjectKey, snapshot.matchId, activity
+  );
+  const matchPerformance = useCombatMatchPerformance(
+    session, playerSubjectKey, matchData?.MatchID,
+    statsViewMode === "match" && snapshot.state === "live", activity
+  );
 
   /**
    * getPlayerPresentation – Tổng hợp dữ liệu hiển thị của 1 player:

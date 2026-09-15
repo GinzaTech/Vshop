@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 
 // Import hàm kiểm tra môi trường Expo Go
 import { isExpoGo } from "./runtime";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 // Định nghĩa kiểu cho module quản lý cookie của react-native-cookies
 type CookieManagerModule = {
@@ -210,7 +211,7 @@ export const clearAllCookies = async (useWebKit = true) => {
     }
     return clearedAll;
   } catch (error) {
-    console.warn("[cookies] Failed to clear cookies.", error);
+    console.warn("[cookies] Failed to clear cookies.", sanitizeErrorForLog(error));
     return false;
   }
 };
@@ -292,7 +293,7 @@ export const captureRiotAuthCookies = async (
     );
   } catch (error) {
     if (__DEV__) {
-      console.warn("[cookies] Failed to capture Riot cookies.", error);
+      console.warn("[cookies] Failed to capture Riot cookies.", sanitizeErrorForLog(error));
     }
     return [];
   }
@@ -339,7 +340,7 @@ export const restoreRiotAuthCookies = async (
   } catch (error) {
     await clearAllCookies(true);
     if (__DEV__) {
-      console.warn("[cookies] Failed to restore Riot cookies.", error);
+      console.warn("[cookies] Failed to restore Riot cookies.", sanitizeErrorForLog(error));
     }
     return false;
   }

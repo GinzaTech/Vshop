@@ -10,10 +10,22 @@
 import { useMatchStore } from "~/hooks/useMatchStore";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { getAccountSessionKey } from "~/utils/saved-accounts";
-import { getStoredItem, setStoredItem } from "~/utils/storage";
+import { getStoredItem, removeStoredItem, setStoredItem } from "~/utils/storage";
+import { getSessionGeneration } from "~/utils/session-operations";
 
 // Key lưu metadata trong storage.
 const STARTUP_CACHE_KEY = "startup-core-sync-v1";
+let pendingWrite: Promise<unknown> = Promise.resolve();
+const enqueueWrite = <T>(operation: () => Promise<T>): Promise<T> => {
+  const result = pendingWrite.then(operation);
+  pendingWrite = result.catch(() => undefined);
+  return result;
+};
+
+/** Removal follows pending writes so logout cannot be undone by old metadata. */
+export const clearStartupCache = () => enqueueWrite(async () => {
+  await removeStoredItem(STARTUP_CACHE_KEY);
+});
 // Tuổi tối đa của metadata: 72 giờ. Quá hạn thì coi như chưa từng sync.
 export const STARTUP_CACHE_MAX_AGE_MS = 72 * 60 * 60 * 1000;
 
@@ -52,7 +64,9 @@ export const isStartupCacheMetadataUsable = (
   Boolean(
     metadata &&
       metadata.accountKey === accountKey &&
+      Number.isFinite(metadata.completedAt) &&
       metadata.completedAt > 0 &&
+      metadata.completedAt <= now &&
       now - metadata.completedAt <= STARTUP_CACHE_MAX_AGE_MS &&
       hasProfileCache
   );
@@ -85,19 +99,22 @@ const readMetadata = async (): Promise<StartupCacheMetadata | null> => {
  * @param {StartupAccount} account - Tài khoản vừa hoàn tất sync
  * @returns {Promise<boolean>} true nếu ghi thành công, false nếu storage lỗi
  */
-export const markStartupCacheReady = async (account: StartupAccount) => {
-  try {
-    const metadata: StartupCacheMetadata = {
-      accountKey: getAccountSessionKey(account),
-      completedAt: Date.now(),
-    };
-    await setStoredItem(STARTUP_CACHE_KEY, JSON.stringify(metadata));
-    return true;
-  } catch {
-    // Cache eligibility is optional. A storage failure must not turn a fully
-    // successful authenticated sync into a startup failure.
-    return false;
-  }
+export const markStartupCacheReady = (account: StartupAccount) => {
+  const generation = getSessionGeneration();
+  return enqueueWrite(async () => {
+    if (generation !== getSessionGeneration()) return false;
+    try {
+      const metadata: StartupCacheMetadata = {
+        accountKey: getAccountSessionKey(account),
+        completedAt: Date.now(),
+      };
+      await setStoredItem(STARTUP_CACHE_KEY, JSON.stringify(metadata));
+      return true;
+    } catch {
+      // Cache eligibility is optional; failure must not invalidate a good sync.
+      return false;
+    }
+  });
 };
 
 /**
@@ -108,7 +125,12 @@ export const markStartupCacheReady = async (account: StartupAccount) => {
  * @returns {Promise<boolean>} true nếu cache khởi động còn dùng được
  */
 export const hasUsableStartupCache = async (account: StartupAccount) => {
+  const generation = getSessionGeneration();
   const accountKey = getAccountSessionKey(account);
+  const metadata = await readMetadata();
+  if (generation !== getSessionGeneration()) return false;
+  // Read live stores after I/O: a logout or account switch can clear them while
+  // the metadata read is pending.
   const profileCache = useProfileCacheStore.getState().cacheByAuth[accountKey];
   const matchState = useMatchStore.getState();
   const matchCacheBelongsToAccount =
@@ -117,7 +139,7 @@ export const hasUsableStartupCache = async (account: StartupAccount) => {
   return (
     matchCacheBelongsToAccount &&
     isStartupCacheMetadataUsable(
-      await readMetadata(),
+      metadata,
       accountKey,
       Boolean(profileCache?.updatedAt)
     )

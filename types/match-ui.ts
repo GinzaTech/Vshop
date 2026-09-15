@@ -7,7 +7,7 @@ export type MatchTeam = "A" | "B";
 /** MatchSide – Bên chơi trong round: tấn công (attack) hoặc phòng ngự (defense). */
 export type MatchSide = "attack" | "defense";
 /** MatchResult – Kết quả trận từ góc nhìn người dùng: thắng/thua/hòa. */
-export type MatchResult = "win" | "loss" | "draw";
+export type MatchResult = "win" | "loss" | "draw" | "cancelled" | "unknown";
 
 /**
  * MatchPlayerIdentity – Định danh người chơi với 2 biến thể key:
@@ -58,6 +58,8 @@ export type MatchHistoryStats = {
   placement: number;
   roundsPlayed: number;
   won: boolean;
+  /** Explicit result; absent only in records created before result normalization. */
+  result?: MatchResult;
   roundsWon: number;
   roundsLost: number;
   agentIcon: string | null;
@@ -68,6 +70,8 @@ export type MatchHistoryStats = {
   mapName: string;
   mapImage: string | null;
   gameMode: string;
+  /** Act chứa trận; optional để tương thích cache được tạo trước schema này. */
+  seasonId?: string | null;
   rankTier: number | null;
   rankName: string | null;
   rankIcon: string | null;
@@ -100,6 +104,9 @@ export type SeasonPerformanceStats = {
   matchCount: number;
   wins: number;
   losses: number;
+  draws?: number;
+  cancelled?: number;
+  unknown?: number;
   kills: number;
   deaths: number;
   score: number;
@@ -348,7 +355,9 @@ export type MatchDetailViewModel = {
     durationSeconds: number;
     teamAScore: number;
     teamBScore: number;
-    winningTeam: MatchTeam;
+    winningTeam: MatchTeam | null;
+    /** Result from currentPlayerId's perspective; optional for legacy mock data. */
+    result?: MatchResult;
   };
   players: ScoreboardPlayer[];
   playerRefs: MatchPlayerRef[];

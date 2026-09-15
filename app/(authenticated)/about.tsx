@@ -17,23 +17,17 @@ import { ActivityIndicator } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
-import { useUserStore } from "~/hooks/useUserStore";
 import {
-  getPlayerInfo,
-  getRiotClientConfig,
-  getContent,
-} from "~/utils/valorant-api";
-import { getStoredItem, setStoredItem, removeStoredItem } from "~/utils/storage";
+  ABOUT_TOGGLES_STORAGE_KEY,
+  useAboutScreenData,
+  type ToggleOverrides,
+} from "~/hooks/useAboutScreenData";
+import { setStoredItem, removeStoredItem } from "~/utils/storage";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-/** ToggleOverrides: Key-value ghi đè feature flag (lưu local). */
-type ToggleOverrides = Record<string, boolean>;
-
-const STORAGE_KEY_TOGGLES = "about:feature_toggle_overrides";
 
 /**
  * AboutScreen — Component hiển thị thông tin debug.
@@ -46,7 +40,7 @@ const STORAGE_KEY_TOGGLES = "about:feature_toggle_overrides";
  * - toggleOverrides (state, ToggleOverrides): Các ghi đè feature flag.
  * - toggleOverrideKeys (useMemo, Set<string>): Set các key đang override.
  *
- * useEffect: Gọi đồng thời 4 API:
+ * useAboutScreenData: Tải song song, chỉ nhận response thuộc request/phiên hiện tại:
  *   - getPlayerInfo: Thông tin tài khoản.
  *   - getRiotClientConfig: Feature flag từ Riot.
  *   - getContent: Season/Act hiện tại.
@@ -61,57 +55,14 @@ const STORAGE_KEY_TOGGLES = "about:feature_toggle_overrides";
  */
 export default function AboutScreen() {
   const { t } = useTranslation();
-  const user = useUserStore((state) => state.user);
-
-  const [playerInfo, setPlayerInfo] = React.useState<PlayerInfoResponse | null>(null);
-  const [riotConfig, setRiotConfig] = React.useState<RiotClientConfigResponse | null>(null);
-  const [content, setContent] = React.useState<ContentResponse | null>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  // Toggle overrides: key → boolean (value khác với riot default)
-  const [toggleOverrides, setToggleOverrides] = React.useState<ToggleOverrides>({});
+  const { playerInfo, riotConfig, content, loading, toggleOverrides, setToggleOverrides, reload, session } = useAboutScreenData();
   // Keys nào đang có override (để hiển thị badge)
   const toggleOverrideKeys = React.useMemo(
     () => new Set(Object.keys(toggleOverrides)),
     [toggleOverrides]
   );
 
-  /**
-   * fetchAll – Tải song song 4 nguồn: player info, riot client config,
-   * content (season/act) và override toggles đã lưu trong storage.
-   * Mỗi request tự catch về null để một lỗi không chặn nguồn còn lại.
-   * Side effects: setState playerInfo/riotConfig/content/toggleOverrides,
-   * setLoading(false) ở finally. Chạy khi mount + pull-to-refresh.
-   */
-  const fetchAll = React.useCallback(async () => {
-    if (!user.accessToken || !user.entitlementsToken || !user.region) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const [pi, rc, ct, toggleRaw] = await Promise.all([
-        getPlayerInfo(user.accessToken).catch(() => null),
-        getRiotClientConfig(user.accessToken, user.entitlementsToken).catch(() => null),
-        getContent(user.accessToken, user.entitlementsToken, user.region).catch(() => null),
-        getStoredItem(STORAGE_KEY_TOGGLES).catch(() => null),
-      ]);
-      if (pi) setPlayerInfo(pi);
-      if (rc) setRiotConfig(rc);
-      if (ct) setContent(ct);
-      if (toggleRaw) {
-        try { setToggleOverrides(JSON.parse(toggleRaw)); } catch {}
-      }
-    } catch (err) {
-      if (__DEV__) console.error("[about] fetch error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user.accessToken, user.entitlementsToken, user.region]);
-
-  React.useEffect(() => {
-    void fetchAll();
-  }, [fetchAll]);
-  const { refreshing, onRefresh } = useAsyncRefresh(fetchAll);
+  const { refreshing, onRefresh } = useAsyncRefresh(reload, session);
 
   // ── Toggle helpers ───────────────────────────────────────────────────────
   const getToggleValue = (key: string, riotDefault: boolean): boolean =>
@@ -126,9 +77,9 @@ export default function AboutScreen() {
     }
     setToggleOverrides(next);
     try {
-      await setStoredItem(STORAGE_KEY_TOGGLES, JSON.stringify(next));
+      await setStoredItem(ABOUT_TOGGLES_STORAGE_KEY, JSON.stringify(next));
     } catch (err) {
-      if (__DEV__) console.error("[about] Failed to save toggle overrides:", err);
+      if (__DEV__) console.error("[about] Failed to save toggle overrides:", sanitizeErrorForLog(err));
     }
   };
 
@@ -139,8 +90,12 @@ export default function AboutScreen() {
         text: t("about_page.reset_action"),
         style: "destructive",
         onPress: async () => {
-          await removeStoredItem(STORAGE_KEY_TOGGLES);
-          setToggleOverrides({});
+          try {
+            await removeStoredItem(ABOUT_TOGGLES_STORAGE_KEY);
+            setToggleOverrides({});
+          } catch (err) {
+            if (__DEV__) console.error("[about] Failed to reset toggle overrides:", sanitizeErrorForLog(err));
+          }
         },
       },
     ]);

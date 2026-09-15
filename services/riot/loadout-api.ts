@@ -1,4 +1,6 @@
 import { riotApiClient as axios } from "~/services/riot/client";
+import { createRequestScope } from "~/services/riot/request-scope";
+import { cacheUpdatedLoadout, clearCachedLoadout, getCachedPlayerLoadout, observeLoadoutSession } from "~/services/riot/loadout-cache";
 import { buildRiotApiUrl } from "~/services/riot/endpoints";
 import type { OwnedItemsResponse, PlayerLoadoutExpression, PlayerLoadoutResponse } from "~/services/riot/api-types";
 import { API_DEBUG_LOGGING, extraHeaders, getPlayerResourceKey } from "~/services/riot/request-context";
@@ -15,35 +17,11 @@ export type RiotPlayerRequestOptions = {
   force?: boolean;
 };
 
-// TTL cache đọc loadout (30s): đủ ngắn để sửa loadout nơi khác thấy nhanh.
-const PLAYER_LOADOUT_CACHE_TTL_MS = 30 * 1000;
-// Số lần mutation (PUT loadout) theo user — dùng vô hiệu hóa cache kịp thời.
-const loadoutMutationVersions = new Map<string, number>();
-
-// Cache đọc loadout (memory only): key "region|userId" → { value, expiresAt }.
-const playerLoadoutCache = new Map<
-  string,
-  { value: PlayerLoadoutResponse; expiresAt: number }
->();
-
-// Request loadout đang bay: key gồm cả mutationVersion + token — mutation bump
-// version nên request cũ sau mutation không còn được join nữa (tránh stale).
-const playerLoadoutRequests = new Map<
-  string,
-  Promise<PlayerLoadoutResponse | null>
->();
-
-/** Ghi loadout vào cache đọc với TTL 30s (key "region|userId"). */
-const cachePlayerLoadout = (
-  region: string,
-  userId: string,
-  value: PlayerLoadoutResponse
-) => {
-  playerLoadoutCache.set(getPlayerResourceKey(region, userId), {
-    value,
-    expiresAt: Date.now() + PLAYER_LOADOUT_CACHE_TTL_MS,
-  });
-};
+const ownershipScope = createRequestScope();
+export function clearRiotLoadoutCache() {
+  clearCachedLoadout();
+  ownershipScope.clear();
+}
 
 /** Type guard kiểm tra response v3 dùng được: đủ Subject/Version/Guns/
  *  ActiveExpressions/Identity — chặn dữ liệu malformed của Riot crash UI.
@@ -82,55 +60,17 @@ export const extractOwnedItemIds = (response?: OwnedItemsResponse | null) =>
     )
   );
 
-/** Lấy loadout người chơi (ưu tiên v3, fallback v2) với cache 30s + dedup.
- *  requestKey gồm mutationVersion + token: PUT loadout xong bump version nên
- *  mọi request in-flight trước mutation không còn join được — tránh stale.
- *  @param accesstoken - Bearer token. @param entitlementsToken - JWT quyền.
- *  @param region - Shard hợp lệ. @param userId - PUUID chủ loadout.
- *  @returns Loadout hoặc null nếu cả v3 lẫn v2 thất bại. */
-export async function playerLoadout(
-  accesstoken: string,
+/** Read loadout with account data cache and credential/generation scoped requests. */
+export function playerLoadout(
+  accessToken: string,
   entitlementsToken: string,
   region: string,
   userId: string,
   options: RiotPlayerRequestOptions = {}
 ): Promise<PlayerLoadoutResponse | null> {
-  const cacheKey = getPlayerResourceKey(region, userId);
-  const mutationVersion = loadoutMutationVersions.get(cacheKey) ?? 0;
-  const requestKey = `${cacheKey}|${mutationVersion}|${accesstoken}`;
-  const cached = playerLoadoutCache.get(cacheKey);
-
-  if (!options.force && cached && cached.expiresAt > Date.now()) {
-    return cached.value;
-  }
-
-  // Force refresh vẫn được gộp vào request in-flight cùng key (chỉ bỏ qua cache).
-  const existingRequest = playerLoadoutRequests.get(requestKey);
-  if (existingRequest) {
-    return existingRequest;
-  }
-
-  const request = requestPlayerLoadout(
-    accesstoken,
-    entitlementsToken,
-    region,
-    userId
-  )
-    .then((response) => {
-      if (mutationVersion !== (loadoutMutationVersions.get(cacheKey) ?? 0)) {
-        return playerLoadoutCache.get(cacheKey)?.value ?? null;
-      }
-      if (response) {
-        cachePlayerLoadout(region, userId, response);
-      }
-      return response;
-    })
-    .finally(() => {
-      playerLoadoutRequests.delete(requestKey);
-    });
-
-  playerLoadoutRequests.set(requestKey, request);
-  return request;
+  return getCachedPlayerLoadout(accessToken, entitlementsToken, region, userId, options,
+    () => requestPlayerLoadout(accessToken, entitlementsToken, region, userId)
+  );
 }
 
 async function requestPlayerLoadout(
@@ -222,6 +162,7 @@ export async function updatePlayerLoadout(
   userId: string,
   loadout: PlayerLoadoutResponse
 ): Promise<PlayerLoadoutResponse> {
+  const scope = observeLoadoutSession(region, userId, accessToken, entitlementsToken);
   const res = await axios.request<PlayerLoadoutResponse>({
     url: buildRiotApiUrl({ name: "player", region, userId }),
     method: "PUT",
@@ -239,6 +180,7 @@ export async function updatePlayerLoadout(
     },
   });
 
+  scope.assertCurrent();
   const updatedLoadout: PlayerLoadoutResponse = {
     ...loadout,
     ...res.data,
@@ -247,9 +189,7 @@ export async function updatePlayerLoadout(
     DynamicOptions: loadout.DynamicOptions ?? {},
   };
 
-  cachePlayerLoadout(region, userId, updatedLoadout);
-  const key = getPlayerResourceKey(region, userId);
-  loadoutMutationVersions.set(key, (loadoutMutationVersions.get(key) ?? 0) + 1);
+  cacheUpdatedLoadout(region, userId, updatedLoadout);
   return updatedLoadout;
 }
 
@@ -264,6 +204,7 @@ export async function updatePlayerLoadoutV3(
   userId: string,
   loadout: PlayerLoadoutResponse
 ): Promise<PlayerLoadoutResponse> {
+  const scope = observeLoadoutSession(region, userId, accessToken, entitlementsToken);
   const res = await axios.request<PlayerLoadoutV3Response>({
     url: buildRiotApiUrl({ name: "player-v3", region, userId }),
     method: "PUT",
@@ -285,6 +226,7 @@ export async function updatePlayerLoadoutV3(
     },
   });
 
+  scope.assertCurrent();
   if (res.status !== 200) {
     throw new Error(`Player loadout v3 update failed with ${res.status}`);
   }
@@ -299,9 +241,7 @@ export async function updatePlayerLoadoutV3(
     DynamicOptions: res.data.DynamicOptions ?? loadout.DynamicOptions ?? {},
   } as PlayerLoadoutResponse;
 
-  cachePlayerLoadout(region, userId, updatedLoadout);
-  const key = getPlayerResourceKey(region, userId);
-  loadoutMutationVersions.set(key, (loadoutMutationVersions.get(key) ?? 0) + 1);
+  cacheUpdatedLoadout(region, userId, updatedLoadout);
   return updatedLoadout;
 }
 
@@ -338,7 +278,7 @@ export async function updatePlayerLoadoutV3First(
 /** Lấy entitlements (item đã sở hữu) theo loại — GET store/v1/entitlements/
  *  :userId/:itemTypeId trên PD. Dùng cho danh sách skin/spray/card sở hữu.
  *  @param itemTypeId - UUID loại item (xem VItemTypes trong utils/misc).
- *  @returns OwnedItemsResponse khi HTTP 200; {} khi lỗi (không throw). */
+ *  @returns OwnedItemsResponse khi HTTP 200; throw khi HTTP lỗi. */
 export async function ownedItems(
   accessToken: string,
   entitlementsToken: string,
@@ -346,6 +286,7 @@ export async function ownedItems(
   userId: string,
   itemTypeId: string
 ) {
+  const scope = ownershipScope.observe(getPlayerResourceKey(region, userId), accessToken, entitlementsToken);
   const res = await axios.request<OwnedItemsResponse>({
     url: buildRiotApiUrl({
       name: "owned-items",
@@ -362,5 +303,7 @@ export async function ownedItems(
     },
   });
 
-  return res.status === 200 ? res.data : {};
+  scope.assertCurrent();
+  if (res.status !== 200) throw new Error(`Owned items request failed with ${res.status}`);
+  return res.data;
 }

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import { ProfileWarmCache } from "~/utils/profile-cache";
+import type { ProfileWarmCache } from "~/utils/profile-cache";
 import { appStorage } from "~/utils/storage";
 
 // Số lượng profile cache tối đa được lưu (giữ 3 auth gần nhất — đủ cho việc

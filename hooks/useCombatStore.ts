@@ -11,6 +11,9 @@ import {
   getPlayerNames,
   defaultUser,
 } from "~/utils/valorant-api";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
+import { useUserStore } from "~/hooks/useUserStore";
+import { getSessionGeneration } from "~/utils/session-operations";
 
 type CombatUser = Pick<
   typeof defaultUser,
@@ -60,6 +63,7 @@ interface CombatState {
   loading: boolean;
   lastUpdated: number;
   sessionKey: string | null;
+  resetSession: () => void;
   fetchSession: (user: CombatUser) => Promise<CombatSessionSnapshot>;
 }
 
@@ -89,6 +93,11 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   lastUpdated: 0,
   /** Phiên sở hữu snapshot hiện tại ("region|id"); ngăn dữ liệu tài khoản cũ bị giữ lại. */
   sessionKey: null,
+  resetSession: () => {
+    latestCombatRequestId += 1;
+    combatRequests.clear();
+    set({ snapshot: EMPTY_SESSION, loading: false, sessionKey: null, lastUpdated: 0 });
+  },
 
   /** Lấy dữ liệu phiên chiến đấu từ Riot API (party/pregame/live + tên player).
    *  Luồng: validate → dedup in-flight theo sessionKey → fetch 3 endpoint song
@@ -100,23 +109,31 @@ export const useCombatStore = create<CombatState>((set, get) => ({
    *  nếu thiếu token hoặc lỗi); lỗi mạng giữ nguyên snapshot cũ đang hiển thị.
    */
   fetchSession: async (user) => {
+    const isLiveUser = () => {
+      const active = useUserStore.getState().user;
+      return getCombatSessionKey(active) === getCombatSessionKey(user) &&
+        active.accessToken === user.accessToken && active.entitlementsToken === user.entitlementsToken;
+    };
+    // Delayed effects from an old screen must not reset or take over this store.
+    if (!isLiveUser()) return EMPTY_SESSION;
     // Nếu thiếu token hoặc thông tin user -> reset về rỗng và thoát
     if (!user.accessToken || !user.entitlementsToken || !user.region || !user.id) {
-      latestCombatRequestId += 1;
-      set({ snapshot: EMPTY_SESSION, loading: false, sessionKey: null });
+      get().resetSession();
       return EMPTY_SESSION;
     }
 
     const sessionKey = getCombatSessionKey(user);
+    const generation = getSessionGeneration();
     // Do not join a request made with credentials that have just been rotated.
     // The new request supersedes the old one through latestCombatRequestId.
-    const requestKey = `${sessionKey}|${user.accessToken}|${user.entitlementsToken}`;
+    const requestKey = `${generation}|${sessionKey}|${user.accessToken}|${user.entitlementsToken}`;
     const pendingRequest = combatRequests.get(requestKey);
     if (pendingRequest) {
       return pendingRequest;
     }
 
     const requestId = ++latestCombatRequestId;
+    const isCurrent = () => requestId === latestCombatRequestId && generation === getSessionGeneration() && isLiveUser();
     // Key phiên hiện tại; nếu đang đổi tài khoản thì snapshot cũ phải bị xóa
     // sạch trước (EMPTY_SESSION) để không lộ dữ liệu của tài khoản trước.
     const currentState = get();
@@ -138,6 +155,7 @@ export const useCombatStore = create<CombatState>((set, get) => ({
         getPreGamePlayer(user.accessToken, user.entitlementsToken, user.region, user.id),
         getCurrentGamePlayer(user.accessToken, user.entitlementsToken, user.region, user.id),
       ]);
+      if (!isCurrent()) return EMPTY_SESSION;
 
       // Từ kết quả trên, gọi song song chi tiết party, pregame match, current game match
       const partyId = partyPlayer?.CurrentPartyID || null;
@@ -152,16 +170,14 @@ export const useCombatStore = create<CombatState>((set, get) => ({
           ? getCurrentGameMatch(user.accessToken, user.entitlementsToken, user.region, currentGamePlayer.MatchID)
           : Promise.resolve(null),
       ]);
+      if (!isCurrent()) return EMPTY_SESSION;
       // Party ID thực tế (có thể null nếu không có party)
       const effectivePartyId = party?.ID || null;
 
       // Log debug trong môi trường dev
       if (__DEV__) {
         console.log("[useCombatStore] session party snapshot", {
-          partyPlayerId: partyId,
-          partyId: effectivePartyId,
           hasParty: Boolean(party),
-          mucName: party?.MUCName,
           state: party?.State,
           members: party?.Members?.length || 0,
         });
@@ -185,6 +201,7 @@ export const useCombatStore = create<CombatState>((set, get) => ({
       const names = subjects.length
         ? await getPlayerNames(user.accessToken, user.entitlementsToken, subjects, user.region)
         : [];
+      if (!isCurrent()) return EMPTY_SESSION;
 
       // Convert danh sách tên thành map subject -> "GameName#TagLine" để tra cứu nhanh
       const namesBySubject = Object.fromEntries(
@@ -226,7 +243,7 @@ export const useCombatStore = create<CombatState>((set, get) => ({
             };
 
       // Cập nhật store và trả về snapshot
-      if (requestId === latestCombatRequestId) {
+      if (isCurrent()) {
         set({
           snapshot: nextSnapshot,
           loading: false,
@@ -237,13 +254,14 @@ export const useCombatStore = create<CombatState>((set, get) => ({
       return nextSnapshot;
       } catch (error) {
         // Lỗi mạng tạm thời không được xóa snapshot tốt đang hiển thị.
-        if (__DEV__) console.warn("[useCombatStore] Failed to fetch session", error);
-        if (requestId === latestCombatRequestId) {
+        if (__DEV__) console.warn("[useCombatStore] Failed to fetch session", sanitizeErrorForLog(error));
+        if (isCurrent()) {
           set({ loading: false });
           return get().snapshot;
         }
         return EMPTY_SESSION;
       } finally {
+        if (requestId === latestCombatRequestId) set({ loading: false });
         if (combatRequests.get(requestKey) === request) {
           combatRequests.delete(requestKey);
         }

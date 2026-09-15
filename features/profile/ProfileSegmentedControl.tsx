@@ -7,7 +7,7 @@ import React from "react";
 import { type LayoutChangeEvent, TouchableOpacity, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
+import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";
 import type { TabKey } from "~/components/GalleryProfile";
 import type { StatsDashboardTab } from "~/components/profile/PlayerStatsDashboard";
@@ -23,7 +23,7 @@ type AnimatedTextStyle = React.ComponentProps<typeof Animated.Text>["style"];
  * @param {Function} handleStatsDashboardTabChange - Đổi tab dashboard stats.
  * @param {Function} handleTabChange - Đổi tab chính (scroll pager).
  * @param {AnimatedTextStyle} loadoutSegmentLabelAnimatedStyle - Màu nhãn tab loadout.
- * @param {"profile"|"blank"|"stats"} profileNavContentMode - Lớp segment nào đang tương tác.
+ * @param {"profile"|"stats"} profileNavContentMode - Lớp segment nào đang tương tác.
  * @param {AnimatedViewStyle} profileSegmentLayerAnimatedStyle - Opacity/motion lớp profile.
  * @param {AnimatedViewStyle} segmentIndicatorAnimatedStyle - Vị trí/width indicator chạy.
  * @param {AnimatedTextStyle} skinsSegmentLabelAnimatedStyle - Màu nhãn tab skins.
@@ -38,7 +38,7 @@ interface ProfileSegmentedControlProps {
   handleStatsDashboardTabChange: (tab: StatsDashboardTab) => void;
   handleTabChange: (tab: TabKey) => void;
   loadoutSegmentLabelAnimatedStyle: AnimatedTextStyle;
-  profileNavContentMode: "profile" | "blank" | "stats";
+  profileNavContentMode: "profile" | "stats";
   profileSegmentLayerAnimatedStyle: AnimatedViewStyle;
   segmentIndicatorAnimatedStyle: AnimatedViewStyle;
   skinsSegmentLabelAnimatedStyle: AnimatedTextStyle;
@@ -67,7 +67,7 @@ export function ProfileSegmentedControl({
           onLayout={handleSegmentContainerLayout}
           style={[
             styles.segmentContainer,
-            { backgroundColor: "#11181c" },
+            { backgroundColor: COLORS.PURE_BLACK },
           ]}
       >
         <Animated.View
@@ -102,14 +102,7 @@ export function ProfileSegmentedControl({
                       { marginLeft: index === 0 ? 0 : 8 },
                     ]}
                 >
-                  <TypewriterSwapText
-                      text={
-                        profileNavContentMode === "profile" ? tab.label : ""
-                      }
-                      showCursor={false}
-                      typingSpeed={32}
-                      deletingSpeed={20}
-                      initialDelay={55}
+                  <Animated.Text
                       style={[
                         styles.segmentLabel,
                         index === 0
@@ -118,7 +111,9 @@ export function ProfileSegmentedControl({
                               ? skinsSegmentLabelAnimatedStyle
                               : collectionSegmentLabelAnimatedStyle,
                       ]}
-                  />
+                  >
+                    {tab.label}
+                  </Animated.Text>
                 </TouchableOpacity>
             );
           })}
@@ -148,23 +143,18 @@ export function ProfileSegmentedControl({
                       { marginLeft: index === 0 ? 0 : 8 },
                     ]}
                 >
-                  <TypewriterSwapText
-                      text={
-                        profileNavContentMode === "stats"
-                            ? tab === "overview"
-                              ? "OVERVIEW"
-                              : "DETAILS"
-                            : ""
-                      }
-                      showCursor={false}
-                      typingSpeed={34}
-                      deletingSpeed={20}
-                      initialDelay={55}
+                  <Animated.Text
                       style={[
                         styles.segmentLabel,
-                        { color: active ? "#11181c" : "rgba(255,255,255,0.6)" },
+                        {
+                          color: active
+                            ? COLORS.TEXT_PRIMARY
+                            : COLORS.ON_DARK_TEXT,
+                        },
                       ]}
-                  />
+                  >
+                    {tab === "overview" ? "Tổng quan" : "Chi tiết"}
+                  </Animated.Text>
                 </TouchableOpacity>
             );
           })}

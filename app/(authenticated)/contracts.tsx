@@ -6,13 +6,10 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
-import { useUserStore } from "~/hooks/useUserStore";
-import { getContracts } from "~/utils/valorant-api";
+import { useContractsScreenData } from "~/hooks/useContractsScreenData";
 import { getAgent } from "~/utils/valorant-assets";
-import { getVAPILang } from "~/utils/localization";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
-import { getPublicContracts } from "~/services/valorant/public-api";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 
@@ -22,14 +19,6 @@ type ContractEntry = {
   ProgressionLevelReached: number;          // Cấp độ đã đạt
   ProgressionTowardsNextLevel: number;      // XP cần cho cấp tiếp theo
   ContractProgression: { TotalProgressionEarned: number; }; // Tổng XP đã kiếm
-};
-
-// ContractDefinition: định nghĩa contract từ API valorant-api.com
-type ContractDefinition = {
-  uuid: string;
-  displayName: string;                      // Tên contract
-  displayIcon?: string | null;             // Icon
-  content?: { relationType?: string; relationUuid?: string; }; // Liên kết với agent
 };
 
 type ContractMission = ContractsResponse["Missions"][number];
@@ -57,43 +46,16 @@ function formatNumber(value: number) { return new Intl.NumberFormat().format(Mat
  *   (getPublicContracts) — dùng tra tên/icon và liên kết agent.
  * - loading: đang tải lần đầu.
  *
- * fetchData: tải song song hai nguồn bằng Promise.all, chạy khi mount
- * và khi pull-to-refresh (useAsyncRefresh). Lỗi từng nguồn được nuốt để
- * không chặn nguồn còn lại.
+ * useContractsScreenData: tải song song, chỉ nhận request thuộc phiên hiện tại.
+ * Lỗi một nguồn giữ dữ liệu tốt đang hiển thị của cùng phiên.
  *
  * @returns {JSX.Element} Màn hình contracts.
  */
 export default function ContractsScreen() {
   const { t } = useTranslation();                                  // Hook dịch thuật
-  const user = useUserStore((state) => state.user);                 // Thông tin user
   const agents = getAgent().agents || [];                           // Danh sách agent
-
-  // State quản lý
-  const [contracts, setContracts] = React.useState<ContractsResponse | null>(null);       // Dữ liệu contracts từ API Riot
-  const [contractDefinitions, setContractDefinitions] = React.useState<ContractDefinition[]>([]); // Định nghĩa contracts từ valorant-api.com
-  const [loading, setLoading] = React.useState(true);                                       // Đang tải
-
-  // fetchData: tải contracts từ API Riot + contract definitions từ valorant-api.com
-  // Sử dụng Promise.all để tải song song
-  const fetchData = React.useCallback(async () => {
-    if (!user.accessToken || !user.entitlementsToken || !user.region || !user.id) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const [data, definitionsResponse] = await Promise.all([
-        getContracts(user.accessToken, user.entitlementsToken, user.region, user.id),
-        getPublicContracts(getVAPILang()).catch(() => null),
-      ]);
-      setContracts(data);
-      setContractDefinitions(definitionsResponse ?? []);
-    } catch (err) { if (__DEV__) console.error("Failed to fetch contracts:", err); }
-    finally { setLoading(false); }
-  }, [user.accessToken, user.entitlementsToken, user.region, user.id]);
-
-  // useEffect: gọi fetchData khi component mount
-  React.useEffect(() => { fetchData(); }, [fetchData]);
-  const { refreshing, onRefresh } = useAsyncRefresh(fetchData);
+  const { contracts, contractDefinitions, loading, reload, session } = useContractsScreenData();
+  const { refreshing, onRefresh } = useAsyncRefresh(reload, session);
 
   // getAgentForContract: tìm agent liên kết với contract (dựa vào relationUuid)
   const getAgentForContract = (contractId: string) => {

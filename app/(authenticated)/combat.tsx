@@ -61,6 +61,7 @@ import {
 } from "~/utils/chat-store";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 // ===== Hằng số =====
 // ROLES: danh sách 4 vai trò Agent trong game, mỗi role có id, name và icon
@@ -663,7 +664,7 @@ export default function Combat() {
       );
       await loadSessionSnapshot();
     } catch (error) {
-      if (__DEV__) console.warn("[combat] Failed to generate party code", error);
+      if (__DEV__) console.warn("[combat] Failed to generate party code", sanitizeErrorForLog(error));
       Alert.alert(t("combat_page.party_code"), t("combat_page.errors.generate_code"));
     } finally {
       setPartyCodeLoading(false);
@@ -681,7 +682,7 @@ export default function Combat() {
       );
       await loadSessionSnapshot();
     } catch (error) {
-      if (__DEV__) console.warn("[combat] Failed to disable party code", error);
+      if (__DEV__) console.warn("[combat] Failed to disable party code", sanitizeErrorForLog(error));
       Alert.alert(t("combat_page.party_code"), t("combat_page.errors.disable_code"));
     } finally {
       setPartyCodeLoading(false);
@@ -707,7 +708,7 @@ export default function Combat() {
       setJoinCode("");
       await loadSessionSnapshot();
     } catch (error) {
-      if (__DEV__) console.warn("[combat] Failed to join party by code", error);
+      if (__DEV__) console.warn("[combat] Failed to join party by code", sanitizeErrorForLog(error));
       Alert.alert(t("combat_page.party_code"), t("combat_page.errors.join_code"));
     } finally {
       setPartyCodeLoading(false);
@@ -729,7 +730,7 @@ export default function Combat() {
       setJoinCode("");
       await loadSessionSnapshot();
     } catch (error) {
-      if (__DEV__) console.warn("[combat] Failed to leave party", error);
+      if (__DEV__) console.warn("[combat] Failed to leave party", sanitizeErrorForLog(error));
       Alert.alert(t("combat_page.actions.quit_party"), t("combat_page.errors.quit_party"));
     } finally {
       setQuitPartyLoading(false);

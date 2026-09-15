@@ -37,16 +37,13 @@ import {
   MATCH_LAYOUT,
   MATCH_SPACING,
 } from "~/constants/MatchTheme";
-import { useMatchStore } from "~/hooks/useMatchStore";
+import { useMatchDetailsData } from "~/hooks/useMatchDetailsData";
 import { useUserStore } from "~/hooks/useUserStore";
 import { mockMatchDetail } from "~/mocks/match-ui";
 import type {
   MatchDetailViewModel,
-  MatchDetailsData,
-  MatchPlayerIdentity,
 } from "~/types/match-ui";
 import { buildMatchDetailViewModel } from "~/utils/match-ui";
-import { getPlayerNames } from "~/utils/valorant-api";
 import { MOTION_TIMING } from "~/constants/Motion";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
@@ -85,21 +82,9 @@ export default function MatchDetailsScreen() {
   const requestedTab = firstParam(params.tab);
   // Thông tin user
   const user = useUserStore((state) => state.user);
-  // Dữ liệu match từ cache (nếu đã load trước đó)
-  const cachedDetails = useMatchStore((state) =>
-    matchId ? state.detailsById[matchId] : undefined
+  const { details, loading, error, loadDetails } = useMatchDetailsData(
+    matchId, isDemo, t("match_ui.states.error_body")
   );
-  // Hàm fetch chi tiết match từ store
-  const fetchMatchDetails = useMatchStore((state) => state.fetchMatchDetails);
-
-  // State: dữ liệu chi tiết trận đấu
-  const [details, setDetails] = React.useState<MatchDetailsData | null>(
-    cachedDetails ?? null
-  );
-  // State: trạng thái đang tải
-  const [loading, setLoading] = React.useState(!isDemo && !cachedDetails);
-  // State: lỗi nếu có
-  const [error, setError] = React.useState<string | null>(null);
   // State: tab đang active (scoreboard hoặc performance)
   const [activeTab, setActiveTab] = React.useState<MatchDetailTab>(
     requestedTab === "performance" ? "performance" : "scoreboard"
@@ -116,104 +101,12 @@ export default function MatchDetailsScreen() {
   const contentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,
   }));
-  // Ref: key của request lấy tên người chơi (tránh gọi lại trùng)
-  const requestedNamesKey = React.useRef<string | null>(null);
-
-  /**
-   * loadDetails – Tải chi tiết trận đấu từ API (hoặc force refresh)
-   * @param force – Nếu true, bỏ qua cache và tải lại
-   */
-  const loadDetails = React.useCallback(
-    async (force = false) => {
-      if (isDemo) return;
-      if (!matchId) {
-        setError(t("match_ui.states.error_body"));
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError(null);
-      const response = await fetchMatchDetails(user, matchId, force);
-      if (response) {
-        setDetails(response);
-      } else {
-        setError(t("match_ui.states.error_body"));
-      }
-      setLoading(false);
-    },
-    [fetchMatchDetails, isDemo, matchId, t, user]
-  );
   // refreshDetails: pull-to-refresh luôn bỏ qua cache (force = true)
   const refreshDetails = React.useCallback(
     () => loadDetails(true),
     [loadDetails]
   );
   const { refreshing, onRefresh } = useAsyncRefresh(refreshDetails);
-
-  // Effect: Load chi tiết match khi component mount (hoặc dùng cache)
-  React.useEffect(() => {
-    if (isDemo) return;
-    if (cachedDetails) {
-      setDetails(cachedDetails);
-      setLoading(false);
-      return;
-    }
-    void loadDetails();
-  }, [cachedDetails, isDemo, loadDetails]);
-
-  // Effect: Tự động lấy tên người chơi (gameName) nếu chưa có
-  React.useEffect(() => {
-    if (
-      isDemo ||
-      !details ||
-      !user.accessToken ||
-      !user.entitlementsToken ||
-      !user.region
-    ) {
-      return;
-    }
-    // Kiểm tra xem tất cả người chơi đã có tên chưa
-    const alreadyNamed = details.players.every((player) => Boolean(player.gameName));
-    if (alreadyNamed) return;
-    const subjects = details.players.map((player) => player.subject).filter(Boolean);
-    const requestKey = subjects.slice().sort().join(",");
-    if (!requestKey || requestedNamesKey.current === requestKey) return;
-    requestedNamesKey.current = requestKey;
-
-    // Gọi API lấy tên người chơi
-    void getPlayerNames(
-      user.accessToken,
-      user.entitlementsToken,
-      subjects,
-      user.region
-    )
-      .then((names) => {
-        if (names.length === 0) return;
-        const identities: MatchPlayerIdentity[] = names.map((name) => ({
-          Subject: name.Subject,
-          GameName: name.GameName,
-          TagLine: name.TagLine,
-        }));
-        setDetails((current) => {
-          if (!current) return current;
-          const next: MatchDetailsData = {
-            ...current,
-            playerIdentities: identities,
-          };
-          return next;
-        });
-        // FIX (M7): merge qua store action thay vì setState trực tiếp trên
-        // detailsById — action này đi qua LRU (bump thứ tự) và bỏ qua an toàn
-        // nếu entry gốc đã bị evict (tránh tạo entry rác thiếu players/teams
-        // gây crash khi cache-hit sau đó).
-        useMatchStore.getState().mergeMatchDetails(matchId, {
-          playerIdentities: identities,
-        });
-      })
-      .catch((nameError: unknown) => {
-        if (__DEV__) console.warn("Failed to resolve match player names", nameError);
-      });
-  }, [details, isDemo, matchId, user]);
 
   /**
    * viewModel – Dữ liệu đã được transform để render UI

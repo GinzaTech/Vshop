@@ -18,7 +18,6 @@ import {
 } from "react-native";
 import { useUserStore } from "~/hooks/useUserStore";
 import { useAccountStore } from "~/hooks/useAccountStore";
-import { getAccessTokenFromUri, getIdTokenFromUri } from "~/utils/misc";
 import { defaultUser } from "~/utils/valorant-api";
 import Loading from "./Loading";
 import WebView from "react-native-webview";
@@ -35,10 +34,10 @@ import { isAllowedRiotAuthNavigation, isRiotAuthCallbackUrl } from "~/utils/riot
 import { normalizeAccountId } from "~/utils/saved-accounts";
 import { finishInteractiveAuthentication, prepareInteractiveAuthentication, restoreCurrentAccountAuthCookies } from "~/services/accounts/session";
 import { getSessionGeneration } from "~/utils/session-operations";
+import { createInteractiveAuthAttempt, validateInteractiveAuthCallback, type InteractiveAuthAttempt } from "~/services/accounts/interactive-auth";
+import { buildRiotInteractiveAuthUrl } from "~/services/riot/endpoints";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
-// URL đăng nhập Riot OAuth2
-const LOGIN_URL =
-  "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid";
 // Thời gian timeout tối đa cho preload profile
 const PROFILE_PRELOAD_TIMEOUT_MS = 4500;
 
@@ -93,16 +92,28 @@ export default function LoginWebView({
   // State: authReady – chờ prepareInteractiveAuthentication hoàn tất trước khi
   // render WebView (tránh bắt callback trước khi cookie snapshot sẵn sàng)
   const [authReady, setAuthReady] = useState(false);
+  const attemptRef = useRef<InteractiveAuthAttempt | null>(null);
+  const [loginUrl, setLoginUrl] = useState<string | null>(null);
   // Effect: chuẩn bị phiên đăng nhập tương tác khi mount.
   // Cleanup: đánh dấu unmount và gọi finishInteractiveAuthentication để
   // hủy chuẩn bị nếu component bị gỡ giữa chừng.
   useEffect(() => {
+    let cancelled = false;
     mountedRef.current = true;
-    void prepareInteractiveAuthentication().then(() => {
-      if (mountedRef.current) setAuthReady(true);
+    void Promise.all([prepareInteractiveAuthentication(), createInteractiveAuthAttempt()]).then(([, attempt]) => {
+      if (cancelled || !mountedRef.current) return;
+      attemptRef.current = attempt;
+      setLoginUrl(buildRiotInteractiveAuthUrl(attempt));
+      setAuthReady(true);
+    }).catch((error: unknown) => {
+      if (cancelled || !mountedRef.current) return;
+      if (__DEV__) console.warn("[LoginWebView] Authentication preparation failed", sanitizeErrorForLog(error));
+      setWebIssue("login_web_view.completion_error");
     });
     return () => {
+      cancelled = true;
       mountedRef.current = false;
+      attemptRef.current = null;
       finishInteractiveAuthentication();
     };
   }, []);
@@ -138,21 +149,21 @@ export default function LoginWebView({
       }
 
       authInFlightRef.current = true;
-      const generation = getSessionGeneration();
-      const isCurrentAttempt = () => mountedRef.current && generation === getSessionGeneration();
+      let generation = getSessionGeneration();
+      const attempt = attemptRef.current;
+      const isCurrentAttempt = () => mountedRef.current && attemptRef.current === attempt && generation === getSessionGeneration();
       setWebIssue(null);
-      // Bắt đầu snapshot khi WebView vẫn còn mounted; iOS cần WebKit store đã
-      // được khởi tạo để đọc cookie của phiên vừa hoàn tất.
-      const authCookiesPromise = captureRiotAuthCookies("webview");
       const loginStart = Date.now();
       try {
-        const accessToken = getAccessTokenFromUri(newNavState.url);
-        const idToken = getIdTokenFromUri(newNavState.url);
-        const authCookies = await authCookiesPromise;
+        if (!attempt) throw new Error("Authentication attempt is unavailable");
+        const { accessToken, idToken } = validateInteractiveAuthCallback(newNavState.url, attempt);
+        // Validate the redirect before reading cookies or using either token.
+        const authCookies = await captureRiotAuthCookies("webview");
         if (!isCurrentAttempt()) return;
         // Lấy region từ AsyncStorage hoặc dùng mặc định
         const region =
           (await AsyncStorage.getItem("region")) || defaultUser.region;
+        if (!isCurrentAttempt()) return;
 
         setLoading(t("fetching.storefront"));
         // Xây dựng authenticated user từ token
@@ -169,7 +180,12 @@ export default function LoginWebView({
           normalizeAccountId(authenticatedUser.id) !==
             normalizeAccountId(expectedAccountId)
         ) {
-          await restoreCurrentAccountAuthCookies();
+          const restore = restoreCurrentAccountAuthCookies();
+          // Restore invalidates synchronously. Capture our own generation before
+          // awaiting so an external logout during restoration still cancels us.
+          generation = getSessionGeneration();
+          await restore;
+          if (!isCurrentAttempt()) return;
           authInFlightRef.current = false;
           setLoading(null);
           Alert.alert(
@@ -201,20 +217,26 @@ export default function LoginWebView({
         // Preload matches (không await để không chặn luồng)
         void useMatchStore.getState().fetchMatches(authenticatedUser).catch((preloadErr) => {
           if (__DEV__) {
-            console.log("Match preload failed, falling back", preloadErr);
+            console.log("Match preload failed, falling back", sanitizeErrorForLog(preloadErr));
           }
         });
 
         // Preload profile cache với timeout
         const profileWarmupPromise = fetchProfileWarmCache(authenticatedUser)
           .then((cache) => {
-            if (cache) {
+            const currentUser = useUserStore.getState().user;
+            if (cache && isCurrentAttempt() &&
+                currentUser.id === authenticatedUser.id &&
+                currentUser.accessToken === authenticatedUser.accessToken &&
+                currentUser.idToken === authenticatedUser.idToken &&
+                currentUser.entitlementsToken === authenticatedUser.entitlementsToken &&
+                currentUser.region === authenticatedUser.region) {
               useProfileCacheStore.getState().setProfileCache(cache);
             }
           })
           .catch((preloadErr) => {
             if (__DEV__) {
-              console.log("Profile preload failed, falling back", preloadErr);
+              console.log("Profile preload failed, falling back", sanitizeErrorForLog(preloadErr));
             }
           });
 
@@ -242,7 +264,8 @@ export default function LoginWebView({
   };
 
   // Hiển thị màn hình loading với message trong quá trình xử lý đăng nhập
-  if (!authReady) {
+  if (!authReady || !loginUrl) {
+    if (webIssue) return <Text accessibilityRole="alert" style={styles.issueText}>{t(webIssue)}</Text>;
     return <Loading msg={t("fetching.progress")} />;
   }
 
@@ -275,7 +298,7 @@ export default function LoginWebView({
         setSupportMultipleWindows={false}
         cacheEnabled
         source={{
-          uri: LOGIN_URL,
+          uri: loginUrl,
         }}
         onShouldStartLoadWithRequest={(request) => {
           if (isAllowedRiotAuthNavigation(request.url)) return true;
@@ -283,7 +306,7 @@ export default function LoginWebView({
           if (/^https?:\/\//i.test(request.url)) {
             void Linking.openURL(request.url).catch((error: unknown) => {
               if (__DEV__) {
-                console.warn("[LoginWebView] Could not open external URL", error);
+                console.warn("[LoginWebView] Could not open external URL", sanitizeErrorForLog(error));
               }
             });
           }
@@ -304,13 +327,10 @@ export default function LoginWebView({
             return;
           }
 
-          const issue = `${event.nativeEvent.description || t("login_web_view.error")} (${event.nativeEvent.code})`;
+          const issue = `${t("login_web_view.error")} (${event.nativeEvent.code})`;
           setWebIssue(issue);
           if (__DEV__) {
-            console.log("[LoginWebView] error", {
-              code: event.nativeEvent.code,
-              description: event.nativeEvent.description,
-            });
+            console.log("[LoginWebView] error", sanitizeErrorForLog(event.nativeEvent));
           }
         }}
         // Xử lý lỗi HTTP
@@ -320,13 +340,10 @@ export default function LoginWebView({
             return;
           }
 
-          const issue = t("login_web_view.http_error", { statusCode: event.nativeEvent.statusCode, description: event.nativeEvent.description || "" }).trim();
+          const issue = t("login_web_view.http_error", { statusCode: event.nativeEvent.statusCode, description: "" }).trim();
           setWebIssue(issue);
           if (__DEV__) {
-            console.log("[LoginWebView] http-error", {
-              statusCode: event.nativeEvent.statusCode,
-              description: event.nativeEvent.description,
-            });
+            console.log("[LoginWebView] http-error", sanitizeErrorForLog({ status: event.nativeEvent.statusCode }));
           }
         }}
         // Inject JavaScript để ẩn cookie banner Osano

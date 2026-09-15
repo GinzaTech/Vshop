@@ -4,6 +4,7 @@ import {
   renewSavedAccountSession,
   signOutRiotAccount,
   switchSavedAccount,
+  restoreCurrentAccountAuthCookies,
 } from "~/services/accounts/session";
 import { defaultUser } from "~/utils/valorant-api";
 
@@ -39,6 +40,35 @@ const mockUserState = {
 };
 
 const mockSyncAllData = jest.fn();
+const mockMatchCache = { authKey: "ap|account-a", matches: ["match-a"] };
+const mockProfileState = {
+  cacheByAuth: { "ap|account-a": { updatedAt: 1 } } as Record<string, { updatedAt: number }>,
+  resetProfileCache: jest.fn(() => { mockProfileState.cacheByAuth = {}; }),
+};
+const mockResetMatchCache = jest.fn(() => {
+  mockMatchCache.authKey = "guest";
+  mockMatchCache.matches = [];
+});
+const mockClearStartupCache = jest.fn<Promise<void>, []>().mockResolvedValue();
+const mockClearSyncTracking = jest.fn();
+const mockClearPlayerCaches = jest.fn();
+const mockClearClientConfig = jest.fn();
+jest.mock("~/hooks/useMatchStore", () => ({
+  useMatchStore: { getState: () => ({ resetMatchCache: mockResetMatchCache }) },
+  captureMatchCache: () => ({ ...mockMatchCache, matches: [...mockMatchCache.matches] }),
+  restoreMatchCache: (snapshot: typeof mockMatchCache) => Object.assign(mockMatchCache, snapshot),
+}));
+jest.mock("~/hooks/useProfileCacheStore", () => ({
+  useProfileCacheStore: {
+    getState: () => mockProfileState,
+    setState: (snapshot: Pick<typeof mockProfileState, "cacheByAuth">) => Object.assign(mockProfileState, snapshot),
+  },
+}));
+jest.mock("~/utils/startup-cache", () => ({ clearStartupCache: () => mockClearStartupCache() }));
+jest.mock("~/hooks/useCombatStore", () => ({ useCombatStore: { getState: () => ({ resetSession: jest.fn() }) } }));
+jest.mock("~/utils/app-sync", () => ({ clearSyncTracking: () => mockClearSyncTracking() }));
+jest.mock("~/services/riot/match-api", () => ({ clearRiotPlayerCaches: () => mockClearPlayerCaches() }));
+jest.mock("~/services/riot/progression-api", () => ({ clearRiotClientConfigCache: () => mockClearClientConfig() }));
 const mockClearAllCookies = jest.fn<Promise<void>, [boolean]>();
 const mockDisconnectChatService = jest.fn();
 // Contract mới (L12): signOut dọn warm cache in-memory. Mock để tránh kéo
@@ -149,6 +179,9 @@ describe("saved account session switching", () => {
     mockAccountState.accounts = [accountB, accountA];
     mockAccountState.activeAccountId = accountA.id;
     mockUserState.user = userA;
+    mockMatchCache.authKey = "ap|account-a";
+    mockMatchCache.matches = ["match-a"];
+    mockProfileState.cacheByAuth = { "ap|account-a": { updatedAt: 1 } };
     mockAccountState.activateAccount.mockImplementation((accountId) => {
       mockAccountState.activeAccountId = accountId;
     });
@@ -161,10 +194,70 @@ describe("saved account session switching", () => {
     mockAsyncStorage.setItem.mockResolvedValue();
     mockClearAllCookies.mockResolvedValue();
     mockCaptureRiotAuthCookies.mockResolvedValue([]);
-    mockRestoreRiotAuthCookies.mockResolvedValue(true);
+    mockRestoreRiotAuthCookies.mockReset().mockResolvedValue(true);
     mockRenewAuthenticatedSession.mockImplementation(async (user) => user);
     mockHasReusableAccessToken.mockReturnValue(true);
     mockSyncAllData.mockResolvedValue(undefined);
+    mockClearStartupCache.mockResolvedValue();
+  });
+
+  it("returns missing or already selected without doing a data sync", async () => {
+    await expect(switchSavedAccount("missing")).resolves.toEqual({ kind: "missing" });
+    await expect(switchSavedAccount(accountA.id)).resolves.toEqual({ kind: "switched" });
+    expect(mockSyncAllData).not.toHaveBeenCalled();
+  });
+
+  it("does not switch while interactive authentication owns the cookie jar", async () => {
+    await prepareInteractiveAuthentication();
+    await expect(switchSavedAccount(accountB.id)).resolves.toEqual({ kind: "busy" });
+    expect(mockSyncAllData).not.toHaveBeenCalled();
+    finishInteractiveAuthentication();
+  });
+
+  it("snapshots reusable cookies before clearing for an interactive login", async () => {
+    const cookies = [{ name: "ssid", value: "saved-a", domain: ".riotgames.com" }];
+    mockCaptureRiotAuthCookies.mockResolvedValueOnce(cookies);
+    await prepareInteractiveAuthentication(true);
+    expect(mockAccountState.saveAccount).toHaveBeenCalledWith(userA, false, cookies);
+    expect(mockClearAllCookies).toHaveBeenCalledWith(true);
+    finishInteractiveAuthentication();
+  });
+
+  it("restores active cookies after cancelling login, or clears an empty jar", async () => {
+    const cookies = [{ name: "ssid", value: "saved-a", domain: ".riotgames.com" }];
+    mockAccountState.accounts = [{ ...accountA, authCookies: cookies }];
+    await expect(restoreCurrentAccountAuthCookies()).resolves.toBe(true);
+    expect(mockRestoreRiotAuthCookies).toHaveBeenCalledWith(cookies);
+    mockAccountState.accounts = [];
+    await expect(restoreCurrentAccountAuthCookies()).resolves.toBe(false);
+    expect(mockClearAllCookies).toHaveBeenCalledWith(true);
+  });
+
+  it.each(["expired", "restore-failed"])("does not renew with %s saved cookies", async (failure) => {
+    mockAccountState.accounts = [{ ...accountA, authCookies: [{
+      name: "ssid", value: "saved-a", domain: ".riotgames.com",
+      ...(failure === "expired" ? { expires: "2000-01-01T00:00:00Z" } : {}),
+    }] }];
+    mockRestoreRiotAuthCookies.mockResolvedValueOnce(false);
+    await expect(renewSavedAccountSession(userA as typeof defaultUser)).rejects.toThrow();
+    expect(mockRenewAuthenticatedSession).not.toHaveBeenCalled();
+    expect(mockUserState.user).toBe(userA);
+  });
+
+  it("uses saved cookies for active-account renewal", async () => {
+    const cookies = [{ name: "ssid", value: "saved-a", domain: ".riotgames.com" }];
+    mockAccountState.accounts = [{ ...accountA, authCookies: cookies }];
+    await expect(renewSavedAccountSession(userA as typeof defaultUser)).resolves.toMatchObject({ id: accountA.id });
+    expect(mockRestoreRiotAuthCookies).toHaveBeenCalledWith(cookies);
+  });
+
+  it("requests interactive login for a revoked token with no saved cookies", async () => {
+    mockSyncAllData.mockRejectedValueOnce({ response: { status: 401, config: { url: "https://pd.ap.a.pvp.net/store/v3/storefront/account-b" } } });
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      await expect(switchSavedAccount(accountB.id)).resolves.toEqual({ kind: "reauth-required" });
+      expect(mockUserState.user).toEqual(userA);
+    } finally { warn.mockRestore(); }
   });
 
   it("does not replace the saved login with tracking cookies when adding an account", async () => {
@@ -431,5 +524,44 @@ describe("saved account session switching", () => {
     } finally {
       warnSpy.mockRestore();
     }
+  });
+
+  it("rolls match and profile data back when target sync fails after writing caches", async () => {
+    mockSyncAllData.mockImplementationOnce(async () => {
+      mockMatchCache.authKey = "ap|account-b";
+      mockMatchCache.matches = ["match-b"];
+      mockProfileState.cacheByAuth = { "ap|account-b": { updatedAt: 2 } };
+      throw new Error("client configuration unavailable");
+    });
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await expect(switchSavedAccount(accountB.id)).resolves.toEqual({ kind: "failed" });
+      expect(mockUserState.user.id).toBe(accountA.id);
+      expect(mockMatchCache).toEqual({ authKey: "ap|account-a", matches: ["match-a"] });
+      expect(mockProfileState.cacheByAuth).toEqual({ "ap|account-a": { updatedAt: 1 } });
+      expect(mockClearStartupCache).toHaveBeenCalled();
+    } finally { warn.mockRestore(); }
+  });
+
+  it("clears account data and sync caches on logout", async () => {
+    await signOutRiotAccount();
+    expect(mockMatchCache).toEqual({ authKey: "guest", matches: [] });
+    expect(mockProfileState.cacheByAuth).toEqual({});
+    expect(mockClearStartupCache).toHaveBeenCalled();
+    expect(mockClearSyncTracking).toHaveBeenCalled();
+    expect(mockClearPlayerCaches).toHaveBeenCalled();
+    expect(mockClearClientConfig).toHaveBeenCalled();
+  });
+
+  it("restores region and reports failure even when startup metadata cleanup fails", async () => {
+    mockSyncAllData.mockRejectedValueOnce(new Error("network"));
+    mockClearStartupCache.mockRejectedValueOnce(new Error("disk"));
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      await expect(switchSavedAccount(accountB.id)).resolves.toEqual({ kind: "failed" });
+      expect(mockUserState.user).toEqual(userA);
+      expect(mockAsyncStorage.setItem).toHaveBeenLastCalledWith("region", "ap");
+      expect(mockMatchCache.authKey).toBe("ap|account-a");
+    } finally { warn.mockRestore(); }
   });
 });

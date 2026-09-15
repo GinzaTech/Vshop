@@ -108,12 +108,10 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
     ? MATCH_COLORS.warning
     : isWin
       ? MATCH_COLORS.win
-      : MATCH_COLORS.loss;
-  const resultLabel = isDraw
-    ? t("match_ui.result.draw")
-    : isWin
-      ? t("match_ui.result.win")
-      : t("match_ui.result.loss");
+      : match.result === "loss"
+        ? MATCH_COLORS.loss
+        : MATCH_COLORS.textMuted;
+  const resultLabel = t(`match_ui.result.${match.result}`);
   const hasRankedRating = match.rrChange !== undefined;
   const rrChangeColor =
     match.rrChange === undefined || match.rrChange === 0

@@ -1,5 +1,38 @@
 const base = require("./jest.config");
 
+// Per-file floors protect remediated domains without hiding the UI from coverage.
+// Jest subtracts these files from the global group; that remaining-app floor is
+// deliberately reported separately from the full-app coverage summary.
+const remediatedFiles = [
+  "services/accounts/session.ts",
+  "services/accounts/session-cache.ts",
+  "services/accounts/interactive-auth.ts",
+  "services/riot/request-scope.ts",
+  "services/riot/client-config-cache.ts",
+  "services/riot/mmr-cache.ts",
+  "services/riot/player-name-cache.ts",
+  "services/riot/loadout-cache.ts",
+  "utils/app-sync.ts",
+  "utils/data-sync.ts",
+  "utils/startup-cache.ts",
+  "utils/storage-migration.ts",
+  "utils/profile-cache.ts",
+  "utils/log-redaction.ts",
+  "utils/flow-tracer.ts",
+  "utils/flow-trace-instrumentation.ts",
+  "utils/api-logger.ts",
+  "hooks/useCombatStore.ts",
+  "hooks/useAccountScreenData.ts",
+  "hooks/useAboutScreenData.ts",
+  "hooks/useContractsScreenData.ts",
+  "hooks/useLeaderboardData.ts",
+  "hooks/useMatchDetailsData.ts",
+  "components/LoginWebView.tsx",
+  "components/profile/player-stats-data.ts",
+  "features/matches/**/*.ts",
+  "features/combat/useCombat*.ts",
+];
+
 module.exports = {
   ...base,
   roots: ["<rootDir>"],
@@ -29,11 +62,15 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      branches: 3.5,
-      functions: 5,
-      lines: 5.5,
-      statements: 5,
+      branches: 22,
+      functions: 24,
+      lines: 26,
+      statements: 26,
     },
+    ...Object.fromEntries(remediatedFiles.map((file) => [
+      `./${file}`,
+      { branches: 80, functions: 80, lines: 80, statements: 80 },
+    ])),
     "./features/profile/profile-loadout.ts": {
       branches: 60,
       functions: 80,

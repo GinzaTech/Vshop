@@ -9,7 +9,7 @@ import {
   renewAuthenticatedSession,
 } from "~/utils/auth-session";
 import { disconnectChatService } from "~/utils/chat-service";
-import { clearProfileWarmupCache } from "~/utils/profile-cache";
+import { captureAccountData, clearAccountData, restoreAccountData } from "./session-cache";
 import {
   captureRiotAuthCookies,
   clearAllCookies,
@@ -32,6 +32,7 @@ import {
   SessionChangedError,
   setInteractiveAuthentication,
 } from "~/utils/session-operations";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 /** Kết quả chuyển tài khoản: switched (OK) / reauth-required (cần đăng nhập lại
  *  thủ công) / missing (không tìm thấy account) / busy (đang có tác vụ khác) /
@@ -95,14 +96,11 @@ export async function signOutRiotAccount() {
   // Invalidate in-flight results before awaiting any native storage operation.
   useUserStore.getState().resetUser();
   useAccountStore.getState().clearAccounts();
-  // FIX (L12): dọn warm cache in-memory theo session — dữ liệu account cũ
-  // không còn chiếm slot và không thể bị nhầm sang session kế tiếp.
-  clearProfileWarmupCache();
+  const cacheCleanup = clearAccountData();
   try {
-    await runSessionOperation(async () => {
-      await clearAllCookies(true);
-      await AsyncStorage.removeItem("region");
-    });
+    await Promise.all([cacheCleanup, runSessionOperation(async () => {
+      await Promise.all([clearAllCookies(true), AsyncStorage.removeItem("region")]);
+    })]);
   } finally {
     finishInteractiveAuthentication();
   }
@@ -240,7 +238,7 @@ export async function switchSavedAccount(
 async function switchSavedAccountInternal(
   accountId: string
 ): Promise<SwitchAccountResult> {
-  const generation = getSessionGeneration();
+  let generation = getSessionGeneration();
   const assertCurrent = () => {
     if (generation !== getSessionGeneration()) throw new SessionChangedError();
   };
@@ -260,6 +258,7 @@ async function switchSavedAccountInternal(
   const previousSavedAccount = findSavedAccount(previousUser.id);
   let previousCookieSnapshot: RiotAuthCookie[] = [];
   let targetActivated = false;
+  let previousData: ReturnType<typeof captureAccountData> | undefined;
   let succeeded = false;
   let targetUser = {
     ...defaultUser,
@@ -335,6 +334,7 @@ async function switchSavedAccountInternal(
     }
     assertCurrent();
 
+    previousData = captureAccountData();
     useAccountStore.getState().activateAccount(account.id);
     userStore.activateUser(targetUser);
     targetActivated = true;
@@ -373,16 +373,27 @@ async function switchSavedAccountInternal(
     return { kind: "switched" };
   } catch (error) {
     if (targetActivated && generation === getSessionGeneration()) {
+      invalidateSessionOperations();
+      generation = getSessionGeneration();
       const accountIdToRestore = previousActiveAccountId || previousUser.id;
       if (accountIdToRestore) {
         useAccountStore.getState().activateAccount(accountIdToRestore);
       }
       useUserStore.getState().activateUser(previousUser);
+      if (previousData) {
+        try { await restoreAccountData(previousData); }
+        catch (cleanupError) {
+          // Memory rollback already ran. Optional startup-marker I/O must not
+          // skip restoring the region/cookie jar or change the result contract.
+          if (__DEV__) console.warn("[account-session] rollback metadata cleanup failed", sanitizeErrorForLog(cleanupError));
+        }
+      }
+      assertCurrent();
       await AsyncStorage.setItem("region", previousUser.region);
     }
 
     if (__DEV__) {
-      console.warn("[account-session] account switch failed", error);
+      console.warn("[account-session] account switch failed", sanitizeErrorForLog(error));
     }
     return { kind: isReauthenticationRequiredError(error) ? "reauth-required" : "failed" };
   } finally {

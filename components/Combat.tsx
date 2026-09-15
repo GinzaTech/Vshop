@@ -12,6 +12,7 @@ import {
   setPartyReady,
 } from "~/utils/valorant-api";
 import { useCombatStore } from "~/hooks/useCombatStore";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 /**
  * wait – Hàm tiện ích: tạo Promise delay, dùng để chờ giữa các lần poll snapshot
@@ -156,7 +157,7 @@ const useCombat = () => {
 
       return true;
     } catch (error) {
-      if (__DEV__) console.warn("[combat] Failed to lock agent", error);
+      if (__DEV__) console.warn("[combat] Failed to lock agent", sanitizeErrorForLog(error));
       return false;
     } finally {
       setLocking(false);
@@ -175,7 +176,7 @@ const useCombat = () => {
       );
       await loadSessionSnapshot();
     } catch (error) {
-      if (__DEV__) console.warn("[combat] Failed to quit pregame lobby", error);
+      if (__DEV__) console.warn("[combat] Failed to quit pregame lobby", sanitizeErrorForLog(error));
     }
   }, [loadSessionSnapshot, user]);
 
@@ -215,7 +216,7 @@ const useCombat = () => {
 
       return updatedParty;
     } catch (error) {
-      if (__DEV__) console.warn("[combat] Failed to update party ready state", error);
+      if (__DEV__) console.warn("[combat] Failed to update party ready state", sanitizeErrorForLog(error));
       return null;
     }
   }, [currentPartyMember?.IsReady, fetchSession, sessionSnapshot.partyId, user]);

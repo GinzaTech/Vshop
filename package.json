@@ -1,7 +1,7 @@
 {
   "name": "vshop",
   "main": "index.ts",
-  "version": "4.1.6",
+  "version": "4.1.7",
   "scripts": {
     "start": "expo start",
     "start:perf": "expo start --dev-client --no-dev --minify",
@@ -18,7 +18,9 @@
     "test:api": "node scripts/smoke-api.mjs",
     "audit:prod": "node scripts/audit-production.mjs",
     "check:export-budget": "node scripts/check-export-budget.mjs",
-    "check": "pnpm run typecheck && pnpm run lint && pnpm run test:ci && pnpm run audit:prod"
+    "check:source": "pnpm run typecheck && pnpm run lint && pnpm run test:ci && pnpm run audit:prod",
+    "check:android": "node scripts/check-android-export.mjs",
+    "check": "pnpm run check:source && pnpm run check:android"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.13",

@@ -382,7 +382,9 @@
     "result": {
       "win": "Thắng",
       "loss": "Thua",
-      "draw": "Hòa"
+      "draw": "Hòa",
+      "cancelled": "Đã huỷ",
+      "unknown": "Chưa có kết quả"
     },
     "states": {
       "empty_title": "Không tìm thấy trận đấu",

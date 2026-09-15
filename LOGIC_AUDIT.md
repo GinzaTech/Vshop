@@ -1,5 +1,77 @@
 # LOGIC_AUDIT.md — Kiểm toán & Sửa lỗi tầng logic VShop
 
+## Đợt sửa tiếp theo — 2026-09-15
+
+Kế hoạch ECC: tái hiện lỗi bằng test; triển khai song song theo phạm vi file;
+review tích hợp; chạy typecheck, lint, test, production audit và Android export.
+
+- Bảo mật: trace/log mặc định tắt, loại credential khỏi storage trace và log;
+  OAuth dùng state/nonce riêng cho từng lần đăng nhập.
+- Tài khoản: rollback user và dữ liệu cùng nhau, xoá cache khi logout,
+  vô hiệu hoá request đang chạy trước khi reset; tuần tự hoá startup marker.
+- API/cache: key request theo credential/generation; giữ dữ liệu tốt khi
+  một nguồn lỗi, chỉ đánh dấu nguồn fetch thành công là fresh.
+- Màn hình: chống response cũ ghi state, cập nhật leaderboard khi đổi region,
+  dừng polling khi mất focus, cleanup refresh.
+- Thống kê: phân biệt thắng/thua/hoà/huỷ/chưa rõ; thống nhất mẫu số win rate.
+- Bảo trì: tách logic của các module lớn, bổ sung test hành vi và nâng coverage gate;
+  đưa export/budget vào lệnh check thống nhất, chuyển npm lock cũ sang backup.
+
+Rủi ro chính: rollback trong lúc request B còn chạy; logout/login cùng tài khoản;
+refresh token giữa request; API trả null do lỗi bị nhầm thành chưa xếp hạng.
+Test phải điều khiển thứ tự resolve promise và kiểm tra cả state lẫn persist.
+
+Đính chính audit: CI `quality.yml` đã có Android export và budget ở bước riêng.
+Đợt này hợp nhất vào `pnpm run check` để lệnh local và CI có cùng tập kiểm tra.
+### Kiểm chứng và giới hạn
+
+- Full `pnpm run check` sau review cuối: 66 suite / 728 test PASS, TypeScript strict
+  và ESLint không warning; Android export 2.695 module PASS.
+- Bundle budget: tổng 9,77 MiB / 12 MiB, JS/Hermes 7,30 MiB / 8 MiB,
+  asset lớn nhất 1,25 MiB / 1,5 MiB. Export tạm được tự dọn.
+- Audit dependency đạt policy hiện tại với 8 advisory transitive đã biết;
+  **không có nghĩa dependency không có lỗ hổng**. Sáu advisory moderate/high
+  có lý do allowlist trong `scripts/audit-production.mjs`; hai advisory Joi low
+  không chặn theo policy hiện tại. Không thay đổi allowlist trong đợt này.
+- Coverage toàn ứng dụng: statements 44,65%, branches 38,66%,
+  functions 38,66%, lines 44,50%. **Mục tiêu ECC 80% toàn app chưa đạt**.
+  Jest giữ nguyên tập source/UI được đo; thêm floor 80% mỗi metric cho các
+  domain đã được kiểm chứng (session, cache, sync, screen data hooks, Combat hooks,
+  match actions và logging/auth). Jest loại các domain riêng khỏi nhóm global;
+  floor phần còn lại là branches 22%, functions 24%, lines/statements 26%.
+  Match transforms và các hook UI Profile vẫn còn nhánh thiếu test.
+- Review cuối có thêm RED thật: chỉ đổi entitlements token vẫn cho loadout
+  cũ cập nhật Profile. Bổ sung guard token thứ hai; suite hook 10/10 GREEN,
+  gồm regression đổi từng token riêng lẻ.
+- 17 loại sơ đồ: 19 khối Mermaid parse thành công, 93 liên kết nội bộ tồn tại.
+  Xem [mục lục](markdown/README.md); mô hình ERD là logical cache model, không SQL.
+- Thiết bị Android từng kết nối, cài dev `com.android.vshop` 4.1.6/code87.
+  Dev Launcher gặp lỗi nối Metro; sau khi đổi binding Metro, ADB mất thiết bị.
+  **UI máy thật trên source mới: NOT VERIFIED**. Không suy ra FPS, chuyển card,
+  multi-Act hay tài khoản thật hoạt động từ unit/render tests hoặc export.
+- Chuẩn bị native 4.1.7/code88, iOS build40; chưa coi APK production tồn tại
+  khi EAS chưa báo FINISHED cùng artifact URL. Không phát hành OTA trong đợt này.
+- Quét source thay đổi/mới: không phát hiện private key, JWT dạng đầy đủ,
+  GitHub/OpenAI token theo các mẫu quét; không có `.env`, APK, keystore, log,
+  cache hay thư mục tạm trong tập thay đổi. Đây là scan có giới hạn, không phải
+  chứng nhận bảo mật toàn diện. `git diff --check` PASS.
+- Hook ECC phát hiện chuỗi password giả trong test redaction; fixture đã được
+  rút gọn, vẫn kiểm tra đúng việc loại dữ liệu khỏi trace. Không tắt hook.
+  `.easignore` loại cả checkout ECC và config OpenCode cục bộ khỏi upload.
+
+### Các invariant bổ sung đã có regression
+
+Rollback vẫn khôi phục region/cookie khi dọn startup metadata lỗi; logout/reset
+vô hiệu hóa request cũ dù đăng nhập lại cùng credential; forced refresh mới nhất
+giữ dữ liệu; hydrate từ storage không làm sống lại cache đã reset; partial Profile
+failure không tạo vòng fetch tự lặp, null rank thành công xoá rank cũ; huỷ/chưa rõ
+được hiển thị trung lập và không bị đếm thành thua.
+
+## Audit lịch sử — 2026-09-13
+
+Phần dưới giữ lại ghi chép tại thời điểm audit trước. Một số nhãn “dự kiến/chưa
+sửa” là trạng thái ban đầu; kết quả tích hợp hiện tại và giới hạn nằm ở đầu file.
+
 > Ngày audit: 2026-09-13
 > Phạm vi: **chỉ tầng logic** (data flow, cache, race condition, state, lifecycle).
 > Không sửa UI. Mọi thay đổi được ghi lại trong file này sau khi fix xong từng nhóm.

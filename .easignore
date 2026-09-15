@@ -21,6 +21,8 @@ ios/
 expo-env.d.ts
 
 # Local Codex indexes, logs, temporary files, and backups
+ECC/
+opencode.json
 .agents/
 .cache/
 .codegraph/

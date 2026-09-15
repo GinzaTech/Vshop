@@ -104,8 +104,7 @@ function matchIdsEqual(
   fresh: readonly { MatchID: string }[]
 ): boolean {
   if (old.length !== fresh.length) return false;
-  const oldSet = new Set(old.map((m) => m.MatchID));
-  return fresh.every((m) => oldSet.has(m.MatchID));
+  return fresh.every((match, index) => old[index].MatchID === match.MatchID);
 }
 
 // ===== Core sync function =====
@@ -117,7 +116,7 @@ function matchIdsEqual(
  * @param region - Region
  * @returns SyncReport — chi tiết gì đã thay đổi
  */
-// Map chống gọi trùng syncAllData: key = generation|accountKey|accessToken.
+// Deduplicate only callers using the same session, credentials and region.
 // Hai nơi gọi song song (vd AppWarmup + pull-to-refresh) với cùng phiên sẽ
 // nhận chung promise. Entry được xoá khi request settle.
 const syncRequests = new Map<string, Promise<SyncReport>>();
@@ -126,18 +125,18 @@ export function syncAllData(
   user: ReturnType<typeof useUserStore.getState>["user"],
   region: string
 ): Promise<SyncReport> {
-  const key = `${getSessionGeneration()}|${getAccountSessionKey(user)}|${user.accessToken}`;
+  const key = JSON.stringify([getSessionGeneration(), getAccountSessionKey(user), user.accessToken, user.entitlementsToken, region]);
   const pending = syncRequests.get(key);
   if (pending) return pending;
 
   // Đăng ký "full sync đang chạy" để refreshShopAndBalances nhường đường,
   // tránh fetch shop/balances song song rồi ghi đè lẫn nhau (stale-overwrite).
   const accountKey = getAccountSessionKey(user);
-  beginFullSync(accountKey);
+  const trackingGeneration = beginFullSync(accountKey);
 
   const request = syncAllDataInternal(user, region)
     .finally(() => {
-      endFullSync(accountKey);
+      endFullSync(accountKey, trackingGeneration);
     });
   syncRequests.set(key, request);
   void request.finally(() => {
@@ -159,12 +158,14 @@ async function syncAllDataInternal(
   const startTime = Date.now();
   const generation = getSessionGeneration();
   let expectedAccountKey = getAccountSessionKey(user);
+  let expectedEntitlementsToken = user.entitlementsToken;
   const assertCurrent = () => {
     const current = useUserStore.getState().user;
     if (
       generation !== getSessionGeneration() ||
       getAccountSessionKey(current) !== expectedAccountKey ||
-      current.accessToken !== user.accessToken
+      current.accessToken !== user.accessToken ||
+      current.entitlementsToken !== expectedEntitlementsToken
     ) throw new SessionChangedError();
     return current;
   };
@@ -190,6 +191,7 @@ async function syncAllDataInternal(
     entitlementsToken: authUser.entitlementsToken,
   });
   expectedAccountKey = getAccountSessionKey(authUser);
+  expectedEntitlementsToken = authUser.entitlementsToken;
 
   // Stamp TTL của shop/balances NGAY TẠI ĐÂY (không đợi cuối sync): dữ liệu
   // shop/balances vừa được fetch + ghi, nếu đợi đến cuối sync (có thể thêm
@@ -272,6 +274,7 @@ async function syncAllDataInternal(
   // stamp phía trên (chỉ khi fetch thành công). Việc này ngăn session nửa vời
   // vào app với các API action chết.
   await markStartupCacheReady(authUser);
+  assertCurrent();
 
   const report: SyncReport = {
     userChanged,
@@ -298,10 +301,11 @@ async function syncAllDataInternal(
 export function getCachedDataSnapshot() {
   const user = useUserStore.getState().user;
   const matchState = useMatchStore.getState();
+  const ownsMatches = Boolean(user.id) && matchState.authKey === getAccountSessionKey(user);
   return {
     user,
-    matches: matchState.matches,
-    totalMatches: matchState.totalMatches,
-    lastMatchUpdated: matchState.lastUpdated,
+    matches: ownsMatches ? matchState.matches : [],
+    totalMatches: ownsMatches ? matchState.totalMatches : 0,
+    lastMatchUpdated: ownsMatches ? matchState.lastUpdated : 0,
   };
 }

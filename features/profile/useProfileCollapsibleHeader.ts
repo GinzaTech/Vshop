@@ -9,12 +9,14 @@ import type { LayoutChangeEvent } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
 import {
   cancelAnimation,
+  type SharedValue,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withDecay,
 } from "react-native-reanimated";
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
+import { getProfileHeaderGeometry } from "~/features/profile/profile-transition";
 
 // Chiều cao của thanh segment sticky khi header đã thu gọn hoàn toàn.
 export const PROFILE_STICKY_SEGMENT_HEIGHT = 70;
@@ -30,7 +32,15 @@ export const PROFILE_STICKY_SEGMENT_HEIGHT = 70;
  * @returns {object} { bodyAnimatedStyle, contentPanGesture, handleContentScroll,
  *   handleHeaderLayout, headerAnimatedStyle, headerHeight, panGesture }
  */
-export function useProfileCollapsibleHeader() {
+export function useProfileCollapsibleHeader({
+  compactHeroHeight,
+  expandedHeroHeight,
+  modeProgress,
+}: {
+  compactHeroHeight: number;
+  expandedHeroHeight: SharedValue<number>;
+  modeProgress: SharedValue<number>;
+}) {
   const reduceMotionEnabled = useReducedMotion();
   const [headerHeight, setHeaderHeight] = React.useState(0);
   const collapseDistance = useSharedValue(0);
@@ -50,16 +60,18 @@ export function useProfileCollapsibleHeader() {
         nextHeaderHeight - PROFILE_STICKY_SEGMENT_HEIGHT
       );
 
-      setHeaderHeight((current) =>
-        Math.abs(current - nextHeaderHeight) > 0.5 ? nextHeaderHeight : current
-      );
-      collapseDistance.value = nextCollapseDistance;
-      collapseOffset.value = Math.min(
-        collapseOffset.value,
-        nextCollapseDistance
-      );
+      // Chỉ cần một lần chuyển body sang layout absolute. Trong lúc hero morph,
+      // body tự đi theo modeProgress trên UI thread thay vì setState mỗi frame.
+      setHeaderHeight((current) => current || nextHeaderHeight);
+      if (modeProgress.value <= 0.01 || collapseDistance.value === 0) {
+        collapseDistance.value = nextCollapseDistance;
+        collapseOffset.value = Math.min(
+          collapseOffset.value,
+          nextCollapseDistance
+        );
+      }
     },
-    [collapseDistance, collapseOffset]
+    [collapseDistance, collapseOffset, modeProgress]
   );
 
   // Pan gesture kéo trực tiếp trên header: chỉ kích hoạt khi kéo dọc
@@ -71,25 +83,55 @@ export function useProfileCollapsibleHeader() {
         .failOffsetX([-18, 18])
         .onBegin(() => {
           cancelAnimation(collapseOffset);
-          dragOrigin.value = collapseOffset.value;
+          const geometry = getProfileHeaderGeometry({
+            collapseOffset: collapseOffset.value,
+            expandedCollapseDistance: collapseDistance.value,
+            expandedHeroHeight: expandedHeroHeight.value,
+            compactHeroHeight,
+            modeProgress: modeProgress.value,
+          });
+          collapseOffset.value = geometry.collapseOffset;
+          dragOrigin.value = geometry.collapseOffset;
         })
         .onUpdate((event) => {
+          const geometry = getProfileHeaderGeometry({
+            collapseOffset: collapseOffset.value,
+            expandedCollapseDistance: collapseDistance.value,
+            expandedHeroHeight: expandedHeroHeight.value,
+            compactHeroHeight,
+            modeProgress: modeProgress.value,
+          });
           collapseOffset.value = Math.max(
             0,
             Math.min(
-              collapseDistance.value,
+              geometry.collapseDistance,
               dragOrigin.value - event.translationY
             )
           );
         })
         .onEnd((event) => {
           if (reduceMotionEnabled) return;
+          const geometry = getProfileHeaderGeometry({
+            collapseOffset: collapseOffset.value,
+            expandedCollapseDistance: collapseDistance.value,
+            expandedHeroHeight: expandedHeroHeight.value,
+            compactHeroHeight,
+            modeProgress: modeProgress.value,
+          });
           collapseOffset.value = withDecay({
             velocity: -event.velocityY,
-            clamp: [0, collapseDistance.value],
+            clamp: [0, geometry.collapseDistance],
           });
         }),
-    [collapseDistance, collapseOffset, dragOrigin, reduceMotionEnabled]
+    [
+      collapseDistance,
+      collapseOffset,
+      compactHeroHeight,
+      dragOrigin,
+      expandedHeroHeight,
+      modeProgress,
+      reduceMotionEnabled,
+    ]
   );
 
   // Pan gesture cho vùng nội dung (manual activation): phân tích hướng chạm —
@@ -121,12 +163,19 @@ export function useProfileCollapsibleHeader() {
           }
           if (verticalDistance <= horizontalDistance * 1.15) return;
 
+          const geometry = getProfileHeaderGeometry({
+            collapseOffset: collapseOffset.value,
+            expandedCollapseDistance: collapseDistance.value,
+            expandedHeroHeight: expandedHeroHeight.value,
+            compactHeroHeight,
+            modeProgress: modeProgress.value,
+          });
           const canCollapse =
             deltaY < 0 &&
-            collapseOffset.value < collapseDistance.value - 0.5;
+            geometry.collapseOffset < geometry.collapseDistance - 0.5;
           const canExpand =
             deltaY > 0 &&
-            collapseOffset.value > 0.5 &&
+            geometry.collapseOffset > 0.5 &&
             contentScrollOffset.value <= 1;
 
           if (canCollapse || canExpand) stateManager.activate();
@@ -134,29 +183,54 @@ export function useProfileCollapsibleHeader() {
         })
         .onBegin(() => {
           cancelAnimation(collapseOffset);
-          dragOrigin.value = collapseOffset.value;
+          const geometry = getProfileHeaderGeometry({
+            collapseOffset: collapseOffset.value,
+            expandedCollapseDistance: collapseDistance.value,
+            expandedHeroHeight: expandedHeroHeight.value,
+            compactHeroHeight,
+            modeProgress: modeProgress.value,
+          });
+          collapseOffset.value = geometry.collapseOffset;
+          dragOrigin.value = geometry.collapseOffset;
         })
         .onUpdate((event) => {
+          const geometry = getProfileHeaderGeometry({
+            collapseOffset: collapseOffset.value,
+            expandedCollapseDistance: collapseDistance.value,
+            expandedHeroHeight: expandedHeroHeight.value,
+            compactHeroHeight,
+            modeProgress: modeProgress.value,
+          });
           collapseOffset.value = Math.max(
             0,
             Math.min(
-              collapseDistance.value,
+              geometry.collapseDistance,
               dragOrigin.value - event.translationY
             )
           );
         })
         .onEnd((event) => {
           if (reduceMotionEnabled) return;
+          const geometry = getProfileHeaderGeometry({
+            collapseOffset: collapseOffset.value,
+            expandedCollapseDistance: collapseDistance.value,
+            expandedHeroHeight: expandedHeroHeight.value,
+            compactHeroHeight,
+            modeProgress: modeProgress.value,
+          });
           collapseOffset.value = withDecay({
             velocity: -event.velocityY,
-            clamp: [0, collapseDistance.value],
+            clamp: [0, geometry.collapseDistance],
           });
         }),
     [
       collapseDistance,
       collapseOffset,
+      compactHeroHeight,
       contentScrollOffset,
       dragOrigin,
+      expandedHeroHeight,
+      modeProgress,
       reduceMotionEnabled,
       touchStartX,
       touchStartY,
@@ -174,17 +248,33 @@ export function useProfileCollapsibleHeader() {
   });
 
   // Header trượt lên theo collapseOffset; body trượt bù để không hở khoảng trống.
-  const headerAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -collapseOffset.value }],
-  }));
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    const geometry = getProfileHeaderGeometry({
+      collapseOffset: collapseOffset.value,
+      expandedCollapseDistance: collapseDistance.value,
+      expandedHeroHeight: expandedHeroHeight.value,
+      compactHeroHeight,
+      modeProgress: modeProgress.value,
+    });
+    return { transform: [{ translateY: -geometry.collapseOffset }] };
+  });
 
-  const bodyAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: collapseDistance.value - collapseOffset.value,
-      },
-    ],
-  }));
+  const bodyAnimatedStyle = useAnimatedStyle(() => {
+    const geometry = getProfileHeaderGeometry({
+      collapseOffset: collapseOffset.value,
+      expandedCollapseDistance: collapseDistance.value,
+      expandedHeroHeight: expandedHeroHeight.value,
+      compactHeroHeight,
+      modeProgress: modeProgress.value,
+    });
+    return {
+      transform: [
+        {
+          translateY: geometry.collapseDistance - geometry.collapseOffset,
+        },
+      ],
+    };
+  });
 
   return {
     bodyAnimatedStyle,

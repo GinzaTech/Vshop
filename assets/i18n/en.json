@@ -300,7 +300,9 @@
     "result": {
       "win": "Win",
       "loss": "Loss",
-      "draw": "Draw"
+      "draw": "Draw",
+      "cancelled": "Cancelled",
+      "unknown": "Result unavailable"
     },
     "states": {
       "empty_title": "No matches found",

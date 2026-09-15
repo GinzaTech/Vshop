@@ -39,6 +39,7 @@ import {
   renewSavedAccountSession,
 } from "~/services/accounts/session";
 import { isSessionChangedError } from "~/utils/session-operations";
+import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 const NETWORK_RECOVERY_POLL_MS = 15_000;
 const AUTH_FAILURE_RECOVERY_COOLDOWN_MS = 5_000;
@@ -172,7 +173,7 @@ export default function AppWarmup() {
       })
       .catch((error) => {
         if (__DEV__ && !scheduler.isCancelled()) {
-          console.warn("[warmup] chat connection failed", error);
+          console.warn("[warmup] chat connection failed", sanitizeErrorForLog(error));
         }
       });
 
@@ -225,7 +226,7 @@ export default function AppWarmup() {
         });
       } catch (error) {
         if (__DEV__ && !scheduler.isCancelled()) {
-          console.warn("[warmup] background refresh failed", error);
+          console.warn("[warmup] background refresh failed", sanitizeErrorForLog(error));
         }
       }
     })();
