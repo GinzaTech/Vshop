@@ -173,9 +173,10 @@ Sau khi build:
 ### Bằng chứng release 4.1.8
 
 - Version/runtime `4.1.8`, Android `versionCode 89`, iOS `buildNumber 41`.
-- Build production cuối và asset GitHub đang chờ source commit này. Candidate `ebcdfbea-913a-4b67-84d1-9b00c2a81382` đã hoàn tất nhưng bị thay thế vì có trước guard archive và đợt căn chỉnh patch Expo SDK 57; không dùng candidate này làm artifact release.
+- EAS production build [`6e0a0273-9bac-46c5-b1d8-66c230b24557`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557) từ commit source `7e42d64` đã `FINISHED` trên channel `production` và xuất APK ký cho `com.android.vshop`.
+- Artifact GitHub: [`VShop-4.1.8-production-89.apk`](https://github.com/GinzaTech/Vshop/releases/download/v4.1.8/VShop-4.1.8-production-89.apk), 131.262.994 byte, SHA-256 `554AE2715CE64639413CD98F5318B26E23D6803A66B1CFD4303749F737157224`; `apksigner` xác minh APK Signature Scheme v2 với một signer.
 - `pnpm run check` đạt 73 suite / 770 test, strict TypeScript, ESLint không warning, audit policy và Android export/budget 9,91 MiB/7,44 MiB; Expo Doctor đạt 21/21. Build/asset GitHub không thay thế kiểm tra cài đặt trên thiết bị.
-- Build ID, URL, SHA-256 và bằng chứng chữ ký cuối sẽ được ghi bằng commit tài liệu tiếp theo sau khi APK đạt `FINISHED` và asset được upload/xác minh.
+- Không có thiết bị ADB kết nối sau khi artifact production hoàn tất, nên cài đặt/runtime production là **NOT VERIFIED**; kiểm thử UI máy thật của release này dùng development client cùng native version 4.1.8/code89.
 
 ## 10. Artifact policy
 

@@ -30,10 +30,13 @@ nguyên phía dưới như lịch sử quyết định.
 - 20 lần đổi Tổng quan/Chi tiết: 588 frame, P50 9 ms, P90/P95 11 ms, P99 13 ms,
   2,04% jank theo metric hiện tại và zero missed VSync. Đây là mẫu flow cụ thể,
   không phải chứng nhận hiệu năng cho mọi thiết bị.
-- Candidate EAS `ebcdfbea-913a-4b67-84d1-9b00c2a81382` đã `FINISHED` nhưng bị
-  thay thế vì có trước guard archive và căn chỉnh dependency. Bản production
-  cuối phải build lại từ commit source 4.1.8, sau đó mới ghi build ID/checksum
-  và phát hành; bằng chứng UI ở trên thuộc development client cùng native version.
+- EAS production build [`6e0a0273-9bac-46c5-b1d8-66c230b24557`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557)
+  từ commit `7e42d64` đã `FINISHED`: `com.android.vshop`, version 4.1.8/code89.
+  APK 131.262.994 byte có SHA-256
+  `554AE2715CE64639413CD98F5318B26E23D6803A66B1CFD4303749F737157224`
+  và chữ ký v2/1 signer hợp lệ. Không có thiết bị ADB sau khi artifact hoàn tất,
+  nên runtime production là **NOT VERIFIED**; bằng chứng UI ở trên thuộc
+  development client cùng native version.
 - Quét release phải tiếp tục loại `.env`, token/cookie, keystore, APK và output
   build khỏi commit. APK chỉ được đính kèm GitHub Release, không nằm trong Git.
 

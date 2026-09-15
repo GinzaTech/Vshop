@@ -56,10 +56,9 @@ See the [17 architecture diagram types](markdown/README.md),
 Source checks, real-device UI testing and a finished EAS APK are separate results;
 the version number alone does not certify an available production artifact.
 
-The final signed `VShop-4.1.8-production-89.apk` will be linked here after an
-EAS production build from the committed 4.1.8 source reaches `FINISHED` and
-its GitHub Release asset checksum is verified. The earlier completed candidate
-was superseded after the archive input guard and SDK 57 patch alignment.
+Download the signed [`VShop-4.1.8-production-89.apk`](https://github.com/GinzaTech/Vshop/releases/download/v4.1.8/VShop-4.1.8-production-89.apk), or inspect the
+[completed EAS build](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557). The 131,262,994-byte artifact has SHA-256
+`554AE2715CE64639413CD98F5318B26E23D6803A66B1CFD4303749F737157224`.
 
 ## Release 4.1.6 highlights
 
@@ -437,10 +436,9 @@ Xem [17 loại sơ đồ kiến trúc](markdown/README.md),
 Check mã nguồn, test UI máy thật và APK EAS hoàn tất là ba kết quả riêng biệt;
 chỉ tăng version không có nghĩa bản production đã tồn tại.
 
-APK ký cuối `VShop-4.1.8-production-89.apk` sẽ được gắn tại đây sau khi build
-EAS production từ source 4.1.8 đã commit đạt `FINISHED` và checksum asset trên
-GitHub Release được xác minh. Bản candidate hoàn tất trước đó đã bị thay thế
-sau khi bổ sung guard dữ liệu archive và căn chỉnh patch Expo SDK 57.
+Tải APK đã ký [`VShop-4.1.8-production-89.apk`](https://github.com/GinzaTech/Vshop/releases/download/v4.1.8/VShop-4.1.8-production-89.apk), hoặc xem
+[build EAS đã hoàn tất](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557). Artifact 131.262.994 byte có SHA-256
+`554AE2715CE64639413CD98F5318B26E23D6803A66B1CFD4303749F737157224`.
 
 ## Điểm nổi bật bản 4.1.6
 

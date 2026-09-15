@@ -35,8 +35,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Build metadata
 
 - App/runtime version: `4.1.8`; Android version code: `89`; iOS build number: `41`.
-- The final EAS production build and GitHub Release asset are pending this source commit. Completed candidate build `ebcdfbea-913a-4b67-84d1-9b00c2a81382` is superseded because it predates the malformed-archive guard and Expo SDK 57 patch alignment; it is not the 4.1.8 release artifact.
-- Final build ID, artifact URL, SHA-256 and signature evidence will be recorded in a follow-up documentation commit after verification.
+- EAS production build [`6e0a0273-9bac-46c5-b1d8-66c230b24557`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557) reached `FINISHED` on channel `production` from source commit `7e42d64a3e8013d9ab59ba8e6eb88a57cf9cfa73` and produced a signed APK for `com.android.vshop`.
+- Release asset: [`VShop-4.1.8-production-89.apk`](https://github.com/GinzaTech/Vshop/releases/download/v4.1.8/VShop-4.1.8-production-89.apk), 131,262,994 bytes, SHA-256 `554AE2715CE64639413CD98F5318B26E23D6803A66B1CFD4303749F737157224`; APK Signature Scheme v2 verification passed with one signer.
+- Static APK verification passed for package/version/SDK/signature. No ADB device was connected after the production artifact completed, so production installation/runtime is **NOT VERIFIED**; the UI evidence above belongs to the development client built from the same 4.1.8 native version.
+- This follow-up documentation commit does not change the native or JavaScript payload built from `7e42d64`.
 
 ## [4.1.7] - 2026-09-15
 

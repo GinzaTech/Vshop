@@ -49,11 +49,14 @@ Nguồn là `app.json`, plugin Expo và TypeScript. `production` xuất APK;
 `production-store` xuất AAB. iOS cần pipeline và signing tương ứng, không
 được suy ra đã build chỉ vì Android thành công. OTA không thay native binary.
 
-Release 4.1.8 sẽ dùng EAS build production cuối từ commit source đã kiểm chứng,
-package `com.android.vshop`, version/code `4.1.8/89`. Candidate
-`ebcdfbea-913a-4b67-84d1-9b00c2a81382` bị thay thế vì có trước guard archive và
-căn chỉnh patch SDK 57. Git chỉ chứa source và release metadata; APK cuối được
-đính kèm ngoài Git tại GitHub Release `v4.1.8` sau khi đạt `FINISHED` và kiểm tra checksum.
+Release 4.1.8 dùng EAS build
+[`6e0a0273-9bac-46c5-b1d8-66c230b24557`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557)
+từ commit `7e42d64`, package `com.android.vshop`, version/code `4.1.8/89`.
+Build đạt `FINISHED`; APK ký có SHA-256
+`554AE2715CE64639413CD98F5318B26E23D6803A66B1CFD4303749F737157224`.
+Git chỉ chứa source và release metadata; APK được đính kèm ngoài Git tại
+GitHub Release `v4.1.8`. Runtime production chưa được kiểm chứng vì thiết bị ADB
+không còn kết nối sau khi artifact hoàn tất.
 
 Nguồn: [eas.json](../eas.json), [app.json](../app.json),
 [quality workflow](../.github/workflows/quality.yml), [build rules](../BUILD_DESIGN_SYSTEM.md).
