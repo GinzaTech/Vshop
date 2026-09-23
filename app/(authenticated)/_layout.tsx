@@ -30,7 +30,7 @@ import Reanimated, {
 } from "react-native-reanimated";
 
 import AppWarmup from "~/components/AppWarmup";
-import MediaPopup from "~/components/popups/MediaPopup";
+import MediaPopup, { useMediaPopupStore } from "~/components/popups/MediaPopup";
 import PressFeedback from "~/components/ui/PressFeedback";
 import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
 import { COLORS, SHADOWS } from "~/constants/DesignSystem";
@@ -347,6 +347,8 @@ export function FloatingTabBar({
         <View style={styles.tabBarClip}>
           {!collapsed ? (
             <Reanimated.View
+              accessibilityRole="tablist"
+              testID="primary-tab-list"
               style={[
                 styles.expandedTabContent,
                 expandedContentAnimatedStyle,
@@ -375,7 +377,7 @@ export function FloatingTabBar({
                 <Pressable
                   key={route.key}
                   testID={`primary-tab-${route.name}`}
-                  accessibilityRole="button"
+                  accessibilityRole="tab"
                   accessibilityLabel={
                     options.tabBarAccessibilityLabel ??
                     PRIMARY_ROUTES[route.name].label
@@ -546,6 +548,7 @@ export function FloatingTabBar({
 function Layout() {
   const { t } = useTranslation();
   const reduceMotionEnabled = useMotionPreference();
+  const mediaPopupOpen = useMediaPopupStore((state) => state.entries.length > 0);
   const { width: viewportWidth } = useWindowDimensions();
   const primaryTabScreenOptions = useMemo(
     () =>
@@ -557,8 +560,17 @@ function Layout() {
 
   return (
     <>
-      <AppWarmup />
-      <Tabs
+      <View
+        accessibilityElementsHidden={mediaPopupOpen}
+        importantForAccessibility={
+          mediaPopupOpen ? "no-hide-descendants" : "auto"
+        }
+        pointerEvents={mediaPopupOpen ? "none" : "auto"}
+        testID="authenticated-navigation-content"
+        style={styles.authenticatedContent}
+      >
+        <AppWarmup />
+        <Tabs
         initialRouteName="profile"
         backBehavior="history"
         detachInactiveScreens
@@ -741,7 +753,8 @@ function Layout() {
             headerShadowVisible: false,
           }}
         />
-      </Tabs>
+        </Tabs>
+      </View>
       <MediaPopup />
     </>
   );
@@ -749,6 +762,9 @@ function Layout() {
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  authenticatedContent: {
+    flex: 1,
+  },
   secondaryHeader: {
     backgroundColor: COLORS.BACKGROUND,
   },

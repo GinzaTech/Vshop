@@ -2,7 +2,9 @@ import {
   hasPendingProfileSeasonRequest,
   inspectSeasonUpdatePage,
   resolveProfileSeason,
+  resolveProfileSeasonTimeWindow,
 } from "~/features/profile/profile-season-data";
+import type { MatchRecordingBaseline } from "~/services/matches/match-recording";
 import type { LeaderboardSeasonOption } from "~/utils/leaderboard-seasons";
 
 const seasons: LeaderboardSeasonOption[] = [
@@ -118,5 +120,27 @@ describe("profile season data", () => {
         "account-new"
       )
     ).toBe(false);
+  });
+
+  it("clamps the baseline Act window without changing later Acts", () => {
+    const baseline: MatchRecordingBaseline = {
+      accountKey: "ap|account-a",
+      schemaVersion: 1,
+      startedAt: Date.parse("2026-06-01T00:00:00Z"),
+      startSeasonId: "season-target",
+    };
+
+    expect(
+      resolveProfileSeasonTimeWindow(seasons, "season-target", baseline)
+    ).toEqual({
+      endTimeMs: Date.parse("2026-08-01T00:00:00Z"),
+      startTimeMs: baseline.startedAt,
+    });
+    expect(
+      resolveProfileSeasonTimeWindow(seasons, "season-current", baseline)
+    ).toEqual({
+      endTimeMs: Infinity,
+      startTimeMs: Date.parse("2026-08-01T00:00:00Z"),
+    });
   });
 });

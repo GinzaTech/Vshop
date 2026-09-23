@@ -12,6 +12,7 @@ let mockLiveUser = mockUser;
 let mockCache: ProfileWarmCache;
 let mockCacheFresh = true;
 const mockIdleTasks: (() => void)[] = [];
+const mockGetPublicWeapons = jest.fn(async () => []);
 jest.mock("~/utils/valorant-api", () => ({
   playerLoadout: jest.fn(), ownedItems: jest.fn(), extractOwnedItemIds: (value: string[]) => value,
 }));
@@ -26,7 +27,9 @@ jest.mock("~/utils/idle-task", () => ({ runWhenIdle: (callback: () => void) => {
   return { cancel: jest.fn() };
 } }));
 jest.mock("~/mocks/profile-ui", () => ({ PROFILE_DEMO_RANK: null }));
-jest.mock("~/services/valorant/public-api", () => ({ getPublicWeapons: async () => [] }));
+jest.mock("~/services/valorant/public-api", () => ({
+  getPublicWeapons: () => mockGetPublicWeapons(),
+}));
 jest.mock("~/utils/log-redaction", () => ({ sanitizeErrorForLog: () => ({ name: "Error" }) }));
 
 const loadout = { Guns: [], Sprays: [], ActiveExpressions: [], Identity: { PlayerCardID: "old" } } as unknown as PlayerLoadoutResponse;
@@ -67,6 +70,7 @@ describe("profile refresh hook", () => {
     }
     await act(async () => { renderer = TestRenderer.create(<Harness />); });
     setProfileCache.mockClear();
+    mockGetPublicWeapons.mockClear();
   });
   afterEach(() => { act(() => renderer.unmount()); });
 
@@ -142,5 +146,42 @@ describe("profile refresh hook", () => {
     await act(async () => { await actions.handleRefresh(); });
     expect(mockIdleTasks).toHaveLength(0);
     expect(playerLoadout).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the development demo fully offline", async () => {
+    act(() => renderer.unmount());
+    function DemoHarness() {
+      const demoState = useProfileState({
+        cachedLoadoutSnapshot: loadout,
+        cachedProfile: mockCache,
+        user: mockUser,
+        isProfileDemo: true,
+        cachedCompetitiveRank: rank,
+      });
+      useProfileFetch({
+        ...demoState,
+        hasAuth: false,
+        user: mockUser,
+        cachedProfile: mockCache,
+        cachedLoadoutSnapshot: loadout,
+        cachedCompetitiveRank: rank,
+        authKey: "demo",
+        isProfileDemo: true,
+        setProfileCache,
+        setUser,
+        t,
+        fetchMatches,
+        fetchSeasonStats,
+      });
+      return null;
+    }
+
+    await act(async () => {
+      renderer = TestRenderer.create(<DemoHarness />);
+    });
+
+    expect(mockGetPublicWeapons).not.toHaveBeenCalled();
+    expect(playerLoadout).not.toHaveBeenCalled();
+    expect(ownedItems).not.toHaveBeenCalled();
   });
 });

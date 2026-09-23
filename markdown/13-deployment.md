@@ -27,11 +27,13 @@ flowchart TB
         App[Native app + Hermes JS]
         Modules[Native modules]
         Cache[(MMKV cache)]
+        Baseline[(Per-account Act baseline)]
         Archive[(SQLite match archive theo account + Act)]
         Secure[(Encrypted session storage)]
         Keys[Keystore / Keychain]
         App --> Modules
         App --> Cache
+        App --> Baseline
         App --> Archive
         App --> Secure
         Secure --> Keys
@@ -48,6 +50,8 @@ Android/iOS trong repo là output prebuild, không phải nguồn cấu hình ch
 Nguồn là `app.json`, plugin Expo và TypeScript. `production` xuất APK;
 `production-store` xuất AAB. iOS cần pipeline và signing tương ứng, không
 được suy ra đã build chỉ vì Android thành công. OTA không thay native binary.
+Baseline là metadata local nhỏ qua storage adapter; SQLite vẫn giữ archive và
+không đồng bộ mốc này giữa thiết bị.
 
 Release 4.1.8 dùng EAS build
 [`6e0a0273-9bac-46c5-b1d8-66c230b24557`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557)

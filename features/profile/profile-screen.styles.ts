@@ -5,6 +5,7 @@
 import { StyleSheet } from "react-native";
 
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { PROFILE_HERO_COMPACT_HEIGHT } from "~/features/profile/profile-transition";
 
 export const styles = StyleSheet.create({
   // ── Khung màn + pager ngang giữa các tab ──
@@ -114,8 +115,23 @@ export const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 10,
     borderRadius: RADIUS.card,
-    borderWidth: 1,
     overflow: "hidden",
+  },
+  heroSurface: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    left: 0,
+    borderRadius: RADIUS.card,
+    backgroundColor: COLORS.ACCENT_DEEP,
+  },
+  heroExpandedSurface: {
+    bottom: 0,
+  },
+  heroCompactSurface: {
+    height: PROFILE_HERO_COMPACT_HEIGHT,
+    borderWidth: 1,
+    borderColor: "rgba(48,56,66,1)",
   },
   heroExpandedLayer: {
     position: "absolute",
@@ -126,7 +142,11 @@ export const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   heroCompactLayer: {
-    ...StyleSheet.absoluteFill,
+    position: "absolute",
+    top: 0,
+    right: 0,
+    left: 0,
+    height: PROFILE_HERO_COMPACT_HEIGHT,
   },
   heroCompactPressTarget: {
     flex: 1,

@@ -44,14 +44,20 @@ export function MatchDetailTabs({
   ];
 
   return (
-    <View style={styles.tabs} accessibilityRole="tablist">
+    <View
+      accessibilityRole="tablist"
+      testID="match-detail-tabs"
+      style={styles.tabs}
+    >
       {tabs.map((tab) => {
         const selected = tab.id === activeTab;
         return (
           <Pressable
             key={tab.id}
             accessibilityRole="tab"
+            accessibilityLabel={tab.label}
             accessibilityState={{ selected }}
+            testID={`match-detail-tab-${tab.id}`}
             onPress={() => onChange(tab.id)}
             style={({ pressed }) => [
               styles.tab,

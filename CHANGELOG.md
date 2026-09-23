@@ -6,6 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- Start Profile Act history from an immutable per-account local baseline. The current Act resets to zero and counts only post-baseline Competitive matches; legacy Act rows remain recoverable but are hidden and ignored, future Acts stay selectable, and the start Act cannot fall back to Riot's full-Act MMR totals.
+- Render match-economy and Profile RR trend lines on a shared native Skia canvas instead of creating one rotated React Native view per segment. Web keeps a lightweight view fallback and does not load CanvasKit.
+- Keep the Profile mode morph on compositor-friendly `transform`/`opacity` layers, move the segmented control with the same shared progress, use the standard 220 ms motion token, skip per-label reveals and hidden rank/stat subtree animation during the morph, and update full-screen backgrounds once instead of repainting them every frame.
+- Add a repository UI/UX workflow, reusable implementation-plan template, current quality roadmap and generated-asset brief/provenance workspace. User-scoped Codex skills remain advisory; VShop design/motion tokens and repository quality gates stay authoritative.
+- Fix the multi-Act selector's blocked hit area by letting empty space in the transformed Profile header pass touches through, releasing undecided manual gestures on touch-up/cancel, and disabling the outer collapse pan while the interactive player-data dashboard is visible. Stage a cold dashboard mount one frame before starting its visible morph.
+- Allow an explicit DEV-only Profile demo deep link to replace an early root bootstrap snapshot and keep that demo offline, so gesture and visual testing does not depend on a valid Riot session or emit public-API error overlays.
+- Localize Profile statistics and the audited Equipment, Agent, Item Upgrades and About copy; add tablist/state semantics, Android media-modal background isolation, stable Match Detail selectors, accessible economy markers and announced scoreboard sort direction.
+
+### Validation
+
+- `pnpm run check` passed: strict TypeScript, zero-warning ESLint, 79 Jest suites / 821 tests, production dependency-audit policy, and Android export/budget (10.47 MiB total; 8.00 MiB JS/Hermes). Critical `season-actions.ts` branch coverage is 80.82%.
+- DEV-only Match/Profile fixture payloads now resolve to one empty fail-closed module in production, preserving the full development harness while keeping the unchanged 8 MiB Hermes budget.
+- Development client `4.1.8 (89)` on Android device `45218ba` verified current/middle/old-Episode season taps, selected semantics, metric changes and Overview/Details state; the final sampled flow produced no package FATAL, ANR or SIGSEGV. Full 38-Act swipe on a live Riot session and manual TalkBack traversal remain **NOT VERIFIED**.
+- An eight-Act offline fixture verified selector overflow on hardware: left/right horizontal swipes changed visible chip bounds, first/middle/final Act taps selected correctly, and a vertical swipe beginning on the selector still scrolled the dashboard.
+- The reset-from-now one-season deep link and live Riot-account migration are **NOT VERIFIED** because the Android device disconnected from ADB before this final pass; source/component tests are not presented as device proof.
+- The demo forward morph improved from 89.47% jank/P95 117 ms to a five-run median 66.67%/38 ms; reverse measured 75%/46 ms after adding the static-rank fast path. The 220 ms interaction is materially shorter, but the ≤5%/≤32 ms roadmap target is not met and remains open.
+
 ## [4.1.8] - 2026-09-16
 
 ### Changed

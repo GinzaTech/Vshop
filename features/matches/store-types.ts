@@ -16,6 +16,10 @@ export interface MatchState {
   totalMatches: number;
   /** Index cuối cùng đã tải (dùng để phân trang) */
   historyEndIndex: number;
+  /** Mốc local bắt đầu ghi Act cho authKey hiện tại (0 = chưa migrate). */
+  recordingStartedAt: number;
+  /** Act đang active khi tạo mốc; null cho tới khi Riot content resolve. */
+  recordingStartSeasonId: string | null;
   /** Thống kê hiệu suất act competitive đang chạy (null = chưa tính/không có). */
   seasonStats: SeasonPerformanceStats | null;
   /** Thống kê đã tải theo Act; seasonStats phía trên vẫn luôn là Act hiện tại. */
@@ -70,6 +74,8 @@ export type PersistedMatchState = Pick<
   | "lastUpdated"
   | "totalMatches"
   | "historyEndIndex"
+  | "recordingStartedAt"
+  | "recordingStartSeasonId"
   | "seasonStats"
   | "seasonStatsById"
   | "seasonMatchesById"
@@ -80,12 +86,14 @@ export type PersistedMatchState = Pick<
 export type MatchCacheSnapshot = Pick<MatchState,
   "authKey" | "matches" | "detailsById" | "error" | "lastUpdated" |
   "totalMatches" | "historyEndIndex" | "seasonStats" | "seasonStatsById" |
-  "seasonMatchesById" | "seasonOptions"
+  "seasonMatchesById" | "seasonOptions" | "recordingStartedAt" |
+  "recordingStartSeasonId"
 >;
 export type MatchStoreAccess = Pick<StoreApi<MatchState>, "setState" | "getState">;
 
 export function emptyMatchCache(): MatchCacheSnapshot {
   return { authKey: "guest", matches: [], detailsById: {}, error: null,
-    lastUpdated: 0, totalMatches: 0, historyEndIndex: 0, seasonStats: null,
+    lastUpdated: 0, totalMatches: 0, historyEndIndex: 0,
+    recordingStartedAt: 0, recordingStartSeasonId: null, seasonStats: null,
     seasonStatsById: {}, seasonMatchesById: {}, seasonOptions: [] };
 }

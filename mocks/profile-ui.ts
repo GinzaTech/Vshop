@@ -1,4 +1,3 @@
-import { mockMatchHistory } from "~/mocks/match-ui";
 import type {
   MatchHistoryRecord,
   SeasonPerformanceStats,
@@ -8,8 +7,35 @@ import type { CompetitiveRankSummary } from "~/utils/profile-cache";
 import { defaultUser } from "~/utils/valorant-user";
 
 export const PROFILE_DEMO_CURRENT_SEASON_ID = "profile-demo-e10-a2";
-const PROFILE_DEMO_PREVIOUS_SEASON_ID = "profile-demo-e10-a1";
-const PROFILE_DEMO_OLDER_SEASON_ID = "profile-demo-e9-a3";
+
+type DemoSeason = readonly [
+  id: string,
+  name: string,
+  startTime: string,
+  matchSampleSize: number,
+  offsetDays: number,
+  acs: number,
+  adr: number,
+  deaths: number,
+  headshotPercent: number,
+  kast: number,
+  kd: number,
+  kills: number,
+  losses: number,
+  matchCount: number,
+  wins: number,
+];
+
+const PROFILE_DEMO_SEASONS: readonly DemoSeason[] = [
+  [PROFILE_DEMO_CURRENT_SEASON_ID, "Episode 10 · Act 2", "2026-08-01T00:00:00Z", 8, 0, 238, 158.4, 418, 28.6, 74.2, 1.19, 497, 12, 30, 18],
+  ["profile-demo-e10-a1", "Episode 10 · Act 1", "2026-05-01T00:00:00Z", 7, 90, 221, 149.1, 386, 25.4, 71.8, 1.08, 417, 13, 28, 15],
+  ["profile-demo-e9-a3", "Episode 9 · Act 3", "2026-02-01T00:00:00Z", 6, 180, 207, 141.6, 342, 23.8, 69.5, 0.96, 328, 14, 25, 11],
+  ["profile-demo-e9-a2", "Episode 9 · Act 2", "2025-11-01T00:00:00Z", 5, 270, 198, 136.8, 315, 22.9, 68.4, 0.94, 296, 13, 23, 10],
+  ["profile-demo-e9-a1", "Episode 9 · Act 1", "2025-08-01T00:00:00Z", 5, 360, 212, 145.2, 301, 24.1, 70.3, 1.02, 307, 10, 22, 12],
+  ["profile-demo-e8-a3", "Episode 8 · Act 3", "2025-05-01T00:00:00Z", 4, 450, 204, 139.7, 288, 21.8, 67.9, 0.98, 282, 11, 21, 10],
+  ["profile-demo-e8-a2", "Episode 8 · Act 2", "2025-02-01T00:00:00Z", 4, 540, 219, 151.3, 276, 26.2, 72.1, 1.11, 306, 8, 20, 12],
+  ["profile-demo-e8-a1", "Episode 8 · Act 1", "2024-11-01T00:00:00Z", 4, 630, 193, 132.5, 259, 20.6, 66.7, 0.91, 236, 10, 18, 8],
+];
 
 export const PROFILE_DEMO_USER: typeof defaultUser = {
   ...defaultUser,
@@ -17,16 +43,8 @@ export const PROFILE_DEMO_USER: typeof defaultUser = {
   name: "KONA",
   TagLine: "DEV",
   region: "ap",
-  balances: {
-    vp: 2_450,
-    rad: 185,
-    fag: 0,
-    kc: 7_600,
-  },
-  progress: {
-    level: 247,
-    xp: 0,
-  },
+  balances: { vp: 2_450, rad: 185, fag: 0, kc: 7_600 },
+  progress: { level: 247, xp: 0 },
   accessToken: "",
   entitlementsToken: "",
   idToken: "",
@@ -45,165 +63,155 @@ export const PROFILE_DEMO_RANK: CompetitiveRankSummary = {
   actGames: 30,
 };
 
-export const PROFILE_DEMO_SEASON_OPTIONS: LeaderboardSeasonOption[] = [
-  {
-    id: PROFILE_DEMO_CURRENT_SEASON_ID,
-    name: "Episode 10 · Act 2",
-    isActive: true,
-    startTime: "2026-08-01T00:00:00Z",
-  },
-  {
-    id: PROFILE_DEMO_PREVIOUS_SEASON_ID,
-    name: "Episode 10 · Act 1",
-    isActive: false,
-    startTime: "2026-05-01T00:00:00Z",
-  },
-  {
-    id: PROFILE_DEMO_OLDER_SEASON_ID,
-    name: "Episode 9 · Act 3",
-    isActive: false,
-    startTime: "2026-02-01T00:00:00Z",
-  },
-];
-
-const buildSeasonMatches = (
-  seasonId: string,
-  idSuffix: string,
-  count: number,
-  timeOffsetMs: number
-): MatchHistoryRecord[] =>
-  mockMatchHistory.slice(0, count).map((match, index) => ({
-    ...match,
-    MatchID: `${match.MatchID}-${idSuffix}`,
-    GameStartTime: match.GameStartTime - timeOffsetMs - index * 60_000,
-    stats: match.stats
-      ? {
-          ...match.stats,
-          seasonId,
-        }
-      : null,
+export const PROFILE_DEMO_SEASON_OPTIONS: LeaderboardSeasonOption[] =
+  PROFILE_DEMO_SEASONS.map(([id, name, startTime], index) => ({
+    id,
+    name,
+    isActive: index === 0,
+    startTime,
   }));
 
-export const PROFILE_DEMO_MATCHES_BY_SEASON: Record<
-  string,
-  MatchHistoryRecord[]
-> = {
-  [PROFILE_DEMO_CURRENT_SEASON_ID]: buildSeasonMatches(
-    PROFILE_DEMO_CURRENT_SEASON_ID,
-    "e10-a2",
-    8,
-    0
-  ),
-  [PROFILE_DEMO_PREVIOUS_SEASON_ID]: buildSeasonMatches(
-    PROFILE_DEMO_PREVIOUS_SEASON_ID,
-    "e10-a1",
-    7,
-    90 * 24 * 60 * 60 * 1000
-  ),
-  [PROFILE_DEMO_OLDER_SEASON_ID]: buildSeasonMatches(
-    PROFILE_DEMO_OLDER_SEASON_ID,
-    "e9-a3",
-    6,
-    180 * 24 * 60 * 60 * 1000
-  ),
+const DAY_MS = 86_400_000;
+const DEMO_AGENTS = ["Sova", "Jett", "Omen", "Sage"] as const;
+const DEMO_MAPS = ["Ascent", "Haven", "Lotus", "Bind"] as const;
+const buildSeasonMatches = (
+  season: DemoSeason
+): MatchHistoryRecord[] => {
+  const [id, , startTime, sampleSize, offsetDays] = season;
+  const seasonStartTime = Date.parse(startTime) - offsetDays * DAY_MS;
+  return Array.from({ length: sampleSize }, (_, index) => {
+    const kills = 22 - index;
+    const deaths = 13 + (index % 4);
+    const assists = 4 + (index % 5);
+    const roundsWon = index % 3 === 2 ? 10 : 13;
+    const roundsLost = index % 3 === 2 ? 13 : 9 + (index % 3);
+    const won = roundsWon > roundsLost;
+    const agentName = DEMO_AGENTS[index % DEMO_AGENTS.length];
+    const mapName = DEMO_MAPS[index % DEMO_MAPS.length];
+    const kd = kills / deaths;
+    return {
+      MatchID: `${id}-${index + 1}`,
+      GameStartTime: seasonStartTime + (sampleSize - index) * DAY_MS,
+      QueueID: "competitive",
+      stats: {
+        kda: `${kills}/${deaths}/${assists}`,
+        kills,
+        deaths,
+        assists,
+        score: kills * 215,
+        acs: 205 + index * 4,
+        adr: 138 + index * 2,
+        kd,
+        kdRatio: kd.toFixed(2),
+        headshotPercent: 22 + index,
+        headshotPct: `${22 + index}%`,
+        placement: index + 1,
+        roundsPlayed: roundsWon + roundsLost,
+        won,
+        result: won ? "win" : "loss",
+        roundsWon,
+        roundsLost,
+        agentIcon: null,
+        agentId: agentName,
+        agentName,
+        agentPortrait: null,
+        mapId: mapName,
+        mapName,
+        mapImage: null,
+        gameMode: "Competitive",
+        seasonId: id,
+        rankTier: 18,
+        rankName: "Diamond 1",
+        rankIcon: null,
+        rrEarned: won ? 18 : -16,
+        rrAfter: 64,
+        rrBefore: won ? 46 : 80,
+        rrPerformanceBonus: null,
+        rrAfkPenalty: null,
+        competitiveMovement: null,
+      },
+    };
+  });
 };
 
-const buildSeasonStats = (
-  seasonId: string,
-  seasonName: string,
-  values: {
-    acs: number;
-    adr: number;
-    deaths: number;
-    headshotPercent: number;
-    kast: number;
-    kd: number;
-    kills: number;
-    losses: number;
-    matchCount: number;
-    wins: number;
-  }
-): SeasonPerformanceStats => ({
-  calculationVersion: 6,
-  seasonId,
-  seasonName,
-  matchCount: values.matchCount,
-  wins: values.wins,
-  losses: values.losses,
-  kills: values.kills,
-  deaths: values.deaths,
-  score: Math.round(values.acs * values.matchCount * 21),
-  damage: Math.round(values.adr * values.matchCount * 21),
-  roundsPlayed: values.matchCount * 21,
-  kastRounds: Math.round((values.kast / 100) * values.matchCount * 21),
-  kastRoundsPlayed: values.matchCount * 21,
-  headshots: Math.round(values.kills * (values.headshotPercent / 100)),
-  bodyshots: Math.round(values.kills * 2.15),
-  legshots: Math.round(values.kills * 0.18),
-  headshotPercent: values.headshotPercent,
-  kd: values.kd,
-  acs: values.acs,
-  adr: values.adr,
-  kast: values.kast,
-  winRate: (values.wins / values.matchCount) * 100,
-  updatedAt: Date.parse("2026-09-15T00:00:00Z"),
+const seasonEntries = PROFILE_DEMO_SEASONS.map((season) => {
+  const [
+    id,
+    name,
+    ,
+    ,
+    ,
+    acs,
+    adr,
+    deaths,
+    headshotPercent,
+    kast,
+    kd,
+    kills,
+    losses,
+    matchCount,
+    wins,
+  ] = season;
+  const matches = buildSeasonMatches(season);
+  const roundsPlayed = matchCount * 21;
+  const stats: SeasonPerformanceStats = {
+    calculationVersion: 6,
+    seasonId: id,
+    seasonName: name,
+    matchCount,
+    wins,
+    losses,
+    kills,
+    deaths,
+    score: Math.round(acs * roundsPlayed),
+    damage: Math.round(adr * roundsPlayed),
+    roundsPlayed,
+    kastRounds: Math.round((kast / 100) * roundsPlayed),
+    kastRoundsPlayed: roundsPlayed,
+    headshots: Math.round(kills * (headshotPercent / 100)),
+    bodyshots: Math.round(kills * 2.15),
+    legshots: Math.round(kills * 0.18),
+    headshotPercent,
+    kd,
+    acs,
+    adr,
+    kast,
+    winRate: (wins / matchCount) * 100,
+    updatedAt: Date.parse("2026-09-15T00:00:00Z"),
+  };
+  return [id, matches, stats] as const;
 });
 
-export const PROFILE_DEMO_STATS_BY_SEASON: Record<
-  string,
-  SeasonPerformanceStats
-> = {
-  [PROFILE_DEMO_CURRENT_SEASON_ID]: buildSeasonStats(
-    PROFILE_DEMO_CURRENT_SEASON_ID,
-    "Episode 10 · Act 2",
-    {
-      acs: 238,
-      adr: 158.4,
-      deaths: 418,
-      headshotPercent: 28.6,
-      kast: 74.2,
-      kd: 1.19,
-      kills: 497,
-      losses: 12,
-      matchCount: 30,
-      wins: 18,
-    }
-  ),
-  [PROFILE_DEMO_PREVIOUS_SEASON_ID]: buildSeasonStats(
-    PROFILE_DEMO_PREVIOUS_SEASON_ID,
-    "Episode 10 · Act 1",
-    {
-      acs: 221,
-      adr: 149.1,
-      deaths: 386,
-      headshotPercent: 25.4,
-      kast: 71.8,
-      kd: 1.08,
-      kills: 417,
-      losses: 13,
-      matchCount: 28,
-      wins: 15,
-    }
-  ),
-  [PROFILE_DEMO_OLDER_SEASON_ID]: buildSeasonStats(
-    PROFILE_DEMO_OLDER_SEASON_ID,
-    "Episode 9 · Act 3",
-    {
-      acs: 207,
-      adr: 141.6,
-      deaths: 342,
-      headshotPercent: 23.8,
-      kast: 69.5,
-      kd: 0.96,
-      kills: 328,
-      losses: 14,
-      matchCount: 25,
-      wins: 11,
-    }
-  ),
-};
-
+export const PROFILE_DEMO_MATCHES_BY_SEASON = Object.fromEntries(
+  seasonEntries.map(([id, matches]) => [id, matches])
+) as Record<string, MatchHistoryRecord[]>;
+export const PROFILE_DEMO_STATS_BY_SEASON = Object.fromEntries(
+  seasonEntries.map(([id, , stats]) => [id, stats])
+) as Record<string, SeasonPerformanceStats>;
 export const PROFILE_DEMO_CURRENT_STATS =
   PROFILE_DEMO_STATS_BY_SEASON[PROFILE_DEMO_CURRENT_SEASON_ID];
 export const PROFILE_DEMO_CURRENT_MATCHES =
   PROFILE_DEMO_MATCHES_BY_SEASON[PROFILE_DEMO_CURRENT_SEASON_ID];
+
+export const getProfileDemoSeasonData = (recordingOnly = false) => {
+  if (!recordingOnly) {
+    return {
+      currentMatches: PROFILE_DEMO_CURRENT_MATCHES,
+      currentStats: PROFILE_DEMO_CURRENT_STATS,
+      seasonMatchesById: PROFILE_DEMO_MATCHES_BY_SEASON,
+      seasonOptions: PROFILE_DEMO_SEASON_OPTIONS,
+      seasonStatsById: PROFILE_DEMO_STATS_BY_SEASON,
+    };
+  }
+  return {
+    currentMatches: PROFILE_DEMO_CURRENT_MATCHES,
+    currentStats: PROFILE_DEMO_CURRENT_STATS,
+    seasonMatchesById: {
+      [PROFILE_DEMO_CURRENT_SEASON_ID]: PROFILE_DEMO_CURRENT_MATCHES,
+    },
+    seasonOptions: [PROFILE_DEMO_SEASON_OPTIONS[0]],
+    seasonStatsById: {
+      [PROFILE_DEMO_CURRENT_SEASON_ID]: PROFILE_DEMO_CURRENT_STATS,
+    },
+  };
+};

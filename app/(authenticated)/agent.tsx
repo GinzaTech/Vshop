@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { AgentGrid, AgentModal } from "~/components/GalleryAgent";
 import useAgentGallery from "~/components/GalleryAgent";
@@ -28,6 +29,7 @@ import { fullBackgroundSync } from "~/utils/app-sync";
  * @returns {JSX.Element} Màn hình thư viện Agent.
  */
 const Agent = () => {
+  const { t } = useTranslation();
   // Lấy dữ liệu và hàm từ custom hook useAgentGallery
   // filteredAgents: danh sách agent đã được lọc theo role
   // selectedRole: role đang được chọn (string hoặc null)
@@ -45,12 +47,12 @@ const Agent = () => {
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
 
   // Mảng ROLES: định nghĩa 4 vai trò trong game (Duelist, Controller, Initiator, Sentinel)
-  // Mỗi role có id, name và icon (ảnh local)
+  // Mỗi role có id, labelKey i18n và icon (ảnh local)
   const ROLES = [
-    { id: "Duelist", name: "Duelist", icon: require("../../assets/images/Duelist.png") },
-    { id: "Controller", name: "Controller", icon: require("../../assets/images/Controller.png") },
-    { id: "Initiator", name: "Initiator", icon: require("../../assets/images/Initiator.png") },
-    { id: "Sentinel", name: "Sentinel", icon: require("../../assets/images/Sentinel.png") },
+    { id: "Duelist", labelKey: "Duelist", icon: require("../../assets/images/Duelist.png") },
+    { id: "Controller", labelKey: "Controller", icon: require("../../assets/images/Controller.png") },
+    { id: "Initiator", labelKey: "Initiator", icon: require("../../assets/images/Initiator.png") },
+    { id: "Sentinel", labelKey: "Sentinel", icon: require("../../assets/images/Sentinel.png") },
   ];
 
   return (
@@ -69,7 +71,7 @@ const Agent = () => {
               <Image source={role.icon} style={styles.roleIcon} contentFit="contain" />
               {/* Tên role, nếu được chọn thì màu trắng, không thì mờ */}
               <Text style={[styles.roleLabel, selectedRole === role.id && styles.roleLabelSelected]}>
-                {role.name}
+                {t(role.labelKey)}
               </Text>
             </TouchableOpacity>
           ))}

@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 import { Provider as PaperProvider } from "react-native-paper";
 
@@ -77,10 +78,17 @@ describe("MediaPopup", () => {
     expect(
       renderer.root.findByProps({ accessibilityLabel: "Close media viewer" }),
     ).toBeDefined();
-    expect(renderer.root.findByProps({ testID: "media-tab-level-0" }))
-      .toBeDefined();
+    const levelTab = renderer.root.findByProps({ testID: "media-tab-level-0" });
+    const levelTabList = renderer.root.findByProps({
+      testID: "media-tablist-level",
+    });
+    expect(levelTab).toBeDefined();
+    expect(levelTabList.props.accessibilityRole).toBe("tablist");
     expect(renderer.root.findByProps({ testID: "media-tab-chroma-0" }))
       .toBeDefined();
+    expect(
+      StyleSheet.flatten(levelTab.props.style({ pressed: false })).minHeight,
+    ).toBeGreaterThanOrEqual(44);
 
     act(() => {
       renderer.root.findByProps({ testID: "media-tab-chroma-0" }).props.onPress();

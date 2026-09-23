@@ -15,7 +15,8 @@ flowchart TD
     G -- Có --> I[syncAllData]
     H -- Thành công --> I
     H -- Cần đăng nhập lại --> F
-    I --> J[User, shop, balances, client config, matches, profile]
+    I --> I1[Ensure mốc ghi nhận Act bất biến theo account]
+    I1 --> J[User, shop, balances, client config, matches, profile]
     J --> K{Phiên còn đúng và dữ liệu dùng được?}
     K -- Có --> L[Persist cache và startup marker]
     L --> M[Hiển thị Profile]
@@ -35,7 +36,10 @@ pipeline với mọi lần bootstrap. Startup marker phải khớp account và c
 đọc metadata xong phải kiểm tra lại session generation và store hiện tại.
 Route bootstrap được latch sau hydrate: điều hướng người dùng thực hiện trong
 lúc sync không tạo dependency mới để cleanup/restart pipeline cũ.
+Mốc Act chỉ được tạo một lần; sync sau đó không lùi timestamp hoặc phục hồi cache
+mùa trước mốc.
 
 Nguồn: [RootLayout](../app/_layout.tsx), [AppWarmup](../components/AppWarmup.tsx),
 [data-sync](../utils/data-sync.ts), [startup-cache](../utils/startup-cache.ts).
-Xem thêm [route bootstrap latch](../utils/root-bootstrap-route.ts).
+Xem thêm [route bootstrap latch](../utils/root-bootstrap-route.ts) và
+[recording baseline](../services/matches/match-recording-core.ts).

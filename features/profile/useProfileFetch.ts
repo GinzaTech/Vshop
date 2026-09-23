@@ -230,6 +230,8 @@ export function useProfileFetch({
 
   // ── Effect: Fetch weapon metadata từ valorant-api.com ──────────────────────
   React.useEffect(() => {
+    if (isProfileDemo) return;
+
     let isMounted = true;
 
     getPublicWeapons()
@@ -248,7 +250,7 @@ export function useProfileFetch({
     return () => {
       isMounted = false;
     };
-  }, [setWeaponMetadata]);
+  }, [isProfileDemo, setWeaponMetadata]);
 
   // ── Effect chính: Fetch dữ liệu profile ─────────────────────────────────────
   // - Không auth → reset state + lỗi. - Cache fresh + loadout hợp lệ + bản ghi

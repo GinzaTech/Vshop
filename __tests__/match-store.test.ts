@@ -38,6 +38,12 @@ jest.mock("~/services/matches/match-archive", () => ({
   loadMatchSeasonArchive: jest.fn(),
   saveMatchSeasonArchive: jest.fn(),
 }));
+jest.mock("~/services/matches/match-recording", () => ({
+  ...jest.requireActual("~/services/matches/match-recording-core"),
+  bindMatchRecordingStartSeason: jest.fn(),
+  ensureMatchRecordingBaseline: jest.fn(),
+  loadMatchRecordingBaseline: jest.fn(),
+}));
 
 const api = jest.requireMock("~/utils/valorant-api") as {
   matchDetails: jest.Mock; playerMatchHistory: jest.Mock;
@@ -52,11 +58,16 @@ const archive = jest.requireMock("~/services/matches/match-archive") as {
   loadMatchSeasonArchive: jest.Mock;
   saveMatchSeasonArchive: jest.Mock;
 };
+const recording = jest.requireMock("~/services/matches/match-recording") as {
+  bindMatchRecordingStartSeason: jest.Mock;
+  ensureMatchRecordingBaseline: jest.Mock;
+  loadMatchRecordingBaseline: jest.Mock;
+};
 const { useMatchStore } = matchStore;
 const user = { ...defaultUser, id: "account-a", accessToken: "old-access", entitlementsToken: "old-entitlements" };
 const renewed = { ...user, accessToken: "new-access", entitlementsToken: "new-entitlements" };
 const other = { ...user, id: "account-b" };
-const record = (id: string): MatchHistoryRecord => ({ MatchID: id, GameStartTime: 10, QueueID: "competitive" });
+const record = (id: string, GameStartTime = 10): MatchHistoryRecord => ({ MatchID: id, GameStartTime, QueueID: "competitive" });
 const detail = (id: string, kills = 1) => ({
   matchInfo: { matchId: id, queueID: "competitive", seasonId: "act-1" },
   players: [{ subject: user.id, teamId: "Blue", stats: { kills, deaths: 1, score: 200, roundsPlayed: 1 } }],
@@ -75,6 +86,7 @@ function seed(patch: Partial<ReturnType<typeof useMatchStore.getState>> = {}) {
   useMatchStore.setState({
     authKey: "ap|account-a", matches: [], detailsById: {}, loading: false,
     hydrating: false, error: null, lastUpdated: 0, totalMatches: 0, historyEndIndex: 0,
+    recordingStartedAt: 0, recordingStartSeasonId: null,
     seasonStats: null, seasonStatsById: {}, seasonMatchesById: {}, seasonOptions: options,
     seasonStatsLoading: false, ...patch,
   });
@@ -102,6 +114,18 @@ describe("match store request ownership", () => {
       schemaVersion: 1,
       seasonId: input.seasonId.toLowerCase(),
     }));
+    const baseline = {
+      accountKey: "ap|account-a",
+      schemaVersion: 1,
+      startedAt: 0,
+      startSeasonId: "act-1",
+    };
+    recording.ensureMatchRecordingBaseline.mockResolvedValue({
+      baseline,
+      created: false,
+    });
+    recording.loadMatchRecordingBaseline.mockResolvedValue(baseline);
+    recording.bindMatchRecordingStartSeason.mockResolvedValue(baseline);
     network.getNetworkProfile.mockResolvedValue({ isConnected: true, isCellular: false, requestConcurrency: 2 });
   });
   afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
@@ -144,6 +168,8 @@ describe("match store request ownership", () => {
     const old = deferred<void>();
     assets.loadAssets.mockReturnValueOnce(old.promise);
     const pending = useMatchStore.getState().fetchMatches(user, true);
+    await flush();
+    expect(assets.loadAssets).toHaveBeenCalledTimes(1);
     mockActiveUser = other;
     await useMatchStore.getState().fetchMatches(other, true);
     old.resolve();
@@ -187,8 +213,11 @@ describe("match store request ownership", () => {
     const old = deferred<{ Matches: [] }>();
     api.getCompetitiveUpdates.mockReturnValueOnce(old.promise).mockResolvedValueOnce({ Matches: [] });
     const pending = useMatchStore.getState().fetchSeasonStats(user, true);
+    await flush();
+    expect(api.getCompetitiveUpdates).toHaveBeenCalledTimes(1);
     mockActiveUser = renewed;
     const fresh = useMatchStore.getState().fetchSeasonStats(renewed, true);
+    await flush();
     const calls = api.getCompetitiveUpdates.mock.calls.length;
     old.resolve({ Matches: [] });
     await Promise.all([pending, fresh]);
@@ -522,9 +551,11 @@ describe("match store request ownership", () => {
     const current = deferred<{ Matches: [] }>();
     api.getCompetitiveUpdates.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
     const first = useMatchStore.getState().fetchSeasonStats(user, true);
+    await flush();
     useMatchStore.getState().resetMatchCache();
     seed();
     const next = useMatchStore.getState().fetchSeasonStats(user, true);
+    await flush();
     old.reject(new Error("obsolete failure"));
     await first;
     expect(useMatchStore.getState().seasonStatsLoading).toBe(true);
@@ -1060,6 +1091,169 @@ describe("match store request ownership", () => {
     expect(api.playerMatchHistory).not.toHaveBeenCalled();
   });
 
+  it("starts the baseline Act at zero and hides every older Act", async () => {
+    const baseline = {
+      accountKey: "ap|account-a",
+      schemaVersion: 1,
+      startedAt: 1_000,
+      startSeasonId: "act-current",
+    };
+    recording.ensureMatchRecordingBaseline.mockResolvedValue({
+      baseline,
+      created: false,
+    });
+    recording.loadMatchRecordingBaseline.mockResolvedValue(baseline);
+    recording.bindMatchRecordingStartSeason.mockResolvedValue(baseline);
+    seed({ seasonOptions: [], recordingStartedAt: 0 });
+    api.getContent.mockResolvedValue({
+      Seasons: [
+        {
+          ID: "act-current",
+          Name: "Current",
+          Type: "act",
+          IsActive: true,
+          StartTime: "1970-01-01T00:00:00.500Z",
+          EndTime: "2030-01-01T00:00:00Z",
+        },
+        {
+          ID: "act-legacy",
+          Name: "Legacy",
+          Type: "act",
+          IsActive: false,
+          StartTime: "1970-01-01T00:00:00.100Z",
+          EndTime: "1970-01-01T00:00:00.500Z",
+        },
+      ],
+    });
+
+    await useMatchStore.getState().fetchSeasonStats(user, true);
+
+    expect(useMatchStore.getState().seasonOptions.map(({ id }) => id)).toEqual([
+      "act-current",
+    ]);
+    expect(useMatchStore.getState().seasonStats).toMatchObject({
+      matchCount: 0,
+      recordingStartedAt: 1_000,
+      seasonId: "act-current",
+    });
+    expect(api.getCompetitiveMMR).not.toHaveBeenCalled();
+  });
+
+  it("binds an unassigned recording baseline to Riot's active Act once", async () => {
+    const unboundBaseline = {
+      accountKey: "ap|account-a",
+      schemaVersion: 1,
+      startedAt: 1_000,
+      startSeasonId: null,
+    };
+    const boundBaseline = {
+      ...unboundBaseline,
+      startSeasonId: "act-current",
+    };
+    recording.ensureMatchRecordingBaseline.mockResolvedValue({
+      baseline: unboundBaseline,
+      created: true,
+    });
+    recording.bindMatchRecordingStartSeason.mockResolvedValue(boundBaseline);
+    seed({ seasonOptions: [], recordingStartedAt: 0 });
+    api.getContent.mockResolvedValue({
+      Seasons: [
+        {
+          ID: "act-current",
+          Name: "Current",
+          Type: "act",
+          IsActive: true,
+          StartTime: "1970-01-01T00:00:00.500Z",
+          EndTime: "2030-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    await useMatchStore.getState().fetchSeasonStats(user, true);
+
+    expect(recording.bindMatchRecordingStartSeason).toHaveBeenCalledWith(
+      "ap|account-a",
+      "act-current"
+    );
+    expect(useMatchStore.getState()).toMatchObject({
+      recordingStartedAt: 1_000,
+      recordingStartSeasonId: "act-current",
+      seasonOptions: [expect.objectContaining({ id: "act-current" })],
+      seasonStats: expect.objectContaining({
+        matchCount: 0,
+        recordingStartedAt: 1_000,
+        seasonId: "act-current",
+      }),
+    });
+    expect(api.getCompetitiveMMR).not.toHaveBeenCalled();
+  });
+
+  it("ignores a legacy start-Act archive without the matching baseline marker", async () => {
+    const baseline = {
+      accountKey: "ap|account-a",
+      schemaVersion: 1,
+      startedAt: 1_000,
+      startSeasonId: "act-current",
+    };
+    recording.ensureMatchRecordingBaseline.mockResolvedValue({
+      baseline,
+      created: false,
+    });
+    recording.loadMatchRecordingBaseline.mockResolvedValue(baseline);
+    recording.bindMatchRecordingStartSeason.mockResolvedValue(baseline);
+    seed({
+      recordingStartedAt: 0,
+      seasonOptions: [
+        {
+          id: "act-current",
+          isActive: true,
+          name: "Current",
+          startTime: "1970-01-01T00:00:00.500Z",
+        },
+      ],
+    });
+    archive.loadMatchSeasonArchive.mockResolvedValue({
+      accountKey: "ap|account-a",
+      matches: [record("legacy-before", 500)],
+      schemaVersion: 1,
+      seasonId: "act-current",
+      seasonName: "Current",
+      stats: {
+        calculationVersion: 12,
+        dataCompleteness: "full",
+        matchCount: 99,
+        seasonId: "act-current",
+        seasonName: "Current",
+        updatedAt: Date.now(),
+      } as SeasonPerformanceStats,
+      syncStatus: "complete",
+      updatedAt: Date.now(),
+    });
+    api.getContent.mockResolvedValue({
+      Seasons: [
+        {
+          ID: "act-current",
+          Name: "Current",
+          Type: "act",
+          IsActive: true,
+          StartTime: "1970-01-01T00:00:00.500Z",
+          EndTime: "2030-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    await useMatchStore
+      .getState()
+      .fetchSeasonStats(user, false, "act-current");
+
+    expect(useMatchStore.getState().seasonStatsById["act-current"])
+      .toMatchObject({ matchCount: 0, recordingStartedAt: 1_000 });
+    expect(useMatchStore.getState().seasonMatchesById["act-current"]).toEqual(
+      []
+    );
+    expect(api.getCompetitiveMMR).not.toHaveBeenCalled();
+  });
+
   it.each(["rank-only", "complete"] as const)(
     "retries a non-empty historical %s archive when it has no archived match rows",
     async (syncStatus) => {
@@ -1257,6 +1451,54 @@ describe("match store request ownership", () => {
     expect(archive.archiveObservedMatches).toHaveBeenCalledWith(
       "ap|account-a",
       [expect.objectContaining({ MatchID: "archive-history" })]
+    );
+  });
+
+  it("migrates legacy season caches once and archives only post-baseline matches", async () => {
+    const baseline = {
+      accountKey: "ap|account-a",
+      schemaVersion: 1,
+      startedAt: 1_000,
+      startSeasonId: "act-current",
+    };
+    recording.ensureMatchRecordingBaseline.mockResolvedValue({
+      baseline,
+      created: true,
+    });
+    recording.loadMatchRecordingBaseline.mockResolvedValue(baseline);
+    seed({
+      matches: [record("before", 999), record("after", 1_001)],
+      recordingStartedAt: 0,
+      seasonStats: { seasonId: "legacy" } as SeasonPerformanceStats,
+      seasonStatsById: {
+        legacy: { seasonId: "legacy" } as SeasonPerformanceStats,
+      },
+      seasonMatchesById: { legacy: [record("legacy", 100)] },
+      seasonOptions: [
+        {
+          id: "legacy",
+          isActive: false,
+          name: "Legacy",
+          startTime: "2025-01-01",
+        },
+      ],
+    });
+
+    await useMatchStore.getState().hydrateNextMatches(user, 2);
+    await flush();
+
+    expect(useMatchStore.getState()).toMatchObject({
+      recordingStartedAt: 1_000,
+      recordingStartSeasonId: "act-current",
+      seasonStats: null,
+      seasonStatsById: {},
+      seasonMatchesById: {},
+      seasonOptions: [],
+    });
+    expect(useMatchStore.getState().matches).toHaveLength(2);
+    expect(archive.archiveObservedMatches).toHaveBeenCalledWith(
+      "ap|account-a",
+      [expect.objectContaining({ MatchID: "after" })]
     );
   });
 

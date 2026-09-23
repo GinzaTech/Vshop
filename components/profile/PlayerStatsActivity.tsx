@@ -2,9 +2,10 @@ import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { LayoutChangeEvent, Pressable, ScrollView, Text, View } from "react-native";
 import type { MatchHistoryRecord } from "~/types/match-ui";
+import { GpuLineChartCanvas } from "~/components/ui/GpuLineChartCanvas";
+import { buildChartSegments } from "~/utils/chart-geometry";
 import { CardHeader } from "./PlayerStatsPrimitives";
 import { ActivityCell, buildActivityWeeks } from "./player-stats-data";
-import { lineStyle } from "./player-stats-format";
 import { STATS_COLORS, styles } from "./player-stats-styles";
 export type ActivityCardProps = {
   matches: MatchHistoryRecord[];
@@ -144,13 +145,54 @@ export function RrTrendCard({ matches }: RrTrendCardProps) {
   const maximum = points.length > 0 ? Math.max(...points) : 100;
   const range = Math.max(10, maximum - minimum);
   // yForValue: giá trị RR → tung độ pixel; xForIndex: vị trí điểm → hoành độ
-  const yForValue = (value: number) => 10 + ((maximum - value) / range) * 74;
-  const xForIndex = (index: number) =>
-    8 + (points.length <= 1 ? 0 : (index / (points.length - 1)) * (plotWidth - 16));
+  const yForValue = React.useCallback(
+    (value: number) => 10 + ((maximum - value) / range) * 74,
+    [maximum, range]
+  );
+  const xForIndex = React.useCallback(
+    (index: number) =>
+      8 +
+      (points.length <= 1
+        ? 0
+        : (index / (points.length - 1)) * (plotWidth - 16)),
+    [plotWidth, points.length]
+  );
   // handleLayout: đo bề rộng thực của vùng chart
   const handleLayout = (event: LayoutChangeEvent) => {
     setChartWidth(event.nativeEvent.layout.width);
   };
+  const chartPoints = React.useMemo(
+    () =>
+      points.map((point, index) => ({
+        x: xForIndex(index),
+        y: yForValue(point),
+      })),
+    [points, xForIndex, yForValue]
+  );
+  const chartSegments = React.useMemo(
+    () =>
+      buildChartSegments(chartPoints, () => STATS_COLORS.accent),
+    [chartPoints]
+  );
+  const chartDots = React.useMemo(
+    () =>
+      chartPoints.map((point) => ({
+        color: STATS_COLORS.accent,
+        point,
+        radius: 2.5,
+      })),
+    [chartPoints]
+  );
+  const gridLines = React.useMemo(
+    () =>
+      [10, 47, 84].map((y) => ({
+        color: STATS_COLORS.borderSecondary,
+        endX: plotWidth + 8,
+        startX: 8,
+        y,
+      })),
+    [plotWidth]
+  );
 
   return (
     <>
@@ -162,32 +204,13 @@ export function RrTrendCard({ matches }: RrTrendCardProps) {
       <View onLayout={handleLayout} style={styles.trendChart}>
         {points.length >= 2 ? (
           <>
-            <View style={[styles.trendGridLine, { top: 10 }]} />
-            <View style={[styles.trendGridLine, { top: 47 }]} />
-            <View style={[styles.trendGridLine, { top: 84 }]} />
-            {points.slice(0, -1).map((point, index) => (
-              <View
-                key={`${index}-${point}`}
-                style={lineStyle(
-                  xForIndex(index),
-                  yForValue(point),
-                  xForIndex(index + 1),
-                  yForValue(points[index + 1])
-                )}
-              />
-            ))}
-            {points.map((point, index) => (
-              <View
-                key={`point-${index}-${point}`}
-                style={[
-                  styles.trendPoint,
-                  {
-                    left: xForIndex(index) - 2.5,
-                    top: yForValue(point) - 2.5,
-                  },
-                ]}
-              />
-            ))}
+            <GpuLineChartCanvas
+              dots={chartDots}
+              gridLines={gridLines}
+              height={104}
+              segments={chartSegments}
+              width={chartWidth}
+            />
             <Text style={[styles.trendAxisLabel, { top: 4 }]}>{maximum}</Text>
             <Text style={[styles.trendAxisLabel, { top: 78 }]}>{minimum}</Text>
           </>

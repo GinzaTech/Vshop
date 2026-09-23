@@ -12,17 +12,22 @@ type RootBootstrapRouteInput = {
 };
 
 /**
- * Bootstrap chỉ sở hữu route tại thời điểm khởi động. Điều hướng sau đó không
- * được tạo snapshot mới rồi kéo người dùng ngược về Profile.
+ * Bootstrap chỉ sở hữu route tại thời điểm khởi động. Riêng development demo
+ * deep link được phép nâng snapshot `/` ban đầu vì Expo Router có thể publish
+ * initial URL sau khi persisted stores đã hydrate. Sau khi demo được nhận,
+ * điều hướng bình thường không được kéo bootstrap sang route khác.
  */
 export function captureRootBootstrapRoute(
   existing: RootBootstrapRouteSnapshot | null,
   input: RootBootstrapRouteInput
 ): RootBootstrapRouteSnapshot {
-  if (existing) return existing;
+  const allowDemoRoute = isDevelopmentDemoRoute(input);
+  if (existing?.allowDemoRoute || (existing && !allowDemoRoute)) {
+    return existing;
+  }
 
   return {
-    allowDemoRoute: isDevelopmentDemoRoute(input),
+    allowDemoRoute,
     pathname: input.pathname,
   };
 }

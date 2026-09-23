@@ -32,6 +32,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CachedImage as Image } from "~/components/CachedImage";
@@ -243,30 +244,31 @@ const MetricCell = ({ label, value, color }: MetricCellProps) => (
  * @param stats – Season stats thật (null → hiển thị "--").
  */
 const LifetimeSummary = ({ stats }: { stats: SeasonPerformanceStats | null }) => {
+  const { t } = useTranslation();
   return (
     <View>
       {/* Hàng chính: THẮNG | THUA | Tỉ lệ thắng | KAST */}
       <View style={styles.lifetimePrimaryRow}>
         <MetricCell
-          label="THẮNG"
+          label={t("profile_page.stats.wins")}
           value={formatInteger(stats?.wins)}
           color={PLAYER_INFO_TOKENS.positive}
         />
         <VerticalDivider />
         <MetricCell
-          label="THUA"
+          label={t("profile_page.stats.losses")}
           value={formatInteger(stats?.losses)}
           color={PLAYER_INFO_TOKENS.negative}
         />
         <VerticalDivider />
         <MetricCell
-          label="Tỉ lệ thắng"
+          label={t("profile_page.stats.win_rate")}
           value={formatPercent(stats?.winRate)}
           color={PLAYER_INFO_TOKENS.textPrimary}
         />
         <VerticalDivider />
         <MetricCell
-          label="KAST"
+          label={t("profile_page.stats.kast")}
           value={formatPercent(stats?.kast)}
           color={PLAYER_INFO_TOKENS.textPrimary}
         />
@@ -274,19 +276,19 @@ const LifetimeSummary = ({ stats }: { stats: SeasonPerformanceStats | null }) =>
       {/* Divider ngang + hàng phụ: HS TB | K/D TB (lavender) | ACS TB */}
       <View style={styles.lifetimeSecondaryRow}>
         <MetricCell
-          label="HS TB"
+          label={t("profile_page.stats.hs_avg")}
           value={formatPercent(stats?.headshotPercent)}
           color={PLAYER_INFO_TOKENS.textPrimary}
         />
         <VerticalDivider />
         <MetricCell
-          label="K/D TB"
+          label={t("profile_page.stats.kd_avg")}
           value={formatTwoDecimals(stats?.kd)}
           color={PLAYER_INFO_TOKENS.accent}
         />
         <VerticalDivider />
         <MetricCell
-          label="ACS TB"
+          label={t("profile_page.stats.acs_avg")}
           value={formatInteger(stats?.acs)}
           color={PLAYER_INFO_TOKENS.textPrimary}
         />
@@ -312,9 +314,16 @@ const SeasonSelector = React.memo(function SeasonSelector({
   selectedSeasonId: string | null;
   selectedSeasonName: string;
 }) {
+  const { t } = useTranslation();
+
   return (
-    <View style={styles.seasonPanel}>
-    <View style={styles.seasonHeaderRow}>
+      <View style={styles.seasonPanel}>
+    <View
+      accessible
+      accessibilityLabel={`${t("profile_page.stats.season_viewing")}: ${prettifySeasonName(selectedSeasonName)}`}
+      style={styles.seasonHeaderRow}
+      testID="profile-season-current-summary"
+    >
       <View style={styles.seasonIconWrap}>
         <Icon
           color={PLAYER_INFO_TOKENS.accent}
@@ -323,7 +332,9 @@ const SeasonSelector = React.memo(function SeasonSelector({
         />
       </View>
       <View style={styles.seasonTitleBlock}>
-        <Text style={styles.seasonEyebrow}>MÙA ĐANG XEM</Text>
+        <Text style={styles.seasonEyebrow}>
+          {t("profile_page.stats.season_viewing")}
+        </Text>
         <Text numberOfLines={1} style={styles.seasonTitle}>
           {prettifySeasonName(selectedSeasonName)}
         </Text>
@@ -334,49 +345,57 @@ const SeasonSelector = React.memo(function SeasonSelector({
           size="small"
         />
       ) : (
-        <Text style={styles.seasonCount}>{seasons.length} ACT</Text>
+        <Text style={styles.seasonCount}>
+          {t("profile_page.stats.act_count", { count: seasons.length })}
+        </Text>
       )}
     </View>
     {seasons.length > 1 ? (
-      <ScrollView
-        contentContainerStyle={styles.seasonChipRow}
-        horizontal
-        nestedScrollEnabled
-        showsHorizontalScrollIndicator={false}
-      >
-        {seasons.map((season) => {
-          const selected = season.id === selectedSeasonId;
-          const disabled = loading && !selected;
-          return (
-            <Pressable
-              key={season.id}
-              accessibilityLabel={`Xem thống kê ${season.name}`}
-              accessibilityRole="tab"
-              accessibilityState={{ disabled, selected }}
-              disabled={disabled}
-              hitSlop={PROFILE_SEASON_SELECTOR_LAYOUT.chipHitSlop}
-              onPress={() => onSelect(season.id)}
-              style={({ pressed }) => [
-                styles.seasonChip,
-                selected && styles.seasonChipSelected,
-                pressed && !selected && styles.seasonChipPressed,
-              ]}
-              testID={`profile-season-${season.id}`}
-            >
-              {season.isActive ? <View style={styles.seasonActiveDot} /> : null}
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.seasonChipText,
-                  selected && styles.seasonChipTextSelected,
+        <ScrollView
+          accessibilityLabel={t("profile_page.stats.season_selector")}
+          accessibilityRole="tablist"
+          contentContainerStyle={styles.seasonChipRow}
+          directionalLockEnabled
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          testID="profile-season-selector"
+        >
+          {seasons.map((season) => {
+            const selected = season.id === selectedSeasonId;
+            const disabled = loading && !selected;
+            return (
+              <Pressable
+                key={season.id}
+                accessibilityLabel={t("profile_page.stats.season_action", {
+                  season: season.name,
+                })}
+                accessibilityRole="tab"
+                accessibilityState={{ disabled, selected }}
+                disabled={disabled}
+                hitSlop={PROFILE_SEASON_SELECTOR_LAYOUT.chipHitSlop}
+                onPress={() => onSelect(season.id)}
+                style={({ pressed }) => [
+                  styles.seasonChip,
+                  selected && styles.seasonChipSelected,
+                  pressed && !selected && styles.seasonChipPressed,
                 ]}
+                testID={`profile-season-${season.id}`}
               >
-                {prettifySeasonName(season.name)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+                {season.isActive ? <View style={styles.seasonActiveDot} /> : null}
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.seasonChipText,
+                    selected && styles.seasonChipTextSelected,
+                  ]}
+                >
+                  {prettifySeasonName(season.name)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
     ) : null}
     </View>
   );
@@ -427,7 +446,13 @@ const PerformanceGridCell = ({ icon, label, value }: PerformanceGridCellProps) =
  * trực tiếp từ seasonStats của act đang chạy — không thêm trend giả.
  * @param stats – Season stats thật (null → skeleton do cha xử lý).
  */
-const PerformanceCard = ({ stats }: { stats: SeasonPerformanceStats | null }) => (
+const PerformanceCard = ({ stats }: { stats: SeasonPerformanceStats | null }) => {
+  const { t } = useTranslation();
+  const matchCountText =
+    stats?.matchCount === null || stats?.matchCount === undefined
+      ? "--"
+      : t("profile_page.stats.match_count", { count: stats.matchCount });
+  return (
   <View style={styles.elevatedCard}>
     {/* Header: tiêu đề + số trận trong Act */}
     <View style={styles.performanceHeader}>
@@ -438,11 +463,18 @@ const PerformanceCard = ({ stats }: { stats: SeasonPerformanceStats | null }) =>
           color={PLAYER_INFO_TOKENS.textPrimary}
           style={styles.sectionHeaderIcon}
         />
-        <Text style={styles.cardTitle}>Phong độ</Text>
+        <Text style={styles.cardTitle}>
+          {t("profile_page.stats.performance")}
+        </Text>
       </View>
       <View style={styles.matchCountPill}>
-        <Text style={styles.matchCountText} numberOfLines={1}>
-          {formatInteger(stats?.matchCount)} trận
+        <Text
+          accessibilityLabel={matchCountText}
+          numberOfLines={1}
+          style={styles.matchCountText}
+          testID="profile-match-count"
+        >
+          {matchCountText}
         </Text>
       </View>
     </View>
@@ -451,13 +483,13 @@ const PerformanceCard = ({ stats }: { stats: SeasonPerformanceStats | null }) =>
       <View style={styles.performanceGridCol}>
         <PerformanceGridCell
           icon="target"
-          label="ADR"
+          label={t("match_ui.metrics.adr")}
           value={formatOneDecimal(stats?.adr)}
         />
         <View style={styles.performanceGridDivider} />
         <PerformanceGridCell
           icon="shield-half-full"
-          label="HS"
+          label={t("match_ui.metrics.hs")}
           value={formatPercent(stats?.headshotPercent)}
         />
       </View>
@@ -465,19 +497,20 @@ const PerformanceCard = ({ stats }: { stats: SeasonPerformanceStats | null }) =>
       <View style={styles.performanceGridCol}>
         <PerformanceGridCell
           icon="sword"
-          label="K/D"
+          label={t("match_ui.metrics.kd")}
           value={formatTwoDecimals(stats?.kd)}
         />
         <View style={styles.performanceGridDivider} />
         <PerformanceGridCell
           icon="shield-check-outline"
-          label="Thắng"
+          label={t("profile_page.stats.wins")}
           value={formatPercent(stats?.winRate)}
         />
       </View>
     </View>
   </View>
-);
+  );
+};
 
 // ============================================================================
 // StatsTableCard — "Đặc vụ / Bản đồ" với tab gạch chân lavender (spec §7.6)
@@ -501,6 +534,7 @@ const StatsTableCard = ({
   agentRows: AggregateRow[];
   mapRows: AggregateRow[];
 }) => {
+  const { t } = useTranslation();
   // tableMode: tab đang chọn; tableMorph: shared value hiệu ứng co/nở
   const [tableMode, setTableMode] = React.useState<TableMode>("agents");
   const tableMorph = useSharedValue(1);
@@ -544,8 +578,11 @@ const StatsTableCard = ({
     <View style={styles.elevatedCard}>
       {/* Tabs Đặc vụ / Bản đồ — underline lavender trượt theo tab active */}
       <View
+        accessibilityLabel={t("profile_page.stats.breakdown_selector")}
+        accessibilityRole="tablist"
         style={styles.tableTabRow}
         onLayout={(event) => setTabRowWidth(event.nativeEvent.layout.width)}
+        testID="profile-breakdown-tabs"
       >
         <Animated.View
           pointerEvents="none"
@@ -553,8 +590,16 @@ const StatsTableCard = ({
         />
         {(
           [
-            { key: "agents", label: "Đặc vụ", icon: "account-group" },
-            { key: "maps", label: "Bản đồ", icon: "grid-large" },
+            {
+              key: "agents",
+              label: t("profile_page.stats.breakdown_agents"),
+              icon: "account-group",
+            },
+            {
+              key: "maps",
+              label: t("profile_page.stats.breakdown_maps"),
+              icon: "grid-large",
+            },
           ] as const
         ).map((tab) => {
           const active = tableMode === tab.key;
@@ -563,9 +608,12 @@ const StatsTableCard = ({
               key={tab.key}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
-              accessibilityLabel={`Bảng thống kê theo ${tab.label}`}
+              accessibilityLabel={t("profile_page.stats.breakdown_action", {
+                label: tab.label,
+              })}
               onPress={() => handleTableModeChange(tab.key)}
               style={styles.tableTab}
+              testID={`profile-breakdown-tab-${tab.key}`}
             >
               <Icon
                 name={tab.icon}
@@ -605,8 +653,8 @@ const StatsTableCard = ({
             />
             <Text style={styles.tableEmptyText}>
               {tableMode === "agents"
-                ? "Chưa có dữ liệu đặc vụ"
-                : "Chưa có dữ liệu bản đồ"}
+                ? t("profile_page.stats.no_agent_data")
+                : t("profile_page.stats.no_map_data")}
             </Text>
           </View>
         ) : (
@@ -614,13 +662,15 @@ const StatsTableCard = ({
             {/* Header bảng: 56% / 22% / 22% */}
             <View style={styles.tableHeaderRow}>
               <Text style={[styles.tableHeaderText, styles.tableColName]}>
-                {tableMode === "agents" ? "Đặc vụ" : "Bản đồ"}
+                {tableMode === "agents"
+                  ? t("profile_page.stats.breakdown_agents")
+                  : t("profile_page.stats.breakdown_maps")}
               </Text>
               <Text style={[styles.tableHeaderText, styles.tableColNum]}>
-                K/D
+                {t("match_ui.metrics.kd")}
               </Text>
               <Text style={[styles.tableHeaderText, styles.tableColNum]}>
-                Thắng
+                {t("profile_page.stats.wins")}
               </Text>
             </View>
             {rows.map((row, index) => (
@@ -726,6 +776,7 @@ const DetailsPanel = React.memo(function DetailsPanel({
   stats: SeasonPerformanceStats | null;
   rank: CompetitiveRankSummary | null;
 }) {
+  const { t } = useTranslation();
   const detailedStats =
     stats?.dataCompleteness === "rank-only" ? null : stats;
   // killsPerRound: kills trung bình mỗi vòng (giữ công thức dashboard cũ)
@@ -738,7 +789,7 @@ const DetailsPanel = React.memo(function DetailsPanel({
     <View>
       {rank ? (
         <View style={styles.elevatedCard}>
-          <Text style={styles.cardTitle}>Xếp hạng</Text>
+          <Text style={styles.cardTitle}>{t("profile_page.stats.rank")}</Text>
           <View style={styles.rankRows}>
             {/* Hạng hiện tại */}
             <View style={styles.rankRow}>
@@ -751,7 +802,9 @@ const DetailsPanel = React.memo(function DetailsPanel({
                 />
               ) : null}
               <View style={styles.rankRowTextBlock}>
-                <Text style={styles.metricLabel}>Hiện tại</Text>
+                <Text style={styles.metricLabel}>
+                  {t("profile_page.current_rank")}
+                </Text>
                 <Text style={styles.rankRowValue} numberOfLines={1}>
                   {rank.currentName || "--"}
                 </Text>
@@ -768,7 +821,9 @@ const DetailsPanel = React.memo(function DetailsPanel({
                 />
               ) : null}
               <View style={styles.rankRowTextBlock}>
-                <Text style={styles.metricLabel}>Đỉnh cao nhất</Text>
+                <Text style={styles.metricLabel}>
+                  {t("profile_page.peak_rank")}
+                </Text>
                 <Text style={styles.rankRowValue} numberOfLines={1}>
                   {rank.peakName || "--"}
                 </Text>
@@ -778,13 +833,16 @@ const DetailsPanel = React.memo(function DetailsPanel({
         </View>
       ) : null}
       <DetailSectionCard
-        title="Giao tranh"
+        title={t("profile_page.stats.combat")}
         rows={[
           { label: "K/D", value: formatTwoDecimals(stats?.kd) },
           { label: "ACS", value: formatOneDecimal(stats?.acs) },
-          { label: "ST / VÒNG", value: formatOneDecimal(stats?.adr) },
           {
-            label: "HẠ GỤC / VÒNG",
+            label: t("profile_page.stats.damage_per_round"),
+            value: formatOneDecimal(stats?.adr),
+          },
+          {
+            label: t("profile_page.stats.kills_per_round"),
             value: formatTwoDecimals(killsPerRound),
           },
           { label: "HS%", value: formatPercent(stats?.headshotPercent) },
@@ -792,24 +850,24 @@ const DetailsPanel = React.memo(function DetailsPanel({
         ]}
       />
       <DetailSectionCard
-        title="Tổng kết"
+        title={t("profile_page.stats.summary")}
         rows={[
-          { label: "HẠ GỤC", value: formatInteger(detailedStats?.kills) },
-          { label: "BỊ HẠ", value: formatInteger(detailedStats?.deaths) },
-          { label: "BẮN ĐẦU", value: formatInteger(detailedStats?.headshots) },
-          { label: "SÁT THƯƠNG", value: formatInteger(detailedStats?.damage) },
-          { label: "ĐIỂM", value: formatInteger(detailedStats?.score) },
-          { label: "VÒNG", value: formatInteger(detailedStats?.roundsPlayed) },
+          { label: t("profile_page.stats.kills"), value: formatInteger(detailedStats?.kills) },
+          { label: t("profile_page.stats.deaths"), value: formatInteger(detailedStats?.deaths) },
+          { label: t("profile_page.stats.headshots"), value: formatInteger(detailedStats?.headshots) },
+          { label: t("profile_page.stats.damage"), value: formatInteger(detailedStats?.damage) },
+          { label: t("profile_page.stats.score"), value: formatInteger(detailedStats?.score) },
+          { label: t("profile_page.stats.rounds"), value: formatInteger(detailedStats?.roundsPlayed) },
         ]}
       />
       <DetailSectionCard
-        title="Thành tích"
+        title={t("profile_page.stats.achievements")}
         rows={[
-          { label: "THẮNG", value: formatInteger(stats?.wins), tone: "positive" },
-          { label: "THUA", value: formatInteger(stats?.losses), tone: "negative" },
-          { label: "TRẬN ĐẤU", value: formatInteger(stats?.matchCount) },
+          { label: t("profile_page.stats.wins"), value: formatInteger(stats?.wins), tone: "positive" },
+          { label: t("profile_page.stats.losses"), value: formatInteger(stats?.losses), tone: "negative" },
+          { label: t("profile_page.stats.matches"), value: formatInteger(stats?.matchCount) },
           {
-            label: "TỈ LỆ THẮNG",
+            label: t("profile_page.stats.win_rate"),
             value: formatPercent(stats?.winRate),
           },
         ]}
@@ -827,10 +885,11 @@ const OverviewPanel = React.memo(function OverviewPanel({
   mapRows: AggregateRow[];
   stats: SeasonPerformanceStats | null;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <View style={[styles.elevatedCard, styles.summaryCard]}>
-        <SectionDividerHeader title="TỔNG THỂ" />
+        <SectionDividerHeader title={t("profile_page.stats.overall")} />
         <LifetimeSummary stats={stats} />
       </View>
       <PerformanceCard stats={stats} />
@@ -865,8 +924,6 @@ const DashboardPanelShell = ({
       importantForAccessibility={active ? "auto" : "no-hide-descendants"}
       onLayout={onLayout}
       pointerEvents={active ? "auto" : "none"}
-      renderToHardwareTextureAndroid
-      shouldRasterizeIOS
       style={[styles.tabPanel, panelStyle, animatedStyle]}
       testID={panelTestID}
     >

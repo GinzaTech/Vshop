@@ -1,4 +1,8 @@
 import type { LeaderboardSeasonOption } from "~/utils/leaderboard-seasons";
+import {
+  getRecordedSeasonStartTime,
+  type MatchRecordingBaseline,
+} from "~/services/matches/match-recording-core";
 
 export type ProfileSeasonUpdate = {
   MatchID: string;
@@ -51,14 +55,17 @@ export function resolveProfileSeason(
  */
 export function resolveProfileSeasonTimeWindow(
   seasons: readonly LeaderboardSeasonOption[],
-  selectedSeasonId: string
+  selectedSeasonId: string,
+  baseline?: MatchRecordingBaseline | null
 ): ProfileSeasonTimeWindow | null {
   const selectedIndex = seasons.findIndex(
     (season) => normalizeSeasonId(season.id) === normalizeSeasonId(selectedSeasonId)
   );
   if (selectedIndex < 0) return null;
 
-  const startTimeMs = Date.parse(seasons[selectedIndex].startTime);
+  const startTimeMs = baseline
+    ? getRecordedSeasonStartTime(seasons[selectedIndex], baseline)
+    : Date.parse(seasons[selectedIndex].startTime);
   if (!Number.isFinite(startTimeMs)) return null;
   const newerSeason = selectedIndex > 0 ? seasons[selectedIndex - 1] : null;
   const parsedEndTimeMs = newerSeason ? Date.parse(newerSeason.startTime) : Infinity;

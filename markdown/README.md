@@ -1,7 +1,8 @@
 # Bộ sơ đồ kiến trúc VShop
 
-Mô tả mã nguồn **4.1.8** tại checkout VShop ngày **16-09-2026**, gồm audit logic,
-Profile dark canvas, dữ liệu nhiều Act và archive SQLite account-scoped. Đây là tài liệu kiến trúc, không phải chứng nhận
+Mô tả mã nguồn **4.1.8** tại checkout VShop ngày **23-09-2026**, gồm audit logic,
+Profile dark canvas, mốc ghi nhận Act theo tài khoản và archive SQLite
+account-scoped. Đây là tài liệu kiến trúc, không phải chứng nhận
 mọi luồng đã được chạy trên thiết bị hoặc xác minh trên hạ tầng Riot.
 
 VShop là ứng dụng Expo/React Native, dùng Zustand và cache cục bộ, gọi dịch vụ
@@ -51,6 +52,17 @@ Nguồn đối chiếu: [quy tắc dự án](../AGENTS.md),
 [cấu trúc thư mục](../DIRECTORY_STRUCTURE.md), [audit](../LOGIC_AUDIT.md).
 Tình trạng kiểm chứng source/device được ghi riêng trong audit; các sơ đồ không
 đại diện cho deployment hay thay đổi tài khoản thật.
+
+## Workflow và kế hoạch UI/UX
+
+- [Workflow UI/UX, motion và asset](UI_UX_WORKFLOW.md)
+- [Manifest skill UI/UX đã cài](UI_UX_SKILL_MANIFEST.md)
+- [Danh mục plan và template](plans/README.md)
+- [UI/UX quality roadmap](plans/2026-09-22-ui-ux-quality-roadmap.md)
+- [Thiết kế mốc ghi nhận Act](plans/2026-09-23-act-recording-baseline-design.md)
+- [Kế hoạch triển khai mốc ghi nhận Act](plans/2026-09-23-act-recording-baseline.md)
+- [Báo cáo triển khai và giới hạn kiểm chứng](ACT_RECORDING_REPORT.md)
+- [Generated asset workspace](../assets/generated/README.md)
 
 Kiểm tra tài liệu release 4.1.8 phải parse toàn bộ khối Mermaid và đối chiếu các
 liên kết file nội bộ. Đây là kiểm tra cú pháp/liên kết,

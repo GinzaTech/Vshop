@@ -16,6 +16,7 @@ flowchart TB
     HTTP[Isolated HTTP clients]
     Persist[Storage adapters + migration]
     Archive[Match archive repository]
+    Recording[Act recording repository + policy]
     Chat[XMPP client + chat service]
     Native[Native modules: cookie, secure key, SQLite, image, background]
     Shell --> UI
@@ -32,6 +33,8 @@ flowchart TB
     Public --> HTTP
     Stores --> Persist
     Stores --> Archive
+    Stores --> Recording
+    Recording --> Persist
     Archive --> Persist
     Archive --> Native
     Persist --> Native
@@ -47,3 +50,4 @@ chẩn đoán opt-in, không phải dependency cần thiết để app hoạt đ
 Nguồn: [cấu trúc dự án](../DIRECTORY_STRUCTURE.md), [HTTP clients](../services/http/clients.ts),
 [match facade](../utils/match-ui.ts), [storage](../utils/storage.ts).
 Archive contract: [services/matches](../services/matches/match-archive-core.ts).
+Recording contract: [match recording](../services/matches/match-recording-core.ts).

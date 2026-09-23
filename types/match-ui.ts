@@ -124,6 +124,8 @@ export type SeasonPerformanceStats = {
   adr: number | null;
   kast: number | null;
   winRate: number | null;
+  /** Local recording policy identity; missing only on legacy/full-Act caches. */
+  recordingStartedAt?: number;
   updatedAt: number;
 };
 

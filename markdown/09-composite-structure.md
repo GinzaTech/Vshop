@@ -38,12 +38,16 @@ flowchart TB
     Mutation --> Riot
     Fetch --> Cache[(Profile và match stores)]
     Session --> Cache
+    Fetch --> Baseline[Act recording policy]
+    Baseline --> Cache
 ```
 
 Không có dependency từ HTTP client quay ngược vào UI. Các hook được tách theo
 trách nhiệm; store liên tài khoản và state picker/motion cục bộ có vòng đời khác
 nhau. Tab Tổng quan/Chi tiết dùng store UI riêng để không render lại toàn bộ
 Profile; hai panel đã layout sẵn chỉ đổi lớp bằng shared value trên UI thread.
+Dashboard chỉ nhận `seasonOptions` đã lọc; component không tự nhân đôi policy
+baseline hoặc đọc archive legacy trực tiếp.
 
 Nguồn: [ProfileScreen](../features/profile/ProfileScreen.tsx),
 [fetch](../features/profile/useProfileFetch.ts), [mutations](../features/profile/useProfileMutations.ts),

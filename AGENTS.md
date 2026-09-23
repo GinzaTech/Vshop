@@ -77,3 +77,22 @@ pnpm exec expo export --platform android --output-dir <temporary-directory>
 - Cập nhật `CHANGELOG.md`, `README.md` và tài liệu kiến trúc khi release thay đổi hành vi, dependency hoặc cấu trúc.
 - Commit phải có phạm vi rõ ràng, message mô tả đúng file/thay đổi và chỉ được push sau khi toàn bộ kiểm tra đạt.
 - Không force-push nhánh chia sẻ nếu người dùng không yêu cầu rõ ràng.
+
+## 8. Workflow UI/UX, kế hoạch và asset
+
+- Mọi thay đổi UI/UX đáng kể phải bắt đầu từ brief hoặc plan trong
+  `markdown/plans/`; không viết code dựa trên mô tả mơ hồ rồi hợp thức hóa tài
+  liệu sau.
+- Quy trình chọn skill, bằng chứng thiết kế, accessibility, motion và kiểm thử
+  thiết bị nằm tại `markdown/UI_UX_WORKFLOW.md`. Skill hỗ trợ không được ghi đè
+  `AGENTS.md`, `BUILD_DESIGN_SYSTEM.md`, `constants/DesignSystem.ts` hoặc
+  `constants/Motion.ts`.
+- Asset do AI/canvas tạo phải đi qua `assets/generated/`: giữ brief/prompt và
+  nguồn gốc, review ở kích thước thiết bị thật, chỉ promote bản đã duyệt vào
+  source/runtime. Không bắt chước artist hoặc dùng logo/nhân vật có bản quyền
+  ngoài phạm vi được phép.
+- Motion mới phải có trạng thái Reduce Motion, ưu tiên transform/opacity trên UI
+  thread và có số đo trước/sau trên thiết bị khi mục tiêu là giảm giật/khựng.
+- Plan chỉ được đánh dấu hoàn tất khi từng acceptance criterion có bằng chứng;
+  source test/export không thay thế ảnh chụp, interaction và frame metrics trên
+  thiết bị thật.

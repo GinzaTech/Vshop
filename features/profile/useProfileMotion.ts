@@ -7,20 +7,22 @@ import {
 } from "react-native-reanimated";
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import { runWhenIdle, type IdleTask } from "~/utils/idle-task";
-import { type RankSplitContentMode } from "~/components/profile/RankSplitGroup";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { TabKey } from "~/components/GalleryProfile";
 import { COLORS } from "~/constants/DesignSystem";
 import { MOTION_TIMING } from "~/constants/Motion";
 import { getProfileChromeTone, PROFILE_INFO_COLORS } from "~/features/profile/profile-visual-policy";
-import { PROFILE_HERO_EXPANDED_FALLBACK_HEIGHT } from "~/features/profile/profile-transition";
+import {
+  PROFILE_HERO_COMPACT_HEIGHT,
+  PROFILE_HERO_EXPANDED_FALLBACK_HEIGHT,
+} from "~/features/profile/profile-transition";
 import {
   type ProfileDashboardTab,
   useProfileDashboardTabStore,
 } from "~/features/profile/useProfileDashboardTabStore";
 import type { useProfileSession } from "./useProfileSession";
 type ProfileNavContentMode = "profile" | "stats";
-const PROFILE_MODE_MORPH_DURATION_MS = 420;
+const PROFILE_MODE_MORPH_DURATION_MS = MOTION_TIMING.standard.duration;
 const PROFILE_MODE_INTERACTION_BUFFER_MS = 80;
 const PROFILE_STATS_FETCH_DELAY_MS = PROFILE_MODE_MORPH_DURATION_MS + 120;
 type Props = Pick<ReturnType<typeof useProfileSession>, "viewportWidth" | "hasAuth" | "fetchMatches" | "user">;
@@ -139,8 +141,7 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   const profileModeInteractionTimerRef = React.useRef<
       ReturnType<typeof setTimeout> | null
   >(null);
-  const [rankSplitContentMode, setRankSplitContentMode] =
-      React.useState<RankSplitContentMode>("rank");
+  const rankSplitContentMode = "rank" as const;
   const heroModeProgress = useSharedValue(0);
   const rankSplitProgress = useSharedValue(0);
   const statsVisibilityProgress = useSharedValue(1);
@@ -153,6 +154,7 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   const statsExpandedRef = React.useRef(true);
   const lastRegionTapRef = React.useRef(0);
   const dashboardPreloadTaskRef = React.useRef<IdleTask | null>(null);
+  const pendingModeTransitionRef = React.useRef<boolean | null>(null);
 
   React.useEffect(() => {
     const preloadTask = runWhenIdle(() => {
@@ -180,19 +182,16 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
       },
     ],
   }));
-  const profileBodyBackgroundAnimatedStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      pageModeProgress.value,
-      [0, 1],
-      [COLORS.PURE_WHITE, PROFILE_INFO_COLORS.background]
-    ),
-  }));
-  const profilePageBackgroundAnimatedStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      pageModeProgress.value,
-      [0, 1],
-      [COLORS.PURE_WHITE, PROFILE_INFO_COLORS.background]
-    ),
+  const profileSegmentPositionAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY:
+          -Math.max(
+            0,
+            profileExpandedHeroHeight.value - PROFILE_HERO_COMPACT_HEIGHT
+          ) * pageModeProgress.value,
+      },
+    ],
   }));
   const profileHeaderTitleAnimatedStyle = useAnimatedStyle(() => ({
     color: interpolateColor(
@@ -236,23 +235,7 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
         }
     );
   }, [statsVisibilityProgress]);
-  // Rank và nội dung dùng cùng nhịp morph với toàn bộ hero, không timer trung gian.
-  const startRankSplitTransition = React.useCallback(
-      (showActStats: boolean) => {
-        setRankSplitContentMode(showActStats ? "act" : "rank");
-        rankSplitProgress.value = withTiming(showActStats ? 1 : 0, {
-          duration: PROFILE_MODE_MORPH_DURATION_MS,
-          easing: Easing.inOut(Easing.cubic),
-          reduceMotion: ReduceMotion.System,
-        });
-      },
-      [rankSplitProgress]
-  );
-  // toggleHeroMode: đổi hero↔player info; khóa tương tác, chạy animation theo pha.
-  const toggleHeroMode = React.useCallback(() => {
-    if (profileModeInteractionLockedRef.current) return;
-
-    const nextMode = !isPlayerInfoModeRef.current;
+  const startProfileModeTransition = React.useCallback((nextMode: boolean) => {
     const interactionLockDuration =
         reduceMotionEnabled
           ? 0
@@ -275,19 +258,6 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
     setPrimaryNavigationTone(chromeTone.primaryNavigation);
     setIsPlayerInfoMode(nextMode);
     setProfileNavContentMode(nextMode ? "stats" : "profile");
-    startRankSplitTransition(nextMode);
-
-    if (!statsDashboardMounted) {
-      dashboardPreloadTaskRef.current?.cancel();
-      dashboardPreloadTaskRef.current = null;
-      setStatsDashboardMounted(true);
-    }
-
-    heroModeProgress.value = withTiming(nextMode ? 1 : 0, {
-      duration: PROFILE_MODE_MORPH_DURATION_MS,
-      easing: Easing.inOut(Easing.cubic),
-      reduceMotion: ReduceMotion.System,
-    });
     pageModeProgress.value = withTiming(nextMode ? 1 : 0, {
       duration: PROFILE_MODE_MORPH_DURATION_MS,
       easing: Easing.inOut(Easing.cubic),
@@ -310,16 +280,55 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
     });
   }, [
     dashboardProgress,
-    heroModeProgress,
     legacyContentProgress,
     pageModeProgress,
     reduceMotionEnabled,
     segmentLayoutProgress,
     setPrimaryNavigationTone,
     setTopInsetTone,
-    startRankSplitTransition,
+  ]);
+  // toggleHeroMode: dashboard lạnh được mount trước; morph bắt đầu ở frame kế
+  // tiếp để React layout/image work không chen vào cửa sổ morph.
+  const toggleHeroMode = React.useCallback(() => {
+    if (
+      profileModeInteractionLockedRef.current ||
+      pendingModeTransitionRef.current !== null
+    ) {
+      return;
+    }
+
+    const nextMode = !isPlayerInfoModeRef.current;
+    if (nextMode && !statsDashboardMounted && !reduceMotionEnabled) {
+      dashboardPreloadTaskRef.current?.cancel();
+      dashboardPreloadTaskRef.current = null;
+      pendingModeTransitionRef.current = nextMode;
+      setStatsDashboardMounted(true);
+      return;
+    }
+
+    if (nextMode && !statsDashboardMounted) {
+      dashboardPreloadTaskRef.current?.cancel();
+      dashboardPreloadTaskRef.current = null;
+      setStatsDashboardMounted(true);
+    }
+    startProfileModeTransition(nextMode);
+  }, [
+    reduceMotionEnabled,
+    startProfileModeTransition,
     statsDashboardMounted,
   ]);
+  React.useEffect(() => {
+    const pendingMode = pendingModeTransitionRef.current;
+    if (!statsDashboardMounted || pendingMode === null) return;
+
+    const frameId = requestAnimationFrame(() => {
+      if (pendingModeTransitionRef.current !== pendingMode) return;
+      pendingModeTransitionRef.current = null;
+      startProfileModeTransition(pendingMode);
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [startProfileModeTransition, statsDashboardMounted]);
   // Focus effect: đồng bộ tone status bar/navigation theo mode, trả giá trị cũ khi rời màn.
   useFocusEffect(
       React.useCallback(() => {
@@ -368,8 +377,8 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
     heroModeProgress, rankSplitProgress, statsVisibilityProgress, pageModeProgress,
     statsTabProgress,
     profileExpandedHeroHeight, dashboardPreloadTaskRef, legacyContentAnimatedStyle,
-    statsDashboardLayerAnimatedStyle, profileBodyBackgroundAnimatedStyle,
-    profilePageBackgroundAnimatedStyle, profileHeaderTitleAnimatedStyle,
+    statsDashboardLayerAnimatedStyle, profileSegmentPositionAnimatedStyle,
+    profileHeaderTitleAnimatedStyle,
     profileBalancePillAnimatedStyle, handleRegionPress,
     toggleHeroMode, handleStatsDashboardTabChange,
   };

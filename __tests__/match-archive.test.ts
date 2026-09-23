@@ -440,6 +440,27 @@ describe("durable match season archive", () => {
     ).toBeNull();
   });
 
+  it("rejects a non-finite recording baseline marker on season stats", async () => {
+    const archive = createMatchArchiveRepository(createMemoryDriver().driver);
+
+    await archive.saveMatchSeasonArchive({
+      accountKey: "ap|account-a",
+      matches: [],
+      seasonId: "act-1",
+      seasonName: "Act 1",
+      stats: {
+        ...seasonStats("act-1"),
+        recordingStartedAt: Number.NaN,
+      },
+      syncStatus: "complete",
+      updatedAt: 100,
+    });
+
+    await expect(
+      archive.loadMatchSeasonArchive("ap|account-a", "act-1")
+    ).resolves.toMatchObject({ stats: null });
+  });
+
   it("groups observed competitive records by season and ignores unsafe inputs", async () => {
     const memory = createMemoryDriver();
     const archive = createMatchArchiveRepository(memory.driver);

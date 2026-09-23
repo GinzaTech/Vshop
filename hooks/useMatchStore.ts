@@ -72,6 +72,14 @@ export const useMatchStore = create<MatchState>()(
             persistedVersion === MATCH_STORE_VERSION
               ? persisted.historyEndIndex ?? persisted.matches?.length ?? 0
               : 0,
+          recordingStartedAt:
+            persistedVersion === MATCH_STORE_VERSION
+              ? persisted.recordingStartedAt ?? 0
+              : 0,
+          recordingStartSeasonId:
+            persistedVersion === MATCH_STORE_VERSION
+              ? persisted.recordingStartSeasonId ?? null
+              : null,
           seasonStats:
             persistedVersion === MATCH_STORE_VERSION
               ? persisted.seasonStats ?? null
@@ -104,6 +112,8 @@ export const useMatchStore = create<MatchState>()(
         lastUpdated: state.lastUpdated,
         totalMatches: state.totalMatches,
         historyEndIndex: state.historyEndIndex,
+        recordingStartedAt: state.recordingStartedAt,
+        recordingStartSeasonId: state.recordingStartSeasonId,
         seasonStats: state.seasonStats,
         seasonStatsById: state.seasonStatsById,
         seasonMatchesById: capPersistedSeasonMatches(state.seasonMatchesById),
@@ -117,9 +127,11 @@ export const useMatchStore = create<MatchState>()(
 /** Data only: pending tasks, credentials and loading flags never survive rollback. */
 export function captureMatchCache(): MatchCacheSnapshot {
   const { authKey, matches, detailsById, error, lastUpdated, totalMatches,
-    historyEndIndex, seasonStats, seasonStatsById, seasonMatchesById, seasonOptions } = useMatchStore.getState();
+    historyEndIndex, recordingStartedAt, recordingStartSeasonId, seasonStats,
+    seasonStatsById, seasonMatchesById, seasonOptions } = useMatchStore.getState();
   return { authKey, matches, detailsById, error, lastUpdated, totalMatches,
-    historyEndIndex, seasonStats, seasonStatsById, seasonMatchesById, seasonOptions };
+    historyEndIndex, recordingStartedAt, recordingStartSeasonId, seasonStats,
+    seasonStatsById, seasonMatchesById, seasonOptions };
 }
 
 /** Invalidate tasks from both sides of the switch before restoring cached data. */

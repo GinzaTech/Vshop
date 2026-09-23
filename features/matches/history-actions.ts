@@ -5,18 +5,31 @@ import { getCompetitiveUpdates, playerMatchHistory } from "~/utils/valorant-api"
 import { loadAssets, loadAgent } from "~/utils/valorant-assets";
 import { getNetworkProfile } from "~/utils/network";
 import { archiveObservedMatches } from "~/services/matches/match-archive";
+import {
+  ensureMatchRecordingBaseline,
+  filterRecordedMatches,
+  loadMatchRecordingBaseline,
+  type MatchRecordingBaseline,
+} from "~/services/matches/match-recording";
 import { buildMatchHistoryRecord, compactRankUpdate, createMatchAssetCatalog, enrichMatchHistoryAssets } from "~/utils/match-ui";
 import { MATCH_HISTORY_LIMIT, INITIAL_FETCH_TOTAL, MATCH_CACHE_TTL_MS, DELTA_FETCH_LIMIT, CELLULAR_INITIAL_DETAILS, WIFI_INITIAL_DETAILS } from "./cache-policy";
 import { hydrateMatchBatch } from "./hydrate-batch";
 import type { MatchState } from "./store-types";
-import type { MatchActionContext } from "./request-runtime";
+import { synchronizeRecordingBaseline } from "./recording-state";
+import type { MatchActionContext, MatchRequestScope } from "./request-runtime";
 
 const archiveObservedMatchesSafely = async (
   authKey: string,
-  matches: readonly MatchHistoryRecord[]
+  matches: readonly MatchHistoryRecord[],
+  knownBaseline?: MatchRecordingBaseline | null
 ) => {
   try {
-    await archiveObservedMatches(authKey, matches);
+    const baseline =
+      knownBaseline ?? (await loadMatchRecordingBaseline(authKey));
+    if (!baseline) return;
+    const recordedMatches = filterRecordedMatches(matches, baseline);
+    if (recordedMatches.length === 0) return;
+    await archiveObservedMatches(authKey, recordedMatches);
   } catch (error) {
     if (__DEV__) {
       console.warn(
@@ -30,6 +43,26 @@ const archiveObservedMatchesSafely = async (
 export function createHistoryActions({
   setState: set, getState: get, runtime,
 }: MatchActionContext): Pick<MatchState, "hydrateNextMatches" | "fetchMatches"> {
+  const prepareRecordingBaseline = async (
+    scope: MatchRequestScope,
+    authKey: string
+  ) => {
+    try {
+      const result = await ensureMatchRecordingBaseline(authKey);
+      if (!scope.isCurrent() || !result) return null;
+      set((state) => synchronizeRecordingBaseline(state, result.baseline));
+      return result.baseline;
+    } catch (error) {
+      if (__DEV__) {
+        console.warn(
+          "[matchStore] recording baseline unavailable",
+          sanitizeErrorForLog(error)
+        );
+      }
+      return null;
+    }
+  };
+
   return {
     hydrateNextMatches: async (user, count) => {
       // Validation + kiểm tra auth key khớp với session hiện tại
@@ -53,6 +86,11 @@ export function createHistoryActions({
       }
 
       const request = (async () => {
+        const recordingBaseline = await prepareRecordingBaseline(
+          scope,
+          authKey
+        );
+        if (!scope.isCurrent()) return;
         // Kiểm tra kết nối mạng
         const network = await getNetworkProfile().catch((error: unknown) => {
           if (__DEV__) console.warn("[matchStore] network profile unavailable", sanitizeErrorForLog(error));
@@ -186,7 +224,11 @@ export function createHistoryActions({
               (match) => hydratedById.get(match.MatchID) || match
             ),
           }));
-          void archiveObservedMatchesSafely(authKey, hydrated);
+          void archiveObservedMatchesSafely(
+            authKey,
+            hydrated,
+            recordingBaseline
+          );
         } catch (error) {
           if (__DEV__) {
             console.warn("Failed to load more match history", sanitizeErrorForLog(error));
@@ -217,6 +259,11 @@ export function createHistoryActions({
       // Nếu cache còn hạn và không force thì bỏ qua
       const scope = runtime.begin(user);
       if (!scope) return false;
+      const recordingBaseline = await prepareRecordingBaseline(
+        scope,
+        getMatchAuthKey(user)
+      );
+      if (!scope.isCurrent()) return false;
 
       // Restored sessions do not pass through buildAuthenticatedUser, so the
       // in-memory asset catalog starts empty even when match records are cached.
@@ -362,7 +409,8 @@ export function createHistoryActions({
             }
             void archiveObservedMatchesSafely(
               getMatchAuthKey(user),
-              hydratedForArchive
+              hydratedForArchive,
+              recordingBaseline
             );
             if (__DEV__) {
               console.log(`[matchStore] delta sync: +${newRawMatches.length} new matches`);
@@ -537,7 +585,8 @@ export function createHistoryActions({
           });
           void archiveObservedMatchesSafely(
             getMatchAuthKey(user),
-            hydrated
+            hydrated,
+            recordingBaseline
           );
           return true;
         } catch (error) {

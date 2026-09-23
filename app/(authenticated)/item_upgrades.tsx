@@ -395,11 +395,15 @@ export default function ItemUpgradesScreen() {
             <View style={styles.cardMetaRow}>
               <View style={styles.metaChip}>
                 <Icon name="arrow-up-bold-hexagon-outline" size={13} color={COLORS.TEXT_PRIMARY} />
-                <Text style={styles.metaChipText}>{levels.length} levels</Text>
+                <Text style={styles.metaChipText}>
+                  {t("item_upgrades_page.level_count", { count: levels.length })}
+                </Text>
               </View>
               <View style={styles.metaChip}>
                 <Icon name="palette-outline" size={13} color={COLORS.TEXT_PRIMARY} />
-                <Text style={styles.metaChipText}>{sidegradeCount} variants</Text>
+                <Text style={styles.metaChipText}>
+                  {t("item_upgrades_page.variant_count", { count: sidegradeCount })}
+                </Text>
               </View>
             </View>
           </View>
@@ -462,7 +466,7 @@ export default function ItemUpgradesScreen() {
                 </View>
                 <View style={styles.rewardInfo}>
                   <Text style={styles.rewardLabel}>
-                    {t("item_upgrades_page.upgrade_title")} {index + 1}
+                    {t("item_upgrades_page.upgrade_level", { level: index + 1 })}
                   </Text>
                   {reward.EntitlementRewards?.map((er, rewardIndex) => {
                     const rewardMeta = resolveItemMeta(er.ItemTypeID, er.ItemID);
@@ -530,11 +534,11 @@ export default function ItemUpgradesScreen() {
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{definitions.length}</Text>
-              <Text style={styles.statLabel}>Skins</Text>
+              <Text style={styles.statLabel}>{t("item_upgrades_page.skins_label")}</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{totalSidegrades}</Text>
-              <Text style={styles.statLabel}>Variants</Text>
+              <Text style={styles.statLabel}>{t("item_upgrades_page.variants_label")}</Text>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statValueRow}>
@@ -554,7 +558,7 @@ export default function ItemUpgradesScreen() {
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Search upgrades"
+              placeholder={t("item_upgrades_page.search_placeholder")}
               placeholderTextColor={COLORS.TEXT_SECONDARY}
               autoCorrect={false}
               style={styles.searchInput}
@@ -578,12 +582,12 @@ export default function ItemUpgradesScreen() {
           <Text style={styles.emptyTitle}>
             {definitions.length === 0
               ? t("item_upgrades_page.empty_title")
-              : "No matching upgrades"}
+              : t("item_upgrades_page.no_results_title")}
           </Text>
           <Text style={styles.emptySubtitle}>
             {definitions.length === 0
               ? t("item_upgrades_page.empty_subtitle")
-              : "Try a different skin name."}
+              : t("item_upgrades_page.no_results_subtitle")}
           </Text>
         </GlassCard>
       }

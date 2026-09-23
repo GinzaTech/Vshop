@@ -12,6 +12,7 @@ erDiagram
     ACCOUNT ||--o{ HISTORY_RECORD : xem
     ACCOUNT ||--o{ SEASON_STATS : tong_hop
     ACCOUNT ||--o{ MATCH_SEASON_ARCHIVE : luu_theo_account
+    ACCOUNT ||--|| ACT_RECORDING_BASELINE : bat_dau_ghi_tu_moc
     SEASON ||--o{ SEASON_STATS : theo_act
     SEASON ||--o{ MATCH_SEASON_ARCHIVE : khoa_theo_act
     SEASON ||--o{ HISTORY_RECORD : gom
@@ -86,6 +87,7 @@ erDiagram
     }
     SEASON_STATS {
         string seasonId
+        number recordingStartedAt
         number wins
         number losses
         number draws
@@ -100,6 +102,12 @@ erDiagram
         string syncStatus
         string payload
     }
+    ACT_RECORDING_BASELINE {
+        string accountKey PK
+        number schemaVersion
+        number startedAt
+        string startSeasonId
+    }
 ```
 
 `protectedCredentials` và `result` ở đây là thuộc tính **khái niệm**: credential
@@ -113,10 +121,15 @@ giữ snapshot JSON đã validate. `HISTORY_RECORD` và `SEASON_STATS` trong hì
 các object nằm trong payload, không phải bảng con SQL. Web/test dùng cùng
 repository contract nhưng lưu qua `appStorage`.
 
+`ACT_RECORDING_BASELINE` là metadata `appStorage` nhỏ, bất biến theo account.
+`startSeasonId` được bind một lần khi Riot content xác định Act active. Stats và
+archive trước `startedAt` không được đọc vào UI; row cũ vẫn được giữ vật lý.
+
 Chat giữ friends/messages trong RAM; wishlist là danh sách asset UUID cục bộ,
 không gán một quan hệ sở hữu account giả vì store wishlist không chia theo account.
 
 Nguồn: [SavedAccount](../utils/saved-accounts.ts), [match types](../types/match-ui.ts),
 [Profile cache](../utils/profile-cache.ts), [chat store](../utils/chat-store.ts),
 [wishlist store](../hooks/useWishlistStore.ts),
-[match archive](../services/matches/match-archive-core.ts).
+[match archive](../services/matches/match-archive-core.ts),
+[recording baseline](../services/matches/match-recording-core.ts).

@@ -168,6 +168,9 @@ const isSeasonPerformanceStats = (
     [value.acs, value.adr, value.headshotPercent, value.kast, value.kd, value.winRate].every(
       isNullableMetric
     ) &&
+    (value.recordingStartedAt === undefined ||
+      (isFiniteNumber(value.recordingStartedAt) &&
+        value.recordingStartedAt >= 0)) &&
     (completeness === undefined ||
       completeness === "full" ||
       completeness === "partial" ||

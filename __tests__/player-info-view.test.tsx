@@ -8,6 +8,12 @@ import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useProfileDashboardTabStore } from "~/features/profile/useProfileDashboardTabStore";
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => jest.fn(() => null));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: { count?: number; label?: string; season?: string }) =>
+      options?.season ?? options?.label ?? options?.count?.toString() ?? key,
+  }),
+}));
 jest.mock("~/components/CachedImage", () => ({ CachedImage: () => null }));
 jest.mock("~/components/ui/AppRefreshControl", () => jest.fn(() => null));
 jest.mock("~/constants/Motion", () => ({ MOTION_DURATION: { standard: 250 } }));
@@ -50,7 +56,6 @@ const seasonOptions = [
 const tabProgress = { value: 0 } as React.ComponentProps<
   typeof PlayerInfoView
 >["tabProgress"];
-
 const baseProps: React.ComponentProps<typeof PlayerInfoView> = {
   competitiveRank: null,
   loading: false,
@@ -112,11 +117,11 @@ describe("PlayerInfoView interaction layout", () => {
     expect(hiddenOverviewStyle.display).toBeUndefined();
     expect(hiddenOverviewStyle.position).toBe("absolute");
     expect(hiddenOverview.props.pointerEvents).toBe("none");
-    expect(hiddenOverview.props.renderToHardwareTextureAndroid).toBe(true);
+    expect(hiddenOverview.props.renderToHardwareTextureAndroid).toBeUndefined();
     expect(visibleDetailsStyle.display).toBeUndefined();
     expect(visibleDetailsStyle.position).toBe("absolute");
     expect(visibleDetails.props.pointerEvents).toBe("auto");
-    expect(visibleDetails.props.renderToHardwareTextureAndroid).toBe(true);
+    expect(visibleDetails.props.renderToHardwareTextureAndroid).toBeUndefined();
     act(() => renderer!.unmount());
   });
 
@@ -136,6 +141,97 @@ describe("PlayerInfoView interaction layout", () => {
       top: 7,
     });
     expect(Icon).toHaveBeenCalled();
+    act(() => renderer!.unmount());
+  });
+
+  it("shows only the current summary when recording has no completed Act yet", () => {
+    let renderer: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <PlayerInfoView
+          {...baseProps}
+          seasonOptions={[seasonOptions[0]]}
+        />
+      );
+    });
+
+    expect(
+      renderer!.root.findAllByProps({ testID: "profile-season-selector" })
+    ).toHaveLength(0);
+    expect(
+      renderer!.root.findByProps({
+        testID: "profile-season-current-summary",
+      }).props.accessibilityLabel
+    ).toContain("V26 · ACT V");
+    expect(
+      renderer!.root.findAllByProps({ testID: "profile-season-act-old" })
+    ).toHaveLength(0);
+    act(() => renderer!.unmount());
+  });
+
+  it("exposes the season selector as a tablist and selects a different Act", () => {
+    const onSeasonChange = jest.fn();
+    let renderer: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <PlayerInfoView {...baseProps} onSeasonChange={onSeasonChange} />
+      );
+    });
+
+    const selector = renderer!.root.findByProps({
+      testID: "profile-season-selector",
+    });
+    expect(selector.props.accessibilityRole).toBe("tablist");
+
+    const oldSeasonChip = renderer!.root.findByProps({
+      testID: "profile-season-act-old",
+    });
+    expect(oldSeasonChip.props.accessibilityState.selected).toBe(false);
+
+    act(() => {
+      oldSeasonChip.props.onPress();
+    });
+
+    expect(onSeasonChange).toHaveBeenCalledTimes(1);
+    expect(onSeasonChange).toHaveBeenCalledWith("act-old");
+    expect(
+      renderer!.root.findByProps({ testID: "profile-season-act-old" }).props
+        .accessibilityState.selected
+    ).toBe(true);
+    act(() => renderer!.unmount());
+  });
+
+  it("groups the agent and map breakdown controls as an accessible tablist", () => {
+    let renderer: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<PlayerInfoView {...baseProps} />);
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: "profile-breakdown-tabs" }).props
+        .accessibilityRole
+    ).toBe("tablist");
+    expect(
+      renderer!.root.findByProps({ testID: "profile-breakdown-tab-agents" })
+        .props.accessibilityState.selected
+    ).toBe(true);
+    expect(
+      renderer!.root.findByProps({ testID: "profile-breakdown-tab-maps" })
+        .props.accessibilityState.selected
+    ).toBe(false);
+    act(() => renderer!.unmount());
+  });
+
+  it("does not fabricate a zero match count when season stats are unavailable", () => {
+    let renderer: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<PlayerInfoView {...baseProps} />);
+    });
+
+    expect(
+      renderer!.root.findByProps({ testID: "profile-match-count" }).props
+        .accessibilityLabel
+    ).toBe("--");
     act(() => renderer!.unmount());
   });
 });

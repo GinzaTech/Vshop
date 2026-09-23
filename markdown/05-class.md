@@ -79,6 +79,20 @@ classDiagram
         +number draws
         +number cancelled
         +number unknown
+        +number recordingStartedAt
+    }
+    class MatchRecordingRepository {
+        <<repository>>
+        +load(accountKey)
+        +ensure(accountKey, now)
+        +bindSeason(accountKey, seasonId)
+    }
+    class MatchRecordingBaseline {
+        <<interface>>
+        +string accountKey
+        +number schemaVersion
+        +number startedAt
+        +string startSeasonId
     }
     AccountState ..> AppStorage : secure adapter
     ProfileCacheState ..> AppStorage : cache adapter
@@ -87,9 +101,12 @@ classDiagram
     MatchState *-- MatchRequestRuntime
     MatchState ..> RiotApiClient : qua domain actions
     MatchState ..> MatchArchiveRepository : hydrate và merge theo Act
+    MatchState ..> MatchRecordingRepository : ensure và lọc từ mốc
     MatchState o-- SeasonPerformanceStats
     MatchArchiveRepository o-- SeasonPerformanceStats : snapshot optional
     MatchArchiveRepository *-- MatchArchiveDriver
+    MatchRecordingRepository o-- MatchRecordingBaseline
+    MatchRecordingRepository ..> AppStorage : metadata local
     AccountSessionService ..> AccountState
     AccountSessionService ..> MatchState : snapshot/reset
     AccountSessionService ..> ProfileCacheState : snapshot/reset
@@ -102,4 +119,5 @@ là nguồn contract chính xác.
 Nguồn: [storage interface](../utils/storage-migration.ts), [AccountState](../hooks/useAccountStore.ts),
 [MatchState](../features/matches/store-types.ts), [Profile store](../hooks/useProfileCacheStore.ts),
 [request runtime](../features/matches/request-runtime.ts),
-[archive repository](../services/matches/match-archive-core.ts).
+[archive repository](../services/matches/match-archive-core.ts),
+[recording repository](../services/matches/match-recording-core.ts).

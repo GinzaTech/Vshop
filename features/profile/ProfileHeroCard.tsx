@@ -23,7 +23,10 @@ import RankSplitGroup, {
 import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
 import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";
-import { PROFILE_HERO_COMPACT_HEIGHT } from "~/features/profile/profile-transition";
+import {
+  PROFILE_HERO_COMPACT_HEIGHT,
+  PROFILE_HERO_EXPANDED_FALLBACK_HEIGHT,
+} from "~/features/profile/profile-transition";
 import type { CompetitiveRankSummary } from "~/utils/profile-cache";
 
 type BalanceStat = {
@@ -31,13 +34,6 @@ type BalanceStat = {
   key: string;
   label: string;
   value: number;
-};
-
-type PerformanceStat = {
-  icon: React.ComponentProps<typeof Icon>["name"];
-  key: string;
-  label: string;
-  value: string;
 };
 
 type ProfileHeroCardProps = {
@@ -56,7 +52,6 @@ type ProfileHeroCardProps = {
   onRegionPress: () => void;
   onToggleMode: () => void;
   pageModeProgress: SharedValue<number>;
-  playerPerformanceStats: PerformanceStat[];
   profileModeTransitioning: boolean;
   profileStats: BalanceStat[];
   rankSplitContentMode: RankSplitContentMode;
@@ -84,7 +79,6 @@ export function ProfileHeroCard({
   onRegionPress,
   onToggleMode,
   pageModeProgress,
-  playerPerformanceStats,
   profileModeTransitioning,
   profileStats,
   rankSplitContentMode,
@@ -95,28 +89,24 @@ export function ProfileHeroCard({
   tagLine,
 }: ProfileHeroCardProps) {
   const { t } = useTranslation();
+  const [heroLayoutHeight, setHeroLayoutHeight] = React.useState(
+    PROFILE_HERO_EXPANDED_FALLBACK_HEIGHT
+  );
 
   const handleExpandedHeroLayout = React.useCallback(
     (event: LayoutChangeEvent) => {
       const measuredHeight = event.nativeEvent.layout.height;
       if (measuredHeight > PROFILE_HERO_COMPACT_HEIGHT) {
         expandedHeroHeight.value = measuredHeight;
+        setHeroLayoutHeight((current) =>
+          Math.abs(current - measuredHeight) > 0.5 ? measuredHeight : current
+        );
       }
     },
     [expandedHeroHeight]
   );
 
   const cardMorphStyle = useAnimatedStyle(() => ({
-    height: interpolate(
-      pageModeProgress.value,
-      [0, 1],
-      [expandedHeroHeight.value, PROFILE_HERO_COMPACT_HEIGHT]
-    ),
-    borderColor: interpolateColor(
-      pageModeProgress.value,
-      [0, 1],
-      ["rgba(48,56,66,0)", "rgba(48,56,66,1)"]
-    ),
     transform: [
       {
         scale: interpolate(
@@ -125,6 +115,18 @@ export function ProfileHeroCard({
           [1, 0.985, 1]
         ),
       },
+    ],
+  }));
+  const expandedSurfaceStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pageModeProgress.value, [0, 0.58, 1], [1, 0, 0]),
+    transform: [
+      { scaleY: interpolate(pageModeProgress.value, [0, 1], [1, 0.94]) },
+    ],
+  }));
+  const compactSurfaceStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pageModeProgress.value, [0, 0.42, 1], [0, 0, 1]),
+    transform: [
+      { scale: interpolate(pageModeProgress.value, [0, 1], [0.985, 1]) },
     ],
   }));
   const expandedStyle = useAnimatedStyle(() => ({
@@ -214,18 +216,6 @@ export function ProfileHeroCard({
       { translateX: interpolate(heroModeProgress.value, [0, 1], [5, 0]) },
     ],
   }));
-  const statCardStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      heroModeProgress.value,
-      [0, 1],
-      ["rgba(255,255,255,0.06)", "rgba(255,70,85,0.08)"]
-    ),
-    borderColor: interpolateColor(
-      heroModeProgress.value,
-      [0, 1],
-      ["rgba(255,255,255,0)", "rgba(255,70,85,0.16)"]
-    ),
-  }));
   const statsVisibilityStyle = useAnimatedStyle(() => ({
     height: interpolate(statsVisibilityProgress.value, [0, 1], [0, 64]),
     marginTop: interpolate(statsVisibilityProgress.value, [0, 1], [0, 12]),
@@ -235,12 +225,25 @@ export function ProfileHeroCard({
 
   return (
     <Animated.View
-      style={[
-        styles.heroCard,
-        { backgroundColor: COLORS.ACCENT_DEEP },
-        cardMorphStyle,
-      ]}
+      pointerEvents="box-none"
+      style={[styles.heroCard, { height: heroLayoutHeight }, cardMorphStyle]}
     >
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.heroSurface,
+          styles.heroExpandedSurface,
+          expandedSurfaceStyle,
+        ]}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.heroSurface,
+          styles.heroCompactSurface,
+          compactSurfaceStyle,
+        ]}
+      />
       <Animated.View
         accessibilityElementsHidden={isPlayerInfoMode}
         importantForAccessibility={
@@ -284,6 +287,7 @@ export function ProfileHeroCard({
               </Animated.View>
               <View pointerEvents="none" style={styles.heroModeLabelViewport}>
                 <TypewriterSwapText
+                  animate={!profileModeTransitioning}
                   charactersPerStep={1}
                   style={[styles.heroModeLabel, modeLabelStyle]}
                   text={
@@ -348,9 +352,7 @@ export function ProfileHeroCard({
         >
           <View style={styles.heroStatsRow}>
             {profileStats.map((balanceStat, index) => {
-              const playerStat = playerPerformanceStats[index];
-              const visibleStat =
-                isPlayerInfoMode && playerStat ? playerStat : balanceStat;
+              const visibleStat = balanceStat;
               const splitStyle =
                 index === 0
                   ? leftStatSplitStyle
@@ -361,7 +363,7 @@ export function ProfileHeroCard({
               return (
                 <Animated.View
                   key={balanceStat.key}
-                  style={[styles.heroStatCard, statCardStyle, splitStyle]}
+                  style={[styles.heroStatCard, splitStyle]}
                 >
                   <View style={styles.heroStatLabelRow}>
                     <View style={styles.heroStatIconViewport}>
@@ -378,12 +380,13 @@ export function ProfileHeroCard({
                       >
                         <Icon
                           color={COLORS.VALORANT_RED}
-                          name={playerStat?.icon ?? "chart-box-outline"}
+                          name="chart-box-outline"
                           size={15}
                         />
                       </Animated.View>
                     </View>
                     <TypewriterSwapText
+                      animate={!profileModeTransitioning}
                       deletingSpeed={22}
                       initialDelay={60}
                       showCursor={false}
@@ -396,6 +399,7 @@ export function ProfileHeroCard({
                     />
                   </View>
                   <TypewriterSwapText
+                    animate={!profileModeTransitioning}
                     deletingSpeed={20}
                     initialDelay={60}
                     showCursor={false}
@@ -412,6 +416,7 @@ export function ProfileHeroCard({
         <View style={styles.heroRankRow}>
           <Animated.View style={[styles.heroRankHalf, leftRankSplitStyle]}>
             <RankSplitGroup
+              animateText={!profileModeTransitioning}
               contentMode={rankSplitContentMode}
               rankIconCacheId={
                 competitiveRank?.currentTier
@@ -429,6 +434,7 @@ export function ProfileHeroCard({
           </Animated.View>
           <Animated.View style={[styles.heroRankHalf, rightRankSplitStyle]}>
             <RankSplitGroup
+              animateText={!profileModeTransitioning}
               contentMode={rankSplitContentMode}
               rankIconCacheId={
                 competitiveRank?.peakTier

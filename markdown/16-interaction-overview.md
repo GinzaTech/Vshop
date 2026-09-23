@@ -12,7 +12,7 @@ flowchart TD
     C -- Có --> E[ref: Core sync và cache ownership]
     E --> F[Hiển thị ứng dụng]
     F --> G{Tương tác tiếp theo}
-    G -- Chọn Act --> H[ref: Archive, Riot history/MMR và tổng hợp mùa]
+    G -- Chọn Act --> H[ref: Baseline, archive và dữ liệu Riot còn hợp lệ]
     G -- Xem trận --> I[ref: Detail + tên người chơi]
     G -- Refresh Profile --> J[ref: Partial fetch và merge cache]
     G -- Switch account --> K[ref: Snapshot / activate / sync / rollback]
@@ -27,9 +27,9 @@ flowchart TD
     N --> C
 ```
 
-Tương tác chọn Act hydrate archive account-scoped trước, sau đó mới gọi nguồn
-Riot còn cần thiết. Snapshot hoàn tất tránh crawl lại; request cũ vẫn phải qua
-scope/generation trước khi ghi UI hoặc archive.
+Tương tác chọn Act ensure baseline account-scoped trước, loại option/archive
+legacy rồi mới gọi nguồn Riot còn cần thiết. Snapshot hoàn tất sau mốc tránh
+crawl lại; request cũ vẫn phải qua scope/generation trước khi ghi UI hoặc archive.
 
 Tham chiếu: [Flowchart](01-flowchart.md), [Sequence switch](08-sequence.md),
 [Activity refresh](12-activity.md), [Communication mùa](15-communication.md).
@@ -40,3 +40,4 @@ Nguồn: [AppWarmup](../components/AppWarmup.tsx), [app-sync](../utils/app-sync.
 [screen activity](../features/combat/useCombatScreenActivity.ts).
 Nguồn mùa: [season actions](../features/matches/season-actions.ts),
 [archive](../services/matches/match-archive-core.ts).
+Policy mốc: [recording baseline](../services/matches/match-recording-core.ts).

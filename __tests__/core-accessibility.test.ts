@@ -32,4 +32,10 @@ describe("core journey automation and accessibility contracts", () => {
       "ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
     );
   });
+
+  it("groups both Profile segmented-control modes as tablists", () => {
+    const source = read("features/profile/ProfileSegmentedControl.tsx");
+    expect(source.match(/accessibilityRole="tablist"/g)).toHaveLength(2);
+    expect(source).toContain('accessibilityLabel={t("profile_page.stats.navigation")}');
+  });
 });

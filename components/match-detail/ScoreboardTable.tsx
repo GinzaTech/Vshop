@@ -89,11 +89,13 @@ const sortPlayers = (
   return [...players].sort((left, right) => {
     const leftValue = numericValue(left, sort.column as ScoreboardColumn);
     const rightValue = numericValue(right, sort.column as ScoreboardColumn);
+    if (leftValue === undefined && rightValue === undefined) return 0;
+    if (leftValue === undefined) return 1;
+    if (rightValue === undefined) return -1;
     if (typeof leftValue === "string" || typeof rightValue === "string") {
-      return String(leftValue ?? "").localeCompare(String(rightValue ?? "")) * direction;
+      return String(leftValue).localeCompare(String(rightValue)) * direction;
     }
-    return ((leftValue ?? Number.NEGATIVE_INFINITY) -
-      (rightValue ?? Number.NEGATIVE_INFINITY)) * direction;
+    return (leftValue - rightValue) * direction;
   });
 };
 
@@ -381,6 +383,15 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
             <View style={styles.statsHeader} accessibilityRole="header">
               {columns.map((column) => {
                 const active = sort.column === column.id && sort.direction;
+                const sortDirectionLabel = active
+                  ? sort.direction === "asc"
+                    ? t("match_ui.scoreboard.sort_ascending", {
+                        defaultValue: "Ascending",
+                      })
+                    : t("match_ui.scoreboard.sort_descending", {
+                        defaultValue: "Descending",
+                      })
+                  : undefined;
                 return (
                   <Pressable
                     key={column.id}
@@ -389,6 +400,18 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
                       column.sortable
                         ? `${t("match_ui.scoreboard.sort_by")} ${column.label}`
                         : column.label
+                    }
+                    accessibilityState={{
+                      disabled: !column.sortable,
+                      selected: Boolean(active),
+                    }}
+                    accessibilityValue={
+                      sortDirectionLabel ? { text: sortDirectionLabel } : undefined
+                    }
+                    testID={
+                      column.sortable
+                        ? `match-detail-sort-${column.id}`
+                        : undefined
                     }
                     disabled={!column.sortable}
                     onPress={() => cycleSort(column.id)}

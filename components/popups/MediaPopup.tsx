@@ -250,8 +250,10 @@ function MediaPopup() {
                 <View key={section.group} style={styles.section}>
                   <Text style={styles.sectionLabel}>{section.label}</Text>
                   <ScrollView
+                    accessibilityRole="tablist"
                     horizontal
                     showsHorizontalScrollIndicator={false}
+                    testID={`media-tablist-${section.group}`}
                     contentContainerStyle={styles.tabs}
                   >
                     {section.items.map(({ entry, index }, sectionIndex) => {
@@ -382,10 +384,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  // tabButton: nút tab dạng chip, minWidth 44, minHeight 40, bo góc chip
+  // tabButton: nút tab dạng chip, touch target tối thiểu 44 x 44 dp
   tabButton: {
     minWidth: 44,
-    minHeight: 40,
+    minHeight: 44,
     borderRadius: RADIUS.chip,
     paddingHorizontal: 14,
     alignItems: "center",

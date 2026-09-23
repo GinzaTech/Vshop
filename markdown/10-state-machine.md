@@ -56,8 +56,27 @@ stateDiagram-v2
 
 Merge không hạ chất lượng snapshot hoặc thay dữ liệu không rỗng bằng lần crawl
 rỗng. Mỗi write được tuần tự theo account + Act trước khi publish payload mới.
+`RankOnly` chỉ hợp lệ cho Act mở sau baseline; Act chứa mốc không được dùng MMR
+full-Act.
+
+## Mốc ghi nhận Act
+
+```mermaid
+stateDiagram-v2
+    [*] --> Missing
+    Missing --> Timestamped: ensure(account, now)
+    Timestamped --> Bound: bind active startSeasonId
+    Timestamped --> Timestamped: content tạm lỗi, giữ timestamp
+    Bound --> Bound: refresh, restart hoặc switch account quay lại
+    Bound --> FutureAct: Riot content công bố Act mới
+    FutureAct --> FutureAct: lưu từng Act sau mốc
+```
+
+Không có transition quay lại `Missing` hoặc lùi `startedAt` trong luồng thường;
+archive legacy bị ẩn chứ không bị xoá.
 
 Nguồn: [Combat store](../hooks/useCombatStore.ts),
 [polling](../features/combat/useCombatSessionPolling.ts),
 [request runtime](../features/matches/request-runtime.ts),
-[archive repository](../services/matches/match-archive-core.ts).
+[archive repository](../services/matches/match-archive-core.ts),
+[recording repository](../services/matches/match-recording-core.ts).

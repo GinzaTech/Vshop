@@ -192,12 +192,12 @@ export default function AboutScreen() {
           <Text style={styles.sectionTitle}>{t("about_page.player_info_title")}</Text>
           <GlassCard style={styles.card}>
             {renderInfoRow(
-              t("about_page.profile") ?? "Profile",
+              t("about_page.profile"),
               `${playerInfo.acct.game_name}#${playerInfo.acct.tag_line}`
             )}
             {renderInfoRow("PUUID", playerInfo.sub)}
             {renderInfoRow(t("about_page.country"), playerInfo.country)}
-            {renderInfoRow("Language", playerInfo.player_locale || "---")}
+            {renderInfoRow(t("about_page.language"), playerInfo.player_locale || "---")}
             {renderBoolReadRow(t("about_page.email_verified"), playerInfo.email_verified)}
             {renderBoolReadRow(t("about_page.phone_verified"), playerInfo.phone_number_verified)}
             {renderInfoRow(
@@ -253,7 +253,7 @@ export default function AboutScreen() {
           <View style={styles.configNote}>
             <Icon name="information-outline" size={16} color={COLORS.TEXT_SECONDARY} />
             <Text style={styles.configNoteText}>
-              Các switch bên dưới là feature flag Riot Client trả về. Khi bạn đổi switch, VShop chỉ lưu override cục bộ để app thử hành vi khác; nó không thay đổi tài khoản Riot hay game client.
+              {t("about_page.feature_toggles_note")}
             </Text>
           </View>
 

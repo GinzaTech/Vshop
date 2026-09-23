@@ -1,4 +1,3 @@
-import type { ViewStyle } from "react-native";
 import { STATS_COLORS } from "./player-stats-styles";
 export type DashboardTone = "positive" | "negative" | "neutral";
 export const compactNumber = (value: number | null | undefined) =>
@@ -60,23 +59,3 @@ export const toneForWinRate = (value: number | null | undefined): DashboardTone 
     : value >= 50
       ? "positive"
       : "negative";
-
-export const lineStyle = (
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number
-): ViewStyle => {
-  const distance = Math.hypot(x2 - x1, y2 - y1);
-  const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
-  return {
-    position: "absolute",
-    left: (x1 + x2 - distance) / 2,
-    top: (y1 + y2) / 2 - 1,
-    width: distance,
-    height: 2,
-    borderRadius: 2,
-    backgroundColor: STATS_COLORS.accent,
-    transform: [{ rotate: `${angle}deg` }],
-  };
-};

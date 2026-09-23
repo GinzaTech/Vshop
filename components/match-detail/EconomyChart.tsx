@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type ViewStyle,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -20,7 +19,9 @@ import {
   MATCH_RADIUS,
   MATCH_SPACING,
 } from "~/constants/MatchTheme";
+import { GpuLineChartCanvas } from "~/components/ui/GpuLineChartCanvas";
 import type { EconomyPoint } from "~/types/match-ui";
+import { buildChartSegments } from "~/utils/chart-geometry";
 
 /**
  * EconomyMetric – Các chỉ số kinh tế có thể chọn để vẽ biểu đồ.
@@ -84,35 +85,6 @@ const metricValue = (point: EconomyPoint, metric: EconomyMetric) => {
 };
 
 /**
- * lineStyle – Sinh style của đoạn thẳng nối 2 điểm (dùng View xoay).
- * @param x1 – Hoành độ điểm đầu.
- * @param y1 – Tung độ điểm đầu.
- * @param x2 – Hoành độ điểm cuối.
- * @param y2 – Tung độ điểm cuối.
- * @param color – Màu đoạn thẳng (dương/âm).
- * @returns ViewStyle absolute với left/top/width/transform rotate tương ứng.
- */
-const lineStyle = (
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  color: string
-): ViewStyle => {
-  const distance = Math.hypot(x2 - x1, y2 - y1);
-  const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
-  return {
-    position: "absolute",
-    left: (x1 + x2 - distance) / 2,
-    top: (y1 + y2) / 2 - 1,
-    width: distance,
-    height: 2,
-    backgroundColor: color,
-    transform: [{ rotate: `${angle}deg` }],
-  };
-};
-
-/**
  * EconomyChart – Biểu đồ kinh tế theo vòng (memo hoá).
  * State nội bộ: metric đang chọn, menu chọn metric mở/closed, vòng được chọn
  * (hiển thị tooltip). Vẽ: nhãn trục Y, grid line, đoạn thẳng nối các điểm
@@ -170,23 +142,83 @@ export const EconomyChart = React.memo(function EconomyChart({
     (point) => point.roundNumber === selectedRound
   );
   // gridValues: 5 mức grid line trên trục Y (max, max/2, 0, -max/2, -max)
-  const gridValues = [
-    maxMagnitude,
-    maxMagnitude / 2,
-    0,
-    -maxMagnitude / 2,
-    -maxMagnitude,
-  ];
+  const gridValues = React.useMemo(
+    () => [
+      maxMagnitude,
+      maxMagnitude / 2,
+      0,
+      -maxMagnitude / 2,
+      -maxMagnitude,
+    ],
+    [maxMagnitude]
+  );
+  const chartPoints = React.useMemo(
+    () =>
+      points.map((_point, index) => ({
+        x: 20 + index * POINT_GAP,
+        y: yForValue(values[index] ?? 0),
+      })),
+    [points, values, yForValue]
+  );
+  const chartSegments = React.useMemo(
+    () =>
+      buildChartSegments(chartPoints, (_start, _end, index) => {
+        const value = values[index] ?? 0;
+        const nextValue = values[index + 1] ?? 0;
+        return (value + nextValue) / 2 >= 0
+          ? MATCH_COLORS.chartPositive
+          : MATCH_COLORS.chartNegative;
+      }),
+    [chartPoints, values]
+  );
+  const chartGridLines = React.useMemo(
+    () =>
+      gridValues.map((_value, index) => ({
+        color: MATCH_COLORS.chartGrid,
+        opacity: index === 2 ? 0.82 : 0.38,
+        y: PLOT_TOP + (PLOT_HEIGHT / 4) * index,
+      })),
+    [gridValues]
+  );
+  const chartDots = React.useMemo(
+    () =>
+      chartPoints.map((point, index) => {
+        const value = values[index] ?? 0;
+        const selected = selectedRound === points[index]?.roundNumber;
+        return {
+          color:
+            value >= 0
+              ? MATCH_COLORS.chartPositive
+              : MATCH_COLORS.chartNegative,
+          point,
+          radius: selected ? 7.5 : 4.5,
+          strokeColor: selected
+            ? MATCH_COLORS.textPrimary
+            : MATCH_COLORS.appBackground,
+          strokeWidth: 2,
+        };
+      }),
+    [chartPoints, points, selectedRound, values]
+  );
   // screenReaderSummary: mô tả toàn bộ chart cho screen reader
-  const screenReaderSummary = `${t("match_ui.economy.title")}. ${points.length} rounds. ${t("match_ui.economy.difference")}: ${values.map((value) => Math.round(value)).join(", ")}`;
+  const screenReaderSummary = `${t("match_ui.economy.title")}. ${t("match_ui.round.count", { count: points.length })}. ${activeLabel}: ${values.map((value) => Math.round(value)).join(", ")}`;
 
   return (
     <View style={styles.section}>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>{t("match_ui.economy.title")}</Text>
+        <Text
+          accessibilityLabel={screenReaderSummary}
+          accessibilityRole="summary"
+          testID="match-detail-economy-summary"
+          style={styles.title}
+        >
+          {t("match_ui.economy.title")}
+        </Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={`${t("match_ui.economy.title")}: ${activeLabel}`}
           accessibilityState={{ expanded: menuOpen }}
+          testID="match-detail-economy-menu"
           onPress={() => setMenuOpen((open) => !open)}
           style={({ pressed }) => [
             styles.metricButton,
@@ -205,13 +237,20 @@ export const EconomyChart = React.memo(function EconomyChart({
       </View>
 
       {menuOpen ? (
-        <View style={styles.metricMenu}>
+        <View
+          accessibilityRole="menu"
+          testID="match-detail-economy-menu-options"
+          style={styles.metricMenu}
+        >
           {options.map((option) => {
             const active = option.id === metric;
             return (
               <Pressable
                 key={option.id}
                 accessibilityRole="menuitem"
+                accessibilityLabel={option.label}
+                accessibilityState={{ selected: active }}
+                testID={`match-detail-economy-metric-${option.id}`}
                 onPress={() => {
                   setMetric(option.id);
                   setMenuOpen(false);
@@ -277,11 +316,17 @@ export const EconomyChart = React.memo(function EconomyChart({
         </View>
       ) : (
         <View
+          accessible={false}
+          testID="match-detail-economy-chart"
           style={styles.chartRow}
-          accessible
-          accessibilityLabel={screenReaderSummary}
         >
-          <View style={styles.axisLabels}>
+          <View
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            testID="match-detail-economy-axis-labels"
+            style={styles.axisLabels}
+          >
             {gridValues.map((value) => (
               <Text key={value} style={styles.axisLabel}>
                 {compactCredits(value)}
@@ -296,71 +341,32 @@ export const EconomyChart = React.memo(function EconomyChart({
             contentContainerStyle={styles.chartScrollContent}
           >
             <View style={[styles.chart, { width: chartWidth }]}>
-              {gridValues.map((value, index) => {
-                const top = PLOT_TOP + (PLOT_HEIGHT / 4) * index;
-                return (
-                  <View
-                    key={value}
-                    style={[
-                      styles.gridLine,
-                      { top },
-                      value === 0 && styles.zeroLine,
-                    ]}
-                  />
-                );
-              })}
-
-              {points.slice(0, -1).map((point, index) => {
-                const x1 = 20 + index * POINT_GAP;
-                const x2 = 20 + (index + 1) * POINT_GAP;
-                const value = values[index] ?? 0;
-                const nextValue = values[index + 1] ?? 0;
-                const color =
-                  (value + nextValue) / 2 >= 0
-                    ? MATCH_COLORS.chartPositive
-                    : MATCH_COLORS.chartNegative;
-                return (
-                  <View
-                    key={`segment-${point.roundNumber}`}
-                    style={lineStyle(
-                      x1,
-                      yForValue(value),
-                      x2,
-                      yForValue(nextValue),
-                      color
-                    )}
-                  />
-                );
-              })}
+              <GpuLineChartCanvas
+                dots={chartDots}
+                gridLines={chartGridLines}
+                height={CHART_HEIGHT}
+                segments={chartSegments}
+                width={chartWidth}
+              />
 
               {points.map((point, index) => {
                 const value = values[index] ?? 0;
                 const x = 20 + index * POINT_GAP;
                 const y = yForValue(value);
                 const selected = selectedRound === point.roundNumber;
-                const color =
-                  value >= 0
-                    ? MATCH_COLORS.chartPositive
-                    : MATCH_COLORS.chartNegative;
                 return (
                   <React.Fragment key={point.roundNumber}>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`${t("match_ui.round.label", { number: point.roundNumber })}, ${compactCredits(value)}`}
+                      accessibilityLabel={`${t("match_ui.round.label", { number: point.roundNumber })}, ${activeLabel}: ${compactCredits(value)}`}
+                      accessibilityState={{ selected }}
+                      testID={`match-detail-economy-round-${point.roundNumber}`}
                       onPress={() => setSelectedRound(point.roundNumber)}
                       style={[
                         styles.markerTarget,
                         { left: x - 22, top: y - 22 },
                       ]}
-                    >
-                      <View
-                        style={[
-                          styles.marker,
-                          { backgroundColor: color },
-                          selected && styles.markerSelected,
-                        ]}
-                      />
-                    </Pressable>
+                    />
                     <View
                       style={[
                         styles.winnerMarker,
@@ -373,7 +379,13 @@ export const EconomyChart = React.memo(function EconomyChart({
                         },
                       ]}
                     />
-                    <Text style={[styles.roundLabel, { left: x - 15 }]}>
+                    <Text
+                      accessible={false}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      testID={`match-detail-economy-round-label-${point.roundNumber}`}
+                      style={[styles.roundLabel, { left: x - 15 }]}
+                    >
                       {point.roundNumber}
                     </Text>
                   </React.Fragment>
@@ -518,17 +530,6 @@ const styles = StyleSheet.create({
   chart: {
     height: CHART_HEIGHT,
   },
-  gridLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: MATCH_COLORS.chartGrid,
-    opacity: 0.38,
-  },
-  zeroLine: {
-    opacity: 0.82,
-  },
   markerTarget: {
     position: "absolute",
     width: MATCH_LAYOUT.minTouchTarget,
@@ -536,19 +537,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
-  },
-  marker: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: MATCH_COLORS.appBackground,
-  },
-  markerSelected: {
-    width: 15,
-    height: 15,
-    borderRadius: 8,
-    borderColor: MATCH_COLORS.textPrimary,
   },
   winnerMarker: {
     position: "absolute",

@@ -248,7 +248,7 @@
   "equip_gallery": {
     "placeholder": "Vật phẩm bộ sưu tập",
     "labels": {
-      "buddies": "Gun Buddy",
+      "buddies": "Móc súng",
       "sprays": "Spray",
       "cards": "Thẻ người chơi",
       "titles": "Danh hiệu"
@@ -264,7 +264,7 @@
       "identity": "Hồ sơ",
       "sprays": "Graffiti",
       "weapons": "Vũ khí",
-      "buddies": "Gun Buddy",
+      "buddies": "Móc súng",
       "cards": "Thẻ người chơi",
       "titles": "Danh hiệu"
     },
@@ -452,7 +452,9 @@
       "rank": "Hạng",
       "team_a_stats": "Chỉ số đội A",
       "team_b_stats": "Chỉ số đội B",
-      "sort_by": "Sắp xếp theo"
+      "sort_by": "Sắp xếp theo",
+      "sort_ascending": "Tăng dần",
+      "sort_descending": "Giảm dần"
     }
   },
   "crosshair_page": {
@@ -491,7 +493,45 @@
     "sign_in_required": "Cần đăng nhập",
     "current_rank": "Hạng hiện tại",
     "peak_rank": "Hạng cao nhất",
-    "unrated": "Chưa xếp hạng"
+    "unrated": "Chưa xếp hạng",
+    "stats": {
+      "season_viewing": "MÙA ĐANG XEM",
+      "season_selector": "Chọn mùa xếp hạng",
+      "season_action": "Xem thống kê {{season}}",
+      "act_count": "{{count}} ACT",
+      "performance": "Phong độ",
+      "overall": "Tổng thể",
+      "wins": "Thắng",
+      "losses": "Thua",
+      "win_rate": "Tỉ lệ thắng",
+      "kast": "KAST",
+      "hs_avg": "HS TB",
+      "kd_avg": "K/D TB",
+      "acs_avg": "ACS TB",
+      "match_count": "{{count}} trận",
+      "breakdown_selector": "Loại thống kê",
+      "breakdown_action": "Bảng thống kê theo {{label}}",
+      "breakdown_agents": "Đặc vụ",
+      "breakdown_maps": "Bản đồ",
+      "no_agent_data": "Chưa có dữ liệu đặc vụ",
+      "no_map_data": "Chưa có dữ liệu bản đồ",
+      "rank": "Xếp hạng",
+      "combat": "Giao tranh",
+      "damage_per_round": "ST / vòng",
+      "kills_per_round": "Hạ gục / vòng",
+      "summary": "Tổng kết",
+      "kills": "Hạ gục",
+      "deaths": "Bị hạ",
+      "headshots": "Bắn vào đầu",
+      "damage": "Sát thương",
+      "score": "Điểm",
+      "rounds": "Vòng",
+      "achievements": "Thành tích",
+      "matches": "Trận đấu",
+      "overview": "Tổng quan",
+      "details": "Chi tiết",
+      "navigation": "Mục hồ sơ"
+    }
   },
   "settings_page": {
     "title": "Tiện ích",
@@ -688,12 +728,20 @@
   },
   "item_upgrades_page": {
     "title": "Nâng cấp Skin",
-    "subtitle": "Nâng cấp skin và sidegrade bằng Radianite.",
+    "subtitle": "Nâng cấp skin và mở biến thể bằng Radianite.",
     "loading": "Đang tải nâng cấp...",
     "empty_title": "Không có nâng cấp khả dụng",
     "empty_subtitle": "Bạn chưa có skin nào có thể nâng cấp hoặc dữ liệu chưa được tải.",
+    "no_results_title": "Không tìm thấy nâng cấp phù hợp",
+    "no_results_subtitle": "Hãy thử tên skin khác.",
+    "search_placeholder": "Tìm nâng cấp",
+    "skins_label": "Skin",
+    "variants_label": "Biến thể",
+    "level_count": "{{count}} cấp",
+    "variant_count": "{{count}} biến thể",
+    "upgrade_level": "Nâng cấp {{level}}",
     "upgrade_title": "Tiến trình",
-    "sidegrade_title": "Sidegrade",
+    "sidegrade_title": "Biến thể",
     "cost": "Chi phí",
     "currency_rad": "Radianite Points",
     "select_option": "Chọn biến thể",
@@ -753,12 +801,14 @@
     "session_labels_old": "Nhãn phiên",
     "toggled_on": "Bật",
     "toggled_off": "Tắt",
-    "current_season_title": "Season hiện tại",
+    "current_season_title": "Mùa hiện tại",
     "episode": "Episode",
     "act": "Act",
     "act_ends": "Act kết thúc",
-    "feature_toggles": "Giới thiệu",
+    "feature_toggles": "Cờ tính năng",
+    "feature_toggles_note": "Các công tắc bên dưới là cờ tính năng do Riot Client trả về. Khi bạn thay đổi, VShop chỉ lưu ghi đè cục bộ để thử hành vi khác trong ứng dụng; thao tác này không thay đổi tài khoản Riot hay trình khách trò chơi.",
     "profile": "Tên hiển thị",
+    "language": "Ngôn ngữ",
     "edit": "Chỉnh sửa",
     "save": "Lưu",
     "cancel": "Hủy",
@@ -767,9 +817,9 @@
     "reset_confirm": "Toàn bộ URL tùy chỉnh sẽ bị xóa và trả về mặc định từ Riot.",
     "overridden": "Tùy chỉnh",
     "override_active": "Một số URL dịch vụ đang được ghi đè cục bộ.",
-    "reset_toggles_title": "Đặt lại Feature Toggles?",
-    "reset_toggles_confirm": "Toàn bộ toggle tùy chỉnh sẽ được đặt về mặc định từ Riot.",
-    "toggle_override_active": "{{count}} toggle đang được ghi đè cục bộ."
+    "reset_toggles_title": "Đặt lại cờ tính năng?",
+    "reset_toggles_confirm": "Toàn bộ cờ tính năng tùy chỉnh sẽ được đặt về mặc định từ Riot.",
+    "toggle_override_active": "{{count}} cờ tính năng đang được ghi đè cục bộ."
   },
   "session_labels": {
     "queue": {

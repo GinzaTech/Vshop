@@ -13,7 +13,10 @@ import { styles } from "~/features/profile/profile-screen.styles";
 import { CompactProfileSkinCard } from "~/features/profile/CompactProfileSkinCard";
 import { ProfilePickerModal } from "~/features/profile/ProfilePickerModal";
 import { ProfileSegmentedControl } from "~/features/profile/ProfileSegmentedControl";
-import { getProfileContentBottomPadding } from "~/features/profile/profile-visual-policy";
+import {
+  getProfileContentBottomPadding,
+  PROFILE_INFO_COLORS,
+} from "~/features/profile/profile-visual-policy";
 import { ProfileHeroCard } from "~/features/profile/ProfileHeroCard";
 import { PROFILE_STICKY_SEGMENT_HEIGHT } from "~/features/profile/useProfileCollapsibleHeader";
 import { ProfileExpressionSection, ProfileIdentitySection } from "~/features/profile/ProfileEquipmentSections";
@@ -80,15 +83,15 @@ function Profile() {
     heroModeProgress, rankSplitProgress, statsVisibilityProgress, pageModeProgress,
     statsTabProgress,
     profileExpandedHeroHeight, dashboardPreloadTaskRef, legacyContentAnimatedStyle,
-    statsDashboardLayerAnimatedStyle, profileBodyBackgroundAnimatedStyle,
-    profilePageBackgroundAnimatedStyle, profileHeaderTitleAnimatedStyle,
+    statsDashboardLayerAnimatedStyle, profileSegmentPositionAnimatedStyle,
+    profileHeaderTitleAnimatedStyle,
     profileBalancePillAnimatedStyle, handleRegionPress,
     toggleHeroMode, handleStatsDashboardTabChange,
   } = useProfileMotion({
     viewportWidth, hasAuth, fetchMatches, user,
   });
   const {
-    palette, regionLabel, profileStats, playerPerformanceStats, actRankSummaryStats, tabItems,
+    palette, regionLabel, profileStats, actRankSummaryStats, tabItems,
     formatCategoryLabel,
   } = useProfileHeroData({
     colors, user, t, dashboardSeasonStats, competitiveRank,
@@ -142,7 +145,8 @@ function Profile() {
     handlePagerMomentumEnd,
   } = useProfilePager({
     handleDismissPicker, profilePagerRef, viewportWidth, reduceMotionEnabled, setActiveTab,
-    profileExpandedHeroHeight, pageModeProgress, activeTab, skinWhitespacePagerOriginRef,
+    profileExpandedHeroHeight, pageModeProgress, activeTab, isPlayerInfoMode,
+    skinWhitespacePagerOriginRef,
   });
   const {
     handleEquipIdentity, handleEquipWeapon, handleEquipCollectionSkin, handleEquipSpray,
@@ -215,6 +219,7 @@ function Profile() {
   const renderPageHeader = () => (
       <GestureDetector gesture={profileHeaderPanGesture}>
         <Animated.View
+            pointerEvents="box-none"
             onLayout={handleHeaderLayout}
             style={[styles.profilePageHeader, collapsibleHeaderAnimatedStyle]}
         >
@@ -276,7 +281,6 @@ function Profile() {
             onRegionPress={handleRegionPress}
             onToggleMode={toggleHeroMode}
             pageModeProgress={pageModeProgress}
-            playerPerformanceStats={playerPerformanceStats}
             profileModeTransitioning={profileModeTransitioning}
             profileStats={profileStats}
             rankSplitContentMode={rankSplitContentMode}
@@ -288,20 +292,22 @@ function Profile() {
             )}
             tagLine={user.TagLine}
         />
-        <ProfileSegmentedControl
-        activeTab={activeTab}
-        collectionSegmentLabelAnimatedStyle={collectionSegmentLabelAnimatedStyle}
-        handleSegmentContainerLayout={handleSegmentContainerLayout}
-        handleStatsDashboardTabChange={handleStatsDashboardTabChange}
-        handleTabChange={handleTabChange}
-        loadoutSegmentLabelAnimatedStyle={loadoutSegmentLabelAnimatedStyle}
-        profileNavContentMode={profileNavContentMode}
-        profileSegmentLayerAnimatedStyle={profileSegmentLayerAnimatedStyle}
-        segmentIndicatorAnimatedStyle={segmentIndicatorAnimatedStyle}
-        skinsSegmentLabelAnimatedStyle={skinsSegmentLabelAnimatedStyle}
-        statsSegmentLayerAnimatedStyle={statsSegmentLayerAnimatedStyle}
-        tabItems={tabItems}
-      />
+        <Animated.View style={profileSegmentPositionAnimatedStyle}>
+          <ProfileSegmentedControl
+            activeTab={activeTab}
+            collectionSegmentLabelAnimatedStyle={collectionSegmentLabelAnimatedStyle}
+            handleSegmentContainerLayout={handleSegmentContainerLayout}
+            handleStatsDashboardTabChange={handleStatsDashboardTabChange}
+            handleTabChange={handleTabChange}
+            loadoutSegmentLabelAnimatedStyle={loadoutSegmentLabelAnimatedStyle}
+            profileNavContentMode={profileNavContentMode}
+            profileSegmentLayerAnimatedStyle={profileSegmentLayerAnimatedStyle}
+            segmentIndicatorAnimatedStyle={segmentIndicatorAnimatedStyle}
+            skinsSegmentLabelAnimatedStyle={skinsSegmentLabelAnimatedStyle}
+            statsSegmentLayerAnimatedStyle={statsSegmentLayerAnimatedStyle}
+            tabItems={tabItems}
+          />
+        </Animated.View>
         </Animated.View>
       </GestureDetector>
   );
@@ -532,14 +538,25 @@ function Profile() {
         disabled={refreshing}
     >
       <Animated.View
-        style={[styles.container, profilePageBackgroundAnimatedStyle]}
+        style={[
+          styles.container,
+          {
+            backgroundColor: isPlayerInfoMode
+              ? PROFILE_INFO_COLORS.background
+              : COLORS.PURE_WHITE,
+          },
+        ]}
       >
         {renderPageHeader()}
         <GestureDetector gesture={profileContentPanGesture}>
           <Animated.View
             style={[
               styles.profileBodyStack,
-              profileBodyBackgroundAnimatedStyle,
+              {
+                backgroundColor: isPlayerInfoMode
+                  ? PROFILE_INFO_COLORS.background
+                  : COLORS.PURE_WHITE,
+              },
               collapsibleHeaderHeight > 0 && styles.profileBodyStackCollapsible,
               collapsibleHeaderHeight > 0 && {
                 top: PROFILE_STICKY_SEGMENT_HEIGHT,

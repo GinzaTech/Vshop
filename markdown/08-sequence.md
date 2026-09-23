@@ -44,8 +44,11 @@ request runtime hoặc cờ loading. Lỗi dọn startup marker không được 
 khôi phục region/cookie.
 Archive mùa không bị copy giữa A và B: row được khóa bằng account + Act và chỉ
 được hydrate khi auth key của account đang hoạt động khớp scope request.
+Recording baseline cũng khóa theo account, không được copy/rollback chéo và
+timestamp đã tạo không bị một snapshot season legacy ghi đè.
 
 Nguồn: [session](../services/accounts/session.ts),
 [session-cache](../services/accounts/session-cache.ts),
 [session queue](../utils/session-operations.ts),
-[match archive](../services/matches/match-archive-core.ts).
+[match archive](../services/matches/match-archive-core.ts),
+[recording baseline](../services/matches/match-recording-core.ts).

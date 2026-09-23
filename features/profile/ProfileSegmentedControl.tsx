@@ -6,6 +6,7 @@
 import React from "react";
 import { type LayoutChangeEvent, TouchableOpacity, View } from "react-native";
 import Animated from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 
 import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";
@@ -62,6 +63,7 @@ export function ProfileSegmentedControl({
   statsSegmentLayerAnimatedStyle,
   tabItems,
 }: ProfileSegmentedControlProps) {
+  const { t } = useTranslation();
   const statsDashboardTab = useProfileDashboardTabStore(
     (state) => state.activeTab
   );
@@ -82,6 +84,8 @@ export function ProfileSegmentedControl({
             ]}
         />
         <Animated.View
+            accessibilityLabel={t("profile_page.stats.navigation")}
+            accessibilityRole="tablist"
             pointerEvents={profileNavContentMode === "profile" ? "auto" : "none"}
             accessibilityElementsHidden={profileNavContentMode !== "profile"}
             importantForAccessibility={
@@ -123,6 +127,8 @@ export function ProfileSegmentedControl({
           })}
         </Animated.View>
         <Animated.View
+            accessibilityLabel={t("profile_page.stats.navigation")}
+            accessibilityRole="tablist"
             pointerEvents={profileNavContentMode === "stats" ? "auto" : "none"}
             accessibilityElementsHidden={profileNavContentMode !== "stats"}
             importantForAccessibility={
@@ -157,7 +163,9 @@ export function ProfileSegmentedControl({
                         },
                       ]}
                   >
-                    {tab === "overview" ? "Tổng quan" : "Chi tiết"}
+                    {tab === "overview"
+                      ? t("profile_page.stats.overview")
+                      : t("profile_page.stats.details")}
                   </Animated.Text>
                 </TouchableOpacity>
             );

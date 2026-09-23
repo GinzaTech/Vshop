@@ -96,6 +96,10 @@ Quy tắc:
 9. Profile pager/list và ScrollView Bundles/More/Shop bật clipping riêng Android để giảm view ngoài vùng nhìn. Khi thay đổi layout/transform phải kiểm tra lại nội dung khi cuộn, chuyển trang con và quay lại tab; không unmount React state để tối ưu chuyển cảnh.
 10. Profile player-data dùng một dark canvas xuyên qua status bar/header/body. Hai panel Tổng quan/Chi tiết được render sẵn, giữ cùng kích thước container và chỉ chuyển `opacity`/`transform` bằng shared value để tránh card tách lớp hoặc khựng layout.
 11. Skeleton native-driver phải đặt `isInteraction: false` để không giữ hàng đợi render danh sách. Không dùng `LayoutAnimation.configureNext` toàn cục trước request bất đồng bộ của danh sách.
+12. Biểu đồ nhiều đoạn dùng `GpuLineChartCanvas` để gom grid/line/point vào một Skia surface trên native; lớp `Pressable` accessibility vẫn đặt phía trên. Web dùng fallback nhẹ, không nạp CanvasKit.
+13. Gesture thu gọn Profile dùng manual activation phải `fail()` khi touch kết thúc mà chưa activate. Header có transform/z-index phải dùng `pointerEvents="box-none"` cho khoảng trống; player-data mode tắt body-collapse pan để selector/tab/scroll con nhận touch đúng, trong khi loadout mode vẫn giữ collapse gesture.
+14. Dashboard Profile lạnh phải mount hoàn tất trước frame bắt đầu morph. Warm transition dùng `MOTION_TIMING.standard` (220 ms); Reduce Motion nhảy trực tiếp tới trạng thái cuối. Không mount/aggregate toàn dashboard, interpolate nền toàn màn hình hoặc chạy reveal cho stat subtree đã bị che trong cùng cửa sổ animation.
+15. Mọi nhóm tab phải có `tablist`, từng tab có `selected`; modal toàn cục phải ẩn background khỏi TalkBack/VoiceOver và chặn background touch trong lúc mở.
 
 ## 5. Lists, loading và refresh
 

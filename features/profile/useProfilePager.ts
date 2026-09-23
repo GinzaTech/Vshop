@@ -16,12 +16,14 @@ Pick<ReturnType<typeof useProfileMotion>,
   "profileExpandedHeroHeight" |
   "pageModeProgress" |
   "activeTab" |
+  "isPlayerInfoMode" |
   "skinWhitespacePagerOriginRef"> &
 Pick<ReturnType<typeof useProfileSession>, "viewportWidth">;
 
 export function useProfilePager({
   handleDismissPicker, profilePagerRef, viewportWidth, reduceMotionEnabled, setActiveTab,
-  profileExpandedHeroHeight, pageModeProgress, activeTab, skinWhitespacePagerOriginRef,
+  profileExpandedHeroHeight, pageModeProgress, activeTab, isPlayerInfoMode,
+  skinWhitespacePagerOriginRef,
 }: Props) {
 
   // handleTabChange: đóng picker + scroll pager đến tab (đổi state ngay nếu reduce motion).
@@ -57,6 +59,7 @@ export function useProfilePager({
     panGesture: profileHeaderPanGesture,
   } = useProfileCollapsibleHeader({
     compactHeroHeight: PROFILE_HERO_COMPACT_HEIGHT,
+    contentPanEnabled: !isPlayerInfoMode,
     expandedHeroHeight: profileExpandedHeroHeight,
     modeProgress: pageModeProgress,
   });

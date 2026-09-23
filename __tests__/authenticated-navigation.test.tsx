@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
-import { FloatingTabBar } from "~/app/(authenticated)/_layout";
+import AuthenticatedLayout, { FloatingTabBar } from "~/app/(authenticated)/_layout";
 import { createPrimaryTabScreenOptions, PRIMARY_TAB_REDUCED_MOTION_OPTIONS } from "~/utils/primary-tab-motion";
 import { COLORS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
@@ -12,6 +12,7 @@ import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
 let mockReduceMotion = false;
 let mockNightMarket: object[] = [];
 let mockSceneFocused = true;
+let mockMediaPopupOpen = false;
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
   function MockMaterialCommunityIcon() {
@@ -74,11 +75,15 @@ jest.mock("~/components/AppWarmup", () =>
     return null;
   },
 );
-jest.mock("~/components/popups/MediaPopup", () =>
-  function MockMediaPopup() {
+jest.mock("~/components/popups/MediaPopup", () => ({
+  __esModule: true,
+  default: function MockMediaPopup() {
     return null;
   },
-);
+  useMediaPopupStore: (
+    selector: (state: { entries: object[] }) => unknown,
+  ) => selector({ entries: mockMediaPopupOpen ? [{}] : [] }),
+}));
 jest.mock("~/hooks/useUserStore", () => ({
   useUserStore: (selector: (state: object) => unknown) =>
     selector({ user: { shops: { nightMarket: mockNightMarket } } }),
@@ -102,12 +107,22 @@ const descriptors = Object.fromEntries(
   ]),
 );
 
-const getButton = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
+const getControl = (
+  renderer: TestRenderer.ReactTestRenderer,
+  label: string,
+  role: "button" | "tab",
+) =>
   renderer.root.find(
     (node) =>
-      node.props.accessibilityRole === "button" &&
+      node.props.accessibilityRole === role &&
       node.props.accessibilityLabel === label,
   );
+
+const getButton = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
+  getControl(renderer, label, "button");
+
+const getTab = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
+  getControl(renderer, label, "tab");
 
 describe("FloatingTabBar", () => {
   const renderers: TestRenderer.ReactTestRenderer[] = [];
@@ -118,6 +133,7 @@ describe("FloatingTabBar", () => {
     mockReduceMotion = false;
     mockNightMarket = [];
     mockSceneFocused = true;
+    mockMediaPopupOpen = false;
   });
   it("keeps Android scenes ready for the horizontal transition", () => {
     const options = createPrimaryTabScreenOptions(400);
@@ -226,6 +242,42 @@ describe("FloatingTabBar", () => {
     return { navigation, renderer };
   };
 
+  it("exposes expanded primary navigation as a tablist with stable tab selectors", () => {
+    const { renderer } = renderTabBar();
+    const tabList = renderer.root.findByProps({ testID: "primary-tab-list" });
+    const profileTab = renderer.root.findByProps({ testID: "primary-tab-profile" });
+    const shopTab = renderer.root.findByProps({ testID: "primary-tab-shop" });
+
+    expect(tabList.props.accessibilityRole).toBe("tablist");
+    expect(profileTab.props.accessibilityRole).toBe("tab");
+    expect(profileTab.props.accessibilityState).toEqual({ selected: true });
+    expect(shopTab.props.accessibilityState).toEqual({ selected: false });
+  });
+
+  it("isolates the authenticated background while the media popup is open", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<AuthenticatedLayout />);
+    });
+    renderers.push(renderer);
+
+    const background = () =>
+      renderer.root.findByProps({ testID: "authenticated-navigation-content" });
+
+    expect(background().props.accessibilityElementsHidden).toBe(false);
+    expect(background().props.importantForAccessibility).toBe("auto");
+    expect(background().props.pointerEvents).toBe("auto");
+
+    mockMediaPopupOpen = true;
+    act(() => renderer.update(<AuthenticatedLayout />));
+
+    expect(background().props.accessibilityElementsHidden).toBe(true);
+    expect(background().props.importantForAccessibility).toBe(
+      "no-hide-descendants",
+    );
+    expect(background().props.pointerEvents).toBe("none");
+  });
+
   it.each([
     ["bundles", "bundles"],
     ["shop", "shop"],
@@ -233,7 +285,7 @@ describe("FloatingTabBar", () => {
   ])("navigates the %s tab", (label, route) => {
     const { navigation, renderer } = renderTabBar();
 
-    act(() => getButton(renderer, label).props.onPress());
+    act(() => getTab(renderer, label).props.onPress());
 
     expect(navigation.emit).toHaveBeenCalledWith({
       type: "tabPress",
@@ -245,12 +297,12 @@ describe("FloatingTabBar", () => {
 
   it("coalesces duplicate presses but accepts another destination immediately", () => {
     const { navigation, renderer } = renderTabBar();
-    const shopButton = getButton(renderer, "shop");
+    const shopButton = getTab(renderer, "shop");
 
     act(() => {
       shopButton.props.onPress();
       shopButton.props.onPress();
-      getButton(renderer, "settings").props.onPress();
+      getTab(renderer, "settings").props.onPress();
     });
 
     expect(navigation.navigate.mock.calls).toEqual([["shop"], ["settings"]]);
@@ -259,12 +311,12 @@ describe("FloatingTabBar", () => {
   it("does not restart the indicator when navigation confirms its target", () => {
     const { navigation, renderer } = renderTabBar();
     jest.mocked(withTiming).mockClear();
-    act(() => getButton(renderer, "shop").props.onPress());
+    act(() => getTab(renderer, "shop").props.onPress());
     expect(withTiming).toHaveBeenCalledTimes(1);
     act(() => renderer.update(<FloatingTabBar state={{ index: 1, routes }}
       descriptors={descriptors} navigation={navigation} />));
     expect(withTiming).toHaveBeenCalledTimes(1);
-    act(() => getButton(renderer, "settings").props.onPress());
+    act(() => getTab(renderer, "settings").props.onPress());
     act(() => renderer.update(<FloatingTabBar state={{ index: 4, routes }}
       descriptors={descriptors} navigation={navigation} />));
     expect(withTiming).toHaveBeenCalledTimes(2);
@@ -274,8 +326,8 @@ describe("FloatingTabBar", () => {
   it("allows returning to the current route before a pending navigation commits", () => {
     const { navigation, renderer } = renderTabBar();
     act(() => {
-      getButton(renderer, "shop").props.onPress();
-      getButton(renderer, "profile").props.onPress();
+      getTab(renderer, "shop").props.onPress();
+      getTab(renderer, "profile").props.onPress();
     });
     expect(navigation.navigate.mock.calls).toEqual([["shop"], ["profile"]]);
   });
@@ -284,10 +336,10 @@ describe("FloatingTabBar", () => {
     const { navigation, renderer } = renderTabBar();
     jest.mocked(withTiming).mockClear();
     navigation.emit.mockReturnValueOnce({ defaultPrevented: true });
-    act(() => getButton(renderer, "shop").props.onPress());
+    act(() => getTab(renderer, "shop").props.onPress());
     expect(navigation.navigate).not.toHaveBeenCalled();
     expect(withTiming).not.toHaveBeenCalled();
-    act(() => getButton(renderer, "shop").props.onPress());
+    act(() => getTab(renderer, "shop").props.onPress());
     expect(navigation.navigate).toHaveBeenCalledWith("shop");
     expect(withTiming).toHaveBeenCalledTimes(1);
   });
@@ -305,7 +357,7 @@ describe("FloatingTabBar", () => {
     mockReduceMotion = true;
     act(() => renderer.update(<FloatingTabBar state={{ index: 2, routes }}
       descriptors={descriptors} navigation={navigation} />));
-    act(() => getButton(renderer, "shop").props.onPress());
+    act(() => getTab(renderer, "shop").props.onPress());
     expect(withTiming).not.toHaveBeenCalled();
     expect(navigation.navigate).toHaveBeenCalledWith("shop");
   });
@@ -313,13 +365,13 @@ describe("FloatingTabBar", () => {
   it("includes Night Market only when items exist", () => {
     mockNightMarket = [{}];
     const { navigation, renderer } = renderTabBar();
-    act(() => getButton(renderer, "night_market").props.onPress());
+    act(() => getTab(renderer, "night_market").props.onPress());
     expect(navigation.navigate).toHaveBeenCalledWith("night_market");
   });
 
   it("keeps only one interactive layer mounted while collapsing", () => {
     const { renderer } = renderTabBar();
-    const moreButton = getButton(renderer, "settings");
+    const moreButton = getTab(renderer, "settings");
 
     expect(
       renderer.root.findAll(
@@ -338,7 +390,7 @@ describe("FloatingTabBar", () => {
 
     act(() => getButton(renderer, "Expand navigation").props.onPress());
 
-    expect(getButton(renderer, "bundles")).toBeDefined();
+    expect(getTab(renderer, "bundles")).toBeDefined();
   });
 
   it("inverts the active circle and icon when the floating bar is light", () => {

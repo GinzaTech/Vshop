@@ -34,10 +34,12 @@ export const PROFILE_STICKY_SEGMENT_HEIGHT = 70;
  */
 export function useProfileCollapsibleHeader({
   compactHeroHeight,
+  contentPanEnabled,
   expandedHeroHeight,
   modeProgress,
 }: {
   compactHeroHeight: number;
+  contentPanEnabled: boolean;
   expandedHeroHeight: SharedValue<number>;
   modeProgress: SharedValue<number>;
 }) {
@@ -46,6 +48,7 @@ export function useProfileCollapsibleHeader({
   const collapseDistance = useSharedValue(0);
   const collapseOffset = useSharedValue(0);
   const contentScrollOffset = useSharedValue(0);
+  const contentPanActivated = useSharedValue(false);
   const dragOrigin = useSharedValue(0);
   const touchStartX = useSharedValue(0);
   const touchStartY = useSharedValue(0);
@@ -140,10 +143,12 @@ export function useProfileCollapsibleHeader({
   const contentPanGesture = React.useMemo(
     () =>
       Gesture.Pan()
+        .enabled(contentPanEnabled)
         .manualActivation(true)
         .onTouchesDown((event) => {
           const touch = event.allTouches[0];
           if (!touch) return;
+          contentPanActivated.value = false;
           touchStartX.value = touch.absoluteX;
           touchStartY.value = touch.absoluteY;
         })
@@ -178,8 +183,18 @@ export function useProfileCollapsibleHeader({
             geometry.collapseOffset > 0.5 &&
             contentScrollOffset.value <= 1;
 
-          if (canCollapse || canExpand) stateManager.activate();
-          else stateManager.fail();
+          if (canCollapse || canExpand) {
+            contentPanActivated.value = true;
+            stateManager.activate();
+          } else {
+            stateManager.fail();
+          }
+        })
+        .onTouchesUp((_event, stateManager) => {
+          if (!contentPanActivated.value) stateManager.fail();
+        })
+        .onTouchesCancelled((_event, stateManager) => {
+          if (!contentPanActivated.value) stateManager.fail();
         })
         .onBegin(() => {
           cancelAnimation(collapseOffset);
@@ -222,11 +237,16 @@ export function useProfileCollapsibleHeader({
             velocity: -event.velocityY,
             clamp: [0, geometry.collapseDistance],
           });
+        })
+        .onFinalize(() => {
+          contentPanActivated.value = false;
         }),
     [
       collapseDistance,
       collapseOffset,
       compactHeroHeight,
+      contentPanActivated,
+      contentPanEnabled,
       contentScrollOffset,
       dragOrigin,
       expandedHeroHeight,

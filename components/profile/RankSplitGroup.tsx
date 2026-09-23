@@ -5,10 +5,9 @@
 // style xem doc của `styles` ở cuối file.
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   interpolate,
-  interpolateColor,
   SharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
@@ -46,6 +45,7 @@ export type RankSplitStat = {
  * @param stats – Cặp chỉ số act hiển thị khi contentMode = "act".
  */
 type RankSplitGroupProps = {
+  animateText: boolean;
   splitProgress: SharedValue<number>;
   contentMode: RankSplitContentMode;
   rankLabel: string;
@@ -75,6 +75,7 @@ type RankSplitGroupProps = {
  * timer/subscription trực tiếp trong component này.
  */
 function RankSplitGroup({
+  animateText,
   splitProgress,
   contentMode,
   rankLabel,
@@ -84,10 +85,6 @@ function RankSplitGroup({
   stats,
 }: RankSplitGroupProps) {
   // === Animated styles (đều chạy trên UI thread theo splitProgress) ===
-  // surfacesAnimatedStyle: gap giữa 2 surface tách dần 0 → 7px
-  const surfacesAnimatedStyle = useAnimatedStyle(() => ({
-    gap: interpolate(splitProgress.value, [0, 1], [0, 7]),
-  }));
   // mergedSurfaceAnimatedStyle: pill liền mờ đi ngay khi bắt đầu tách
   const mergedSurfaceAnimatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
@@ -96,33 +93,28 @@ function RankSplitGroup({
       [1, 1, 0, 0]
     ),
   }));
-  // surfaceAnimatedStyle: 2 surface hiện lên, viền + nền chuyển sang tông đỏ
-  const surfaceAnimatedStyle = useAnimatedStyle(() => ({
+  // Hai surface giữ sẵn paint/layout và chỉ tách bằng transform + opacity.
+  const leftSurfaceAnimatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       splitProgress.value,
       [0, 0.02, 0.04, 1],
       [0, 0, 1, 1]
     ),
-    borderWidth: interpolate(splitProgress.value, [0, 1], [0, 1]),
-    backgroundColor: interpolateColor(
-      splitProgress.value,
-      [0, 1],
-      ["rgba(255,255,255,0.06)", "rgba(255,70,85,0.08)"]
-    ),
-    borderColor: interpolateColor(
-      splitProgress.value,
-      [0, 1],
-      ["rgba(255,255,255,0)", "rgba(255,70,85,0.18)"]
-    ),
-  }));
-  // left/rightSurfaceAnimatedStyle: bo góc phía trong xuất hiện khi tách
-  const leftSurfaceAnimatedStyle = useAnimatedStyle(() => ({
-    borderTopRightRadius: interpolate(splitProgress.value, [0, 1], [0, 16]),
-    borderBottomRightRadius: interpolate(splitProgress.value, [0, 1], [0, 16]),
+    transform: [
+      { translateX: interpolate(splitProgress.value, [0, 1], [3.5, 0]) },
+      { scaleX: interpolate(splitProgress.value, [0, 1], [0.98, 1]) },
+    ],
   }));
   const rightSurfaceAnimatedStyle = useAnimatedStyle(() => ({
-    borderTopLeftRadius: interpolate(splitProgress.value, [0, 1], [0, 16]),
-    borderBottomLeftRadius: interpolate(splitProgress.value, [0, 1], [0, 16]),
+    opacity: interpolate(
+      splitProgress.value,
+      [0, 0.02, 0.04, 1],
+      [0, 0, 1, 1]
+    ),
+    transform: [
+      { translateX: interpolate(splitProgress.value, [0, 1], [-3.5, 0]) },
+      { scaleX: interpolate(splitProgress.value, [0, 1], [0.98, 1]) },
+    ],
   }));
   // rankContentAnimatedStyle: nội dung rank fade out + co nhẹ khi tách
   const rankContentAnimatedStyle = useAnimatedStyle(() => ({
@@ -148,21 +140,52 @@ function RankSplitGroup({
   const rankLabelTarget = contentMode === "rank" ? rankLabel : "";
   const actStatsVisible = contentMode === "act";
 
+  if (contentMode === "rank") {
+    return (
+      <View style={styles.container}>
+        <View pointerEvents="none" style={styles.mergedSurface} />
+        <View style={styles.staticRankContent}>
+          <Text numberOfLines={1} style={styles.rankLabel}>
+            {rankLabel}
+          </Text>
+          <View style={styles.rankValueRow}>
+            {rankIconUrl ? (
+              <Image
+                cacheId={rankIconCacheId}
+                source={{ uri: rankIconUrl }}
+                style={styles.rankIcon}
+                contentFit="contain"
+                cachePolicy="memory-disk"
+                priority="normal"
+                recyclingKey={rankIconUrl}
+              />
+            ) : (
+              <Icon
+                name="shield-outline"
+                size={18}
+                color="rgba(255,255,255,0.6)"
+              />
+            )}
+            <Text numberOfLines={1} style={styles.rankValue}>
+              {rankValue}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Animated.View
         pointerEvents="none"
         style={[styles.mergedSurface, mergedSurfaceAnimatedStyle]}
       />
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.surfaces, surfacesAnimatedStyle]}
-      >
+      <View pointerEvents="none" style={styles.surfaces}>
         <Animated.View
           style={[
             styles.surface,
             styles.leftSurface,
-            surfaceAnimatedStyle,
             leftSurfaceAnimatedStyle,
           ]}
         />
@@ -170,17 +193,17 @@ function RankSplitGroup({
           style={[
             styles.surface,
             styles.rightSurface,
-            surfaceAnimatedStyle,
             rightSurfaceAnimatedStyle,
           ]}
         />
-      </Animated.View>
+      </View>
 
       <Animated.View
         pointerEvents="none"
         style={[styles.rankContent, rankContentAnimatedStyle]}
       >
         <TypewriterSwapText
+          animate={animateText}
           text={rankLabelTarget}
           showCursor={false}
           typingSpeed={34}
@@ -207,6 +230,7 @@ function RankSplitGroup({
             />
           )}
           <TypewriterSwapText
+            animate={animateText}
             text={rankTextTarget}
             showCursor={false}
             typingSpeed={34}
@@ -226,6 +250,7 @@ function RankSplitGroup({
             <View style={styles.actLabelRow}>
               <Icon name={stat.icon} size={11} color="#ff4655" />
               <TypewriterSwapText
+                animate={animateText}
                 text={actStatsVisible ? stat.label : ""}
                 showCursor={false}
                 typingSpeed={34}
@@ -238,6 +263,7 @@ function RankSplitGroup({
               />
             </View>
             <TypewriterSwapText
+              animate={animateText}
               text={actStatsVisible ? stat.value : ""}
               showCursor={false}
               typingSpeed={36}
@@ -270,6 +296,7 @@ const styles = StyleSheet.create({
   surfaces: {
     ...StyleSheet.absoluteFill,
     flexDirection: "row",
+    gap: 7,
   },
   mergedSurface: {
     ...StyleSheet.absoluteFill,
@@ -278,17 +305,30 @@ const styles = StyleSheet.create({
   },
   surface: {
     flex: 1,
+    borderWidth: 1,
+    borderColor: "rgba(255,70,85,0.18)",
+    backgroundColor: "rgba(255,70,85,0.08)",
   },
   leftSurface: {
     borderTopLeftRadius: 18,
     borderBottomLeftRadius: 18,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
   },
   rightSurface: {
     borderTopRightRadius: 18,
     borderBottomRightRadius: 18,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
   rankContent: {
     ...StyleSheet.absoluteFill,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  staticRankContent: {
+    flex: 1,
     justifyContent: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,

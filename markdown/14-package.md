@@ -52,4 +52,6 @@ runtime chỉ để chia file; import chỉ dùng type cần dùng `import type`
 Nguồn: [DIRECTORY_STRUCTURE](../DIRECTORY_STRUCTURE.md),
 [valorant facade](../utils/valorant-api.ts), [match facade](../utils/match-ui.ts).
 Kho theo Act nằm sau [services/matches](../services/matches/match-archive-core.ts),
-không được triển khai trực tiếp trong route hoặc component Profile.
+không được triển khai trực tiếp trong route hoặc component Profile. Cùng package
+này sở hữu [recording baseline](../services/matches/match-recording-core.ts);
+`features/matches` chỉ điều phối và mirror identity vào Zustand.

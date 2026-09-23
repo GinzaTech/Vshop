@@ -39,6 +39,7 @@ export function StickyShareBar({ onShare }: StickyShareBarProps) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("match_ui.actions.share_match")}
+        testID="match-detail-share-button"
         onPress={onShare}
         style={({ pressed }) => [
           styles.shareButton,

@@ -4,6 +4,7 @@ import { getAccountSessionKey } from "~/utils/saved-accounts";
 import { getSessionGeneration } from "~/utils/session-operations";
 import { useUserStore } from "~/hooks/useUserStore";
 import { MAX_DETAIL_CACHE_ENTRIES } from "./cache-policy";
+import type { LeaderboardSeasonOption } from "~/utils/leaderboard-seasons";
 import { emptyMatchCache, type MatchStoreAccess } from "./store-types";
 
 type MatchUser = typeof defaultUser;
@@ -23,6 +24,10 @@ export function createMatchRequestRuntime({ setState, getState }: MatchStoreAcce
     matchesInFlight: null as { key: string; kind: "delta" | "full"; promise: Promise<boolean> } | null,
     hydrationInFlight: null as { key: string; promise: Promise<void> } | null,
     seasonStatsInFlight: new Map<string, Promise<void>>(),
+    seasonOptionsInFlight: new Map<
+      string,
+      Promise<LeaderboardSeasonOption[] | null>
+    >(),
     seasonStatsLoadingKeys: new Set<string>(),
     seasonStatsFailures: new Map<string, number>(),
     detailsInFlight: new Map<string, Promise<MatchDetailsData | null>>(),
@@ -34,6 +39,7 @@ export function createMatchRequestRuntime({ setState, getState }: MatchStoreAcce
       runtime.matchesInFlight = null;
       runtime.hydrationInFlight = null;
       runtime.seasonStatsInFlight.clear();
+      runtime.seasonOptionsInFlight.clear();
       runtime.seasonStatsLoadingKeys.clear();
       runtime.seasonStatsFailures.clear();
       runtime.detailsInFlight.clear();

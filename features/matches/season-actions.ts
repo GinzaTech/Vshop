@@ -17,11 +17,20 @@ import {
   type MatchSeasonArchive,
   type SaveMatchSeasonArchiveInput,
 } from "~/services/matches/match-archive";
+import {
+  bindMatchRecordingStartSeason,
+  ensureMatchRecordingBaseline,
+  filterRecordedMatches,
+  filterRecordedSeasonOptions,
+  isRecordingStartSeason,
+  type MatchRecordingBaseline,
+} from "~/services/matches/match-recording";
 import { MAX_SEASON_UPDATES_PAGES, SEASON_STATS_CACHE_TTL_MS, SEASON_STATS_FAILURE_TTL_MS, SEASON_STATS_CALCULATION_VERSION, SEASON_UPDATES_PAGE_SIZE, SEASON_DETAIL_REQUEST_DELAY_MS, wait } from "./cache-policy";
 import { summarizeSeasonMatches, type CompetitiveSeason } from "./season-summary";
 import { buildMmrSeasonPerformanceStats } from "./season-mmr-summary";
 import type { MatchState } from "./store-types";
-import type { MatchActionContext } from "./request-runtime";
+import { synchronizeRecordingBaseline } from "./recording-state";
+import type { MatchActionContext, MatchRequestScope } from "./request-runtime";
 
 const archiveStatusForStats = (
   stats: SeasonPerformanceStats
@@ -68,7 +77,8 @@ const resolvePublishedSeasonSnapshot = (
   state: MatchState,
   seasonId: string,
   incomingStats: SeasonPerformanceStats,
-  incomingMatches: readonly MatchHistoryRecord[]
+  incomingMatches: readonly MatchHistoryRecord[],
+  baseline: MatchRecordingBaseline
 ) => {
   const currentStats =
     state.seasonStatsById[seasonId] ??
@@ -77,13 +87,15 @@ const resolvePublishedSeasonSnapshot = (
       ? state.seasonStats
       : null);
   const compatibleCurrentStats =
-    currentStats?.calculationVersion === SEASON_STATS_CALCULATION_VERSION
+    currentStats?.calculationVersion === SEASON_STATS_CALCULATION_VERSION &&
+    (baseline.startedAt === 0 ||
+      currentStats.recordingStartedAt === baseline.startedAt)
       ? currentStats
       : null;
   return {
     matches: mergeMatchArchiveRecords(
-      state.seasonMatchesById[seasonId] ?? [],
-      incomingMatches
+      filterRecordedMatches(state.seasonMatchesById[seasonId] ?? [], baseline),
+      filterRecordedMatches(incomingMatches, baseline)
     ),
     stats:
       chooseMatchArchiveStats(compatibleCurrentStats, incomingStats) ??
@@ -91,9 +103,52 @@ const resolvePublishedSeasonSnapshot = (
   };
 };
 
+const stampRecordingBaseline = (
+  stats: SeasonPerformanceStats,
+  baseline: MatchRecordingBaseline
+): SeasonPerformanceStats => ({
+  ...stats,
+  recordingStartedAt: baseline.startedAt,
+});
+
+const isStatsCompatibleWithBaseline = (
+  stats: SeasonPerformanceStats | null | undefined,
+  baseline: MatchRecordingBaseline
+): stats is SeasonPerformanceStats =>
+  Boolean(
+    stats &&
+      stats.calculationVersion === SEASON_STATS_CALCULATION_VERSION &&
+      (baseline.startedAt === 0 ||
+        stats.recordingStartedAt === baseline.startedAt)
+  );
+
 export function createSeasonActions({
   setState: set, getState: get, runtime,
 }: MatchActionContext): Pick<MatchState, "fetchSeasonStats"> {
+  const loadSeasonOptions = (
+    scope: MatchRequestScope,
+    user: Parameters<MatchState["fetchSeasonStats"]>[0]
+  ) => {
+    const existing = runtime.seasonOptionsInFlight.get(scope.key);
+    if (existing) return existing;
+
+    const request = (async () => {
+      const content = await getContent(
+        user.accessToken,
+        user.entitlementsToken,
+        user.region
+      );
+      if (!scope.isCurrent() || !content) return null;
+      return buildLeaderboardSeasonOptions(content.Seasons ?? []);
+    })().finally(() => {
+      if (runtime.seasonOptionsInFlight.get(scope.key) === request) {
+        runtime.seasonOptionsInFlight.delete(scope.key);
+      }
+    });
+    runtime.seasonOptionsInFlight.set(scope.key, request);
+    return request;
+  };
+
   return {
     fetchSeasonStats: async (user, force = false, requestedSeasonId) => {
       if (
@@ -108,9 +163,38 @@ export function createSeasonActions({
       const scope = runtime.begin(user);
       if (!scope) return;
       const authKey = get().authKey;
+      let baselineResult: Awaited<
+        ReturnType<typeof ensureMatchRecordingBaseline>
+      >;
+      try {
+        baselineResult = await ensureMatchRecordingBaseline(authKey);
+      } catch (error) {
+        if (__DEV__) {
+          console.warn(
+            "[season-stats] recording baseline unavailable",
+            sanitizeErrorForLog(error)
+          );
+        }
+        return;
+      }
+      if (!scope.isCurrent() || !baselineResult) return;
+      let recordingBaseline = baselineResult.baseline;
+      const baselineChanged =
+        get().recordingStartedAt !== recordingBaseline.startedAt;
+      set((state) =>
+        synchronizeRecordingBaseline(state, recordingBaseline)
+      );
+      if (baselineChanged) runtime.seasonStatsFailures.clear();
       const initialState = get();
-      const knownSeason = resolveProfileSeason(
+      const initialSeasonOptions = filterRecordedSeasonOptions(
         initialState.authKey === authKey ? initialState.seasonOptions : [],
+        recordingBaseline
+      );
+      if (initialSeasonOptions.length !== initialState.seasonOptions.length) {
+        set({ seasonOptions: initialSeasonOptions });
+      }
+      const knownSeason = resolveProfileSeason(
+        initialSeasonOptions,
         requestedSeasonId
       );
       const provisionalSeasonKey =
@@ -135,7 +219,10 @@ export function createSeasonActions({
       const request = (async () => {
         let resolvedRequestKey = requestKey;
         try {
-          let seasonOptions = get().seasonOptions;
+          let seasonOptions = filterRecordedSeasonOptions(
+            get().seasonOptions,
+            recordingBaseline
+          );
           const requestedId = requestedSeasonId?.trim().toLocaleLowerCase("en-US");
           const knowsRequestedSeason =
             !requestedId ||
@@ -144,18 +231,50 @@ export function createSeasonActions({
                 option.id.toLocaleLowerCase("en-US") === requestedId
             );
 
-          if (seasonOptions.length === 0 || !knowsRequestedSeason) {
-            const content = await getContent(
-              user.accessToken,
-              user.entitlementsToken,
-              user.region
-            );
-            if (!scope.isCurrent()) return;
-            seasonOptions = buildLeaderboardSeasonOptions(
-              content?.Seasons ?? []
-            );
-            set({ seasonOptions });
+          const shouldRefreshContent =
+            (recordingBaseline.startedAt > 0 && !requestedSeasonId) ||
+            seasonOptions.length === 0 ||
+            !knowsRequestedSeason ||
+            !recordingBaseline.startSeasonId;
+          if (shouldRefreshContent) {
+            try {
+              const discoveredOptions = await loadSeasonOptions(scope, user);
+              if (!scope.isCurrent()) return;
+              if (
+                discoveredOptions &&
+                (discoveredOptions.length > 0 || seasonOptions.length === 0)
+              ) {
+                const activeSeason = discoveredOptions.find(
+                  (option) => option.isActive
+                );
+                if (!recordingBaseline.startSeasonId && activeSeason) {
+                  const boundBaseline = await bindMatchRecordingStartSeason(
+                    authKey,
+                    activeSeason.id
+                  );
+                  if (!scope.isCurrent()) return;
+                  if (boundBaseline) {
+                    recordingBaseline = boundBaseline;
+                    set((state) =>
+                      synchronizeRecordingBaseline(state, recordingBaseline)
+                    );
+                  }
+                }
+                seasonOptions = filterRecordedSeasonOptions(
+                  discoveredOptions,
+                  recordingBaseline
+                );
+              }
+            } catch (error) {
+              if (__DEV__) {
+                console.warn(
+                  "[season-stats] content refresh failed",
+                  sanitizeErrorForLog(error)
+                );
+              }
+            }
           }
+          set({ seasonOptions });
 
           const selectedOption = resolveProfileSeason(
             seasonOptions,
@@ -170,9 +289,14 @@ export function createSeasonActions({
             ? null
             : await loadArchivedSeasonSafely(authKey, selectedOption.id);
           if (!scope.isCurrent()) return;
+          const archivedMatches = archivedSeason
+            ? filterRecordedMatches(archivedSeason.matches, recordingBaseline)
+            : [];
           const archivedStats =
-            archivedSeason?.stats?.calculationVersion ===
-            SEASON_STATS_CALCULATION_VERSION
+            isStatsCompatibleWithBaseline(
+              archivedSeason?.stats,
+              recordingBaseline
+            )
               ? archivedSeason.stats
               : null;
           if (archivedSeason) {
@@ -181,10 +305,10 @@ export function createSeasonActions({
                 ? { seasonStats: archivedStats }
                 : {}),
               seasonMatchesById:
-                archivedSeason.matches.length > 0
+                archivedMatches.length > 0
                   ? {
                       ...state.seasonMatchesById,
-                      [selectedOption.id]: archivedSeason.matches,
+                      [selectedOption.id]: archivedMatches,
                     }
                   : state.seasonMatchesById,
               seasonStatsById: archivedStats
@@ -200,7 +324,7 @@ export function createSeasonActions({
               archivedStats &&
               archivedSeason.syncStatus === "complete" &&
               (archivedStats.matchCount === 0 ||
-                archivedSeason.matches.length > 0)
+                archivedMatches.length > 0)
             ) {
               runtime.seasonStatsFailures.delete(resolvedRequestKey);
               return;
@@ -218,9 +342,7 @@ export function createSeasonActions({
               : null);
           if (
             !force &&
-            cachedStats &&
-            cachedStats.calculationVersion ===
-              SEASON_STATS_CALCULATION_VERSION &&
+            isStatsCompatibleWithBaseline(cachedStats, recordingBaseline) &&
             Date.now() - cachedStats.updatedAt < SEASON_STATS_CACHE_TTL_MS
           ) {
             if (!archivedSeason) {
@@ -246,7 +368,8 @@ export function createSeasonActions({
 
           const seasonWindow = resolveProfileSeasonTimeWindow(
             seasonOptions,
-            selectedOption.id
+            selectedOption.id,
+            recordingBaseline
           );
           const season: CompetitiveSeason = {
             id: selectedOption.id,
@@ -257,6 +380,12 @@ export function createSeasonActions({
             endTimeMs: seasonWindow?.endTimeMs ?? Infinity,
           };
           const loadMmrSeasonStats = async () => {
+            if (
+              recordingBaseline.startedAt > 0 &&
+              isRecordingStartSeason(selectedOption, recordingBaseline)
+            ) {
+              return null;
+            }
             const mmrResult = await getCompetitiveMMR(
               user.accessToken,
               user.entitlementsToken,
@@ -304,12 +433,29 @@ export function createSeasonActions({
               season.id,
               hasSeenTarget
             );
-            seasonUpdates.push(...inspection.targetUpdates);
+            const recordingFilterEnabled = recordingBaseline.startedAt > 0;
+            const eligibleTargetUpdates = recordingFilterEnabled
+              ? inspection.targetUpdates.filter(
+                  (update) =>
+                    normalizeProfileMatchStartTime(update.MatchStartTime) >=
+                    season.startTimeMs
+                )
+              : inspection.targetUpdates;
+            const reachedRecordingStart =
+              recordingFilterEnabled &&
+              inspection.targetUpdates.some((update) => {
+                const startTimeMs = normalizeProfileMatchStartTime(
+                  update.MatchStartTime
+                );
+                return startTimeMs > 0 && startTimeMs < season.startTimeMs;
+              });
+            seasonUpdates.push(...eligibleTargetUpdates);
             hasSeenTarget = inspection.hasSeenTarget;
 
             if (
               updates.length < SEASON_UPDATES_PAGE_SIZE ||
-              inspection.shouldStop
+              inspection.shouldStop ||
+              reachedRecordingStart
             ) {
               crawlCompleted = true;
               break;
@@ -421,13 +567,16 @@ export function createSeasonActions({
           if (uniqueMatchIds.length === 0) {
             const mmrStats = await loadMmrSeasonStats();
             if (!scope.isCurrent()) return;
-            const emptyStats =
-              mmrStats ?? summarizeSeasonMatches([], user.id, season);
+            const emptyStats = stampRecordingBaseline(
+              mmrStats ?? summarizeSeasonMatches([], user.id, season),
+              recordingBaseline
+            );
             const published = resolvePublishedSeasonSnapshot(
               get(),
               selectedOption.id,
               emptyStats,
-              archivedSeason?.matches ?? []
+              archivedMatches,
+              recordingBaseline
             );
             runtime.seasonStatsFailures.delete(resolvedRequestKey);
             set((state) => ({
@@ -448,7 +597,7 @@ export function createSeasonActions({
               matches: published.matches,
               seasonId: selectedOption.id,
               seasonName: selectedOption.name,
-              stats: emptyStats,
+              stats: published.stats,
               syncStatus: mmrStats ? "rank-only" : "complete",
               updatedAt: emptyStats.updatedAt,
             });
@@ -497,11 +646,16 @@ export function createSeasonActions({
             const mmrStats = await loadMmrSeasonStats();
             if (!scope.isCurrent()) return;
             if (mmrStats) {
+              const recordedMmrStats = stampRecordingBaseline(
+                mmrStats,
+                recordingBaseline
+              );
               const published = resolvePublishedSeasonSnapshot(
                 get(),
                 selectedOption.id,
-                mmrStats,
-                archivedSeason?.matches ?? []
+                recordedMmrStats,
+                archivedMatches,
+                recordingBaseline
               );
               runtime.seasonStatsFailures.delete(resolvedRequestKey);
               set((state) => ({
@@ -522,9 +676,9 @@ export function createSeasonActions({
                 matches: published.matches,
                 seasonId: selectedOption.id,
                 seasonName: selectedOption.name,
-                stats: mmrStats,
+                stats: published.stats,
                 syncStatus: "rank-only",
-                updatedAt: mmrStats.updatedAt,
+                updatedAt: recordedMmrStats.updatedAt,
               });
               return;
             }
@@ -543,12 +697,15 @@ export function createSeasonActions({
             user.id,
             season
           );
-          const seasonStats: SeasonPerformanceStats =
+          const seasonStats = stampRecordingBaseline(
             verifiedDetails.length < uniqueMatchIds.length
               ? { ...summarizedStats, dataCompleteness: "partial" }
-              : summarizedStats;
+              : summarizedStats,
+            recordingBaseline
+          );
           const catalog = createMatchAssetCatalog();
-          const seasonMatches = detailsList.flatMap((details, index) => {
+          const seasonMatches = filterRecordedMatches(
+            detailsList.flatMap((details, index) => {
             if (!details) return [];
             const matchId = uniqueMatchIds[index];
             const update = updateByMatch.get(matchId);
@@ -581,7 +738,9 @@ export function createSeasonActions({
                 catalog
               ),
             ];
-          });
+            }),
+            recordingBaseline
+          );
           if (__DEV__) {
             console.log("[season-stats] computed", seasonStats);
           }
@@ -589,7 +748,8 @@ export function createSeasonActions({
             get(),
             selectedOption.id,
             seasonStats,
-            seasonMatches
+            seasonMatches,
+            recordingBaseline
           );
           runtime.seasonStatsFailures.delete(resolvedRequestKey);
           set((state) => ({
@@ -610,7 +770,7 @@ export function createSeasonActions({
             matches: published.matches,
             seasonId: selectedOption.id,
             seasonName: selectedOption.name,
-            stats: seasonStats,
+            stats: published.stats,
             syncStatus:
               verifiedDetails.length < uniqueMatchIds.length
                 ? "partial"

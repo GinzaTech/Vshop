@@ -46,12 +46,24 @@ Navigation motion uses shared timing tokens, transition-aware tab preloading and
 Profile now has a coordinated reversible player-data transition, a full dark canvas,
 consistent number hierarchy and historical Act selection backed by a durable archive
 of matches observed by this installation, retained Riot details or Riot's per-season
-ranked totals. Account rollback restores
+ranked totals. New installations now establish an immutable per-account recording
+baseline: the current Act starts at zero, only Competitive matches observed at or
+after that timestamp count, and completed future Acts remain selectable. Older local
+archive rows are retained for recovery but stay hidden and cannot affect statistics.
+Account rollback restores
 domain data; request generations and both credentials prevent stale writes, including
 storage hydration after logout. Diagnostic logs are opt-in in development and OAuth
 callbacks require per-attempt state/nonce correlation.
+Economy and RR trend charts use a single native Skia surface, while the Profile
+mode morph keeps its moving layers on UI-thread transforms and opacity.
+The transformed Profile header now passes empty hit areas through to the
+multi-Act selector, and player-data mode disables the competing body-collapse
+pan. Cold dashboard content mounts before the visible 220 ms morph, while
+Profile/Match Detail controls expose consistent tab and state semantics.
 
 See the [17 architecture diagram types](markdown/README.md),
+[UI/UX, motion and generated-asset workflow](markdown/UI_UX_WORKFLOW.md),
+[Act recording implementation report](markdown/ACT_RECORDING_REPORT.md),
 [audit and verification limits](LOGIC_AUDIT.md) and [release notes](CHANGELOG.md).
 Source checks, real-device UI testing and a finished EAS APK are separate results;
 the version number alone does not certify an available production artifact.
@@ -195,6 +207,7 @@ browser JavaScript.
 | **Profile** | `profile-warm-cache`, 5-minute TTL, newest 3 accounts | Per-component freshness and schema versions; in-flight requests include credential identity and session generation |
 | **Match history** | `match-history-cache`, 30-minute TTL | Persists summaries and season metrics; detail payloads stay in a 10-entry in-memory LRU |
 | **Observed-match archive** | Native SQLite keyed by account + Act; existing storage adapter on web/test | Keeps the newest 1,000 hydrated Competitive summaries per Act beyond the 200-record working-cache limit, deduplicates Match IDs and stores neither credentials nor full detail payloads |
+| **Act recording baseline** | Immutable local timestamp per normalized account, mirrored into the Match store | Starts the current Act at zero, excludes pre-baseline matches/options/cache statistics without deleting recoverable archive rows, then exposes each completed future Act |
 | **Season metrics** | Per-Act UI cache with calculation version and 2-hour TTL, backed by the durable archive | Archive, competitive updates and retained history provide available metrics; older Acts fall back to Riot MMR win/loss totals, leaving unavailable combat metrics blank; cancelled/unknown outcomes do not enter win rate |
 | **Combat** | Memory-only snapshot | Party, pregame and live endpoints are resolved together; stale responses are discarded and live sessions poll every 10 seconds |
 | **Chat** | Memory-only Zustand store | One XMPP client per credential/region key; messages and presence are normalized by Riot PUUID and deduplicated |
@@ -427,11 +440,22 @@ also attached to [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/rele
 Profile dùng một chuyển động hai chiều đồng bộ, nền dữ liệu tối toàn màn hình,
 phân cấp số liệu nhất quán và chọn được Act cũ bằng kho trận đã được bản cài này
 quan sát, match detail còn lưu hoặc tổng xếp hạng theo mùa của Riot. Rollback tài
-khoản phục hồi cả dữ liệu; request kiểm
+khoản phục hồi cả dữ liệu. Bản cài mới tạo một mốc ghi nhận bất biến cho từng
+tài khoản: Act hiện tại bắt đầu từ 0, chỉ trận Competitive từ mốc đó mới được
+tính, rồi các Act hoàn tất trong tương lai vẫn xem lại được. Dòng archive cũ vẫn
+được giữ để phục hồi nhưng bị ẩn và không thể làm sai thống kê. Request kiểm
 tra generation cùng hai token, storage loại kết quả hydrate cũ sau logout. Log
 chẩn đoán chỉ bật khi opt-in ở dev; callback OAuth kiểm tra state/nonce từng lần.
+Biểu đồ economy và xu hướng RR dùng một native Skia surface; chuyển chế độ
+Profile giữ các lớp chuyển động trên transform/opacity của UI thread.
+Vùng trống của header đã transform cho touch đi xuyên tới bộ chọn nhiều Act;
+player-data mode đồng thời tắt body-collapse pan đang tranh gesture. Dashboard
+lạnh được mount trước morph 220 ms, và các control Profile/Match Detail có
+role/state nhất quán cho accessibility.
 
 Xem [17 loại sơ đồ kiến trúc](markdown/README.md),
+[workflow UI/UX, motion và generated asset](markdown/UI_UX_WORKFLOW.md),
+[báo cáo triển khai mốc ghi nhận Act](markdown/ACT_RECORDING_REPORT.md),
 [audit và giới hạn kiểm chứng](LOGIC_AUDIT.md), [changelog](CHANGELOG.md).
 Check mã nguồn, test UI máy thật và APK EAS hoàn tất là ba kết quả riêng biệt;
 chỉ tăng version không có nghĩa bản production đã tồn tại.
@@ -569,6 +593,7 @@ HttpOnly.
 | **Profile** | `profile-warm-cache`, TTL 5 phút, giữ 3 tài khoản gần nhất | Freshness và version theo từng thành phần; request phân biệt credential identity và session generation |
 | **Lịch sử đấu** | `match-history-cache`, TTL 30 phút | Persist bản tóm tắt và thống kê mùa; detail đầy đủ chỉ ở LRU RAM tối đa 10 trận |
 | **Kho trận đã quan sát** | SQLite native theo tài khoản + Act; web/test dùng storage adapter sẵn có | Giữ tối đa 1.000 summary Competitive mới nhất mỗi Act ngoài giới hạn 200 record của working cache, chống trùng Match ID và không lưu credential hay full detail |
+| **Mốc ghi nhận Act** | Timestamp cục bộ bất biến theo tài khoản đã chuẩn hoá, mirror vào Match store | Cho Act hiện tại bắt đầu từ 0, loại trận/option/cache thống kê trước mốc mà không xoá archive có thể phục hồi, rồi hiển thị từng Act tương lai đã hoàn tất |
 | **Thống kê mùa** | UI cache từng Act có calculation version và TTL 2 giờ, được chống lưng bởi kho lâu dài | Archive, updates và history còn lưu cung cấp metric hiện có; Act quá cũ fallback tổng thắng/thua từ Riot MMR và để trống metric combat không còn nguồn; huỷ/chưa rõ không tính vào win rate |
 | **Combat** | Snapshot chỉ nằm trong RAM | Party, pregame và live được ghép chung; response cũ bị bỏ và trận live poll mỗi 10 giây |
 | **Chat** | Zustand store chỉ trong RAM | Một XMPP client cho mỗi bộ credential/region; message và presence chuẩn hóa theo Riot PUUID |

@@ -8,7 +8,7 @@ flowchart LR
     subgraph Local[Thiết bị và mạng cục bộ]
         PC[Máy phát triển: Metro]
         Phone[Android hoặc iOS chạy VShop]
-        Store[(MMKV cache + SQLite match archive + secure session)]
+        Store[(MMKV cache + Act baseline + SQLite match archive + secure session)]
         PC -. Dev client: LAN hoặc ADB reverse .-> Phone
         Phone --- Store
     end
@@ -29,6 +29,7 @@ Riot hợp lệ và chứng chỉ TLS. Metro/trace là đường phát triển, 
 backend bắt buộc của bản production.
 SQLite chỉ là kho cục bộ trong sandbox ứng dụng; không mở cổng mạng và không
 đồng bộ credential ra dịch vụ riêng của VShop.
+Mốc ghi nhận Act cũng chỉ ở local storage và không được gửi tới backend riêng.
 
 Nguồn: [HTTP clients](../services/http/clients.ts), [endpoints](../services/riot/endpoints.ts),
 [XMPP](../utils/xmpp-client.ts), [chat service](../utils/chat-service.ts),

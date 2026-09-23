@@ -9,8 +9,8 @@ import { useMatchStore } from "~/hooks/useMatchStore";
 import { useUserStore } from "~/hooks/useUserStore";
 import { getSessionAuthKey, hasValidCompetitiveRankCache, hasValidProfileLoadoutCache } from "~/utils/profile-cache";
 import {
-  PROFILE_DEMO_CURRENT_MATCHES, PROFILE_DEMO_CURRENT_STATS, PROFILE_DEMO_MATCHES_BY_SEASON,
-  PROFILE_DEMO_SEASON_OPTIONS, PROFILE_DEMO_STATS_BY_SEASON, PROFILE_DEMO_USER,
+  getProfileDemoSeasonData,
+  PROFILE_DEMO_USER,
 } from "~/mocks/profile-ui";
 import { isDevelopmentDemoRoute } from "~/utils/demo-mode";
 
@@ -22,13 +22,23 @@ export function useProfileSession() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const { width: viewportWidth } = useWindowDimensions();
-  const { demo } = useLocalSearchParams<{ demo?: string | string[] }>();
+  const { demo, recording } = useLocalSearchParams<{
+    demo?: string | string[];
+    recording?: string | string[];
+  }>();
   const persistedUser = useUserStore((state) => state.user);
   const isProfileDemo = isDevelopmentDemoRoute({
     demo,
     isDev: __DEV__,
     pathname: "/profile",
   });
+  const recordingParam = Array.isArray(recording) ? recording[0] : recording;
+  const isRecordingDemo =
+    isProfileDemo && (recordingParam === "1" || recordingParam === "true");
+  const profileDemoSeasonData = React.useMemo(
+    () => getProfileDemoSeasonData(isRecordingDemo),
+    [isRecordingDemo]
+  );
   const user = isProfileDemo ? PROFILE_DEMO_USER : persistedUser;
   const setUser = useUserStore((state) => state.setUser);
   const matchAuthKey = useMatchStore((state) => state.authKey);
@@ -74,32 +84,32 @@ export function useProfileSession() {
   const dashboardMatches = React.useMemo( // matches chỉ khi store khớp session (authKey)
       () =>
         isProfileDemo
-          ? PROFILE_DEMO_CURRENT_MATCHES
+          ? profileDemoSeasonData.currentMatches
           : matchAuthKey === authKey
             ? recentMatches
             : [],
-      [authKey, isProfileDemo, matchAuthKey, recentMatches]
+      [authKey, isProfileDemo, matchAuthKey, profileDemoSeasonData, recentMatches]
   );
   const dashboardSeasonStats =
       isProfileDemo
-        ? PROFILE_DEMO_CURRENT_STATS
+        ? profileDemoSeasonData.currentStats
         : matchAuthKey === authKey
           ? seasonPerformanceStats
           : null;
   const dashboardSeasonStatsById =
       isProfileDemo
-        ? PROFILE_DEMO_STATS_BY_SEASON
+        ? profileDemoSeasonData.seasonStatsById
         : matchAuthKey === authKey
           ? seasonStatsById
           : {};
   const dashboardSeasonMatchesById =
       isProfileDemo
-        ? PROFILE_DEMO_MATCHES_BY_SEASON
+        ? profileDemoSeasonData.seasonMatchesById
         : matchAuthKey === authKey
           ? seasonMatchesById
           : {};
   const dashboardSeasonOptions = isProfileDemo
-    ? PROFILE_DEMO_SEASON_OPTIONS
+    ? profileDemoSeasonData.seasonOptions
     : matchAuthKey === authKey
       ? seasonOptions
       : [];

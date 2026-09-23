@@ -1,8 +1,9 @@
 # 04 — Sơ đồ luồng dữ liệu (DFD)
 
 Mũi tên ghi **dữ liệu**, không mô tả thứ tự thời gian. Kho D1/D2 là adapter
-storage, D3 là state trong bộ nhớ và D4 là archive SQLite trên native hoặc
-storage adapter trên web/test; không kho nào là database server của VShop.
+storage, D3 là state trong bộ nhớ, D4 là archive SQLite trên native hoặc
+storage adapter trên web/test và D5 là metadata mốc Act; không kho nào là
+database server của VShop.
 
 ## Mức ngữ cảnh
 
@@ -33,6 +34,7 @@ flowchart TB
     P2 <-->|Metadata asset| V[Public API]
     P2 <-->|Cache theo account và schema| D2[(D2. App cache storage)]
     P2 <-->|Summary Competitive và stats theo Act| D4[(D4. Match season archive)]
+    P2 <-->|Timestamp bất biến và startSeasonId| D5[(D5. Act recording baseline)]
     P2 -->|Snapshot còn đúng phiên| D3[(D3. Zustand và local hook state)]
     P4 -->|Kết quả được xác nhận| D3
     D3 -->|Dữ liệu đã chuẩn hoá| P3((3. Tổng hợp và trình bày))
@@ -46,7 +48,10 @@ lại giá trị và tuổi cache của nguồn đó. Các mutation được mô
 chức năng này, không có nghĩa đợt kiểm thử tự động đã thực hiện chúng.
 Write D4 được tuần tự theo account + Act; payload chỉ nhận record hợp lệ, không
 chứa Riot credential hoặc full match-detail response.
+Write D5 được tuần tự theo account. P2 lọc option, stats và record cũ trước mốc
+nhưng không xoá vật lý D4.
 
 Nguồn: [session](../services/accounts/session.ts), [sync](../utils/data-sync.ts),
 [profile refresh](../features/profile/profile-refresh-data.ts), [storage](../utils/storage.ts),
-[match archive](../services/matches/match-archive-core.ts).
+[match archive](../services/matches/match-archive-core.ts),
+[recording baseline](../services/matches/match-recording-core.ts).
