@@ -81,7 +81,7 @@ Run:
 
 ```bash
 pnpm add morphicons@1.7.1 lucide@1.47.0
-pnpm exec expo install react-native-svg@15.15.4
+pnpm exec expo install react-native-svg
 pnpm exec expo install --check
 ```
 
@@ -115,8 +115,10 @@ git commit -m "chore: add morphicons native icon runtime"
 - Create: `components/ui/app-icon-types.ts`
 - Create: `components/ui/app-icon-registry.ts`
 - Create: `components/ui/AppIcon.tsx`
+- Modify: `jest.config.js`
 - Test: `__tests__/app-icon-registry.test.ts`
 - Test: `__tests__/app-icon.test.tsx`
+- Test: `__tests__/app-icon-runtime.test.ts`
 
 **Interfaces:**
 - Consumes: `MorphIcon` from `morphicons/react-native`, `IconNode` and named icons from `lucide`, MaterialCommunityIcons only inside `AppIcon.tsx`.
@@ -157,6 +159,20 @@ describe("AppIcon registry", () => {
     });
     expect(Object.keys(APP_ICON_REGISTRY).length).toBeGreaterThan(40);
   });
+});
+```
+
+Create `__tests__/app-icon-runtime.test.ts` as an unmocked package-exports smoke
+test. It must import `MorphIcon` from the public subpath and one named Lucide
+data export, then assert that both resolve without any deep `dist/` import:
+
+```ts
+import { Search } from "lucide";
+import { MorphIcon } from "morphicons/react-native";
+
+it("resolves ESM package exports through Jest like Metro", () => {
+  expect(Search).toBeDefined();
+  expect(MorphIcon).toBeDefined();
 });
 ```
 
@@ -217,7 +233,22 @@ pnpm exec jest __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx -
 
 Expected: FAIL because the boundary and registry do not exist.
 
-- [ ] **Step 4: Implement types and exact fallback contract**
+- [ ] **Step 4: Enable the ESM package exports in Jest**
+
+Add `morphicons` and `lucide` to the existing pnpm-aware
+`transformIgnorePatterns` allowlist in `jest.config.js`. Do not deep-import
+`morphicons/dist/react-native.js`; RN 0.86/Metro resolves
+`morphicons/react-native` through package exports.
+
+Run:
+
+```bash
+pnpm exec jest __tests__/app-icon-runtime.test.ts --runInBand
+```
+
+Expected: PASS without a syntax/export error.
+
+- [ ] **Step 5: Implement types and exact fallback contract**
 
 Create `components/ui/app-icon-types.ts`:
 
@@ -247,7 +278,7 @@ Use named Lucide imports. `weaponPistol`, `combatSword` and the Valorant role
 shield resolve to the three legacy definitions; every other token resolves to a
 Lucide `IconNode`. `unknown` uses Lucide `CircleHelp`.
 
-- [ ] **Step 5: Implement AppIcon**
+- [ ] **Step 6: Implement AppIcon**
 
 `AppIcon` resolves the definition once per `name`. For `kind: "morph"`, render:
 
@@ -266,23 +297,24 @@ Lucide `IconNode`. `unknown` uses Lucide `CircleHelp`.
 
 For `kind: "legacy"`, render MaterialCommunityIcons with
 `importantForAccessibility="no"` and `accessibilityElementsHidden`. Parent
-controls own semantics; `label` is only passed when AppIcon itself is the sole
-accessible element.
+controls own semantics. Morphicons forwards `label` as `role`/ARIA attributes on
+the underlying SVG, so `label` is only passed when AppIcon itself is the sole
+accessible element and must be manually checked with TalkBack.
 
-- [ ] **Step 6: Run GREEN and coverage**
+- [ ] **Step 7: Run GREEN and coverage**
 
 ```bash
-pnpm exec jest __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx --runInBand --coverage --collectCoverageFrom=components/ui/AppIcon.tsx --collectCoverageFrom=components/ui/app-icon-registry.ts
+pnpm exec jest __tests__/app-icon-runtime.test.ts __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx --runInBand --coverage --collectCoverageFrom=components/ui/AppIcon.tsx --collectCoverageFrom=components/ui/app-icon-registry.ts
 pnpm run typecheck
 pnpm exec eslint components/ui/AppIcon.tsx components/ui/app-icon-types.ts components/ui/app-icon-registry.ts __tests__/app-icon*.test.ts* --max-warnings=0
 ```
 
 Expected: tests PASS and both new runtime modules meet 80% lines/branches/functions/statements.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add components/ui/AppIcon.tsx components/ui/app-icon-types.ts components/ui/app-icon-registry.ts __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx
+git add jest.config.js components/ui/AppIcon.tsx components/ui/app-icon-types.ts components/ui/app-icon-registry.ts __tests__/app-icon-runtime.test.ts __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx
 git commit -m "feat: add typed morphing icon boundary"
 ```
 
