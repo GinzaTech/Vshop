@@ -22,8 +22,8 @@ flowchart TD
     L --> M[Hiển thị Profile]
     M --> N[AppWarmup: tác vụ nền theo TTL]
     K -- Request lỗi thời --> O[Bỏ kết quả; phiên mới tiếp quản]
-    K -- Lỗi tạm thời --> P{Cache khởi động hợp lệ?}
-    P -- Có --> Q[Giữ dữ liệu cache và trạng thái cảnh báo]
+    K -- Lỗi tạm thời / bảo trì --> P{Snapshot hoàn chỉnh đúng account?}
+    P -- Có --> Q[Cho xem dữ liệu gần nhất + thời điểm sync]
     Q --> M
     P -- Không --> R[Giữ màn hình lỗi có thể thử lại]
     R --> I
@@ -32,8 +32,11 @@ flowchart TD
 ```
 
 Đăng nhập WebView có luồng dựng user/preload riêng; không coi nó là cùng một
-pipeline với mọi lần bootstrap. Startup marker phải khớp account và còn hạn;
+pipeline với mọi lần bootstrap. Startup marker phải hợp lệ và khớp account;
 đọc metadata xong phải kiểm tra lại session generation và store hiện tại.
+Mốc 72 giờ chỉ phân biệt cache fresh; khi Riot bảo trì, snapshot hoàn chỉnh cũ
+hơn vẫn có thể được người dùng chọn thủ công và luôn hiển thị thời điểm sync.
+Lỗi 401 hoặc Name Service 403 đi qua renew/reauth, không gắn nhãn bảo trì.
 Route bootstrap được latch sau hydrate: điều hướng người dùng thực hiện trong
 lúc sync không tạo dependency mới để cleanup/restart pipeline cũ.
 Mốc Act chỉ được tạo một lần; sync sau đó không lùi timestamp hoặc phục hồi cache

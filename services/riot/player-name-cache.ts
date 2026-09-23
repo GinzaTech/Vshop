@@ -85,7 +85,6 @@ export async function getPlayerNames(
             "X-Riot-Entitlements-JWT": entitlementsToken,
           },
           data: subjectsToFetch,
-          validateStatus: () => true,
         })
         .then((res) => {
           assertCurrent();

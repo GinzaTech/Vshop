@@ -101,6 +101,19 @@ const isRiotAuthUrl = (url: string) =>
     getTrustedHostname(url)
   );
 
+/** A 403 from this read-only endpoint means the bearer session is unusable. */
+const isRiotNameServiceUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return (
+      /^pd\.[a-z0-9-]+\.a\.pvp\.net$/.test(getTrustedHostname(value)) &&
+      url.pathname === "/name-service/v2/players"
+    );
+  } catch {
+    return false;
+  }
+};
+
 /** URL có phải endpoint Riot được bảo vệ (auth hoặc gameplay .a.pvp.net)? */
 const isRiotProtectedUrl = (url: string) =>
   isRiotAuthUrl(url) ||
@@ -123,7 +136,7 @@ export const isRiotAuthenticationError = (value: unknown): boolean => {
   const url = getRequestUrl(value);
   return (
     (status === 401 && isRiotProtectedUrl(url)) ||
-    (status === 403 && isRiotAuthUrl(url))
+    (status === 403 && (isRiotAuthUrl(url) || isRiotNameServiceUrl(url)))
   );
 };
 

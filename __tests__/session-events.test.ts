@@ -42,6 +42,8 @@ describe("session event classification", () => {
     [401, "https://pd.ap.a.pvp.net/store/v3/storefront/user"],
     [401, "https://riot-geo.pas.si.riotgames.com/pas/v1/service/chat"],
     [403, "https://auth.riotgames.com/api/v1/authorization"],
+    [403, "https://pd.ap.a.pvp.net/name-service/v2/players"],
+    [403, "https://pd.eu.a.pvp.net/name-service/v2/players?trace=1"],
   ])("recognizes Riot authentication failure %s for %s", (status, url) => {
     expect(
       isRiotAuthenticationError({ response: { status, config: { url } } })
@@ -50,6 +52,9 @@ describe("session event classification", () => {
 
   test.each([
     [403, "https://pd.ap.a.pvp.net/store/v3/storefront/user"],
+    [403, "https://pd.ap.a.pvp.net/name-service/v2/players/other"],
+    [403, "https://glz-ap-1.ap.a.pvp.net/name-service/v2/players"],
+    [403, "https://pd.ap.a.pvp.net.attacker.test/name-service/v2/players"],
     [401, "https://example.com/private"],
     [500, "https://auth.riotgames.com/api/v1/authorization"],
     [401, "https://auth.riotgames.com.attacker.test/private"],

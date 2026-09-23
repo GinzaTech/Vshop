@@ -1,5 +1,27 @@
 # LOGIC_AUDIT.md — Kiểm toán & Sửa lỗi tầng logic VShop
 
+## Follow-up startup recovery — 2026-09-23
+
+- Tái hiện trên development client `4.1.8 (89)`: Name Service trả 403 nhưng
+  `validateStatus: () => true` biến response thành `Error` thường, làm mất
+  status/URL; bootstrap không renew/reauth mà lặp màn “Unable to refresh data”.
+- Sửa hẹp theo security boundary: chỉ 403 từ HTTPS host
+  `pd.<shard>.a.pvp.net` và đúng path `/name-service/v2/players` mới là lỗi xác
+  thực. Storefront/GLZ 403 và host lookalike không bị phân loại nhầm.
+- Bỏ override `validateStatus` để Axios/interceptor giữ metadata và phát sự kiện
+  phiên. Trên máy thật, silent renewal thành công, `syncAllData` hoàn tất trong
+  3.131 ms và Profile render lại bình thường.
+- Startup maintenance fallback dùng marker sync hoàn chỉnh + Profile/Match cache
+  đúng account. Cache quá 72 giờ không được coi là fresh nhưng vẫn được chọn thủ
+  công; UI hiển thị cảnh báo stale và thời điểm đồng bộ gần nhất. Không lưu thêm
+  token/cookie hay copy dữ liệu sang account khác.
+- Không chủ động gây outage Riot thật. Nhánh bảo trì được chứng minh bằng test
+  policy/UI; runtime maintenance thực tế còn **NOT VERIFIED**.
+- Final gate: `pnpm run check` PASS với strict TypeScript, zero-warning ESLint,
+  79/79 suite và 828/828 test, production audit policy, Android export 10,46 MiB
+  và Hermes 7,99/8,00 MiB. Mermaid validator parse 21 sơ đồ/134 local link;
+  added-line secret scan PASS.
+
 ## Follow-up release 4.1.8 — 2026-09-16
 
 Phần này cập nhật bằng chứng hiện tại; audit 2026-09-15 và 2026-09-13 được giữ

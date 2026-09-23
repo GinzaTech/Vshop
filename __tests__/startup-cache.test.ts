@@ -1,8 +1,8 @@
 import {
   isStartupCacheMetadataUsable,
   clearStartupCache,
+  getStartupCacheFallback,
   markStartupCacheReady,
-  hasUsableStartupCache,
   STARTUP_CACHE_MAX_AGE_MS,
 } from "~/utils/startup-cache";
 import { getStoredItem, removeStoredItem, setStoredItem } from "~/utils/storage";
@@ -40,33 +40,38 @@ describe("startup cache policy", () => {
   });
 
   it("accepts matching hydrated stores and recent metadata", async () => {
-    await expect(hasUsableStartupCache({ id: "player", region: "ap" })).resolves.toBe(true);
+    await expect(getStartupCacheFallback({ id: "player", region: "ap" }))
+      .resolves.toEqual({ completedAt: expect.any(Number) });
     mockMatchState.authKey = "eu|other";
-    await expect(hasUsableStartupCache({ id: "player", region: "ap" })).resolves.toBe(false);
+    await expect(getStartupCacheFallback({ id: "player", region: "ap" }))
+      .resolves.toBeNull();
     mockMatchState.authKey = "";
     mockProfileState.cacheByAuth = {};
-    await expect(hasUsableStartupCache({ id: "player", region: "ap" })).resolves.toBe(false);
+    await expect(getStartupCacheFallback({ id: "player", region: "ap" }))
+      .resolves.toBeNull();
   });
 
   it.each([null, "{broken", "null", "1", "{}", '{"accountKey":2,"completedAt":1}'])("rejects missing or corrupt disk metadata %s", async (raw) => {
     jest.mocked(getStoredItem).mockResolvedValueOnce(raw);
-    await expect(hasUsableStartupCache({ id: "player", region: "ap" })).resolves.toBe(false);
+    await expect(getStartupCacheFallback({ id: "player", region: "ap" }))
+      .resolves.toBeNull();
   });
 
   it("tolerates storage read failure", async () => {
     jest.mocked(getStoredItem).mockRejectedValueOnce(new Error("disk unavailable"));
-    await expect(hasUsableStartupCache({ id: "player", region: "ap" })).resolves.toBe(false);
+    await expect(getStartupCacheFallback({ id: "player", region: "ap" }))
+      .resolves.toBeNull();
   });
 
   it.each(["session", "profile", "matches"])("rechecks %s ownership after the asynchronous disk read", async (changed) => {
     let resolve!: (value: string) => void;
     jest.mocked(getStoredItem).mockReturnValueOnce(new Promise((done) => { resolve = done; }));
-    const reading = hasUsableStartupCache({ id: "player", region: "ap" });
+    const reading = getStartupCacheFallback({ id: "player", region: "ap" });
     if (changed === "session") invalidateSessionOperations();
     if (changed === "profile") mockProfileState.cacheByAuth = {};
     if (changed === "matches") mockMatchState.authKey = "eu|other";
     resolve(JSON.stringify({ accountKey: "ap|player", completedAt: Date.now() }));
-    await expect(reading).resolves.toBe(false);
+    await expect(reading).resolves.toBeNull();
   });
 
   it("does not write queued metadata after its session was invalidated", async () => {
@@ -116,6 +121,27 @@ describe("startup cache policy", () => {
         now
       )
     ).toBe(false);
+  });
+
+  it("offers an old complete same-account snapshot only as a maintenance fallback", async () => {
+    const now = 10_000_000_000;
+    const completedAt = now - STARTUP_CACHE_MAX_AGE_MS - 1;
+    jest.mocked(getStoredItem).mockResolvedValueOnce(JSON.stringify({
+      accountKey: "ap|player",
+      completedAt,
+    }));
+
+    await expect(
+      getStartupCacheFallback({ id: "player", region: "ap" }, now)
+    ).resolves.toEqual({ completedAt });
+
+    jest.mocked(getStoredItem).mockResolvedValueOnce(JSON.stringify({
+      accountKey: "eu|other",
+      completedAt,
+    }));
+    await expect(
+      getStartupCacheFallback({ id: "player", region: "ap" }, now)
+    ).resolves.toBeNull();
   });
 
   it("does not fail startup when the optional cache marker cannot be stored", async () => {

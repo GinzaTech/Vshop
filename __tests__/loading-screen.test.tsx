@@ -1,9 +1,24 @@
 import React from "react";
+import { Text } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import LoadingScreen from "~/components/LoadingScreen";
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => () => null);
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, values?: { time?: string }) => ({
+      "startup_recovery.unavailable":
+        "Riot services are unavailable. VShop will keep retrying automatically.",
+      "startup_recovery.maintenance":
+        "VALORANT is under maintenance or temporarily unavailable.",
+      "startup_recovery.retry": "Retry now",
+      "startup_recovery.use_cache": "View saved data",
+      "startup_recovery.cache_hint": "Saved data may be out of date",
+      "startup_recovery.last_updated": `Last successful update: ${values?.time ?? ""}`,
+    } as Record<string, string>)[key] ?? key,
+  }),
+}));
 jest.mock("react-native-reanimated", () => {
   const { View } = require("react-native");
   return {
@@ -54,5 +69,27 @@ describe("LoadingScreen recovery controls", () => {
     expect(
       renderer!.root.findAllByProps({ testID: "startup-use-cache-button" })
     ).toHaveLength(0);
+  });
+
+  it("labels maintenance and shows when the saved snapshot was last updated", () => {
+    let renderer: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <LoadingScreen
+          showRecoveryActions
+          canUseCachedData
+          recoveryKind="maintenance"
+          cachedDataUpdatedAt={Date.UTC(2026, 8, 23, 1, 2, 3)}
+        />
+      );
+    });
+
+    const text = renderer!.root
+      .findAllByType(Text)
+      .map((node) => node.props.children)
+      .join(" ");
+    expect(text).toContain("VALORANT is under maintenance");
+    expect(text).toContain("Last successful update:");
+    expect(text).toContain("View saved data");
   });
 });

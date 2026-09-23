@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
+import { useTranslation } from "react-i18next";
 
 /**
  * LoadingScreenProps – Props của LoadingScreen.
@@ -24,6 +25,8 @@ import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
  *                              services không truy cập được (nút Retry...).
  * @param canUseCachedData – Nếu true, hiển thị thêm nút "Use cached data"
  *                           trong panel phục hồi.
+ * @param recoveryKind – Phân biệt bảo trì/tạm lỗi với lỗi chung.
+ * @param cachedDataUpdatedAt – Mốc sync hoàn chỉnh gần nhất được phép fallback.
  * @param onRetry – Callback khi bấm "Retry now" (chỉ hiện khi
  *                  showRecoveryActions).
  * @param onUseCachedData – Callback khi bấm "Use cached data" (chỉ hiện khi
@@ -33,6 +36,8 @@ type LoadingScreenProps = {
   message?: string;
   showRecoveryActions?: boolean;
   canUseCachedData?: boolean;
+  recoveryKind?: "maintenance" | "unavailable";
+  cachedDataUpdatedAt?: number | null;
   onRetry?: () => void;
   onUseCachedData?: () => void;
 };
@@ -45,6 +50,8 @@ type LoadingScreenProps = {
  * @param message – Thông báo trạng thái (xem LoadingScreenProps).
  * @param showRecoveryActions – Bật panel phục hồi khi Riot services lỗi.
  * @param canUseCachedData – Cho phép tiếp tục bằng dữ liệu cache.
+ * @param recoveryKind – Kiểu thông báo phục hồi.
+ * @param cachedDataUpdatedAt – Thời điểm cache hoàn chỉnh gần nhất.
  * @param onRetry – Callback nút "Retry now".
  * @param onUseCachedData – Callback nút "Use cached data".
  * @returns View full màn hình (accessibilityRole progressbar).
@@ -57,9 +64,12 @@ export default function LoadingScreen({
   message = "Loading",
   showRecoveryActions = false,
   canUseCachedData = false,
+  recoveryKind = "unavailable",
+  cachedDataUpdatedAt = null,
   onRetry,
   onUseCachedData,
 }: LoadingScreenProps) {
+  const { t } = useTranslation();
   // reduceMotion: bật Reduce Motion thì skeleton đứng yên
   const reduceMotion = useReducedMotion();
   // pulse: shared value 0..1 điều khiển độ mờ skeleton (yoyo vô hạn)
@@ -83,6 +93,10 @@ export default function LoadingScreen({
   const skeletonAnimatedStyle = useAnimatedStyle(() => ({
     opacity: 0.5 + pulse.value * 0.5,
   }));
+  const cachedDataTime =
+    Number.isFinite(cachedDataUpdatedAt) && Number(cachedDataUpdatedAt) > 0
+      ? new Date(Number(cachedDataUpdatedAt)).toLocaleString()
+      : null;
 
   return (
     <View
@@ -109,8 +123,15 @@ export default function LoadingScreen({
       {showRecoveryActions ? (
         <View style={styles.recoveryPanel} accessibilityLiveRegion="polite">
           <Text style={styles.recoveryText}>
-            Riot services are unavailable. VShop will keep retrying automatically.
+            {recoveryKind === "maintenance"
+              ? t("startup_recovery.maintenance")
+              : "Riot services are unavailable. VShop will keep retrying automatically."}
           </Text>
+          {canUseCachedData && cachedDataTime ? (
+            <Text style={styles.cacheTimestamp}>
+              {t("startup_recovery.last_updated", { time: cachedDataTime })}
+            </Text>
+          ) : null}
           <View style={styles.recoveryActions}>
             <Pressable
               accessibilityRole="button"
@@ -119,18 +140,22 @@ export default function LoadingScreen({
               onPress={onRetry}
               style={styles.retryButton}
             >
-              <Text style={styles.retryButtonText}>Retry now</Text>
+              <Text style={styles.retryButtonText}>
+                Retry now
+              </Text>
             </Pressable>
             {canUseCachedData ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Open VShop with cached data"
-                accessibilityHint="Cached data may be out of date"
+                accessibilityLabel={t("startup_recovery.use_cache")}
+                accessibilityHint={t("startup_recovery.cache_hint")}
                 testID="startup-use-cache-button"
                 onPress={onUseCachedData}
                 style={styles.cacheButton}
               >
-                <Text style={styles.cacheButtonText}>Use cached data</Text>
+                <Text style={styles.cacheButtonText}>
+                  {t("startup_recovery.use_cache")}
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -221,6 +246,12 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_SECONDARY,
     fontSize: 12,
     lineHeight: 18,
+  },
+  cacheTimestamp: {
+    marginTop: SPACING.xs,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 11,
+    lineHeight: 16,
   },
   recoveryActions: {
     flexDirection: "row",

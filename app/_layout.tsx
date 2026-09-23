@@ -77,7 +77,7 @@ import {
 import { MOTION_DURATION, MOTION_TIMING } from "~/constants/Motion";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
 import { markAppInteractive } from "~/utils/startup-performance";
-import { hasUsableStartupCache } from "~/utils/startup-cache";
+import { getStartupCacheFallback } from "~/utils/startup-cache";
 import { renewSavedAccountSession } from "~/services/accounts/session";
 import { isSessionChangedError } from "~/utils/session-operations";
 import {
@@ -91,6 +91,20 @@ type CustomHeaderProps = {
 };
 
 const AnimatedSafeAreaView = Animated.createAnimatedComponent(SafeAreaView);
+
+type StartupRecoveryState = {
+  visible: boolean;
+  canUseCachedData: boolean;
+  cachedDataUpdatedAt: number | null;
+  kind: "maintenance" | "unavailable";
+};
+
+const HIDDEN_STARTUP_RECOVERY: StartupRecoveryState = {
+  visible: false,
+  canUseCachedData: false,
+  cachedDataUpdatedAt: null,
+  kind: "unavailable",
+};
 
 /**
  * CombinedAppTheme — Theme tổng hợp từ react-native-paper và @react-navigation/native.
@@ -190,10 +204,9 @@ function RootLayout() {
   >(null);
   const [isPreloading, setIsPreloading] = useState(true);
   const [startupMessage, setStartupMessage] = useState("Preparing your VShop");
-  const [startupRecovery, setStartupRecovery] = useState({
-    visible: false,
-    canUseCachedData: false,
-  });
+  const [startupRecovery, setStartupRecovery] = useState<StartupRecoveryState>(
+    HIDDEN_STARTUP_RECOVERY
+  );
   if (hydrated && accountsHydrated) {
     bootstrapRouteRef.current = captureRootBootstrapRoute(
       bootstrapRouteRef.current,
@@ -373,11 +386,19 @@ function RootLayout() {
         let retryDelayMs = 1_500;
         let silentRecoveryAttempted = false;
 
-        const waitForRecovery = async () => {
-          const canUseCachedData = await hasUsableStartupCache(syncUser);
+        const waitForRecovery = async (error: unknown) => {
+          const cachedData = await getStartupCacheFallback(syncUser);
           if (cancelled) return true;
 
-          setStartupRecovery({ visible: true, canUseCachedData });
+          const canUseCachedData = Boolean(cachedData);
+          setStartupRecovery({
+            visible: true,
+            canUseCachedData,
+            cachedDataUpdatedAt: cachedData?.completedAt ?? null,
+            kind: isTransientNetworkError(error)
+              ? "maintenance"
+              : "unavailable",
+          });
           const action = await new Promise<"auto" | "retry" | "cache">(
             (resolve) => {
               let settled = false;
@@ -394,7 +415,7 @@ function RootLayout() {
           );
 
           if (cancelled) return true;
-          setStartupRecovery({ visible: false, canUseCachedData: false });
+          setStartupRecovery(HIDDEN_STARTUP_RECOVERY);
 
           if (action === "cache" && canUseCachedData) {
             router.replace("/profile");
@@ -420,7 +441,7 @@ function RootLayout() {
 
             if (!cancelled) setStartupMessage("Loading your VShop data");
             await syncAllData(syncUser, syncUser.region || region);
-            setStartupRecovery({ visible: false, canUseCachedData: false });
+            setStartupRecovery(HIDDEN_STARTUP_RECOVERY);
 
             if (!cancelled) {
               router.replace("/profile");
@@ -434,7 +455,7 @@ function RootLayout() {
             if (isSessionChangedError(error)) {
               if (!useUserStore.getState().user.id) return;
               setStartupMessage("Restoring your Riot session");
-              if (await waitForRecovery()) return;
+              if (await waitForRecovery(error)) return;
               continue;
             }
 
@@ -463,7 +484,7 @@ function RootLayout() {
             setStartupMessage(isTransientNetworkError(recoveryError)
               ? "Waiting for Riot services…"
               : "Unable to refresh data. Retry or use your saved data.");
-            if (await waitForRecovery()) return;
+            if (await waitForRecovery(recoveryError)) return;
             silentRecoveryAttempted = false;
           }
         }
@@ -608,6 +629,8 @@ function RootLayout() {
               message={startupMessage}
               showRecoveryActions={startupRecovery.visible}
               canUseCachedData={startupRecovery.canUseCachedData}
+              recoveryKind={startupRecovery.kind}
+              cachedDataUpdatedAt={startupRecovery.cachedDataUpdatedAt}
               onRetry={requestStartupRetry}
               onUseCachedData={requestCachedStartup}
             />

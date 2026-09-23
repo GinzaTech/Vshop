@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Treat a 403 from the exact trusted Riot Name Service endpoint as an authentication failure while leaving other gameplay 403 responses unchanged. Startup now renews or reauthenticates instead of looping on an unavailable-services screen; probable maintenance/network failures can offer the latest complete same-account snapshot, including stale snapshots, with the last successful sync time and explicit stale-data warning.
 - Start Profile Act history from an immutable per-account local baseline. The current Act resets to zero and counts only post-baseline Competitive matches; legacy Act rows remain recoverable but are hidden and ignored, future Acts stay selectable, and the start Act cannot fall back to Riot's full-Act MMR totals.
 - Render match-economy and Profile RR trend lines on a shared native Skia canvas instead of creating one rotated React Native view per segment. Web keeps a lightweight view fallback and does not load CanvasKit.
 - Keep the Profile mode morph on compositor-friendly `transform`/`opacity` layers, move the segmented control with the same shared progress, use the standard 220 ms motion token, skip per-label reveals and hidden rank/stat subtree animation during the morph, and update full-screen backgrounds once instead of repainting them every frame.
@@ -18,8 +19,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Validation
 
-- `pnpm run check` passed: strict TypeScript, zero-warning ESLint, 79 Jest suites / 821 tests, production dependency-audit policy, and Android export/budget (10.47 MiB total; 8.00 MiB JS/Hermes). Critical `season-actions.ts` branch coverage is 80.82%.
-- DEV-only Match/Profile fixture payloads now resolve to one empty fail-closed module in production, preserving the full development harness while keeping the unchanged 8 MiB Hermes budget.
+- Android development client `4.1.8 (89)` reproduced the Name Service 403 startup loop, then verified the fix: silent renewal completed, `syncAllData` finished in 3,131 ms and Profile rendered without FATAL/ANR/SIGSEGV. A real Riot maintenance outage was not induced; maintenance copy, stale same-account fallback and hostile/lookalike URL rejection are covered by source tests.
+- `pnpm run check` passed: strict TypeScript, zero-warning ESLint, 79 Jest suites / 828 tests, production dependency-audit policy, and Android export/budget (10.46 MiB total; 7.99 MiB JS/Hermes). Critical `season-actions.ts` branch coverage is 80.82%.
+- DEV-only Match/Profile fixture payloads and flow tracing now resolve to tiny fail-closed production facades, preserving the full development harness while keeping the unchanged 8 MiB Hermes budget and excluding trace/storage instrumentation from release bundles.
 - Development client `4.1.8 (89)` on Android device `45218ba` verified current/middle/old-Episode season taps, selected semantics, metric changes and Overview/Details state; the final sampled flow produced no package FATAL, ANR or SIGSEGV. Full 38-Act swipe on a live Riot session and manual TalkBack traversal remain **NOT VERIFIED**.
 - An eight-Act offline fixture verified selector overflow on hardware: left/right horizontal swipes changed visible chip bounds, first/middle/final Act taps selected correctly, and a vertical swipe beginning on the selector still scrolled the dashboard.
 - The reset-from-now one-season deep link and live Riot-account migration are **NOT VERIFIED** because the Android device disconnected from ADB before this final pass; source/component tests are not presented as device proof.

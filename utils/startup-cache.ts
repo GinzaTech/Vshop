@@ -39,6 +39,10 @@ export type StartupCacheMetadata = {
   completedAt: number;
 };
 
+export type StartupCacheFallback = {
+  completedAt: number;
+};
+
 // Dữ liệu tối thiểu để xác định tài khoản khi mark/đọc cache.
 type StartupAccount = {
   id: string;
@@ -55,21 +59,29 @@ type StartupAccount = {
  * @param {number} [now] - Thời điểm đối chiếu (mặc định Date.now())
  * @returns {boolean} true nếu có thể bỏ qua full sync ở lần khởi động này
  */
-export const isStartupCacheMetadataUsable = (
+const isStartupCacheMetadataComplete = (
   metadata: StartupCacheMetadata | null,
   accountKey: string,
   hasProfileCache: boolean,
   now = Date.now()
-) =>
+): metadata is StartupCacheMetadata =>
   Boolean(
     metadata &&
       metadata.accountKey === accountKey &&
       Number.isFinite(metadata.completedAt) &&
       metadata.completedAt > 0 &&
       metadata.completedAt <= now &&
-      now - metadata.completedAt <= STARTUP_CACHE_MAX_AGE_MS &&
       hasProfileCache
   );
+
+export const isStartupCacheMetadataUsable = (
+  metadata: StartupCacheMetadata | null,
+  accountKey: string,
+  hasProfileCache: boolean,
+  now = Date.now()
+) =>
+  isStartupCacheMetadataComplete(metadata, accountKey, hasProfileCache, now) &&
+  now - metadata!.completedAt <= STARTUP_CACHE_MAX_AGE_MS;
 
 /**
  * readMetadata — Đọc và validate metadata startup từ storage (JSON).
@@ -117,18 +129,15 @@ export const markStartupCacheReady = (account: StartupAccount) => {
   });
 };
 
-/**
- * hasUsableStartupCache — Kiểm tra tổng hợp: match cache trong store có thuộc
- * tài khoản hiện tại không (authKey trống hoặc khớp) VÀ metadata còn hạn.
- * Dùng ở AppWarmup để quyết định có bỏ qua full sync hay không.
- * @param {StartupAccount} account - Tài khoản cần kiểm tra
- * @returns {Promise<boolean>} true nếu cache khởi động còn dùng được
- */
-export const hasUsableStartupCache = async (account: StartupAccount) => {
+/** Resolve the latest complete same-account snapshot, even when it is stale. */
+export const getStartupCacheFallback = async (
+  account: StartupAccount,
+  now = Date.now()
+): Promise<StartupCacheFallback | null> => {
   const generation = getSessionGeneration();
   const accountKey = getAccountSessionKey(account);
   const metadata = await readMetadata();
-  if (generation !== getSessionGeneration()) return false;
+  if (generation !== getSessionGeneration()) return null;
   // Read live stores after I/O: a logout or account switch can clear them while
   // the metadata read is pending.
   const profileCache = useProfileCacheStore.getState().cacheByAuth[accountKey];
@@ -136,12 +145,19 @@ export const hasUsableStartupCache = async (account: StartupAccount) => {
   const matchCacheBelongsToAccount =
     !matchState.authKey || matchState.authKey === accountKey;
 
-  return (
-    matchCacheBelongsToAccount &&
-    isStartupCacheMetadataUsable(
+  if (
+    !matchCacheBelongsToAccount ||
+    !isStartupCacheMetadataComplete(
       metadata,
       accountKey,
-      Boolean(profileCache?.updatedAt)
+      Boolean(profileCache?.updatedAt),
+      now
     )
-  );
+  ) {
+    return null;
+  }
+
+  return {
+    completedAt: metadata.completedAt,
+  };
 };

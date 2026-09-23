@@ -180,9 +180,11 @@ flowchart TD
    loading shell visible until client config, authenticated user data, initial
    match state and profile warm cache are usable.
 4. Network timeouts, rate limits and Riot 5xx responses retain the session and
-   retry with bounded backoff. The loading shell exposes immediate retry and,
-   only after a previous complete account-matched sync within 72 hours, an
-   explicit cached-data fallback. Authentication failures renew the RSO session.
+   retry with bounded backoff. The loading shell identifies likely maintenance
+   and offers the latest complete same-account snapshot with its last-sync time,
+   even when older than 72 hours. The 72-hour boundary still distinguishes a
+   fresh cache; stale fallback remains an explicit user choice. Authentication
+   failures renew the RSO session instead of being labelled as maintenance.
 5. Repeated permanent contract/configuration failures route to `/reauth`
    instead of leaving the loading shell in an endless retry loop.
 
@@ -569,7 +571,10 @@ flowchart TD
    cho đến khi client config, authenticated user, match state ban đầu và Profile
    warm cache dùng được.
 4. Timeout mạng, rate limit và Riot 5xx giữ nguyên session/cache rồi retry với
-   backoff có giới hạn. Lỗi xác thực sẽ thử dựng lại RSO session.
+   backoff có giới hạn. Khi có snapshot hoàn chỉnh đúng tài khoản, loading shell
+   báo VALORANT có thể đang bảo trì và cho xem dữ liệu gần nhất kèm thời điểm
+   đồng bộ, kể cả cache cũ hơn 72 giờ. Cache cũ luôn cần người dùng chọn; lỗi xác
+   thực sẽ thử dựng lại RSO session thay vì bị gắn nhãn bảo trì.
 5. Lỗi contract/config vĩnh viễn lặp lại sẽ chuyển `/reauth` thay vì để loading
    shell retry vô hạn.
 

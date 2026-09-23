@@ -2,6 +2,12 @@
   "common": {
     "close": "Đóng"
   },
+  "startup_recovery": {
+    "maintenance": "VALORANT đang bảo trì hoặc tạm thời không khả dụng. Bạn có thể tiếp tục bằng dữ liệu gần nhất đã lưu trên thiết bị.",
+    "use_cache": "Xem dữ liệu đã lưu",
+    "cache_hint": "Dữ liệu đã lưu có thể không còn mới",
+    "last_updated": "Lần đồng bộ thành công gần nhất: {{time}}"
+  },
   "account": "Tài khoản",
   "amount": "Số lượng",
   "accessories": "Cửa hàng phụ kiện",

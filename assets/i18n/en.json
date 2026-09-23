@@ -2,6 +2,12 @@
   "common": {
     "close": "Close"
   },
+  "startup_recovery": {
+    "maintenance": "VALORANT is under maintenance or temporarily unavailable. You can continue with the latest data saved on this device.",
+    "use_cache": "View saved data",
+    "cache_hint": "Saved data may be out of date",
+    "last_updated": "Last successful update: {{time}}"
+  },
   "account": "Account",
   "amount": "Amount",
   "back": "back",

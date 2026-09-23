@@ -133,6 +133,7 @@ it("names dedupe overlapping subjects, preserve input order, and expire by regio
   mockRequest.mockImplementationOnce(() => old.promise).mockResolvedValue({ status: 200, data: [{ Subject: "c", GameName: "C", TagLine: "AP" }] });
   const first = match.getPlayerNames("access", "ent", ["A", "b", "a", ""], "ap");
   const overlap = match.getPlayerNames("access", "ent", ["B", "c"], "AP");
+  expect(mockRequest.mock.calls[0][0].validateStatus).toBeUndefined();
   expect(mockRequest.mock.calls.map(([request]) => request.data)).toEqual([["a", "b"], ["c"]]);
   old.resolve({ status: 200, data: [
     { Subject: "b", GameName: "B", TagLine: "AP" },

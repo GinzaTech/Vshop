@@ -27,6 +27,10 @@ const productionMockStubs = new Map([
     "~/mocks/profile-ui",
     path.join(__dirname, "mocks", "disabled.production.js"),
   ],
+  [
+    "~/utils/flow-tracer",
+    path.join(__dirname, "utils", "flow-tracer.production.js"),
+  ],
 ]);
 config.resolver.resolveRequest = (context, moduleName, platform) =>
   context.resolveRequest(
