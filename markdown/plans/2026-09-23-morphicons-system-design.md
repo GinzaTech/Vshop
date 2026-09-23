@@ -1,7 +1,7 @@
 # Morphicons System — Design Specification
 
 **Ngày:** 2026-09-23
-**Trạng thái:** proposed — chờ user review trước khi viết implementation plan
+**Trạng thái:** approved — user duyệt ngày 2026-09-23
 **Phạm vi:** Expo/React Native VShop, Android/iOS/web boundary, toàn bộ icon UI
 
 ## 1. Mục tiêu
