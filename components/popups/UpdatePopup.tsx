@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -12,6 +11,7 @@ import {
 } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";
 import {
   AppUpdateCheckResult,
@@ -170,13 +170,14 @@ export default function UpdatePopup({
         <Dialog.Title>
           {/*
             titleRow: icon + title text
-            Icon thay đổi theo checking: progress-download (khi check) / update
+            AppIcon thay đổi theo checking: updateChecking / update
             */}
           <View style={styles.titleRow}>
-            <Icon
-              name={checking ? "progress-download" : "update"}
+            <AppIcon
+              name={checking ? "updateChecking" : "update"}
               size={22}
               color={COLORS.TEXT_PRIMARY}
+              decorative
             />
             <Title style={styles.titleText}>{title}</Title>
           </View>

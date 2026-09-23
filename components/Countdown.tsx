@@ -1,8 +1,8 @@
 // ===== Countdown.tsx =====
 // Component hiển thị đồng hồ đếm ngược (countdown timer) từ một timestamp đến hiện tại.
 import { StyleProp, Text, TextStyle, View, ViewStyle } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useState } from "react";
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";
 
 // Interface định nghĩa props cho Countdown component
@@ -126,12 +126,14 @@ export default function Countdown({
     >
       {/* Icon đồng hồ, chỉ hiển thị nếu showIcon = true */}
       {showIcon ? (
-        <Icon
-          name="timer"
-          size={iconSize}
-          color={color}
-          style={{ marginRight: 3 }}
-        />
+        <View style={{ marginRight: 3 }}>
+          <AppIcon
+            name="timer"
+            size={iconSize}
+            color={color}
+            decorative
+          />
+        </View>
       ) : null}
       {/* Text hiển thị thời gian đếm ngược đã format */}
       <Text

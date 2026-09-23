@@ -7,11 +7,11 @@ import {
   View,
 } from "react-native";
 import { Modal, Portal, Text, useTheme } from "react-native-paper";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { create } from "zustand";
 import { CachedImage as Image } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
 
 import { COLORS, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
 
@@ -241,7 +241,12 @@ function MediaPopup() {
                   pressed && styles.closeButtonPressed,
                 ]}
               >
-                <Icon name="close" size={22} color={COLORS.TEXT_PRIMARY} />
+                <AppIcon
+                  name="close"
+                  size={22}
+                  color={COLORS.TEXT_PRIMARY}
+                  decorative
+                />
               </Pressable>
             </View>
 

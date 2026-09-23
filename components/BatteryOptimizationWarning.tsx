@@ -3,13 +3,13 @@
 // đang có chế độ tối ưu pin, có thể ảnh hưởng đến background fetch
 
 import { Banner } from "react-native-paper";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isBatteryOptimizationEnabledAsync } from "expo-battery";
 import { startActivityAsync, ActivityAction } from "expo-intent-launcher";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { AppState, Platform } from "react-native";
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";
 
 /**
@@ -87,8 +87,13 @@ export default function BatteryOptimizationWarning() {
           onPress: () => openBatteryOptimizationSettings(),
         },
       ]}
-      icon={({ color, size }) => (
-        <Icon name="battery-alert" color={COLORS.WARNING} size={size} />
+      icon={({ size }) => (
+        <AppIcon
+          name="batteryWarning"
+          color={COLORS.WARNING}
+          size={size}
+          decorative
+        />
       )}
     >
       {t("battery_optimization_warning.description")}

@@ -3,8 +3,13 @@ import { Text } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import LoadingScreen from "~/components/LoadingScreen";
+import AppIcon from "~/components/ui/AppIcon";
 
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => () => null);
+jest.mock("~/components/ui/AppIcon", () =>
+  function MockAppIcon() {
+    return null;
+  },
+);
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: { time?: string }) => ({
@@ -34,6 +39,19 @@ jest.mock("react-native-reanimated", () => {
 });
 
 describe("LoadingScreen recovery controls", () => {
+  it("uses the shared decorative shop icon for the VShop brand", () => {
+    let renderer: TestRenderer.ReactTestRenderer;
+
+    act(() => {
+      renderer = TestRenderer.create(<LoadingScreen />);
+    });
+
+    expect(renderer!.root.findByType(AppIcon).props).toMatchObject({
+      name: "shop",
+      decorative: true,
+    });
+  });
+
   it("offers retry and cached startup when a complete cache exists", () => {
     const onRetry = jest.fn();
     const onUseCachedData = jest.fn();

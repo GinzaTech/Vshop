@@ -3,7 +3,6 @@
  * Hiển thị skeleton gần với bố cục màn hình chính để tránh cảm giác blank screen.
  */
 import React from "react";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -13,6 +12,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
 import { useTranslation } from "react-i18next";
 
@@ -107,7 +107,12 @@ export default function LoadingScreen({
     >
       <View style={styles.brandBlock}>
         <View style={styles.brandMark}>
-          <Icon name="shopping-outline" size={42} color={COLORS.PURE_WHITE} />
+          <AppIcon
+            name="shop"
+            size={42}
+            color={COLORS.PURE_WHITE}
+            decorative
+          />
         </View>
         <View>
           <Text style={styles.brandName}>VSHOP</Text>

@@ -1,17 +1,19 @@
 // ===== GalleryEquip.tsx =====
 // Component hiển thị một item trong thư viện equipment (phụ kiện).
 // Hỗ trợ 4 loại: buddies (vật phẩm treo vũ khí), sprays (hình xăm), cards (thẻ người chơi), titles (danh hiệu).
-import React, { type ComponentProps } from "react";
+import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 
 import {
   buildEquipDisplayList,
   getEquipmentImage,
+  type EquipmentSectionKey,
 } from "./popups/equipHelpers";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { CachedImage as Image } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { MOTION_DURATION } from "~/constants/Motion";
 import { useTranslation } from "react-i18next";
 
@@ -26,32 +28,45 @@ type EquipmentDisplayItem = ReturnType<
 const UUID_PATTERN =
   /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
-// SECTION_VISUALS: Map section → nhãn i18n + icon MaterialCommunityIcons
+// SECTION_VISUALS: Map section → nhãn i18n + semantic AppIcon
 // dùng cho category chip trên card; fallback về "buddies" nếu section lạ
-const SECTION_VISUALS: Record<
-  string,
-  {
-    labelKey: string;
-    icon: ComponentProps<typeof Icon>["name"];
-  }
-> = {
+type SectionVisual = {
+  labelKey: string;
+  icon: AppIconName;
+};
+
+const SECTION_VISUALS = {
   buddies: {
     labelKey: "equip_gallery.labels.buddies",
-    icon: "link-variant",
+    icon: "bundle",
   },
   sprays: {
     labelKey: "equip_gallery.labels.sprays",
-    icon: "spray",
+    icon: "imageGrid",
   },
   cards: {
     labelKey: "equip_gallery.labels.cards",
-    icon: "card-account-details-outline",
+    icon: "account",
   },
   titles: {
     labelKey: "equip_gallery.labels.titles",
-    icon: "format-title",
+    icon: "edit",
   },
-};
+} as const satisfies Record<EquipmentSectionKey, SectionVisual>;
+
+function getSectionVisual(section: EquipmentSectionKey): SectionVisual {
+  switch (section) {
+    case "sprays":
+      return SECTION_VISUALS.sprays;
+    case "cards":
+      return SECTION_VISUALS.cards;
+    case "titles":
+      return SECTION_VISUALS.titles;
+    case "buddies":
+    default:
+      return SECTION_VISUALS.buddies;
+  }
+}
 
 // GalleryEquipComponent: Component nội bộ hiển thị một card equipment
 // data: dữ liệu item (chứa section, id, displayName, ...)
@@ -66,9 +81,7 @@ const GalleryEquipComponent = ({
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
 
-  const visual =
-    SECTION_VISUALS[data.section] ||
-    SECTION_VISUALS.buddies;
+  const visual = getSectionVisual(data.section);
   const categoryLabel = t(visual.labelKey);
   const rawDisplayName =
     typeof data.displayName === "string" ? data.displayName.trim() : "";
@@ -123,7 +136,12 @@ const GalleryEquipComponent = ({
           )}
 
           <View style={styles.categoryChip}>
-            <Icon name={visual.icon} size={13} color={COLORS.PURE_WHITE} />
+            <AppIcon
+              name={visual.icon}
+              size={13}
+              color={COLORS.PURE_WHITE}
+              decorative
+            />
             <Text
               style={[
                 styles.categoryLabel,

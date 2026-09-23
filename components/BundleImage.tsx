@@ -4,8 +4,8 @@
 
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { CachedImage as Image } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
 import { useTranslation } from "react-i18next";
 
 import CurrencyIcon from "./CurrencyIcon";
@@ -62,10 +62,11 @@ export default function BundleImage({
         <View style={styles.imageFrame}>
           {/* Badge "BUNDLE" phía trên bên trái */}
           <View style={styles.topBadge}>
-            <Icon
-              name="package-variant-closed"
+            <AppIcon
+              name="bundle"
               size={12}
               color={COLORS.PURE_WHITE}
+              decorative
             />
             <Text style={styles.topBadgeText} numberOfLines={1}>
               {t("bundles_page.hero_badge")}
@@ -115,20 +116,22 @@ export default function BundleImage({
             </View>
 
             <View style={styles.action}>
-              <Icon
-                name="view-grid-outline"
+              <AppIcon
+                name="imageGrid"
                 size={16}
                 color={COLORS.TEXT_PRIMARY}
+                decorative
               />
               <Text style={styles.actionText} numberOfLines={1}>
                 {t("bundles_page.view_items", {
                   defaultValue: "Xem skin trong bộ",
                 })}
               </Text>
-              <Icon
-                name="chevron-right"
+              <AppIcon
+                name="chevronRight"
                 size={18}
                 color={COLORS.TEXT_PRIMARY}
+                decorative
               />
             </View>
           </View>

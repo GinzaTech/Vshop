@@ -6,9 +6,10 @@ import { Provider as PaperProvider } from "react-native-paper";
 import MediaPopup, {
   useMediaPopupStore,
 } from "~/components/popups/MediaPopup";
+import AppIcon from "~/components/ui/AppIcon";
 
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
-  function MockMaterialCommunityIcon() {
+jest.mock("~/components/ui/AppIcon", () =>
+  function MockAppIcon() {
     return null;
   },
 );
@@ -78,6 +79,10 @@ describe("MediaPopup", () => {
     expect(
       renderer.root.findByProps({ accessibilityLabel: "Close media viewer" }),
     ).toBeDefined();
+    expect(renderer.root.findByType(AppIcon).props).toMatchObject({
+      name: "close",
+      decorative: true,
+    });
     const levelTab = renderer.root.findByProps({ testID: "media-tab-level-0" });
     const levelTabList = renderer.root.findByProps({
       testID: "media-tablist-level",
