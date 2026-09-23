@@ -23,3 +23,6 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 - [`2026-09-23-act-recording-baseline.md`](2026-09-23-act-recording-baseline.md) —
   source hoàn tất; mốc Act theo tài khoản, cache/archive filtering và full gate
   đã PASS; device/live Riot migration còn `NOT VERIFIED` do ADB ngắt kết nối.
+- [`2026-09-23-morphicons-system-design.md`](2026-09-23-morphicons-system-design.md) —
+  spec proposed cho icon boundary toàn app, Morphicons state transitions,
+  accessibility, native dependency và bundle/device gates; chờ user review.
