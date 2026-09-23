@@ -255,7 +255,11 @@ Create `components/ui/app-icon-types.ts`:
 ```ts
 import type { IconNode } from "lucide";
 
-export type MorphIconDefinition = { kind: "morph"; icon: IconNode };
+export type MorphIconDefinition = {
+  kind: "morph";
+  icon: IconNode;
+  filled?: true;
+};
 export type LegacyIconDefinition = {
   kind: "legacy";
   legacyName: "pistol" | "sword-cross" | "shield-account-outline";
@@ -276,7 +280,8 @@ chartBar, databaseOff, shield, weaponPistol, combatSword
 
 Use named Lucide imports. `weaponPistol`, `combatSword` and the Valorant role
 shield resolve to the three legacy definitions; every other token resolves to a
-Lucide `IconNode`. `unknown` uses Lucide `CircleHelp`.
+Lucide `IconNode`. `unknown` uses Lucide `CircleHelp`. `heart` and `heartFilled`
+both preserve Lucide Heart semantics; only `heartFilled` sets `filled: true`.
 
 - [ ] **Step 6: Implement AppIcon**
 
@@ -288,6 +293,7 @@ Lucide `IconNode`. `unknown` uses Lucide `CircleHelp`.
   size={size}
   color={color}
   strokeWidth={strokeWidth}
+  fill={definition.filled ? color : "none"}
   spring="snappy"
   reducedMotion="user"
   label={label}
@@ -584,7 +590,9 @@ scoreboard sort: sortAscending ↔ sortDescending
 match state: refresh ↔ loading
 ```
 
-Render 100 static MatchImage rows and assert no timer, `withRepeat`, or changing
+The wishlist test asserts one mounted AppIcon changes SVG `fill` from `none` to
+the current color; it must not substitute HeartPlus/HeartMinus for selected
+state. Render 100 static MatchImage rows and assert no timer, `withRepeat`, or changing
 icon prop is created for static empty-state icons.
 
 - [ ] **Step 2: Run RED**

@@ -100,6 +100,12 @@ Morph chỉ chạy khi cùng một control đổi trạng thái:
 - tab/navigation icon cũ ↔ icon mới trong cùng indicator;
 - retry/refresh ↔ success hoặc error khi có state machine rõ ràng.
 
+Morphicons là engine cho stroke path và đặt `fill="none"` mặc định. Trạng thái
+wishlist outline ↔ selected là ngoại lệ có chủ đích: dùng cùng path Heart đúng
+nghĩa và đổi SVG `fill` từ `none` sang màu hiện tại; không thay bằng HeartPlus/
+HeartMinus sai nghĩa. Motion nhấn hiện có vẫn cung cấp phản hồi, còn path không
+giả morph khi hình học thực tế không đổi.
+
 Không morph giữa hai icon ở hai vị trí khác nhau, không morph dữ liệu list chỉ
 vì re-render và không chạy entrance liên tục. Icon tĩnh render ở trạng thái cuối.
 
