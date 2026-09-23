@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ComponentProps,
 } from "react";
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -20,7 +19,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import Reanimated, {
   cancelAnimation,
   interpolate,
@@ -31,6 +29,8 @@ import Reanimated, {
 
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup, { useMediaPopupStore } from "~/components/popups/MediaPopup";
+import AppIcon from "~/components/ui/AppIcon";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import PressFeedback from "~/components/ui/PressFeedback";
 import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
 import { COLORS, SHADOWS } from "~/constants/DesignSystem";
@@ -71,17 +71,17 @@ type FloatingTabBarProps = {
 
 /**
  * PRIMARY_ROUTES — Định nghĩa các tab chính hiển thị trên thanh điều hướng.
- * Key: tên route, value: { icon (tên MaterialCommunityIcons), label (text hiển thị) }.
+ * Key: tên route, value: { icon (semantic AppIcon), label (text hiển thị) }.
  */
 const PRIMARY_ROUTES: Record<
   string,
-  { icon: ComponentProps<typeof Icon>["name"]; label: string }
+  { icon: AppIconName; label: string }
 > = {
-  bundles: { icon: "package-variant-closed", label: "Bundles" },
-  shop: { icon: "shopping-outline", label: "Store" },
-  profile: { icon: "account-circle-outline", label: "Profile" },
-  night_market: { icon: "weather-night", label: "Market" },
-  settings: { icon: "dots-grid", label: "More" },
+  bundles: { icon: "navStore", label: "Bundles" },
+  shop: { icon: "navShop", label: "Store" },
+  profile: { icon: "navProfile", label: "Profile" },
+  night_market: { icon: "navNightMarket", label: "Market" },
+  settings: { icon: "navMore", label: "More" },
 };
 
 /**
@@ -363,7 +363,19 @@ export function FloatingTabBar({
                 primaryNavigationTone === "light" && styles.tabIndicatorLight,
                 indicatorAnimatedStyle,
               ]}
-            />
+            >
+              <AppIcon
+                name={PRIMARY_ROUTES[activeRoute.name].icon}
+                size={22}
+                color={
+                  primaryNavigationTone === "light"
+                    ? COLORS.PURE_WHITE
+                    : COLORS.PURE_BLACK
+                }
+                decorative
+                testID="primary-tab-active-icon"
+              />
+            </Reanimated.View>
             {visibleRoutes.map((route) => {
               const routeIndex = state.routes.findIndex(
                 (item) => item.key === route.key
@@ -464,19 +476,18 @@ export function FloatingTabBar({
                             : styles.tabIconWrapPressed),
                       ]}
                     >
-                      <Icon
-                        name={icon}
-                        size={22}
-                        color={
-                          focused
-                            ? primaryNavigationTone === "light"
-                              ? COLORS.PURE_WHITE
-                              : COLORS.PURE_BLACK
-                            : primaryNavigationTone === "light" || pressed
+                      {!focused ? (
+                        <AppIcon
+                          name={icon}
+                          size={22}
+                          color={
+                            primaryNavigationTone === "light" || pressed
                               ? COLORS.TEXT_PRIMARY
                               : COLORS.PURE_WHITE
-                        }
-                      />
+                          }
+                          decorative
+                        />
+                      ) : null}
                     </View>
                     </PressFeedback>
                   )}
@@ -507,14 +518,15 @@ export function FloatingTabBar({
                 pressed && styles.collapsedTabButtonPressed,
               ]}
             >
-              <Icon
-                name="dots-grid"
+              <AppIcon
+                name="navMore"
                 size={26}
                 color={
                   primaryNavigationTone === "light"
                     ? COLORS.PURE_WHITE
                     : COLORS.PURE_BLACK
                 }
+                decorative
               />
             </Pressable>
             </Reanimated.View>
@@ -861,6 +873,8 @@ const styles = StyleSheet.create({
     width: INDICATOR_SIZE,
     height: INDICATOR_SIZE,
     borderRadius: INDICATOR_SIZE / 2,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: COLORS.PURE_WHITE,
   },
   tabIndicatorLight: {

@@ -8,6 +8,7 @@ import { COLORS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { withTiming } from "react-native-reanimated";
 import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
+import AppIcon from "~/components/ui/AppIcon";
 
 let mockReduceMotion = false;
 let mockNightMarket: object[] = [];
@@ -19,6 +20,10 @@ jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
     return null;
   },
 );
+
+jest.mock("morphicons/react-native", () => ({
+  MorphIcon: () => null,
+}));
 
 jest.mock("expo-router", () => {
   const MockTabs = ({ children }: { children: React.ReactNode }) => children;
@@ -254,6 +259,31 @@ describe("FloatingTabBar", () => {
     expect(shopTab.props.accessibilityState).toEqual({ selected: false });
   });
 
+  it("keeps one mounted active icon while changing semantic tab names", () => {
+    const { navigation, renderer } = renderTabBar();
+    const getActiveIcon = () =>
+      renderer.root
+        .findAllByType(AppIcon)
+        .find((node) => node.props.testID === "primary-tab-active-icon");
+    const activeIcon = getActiveIcon();
+
+    expect(activeIcon?.props.name).toBe("navProfile");
+
+    act(() =>
+      renderer.update(
+        <FloatingTabBar
+          state={{ index: 1, routes }}
+          descriptors={descriptors}
+          navigation={navigation}
+        />,
+      ),
+    );
+
+    const nextActiveIcon = getActiveIcon();
+    expect(nextActiveIcon).toBe(activeIcon);
+    expect(nextActiveIcon?.props.name).toBe("navShop");
+  });
+
   it("isolates the authenticated background while the media popup is open", () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     act(() => {
@@ -401,7 +431,7 @@ describe("FloatingTabBar", () => {
     try {
       const { renderer } = renderTabBar();
       const profileIcon = renderer.root.findAll(
-        (node) => node.props.name === "account-circle-outline",
+        (node) => node.props.name === "navProfile",
       )[0];
       const indicator = renderer.root.findByProps({
         testID: "primary-tab-indicator",

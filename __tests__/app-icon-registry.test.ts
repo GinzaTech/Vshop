@@ -47,6 +47,21 @@ const INITIAL_SEMANTIC_TOKENS = [
   "combatSword",
 ] as const;
 
+const TASK_3_SEMANTIC_TOKENS = [
+  "navStore",
+  "navShop",
+  "navProfile",
+  "navNightMarket",
+  "navMore",
+  "language",
+  "batteryWarning",
+  "bundle",
+  "timer",
+  "update",
+  "updateChecking",
+  "imageGrid",
+] as const;
+
 describe("AppIcon registry", () => {
   it("resolves stable semantic names", () => {
     expect(resolveAppIconName("search")).toBe("search");
@@ -70,7 +85,13 @@ describe("AppIcon registry", () => {
 
   it("contains every initial semantic token", () => {
     expect(Object.keys(APP_ICON_REGISTRY)).toEqual(
-      expect.arrayContaining(INITIAL_SEMANTIC_TOKENS)
+      expect.arrayContaining(INITIAL_SEMANTIC_TOKENS),
+    );
+  });
+
+  it("contains every Task 3 shell semantic token", () => {
+    expect(Object.keys(APP_ICON_REGISTRY)).toEqual(
+      expect.arrayContaining(TASK_3_SEMANTIC_TOKENS),
     );
   });
 
@@ -87,9 +108,7 @@ describe("AppIcon registry", () => {
       kind: "legacy",
       legacyName: "shield-account-outline",
     });
-    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(
-      INITIAL_SEMANTIC_TOKENS.length
-    );
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(51);
   });
 
   it("keeps Heart semantics while marking the selected state as filled", () => {

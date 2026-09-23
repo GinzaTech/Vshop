@@ -14,11 +14,11 @@ import {
 } from "react-native";
 import { Paragraph, Title } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import LoginWebView from "~/components/LoginWebView";
 import { COLORS } from "~/constants/DesignSystem";
+import AppIcon from "~/components/ui/AppIcon";
 import GlassCard from "~/components/ui/GlassCard";
 import { restoreCurrentAccountAuthCookies } from "~/services/accounts/session";
 
@@ -113,7 +113,12 @@ function ReAuth() {
             accessibilityRole="button"
             accessibilityLabel={t("settings_page.accounts.back_to_more")}
           >
-            <Icon name="arrow-left" size={20} color={COLORS.TEXT_PRIMARY} />
+            <AppIcon
+              name="back"
+              size={20}
+              color={COLORS.TEXT_PRIMARY}
+              decorative
+            />
             <Paragraph style={styles.backButtonText}>
               {t("settings_page.accounts.back_to_more")}
             </Paragraph>
