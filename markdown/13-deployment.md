@@ -9,9 +9,9 @@ Do EAS Android quota đã hết, `4.1.10 (91)` dùng local Gradle release build 
 keystore production tải từ EAS credentials. Source config plugin chỉ đọc signer
 qua environment; credential JSON, JKS, APK và `android/` đều bị ignore.
 
-Artifact local: `.codex-tmp/builds/VShop-4.1.10-production-91.apk`, 180.799.304
+Artifact local: `.codex-tmp/builds/VShop-4.1.10-production-91.apk`, 180.798.308
 byte, SHA-256
-`EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`.
+`76A6F8DA4BBC73FB2A7B2628EB45E44A9906B4733F90297B63B041C0CA5E44B8`.
 Signer certificate khớp production 4.1.9 và zipalign 16 KiB PASS. ADB chưa kết
 nối lại nên install/runtime/performance 4.1.10 còn `NOT VERIFIED`.
 

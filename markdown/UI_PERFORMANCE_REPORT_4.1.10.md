@@ -48,15 +48,15 @@ Local Gradle `assembleRelease` produced the authorized-signer production APK:
 
 ```text
 Version: 4.1.10 (91)
-Bytes: 180799304
-SHA-256: EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4
+Bytes: 180798308
+SHA-256: 76A6F8DA4BBC73FB2A7B2628EB45E44A9906B4733F90297B63B041C0CA5E44B8
 Signer SHA-256: 736f72bc0a3c6a33b4a774115f52f540192448f0105585653ddaa4c93a53c462
 APK signature v2: PASS
 zipalign -P 16: PASS
 Dev Launcher manifest entry: absent
 ```
 
-Full source gate passes 91 suites / 956 tests and Android export budgets at
+Full source gate passes 91 suites / 961 tests and Android export budgets at
 10.18/12 MiB total, 7.71/8 MiB Hermes and 1.25/1.50 MiB largest asset.
 
 Pending installation of the locally signed `4.1.10 (91)` production APK. Raw

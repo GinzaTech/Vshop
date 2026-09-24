@@ -224,10 +224,10 @@ Sau khi build:
   blur. Profile dashboard preload chỉ chạy sau focus/transition/idle.
 - LoadingScreen và ErrorBoundary dùng `RecoveryUpdateActions` không phụ thuộc
   authenticated route/Paper Portal; update loop guard lưu metadata tối thiểu.
-- Full gate PASS: 91 suite / 956 test, audit, export 10,18/12 MiB tổng,
+- Full gate PASS: 91 suite / 961 test, audit, export 10,18/12 MiB tổng,
   7,71/8 MiB Hermes và asset 1,25/1,50 MiB.
 - Local release APK build bằng signer production hợp lệ; SHA-256
-  `EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`,
+  `76A6F8DA4BBC73FB2A7B2628EB45E44A9906B4733F90297B63B041C0CA5E44B8`,
   signer match và zipalign 16 KiB PASS. Cài/metric thiết bị còn `NOT VERIFIED`
   vì ADB ngắt kết nối.
 

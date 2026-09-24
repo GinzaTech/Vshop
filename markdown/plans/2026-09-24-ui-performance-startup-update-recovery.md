@@ -14,7 +14,7 @@
 measurement harness and baseline complete; final matrix waits for the new APK.
 Task 7 source, metadata, production signer, local Gradle build, signature and
 16 KiB alignment complete; device install waits for ADB serial `45218ba` to
-reconnect. Task 8 source gate passes 91 suites / 956 tests and export budgets
+reconnect. Task 8 source gate passes 91 suites / 961 tests and export budgets
 10.18/12 MiB total, 7.71/8 MiB Hermes, 1.25/1.50 MiB largest asset; final
 device evidence and whole-branch review remain open.
 

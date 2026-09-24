@@ -61,11 +61,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Validation
 
 - The 4.1.10 full gate passes strict TypeScript, zero-warning ESLint, 91 Jest
-  suites / 956 tests, production audit policy and Android export budgets:
+  suites / 961 tests, production audit policy and Android export budgets:
   10.18/12 MiB total, 7.71/8 MiB Hermes, 1.25/1.50 MiB largest asset.
 - Local Gradle `assembleRelease` completed 1,455 tasks in 20m26s and produced
-  `VShop-4.1.10-production-91.apk` (180,799,304 bytes; SHA-256
-  `EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`).
+  `VShop-4.1.10-production-91.apk` (180,798,308 bytes; SHA-256
+  `76A6F8DA4BBC73FB2A7B2628EB45E44A9906B4733F90297B63B041C0CA5E44B8`).
   Its certificate matches the authorized 4.1.9 production signer, APK Signature
   Scheme v2 verifies, 16 KiB zip alignment passes and no Dev Launcher activity
   is present. Device install and final performance evidence remain pending due

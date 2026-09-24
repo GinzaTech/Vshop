@@ -54,11 +54,11 @@ The recovery state machine checks OTA first, supports a trusted native-release
 fallback, announces checking/downloading/restarting states, preserves valid
 cache/session data and blocks repeated startup failures from the same update.
 
-The full source gate passes 91 suites / 956 tests and the production audit.
+The full source gate passes 91 suites / 961 tests and the production audit.
 Optimized Android export passes at 10.18/12 MiB total, 7.71/8 MiB Hermes and
 1.25/1.50 MiB largest asset. A local production APK was built with the existing
-authorized EAS signer: `4.1.10 (91)`, 180,799,304 bytes, SHA-256
-`EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`.
+authorized EAS signer: `4.1.10 (91)`, 180,798,308 bytes, SHA-256
+`76A6F8DA4BBC73FB2A7B2628EB45E44A9906B4733F90297B63B041C0CA5E44B8`.
 Signature match and 16 KiB zip alignment pass; device install/performance
 measurement remains pending because ADB disconnected after the build.
 
@@ -543,10 +543,10 @@ Loading/ErrorBoundary có thêm đường kiểm tra cập nhật độc lập v
 Settings và Riot session. State machine ưu tiên OTA, chỉ mở GitHub Release chính
 chủ khi cần native build, giữ cache/session tốt và chặn cùng update lỗi lặp lại.
 
-Full gate đạt 91 suite / 956 test; Android export đạt 10,18/12 MiB tổng,
+Full gate đạt 91 suite / 961 test; Android export đạt 10,18/12 MiB tổng,
 7,71/8 MiB Hermes và asset lớn nhất 1,25/1,50 MiB. APK production local ký bằng
-đúng signer EAS đã build: `4.1.10 (91)`, 180.799.304 byte, SHA-256
-`EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`.
+đúng signer EAS đã build: `4.1.10 (91)`, 180.798.308 byte, SHA-256
+`76A6F8DA4BBC73FB2A7B2628EB45E44A9906B4733F90297B63B041C0CA5E44B8`.
 Chữ ký và zipalign 16 KiB đều PASS; cài/đo thiết bị còn pending vì ADB mất kết
 nối sau build.
 
