@@ -41,7 +41,11 @@ import { usePrimaryTabPreload, type TabTransitionNavigation } from "~/hooks/useP
 import { useMotionPreference } from "~/hooks/useMotionPreference";
 import { MOTION_TIMING } from "~/constants/Motion";
 
-import { createPrimaryTabScreenOptions, PRIMARY_TAB_REDUCED_MOTION_OPTIONS } from "~/utils/primary-tab-motion";
+import {
+  createPrimaryTabScreenOptions,
+  getPrimaryTabNavigatorPolicy,
+  PRIMARY_TAB_REDUCED_MOTION_OPTIONS,
+} from "~/utils/primary-tab-motion";
 
 type FloatingRoute = {
   key: string;
@@ -562,6 +566,7 @@ function Layout() {
   const reduceMotionEnabled = useMotionPreference();
   const mediaPopupOpen = useMediaPopupStore((state) => state.entries.length > 0);
   const { width: viewportWidth } = useWindowDimensions();
+  const navigatorPolicy = getPrimaryTabNavigatorPolicy(Platform.OS);
   const primaryTabScreenOptions = useMemo(
     () =>
       reduceMotionEnabled
@@ -585,7 +590,7 @@ function Layout() {
         <Tabs
         initialRouteName="profile"
         backBehavior="history"
-        detachInactiveScreens
+        detachInactiveScreens={navigatorPolicy.detachInactiveScreens}
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenLayout={({ children, route }) => route.name in PRIMARY_ROUTES
           ? <PrimaryTabScene>{children}</PrimaryTabScene>
@@ -599,6 +604,7 @@ function Layout() {
           },
           headerShown: false,
           tabBarShowLabel: false,
+          freezeOnBlur: navigatorPolicy.secondaryFreezeOnBlur,
           sceneStyle: { backgroundColor: COLORS.BACKGROUND },
         }}
       >

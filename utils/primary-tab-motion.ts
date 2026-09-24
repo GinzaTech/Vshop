@@ -4,6 +4,19 @@ import { MOTION_TIMING, TAB_MOTION } from "~/constants/Motion";
 type TabSceneInterpolator = NonNullable<BottomTabNavigationOptions["sceneStyleInterpolator"]>;
 
 /**
+ * Android keeps the five primary scenes attached after preload so a warm tab
+ * switch does not re-attach Profile's large native hierarchy during motion.
+ * Secondary routes inherit freezeOnBlur to stop hidden render work. Other
+ * platforms retain the navigator's previous detach behavior.
+ */
+export function getPrimaryTabNavigatorPolicy(platform: string) {
+  return {
+    detachInactiveScreens: platform !== "android",
+    secondaryFreezeOnBlur: platform === "android",
+  } as const;
+}
+
+/**
  * Tập option dùng khi người dùng bật "Reduce Motion" của hệ điều hành:
  * tắt hẳn animation chuyển tab (animation: "none") nhưng vẫn giữ lazy + nền
  * trong suốt như cấu hình thường.

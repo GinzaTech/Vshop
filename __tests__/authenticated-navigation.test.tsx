@@ -1,9 +1,13 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import AuthenticatedLayout, { FloatingTabBar } from "~/app/(authenticated)/_layout";
-import { createPrimaryTabScreenOptions, PRIMARY_TAB_REDUCED_MOTION_OPTIONS } from "~/utils/primary-tab-motion";
+import {
+  createPrimaryTabScreenOptions,
+  getPrimaryTabNavigatorPolicy,
+  PRIMARY_TAB_REDUCED_MOTION_OPTIONS,
+} from "~/utils/primary-tab-motion";
 import { COLORS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { withTiming } from "react-native-reanimated";
@@ -14,6 +18,7 @@ let mockReduceMotion = false;
 let mockNightMarket: object[] = [];
 let mockSceneFocused = true;
 let mockMediaPopupOpen = false;
+let latestTabsProps: Record<string, unknown> | null = null;
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
   function MockMaterialCommunityIcon() {
@@ -26,7 +31,10 @@ jest.mock("morphicons/react-native", () => ({
 }));
 
 jest.mock("expo-router", () => {
-  const MockTabs = ({ children }: { children: React.ReactNode }) => children;
+  const MockTabs = (props: { children: React.ReactNode } & Record<string, unknown>) => {
+    latestTabsProps = props;
+    return props.children;
+  };
   MockTabs.Screen = function MockTabsScreen() {
     return null;
   };
@@ -139,6 +147,33 @@ describe("FloatingTabBar", () => {
     mockNightMarket = [];
     mockSceneFocused = true;
     mockMediaPopupOpen = false;
+    latestTabsProps = null;
+  });
+  it("keeps Android primary scenes attached after preload", () => {
+    expect(getPrimaryTabNavigatorPolicy("android")).toEqual({
+      detachInactiveScreens: false,
+      secondaryFreezeOnBlur: true,
+    });
+  });
+
+  it("keeps non-Android detachment unchanged", () => {
+    expect(getPrimaryTabNavigatorPolicy("ios")).toEqual({
+      detachInactiveScreens: true,
+      secondaryFreezeOnBlur: false,
+    });
+  });
+
+  it("passes the platform retention policy to Tabs", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<AuthenticatedLayout />);
+    });
+    renderers.push(renderer);
+
+    expect(latestTabsProps).toMatchObject({
+      detachInactiveScreens:
+        getPrimaryTabNavigatorPolicy(Platform.OS).detachInactiveScreens,
+    });
   });
   it("keeps Android scenes ready for the horizontal transition", () => {
     const options = createPrimaryTabScreenOptions(400);
