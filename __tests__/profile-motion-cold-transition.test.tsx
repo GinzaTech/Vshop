@@ -4,18 +4,24 @@ import TestRenderer, { act } from "react-test-renderer";
 import { useProfileMotion } from "~/features/profile/useProfileMotion";
 
 const idleCallbacks: (() => void)[] = [];
+const idleCancels: jest.Mock[] = [];
 let mockReduceMotionEnabled = false;
+let focusCallback: (() => void | (() => void)) | undefined;
 
 jest.mock("expo-router", () => ({
-  useFocusEffect: jest.fn(),
+  useFocusEffect: (callback: () => void | (() => void)) => {
+    focusCallback = callback;
+  },
 }));
 jest.mock("~/hooks/useMotionPreference", () => ({
   useMotionPreference: () => mockReduceMotionEnabled,
 }));
 jest.mock("~/utils/idle-task", () => ({
   runWhenIdle: (callback: () => void) => {
+    const cancel = jest.fn();
     idleCallbacks.push(callback);
-    return { cancel: jest.fn() };
+    idleCancels.push(cancel);
+    return { cancel };
   },
 }));
 jest.mock("react-native-reanimated", () => ({
@@ -56,8 +62,10 @@ describe("Profile cold mode transition", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     idleCallbacks.length = 0;
+    idleCancels.length = 0;
     animationFrames = [];
     mockReduceMotionEnabled = false;
+    focusCallback = undefined;
     jest
       .spyOn(globalThis, "requestAnimationFrame")
       .mockImplementation((callback) => {
@@ -91,7 +99,7 @@ describe("Profile cold mode transition", () => {
 
   it("mounts the cold dashboard before starting the visible morph", () => {
     expect(motion.statsDashboardMounted).toBe(false);
-    expect(idleCallbacks).toHaveLength(1);
+    expect(idleCallbacks).toHaveLength(0);
 
     act(() => {
       motion.toggleHeroMode();
@@ -114,6 +122,10 @@ describe("Profile cold mode transition", () => {
 
   it("starts a warm dashboard morph without adding an extra frame", () => {
     act(() => {
+      focusCallback?.();
+      jest.advanceTimersByTime(220);
+    });
+    act(() => {
       idleCallbacks.shift()?.();
     });
     expect(motion.statsDashboardMounted).toBe(true);
@@ -126,6 +138,44 @@ describe("Profile cold mode transition", () => {
     expect(motion.isPlayerInfoMode).toBe(true);
     expect(motion.heroModeProgress.value).toBe(0);
     expect(motion.pageModeProgress.value).toBe(1);
+  });
+
+  it("waits for Profile focus and the tab transition before idle preload", () => {
+    expect(idleCallbacks).toHaveLength(0);
+
+    act(() => {
+      focusCallback?.();
+      jest.advanceTimersByTime(219);
+    });
+    expect(idleCallbacks).toHaveLength(0);
+
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(idleCallbacks).toHaveLength(1);
+    expect(motion.statsDashboardMounted).toBe(false);
+
+    act(() => {
+      idleCallbacks.shift()?.();
+    });
+    expect(motion.statsDashboardMounted).toBe(true);
+  });
+
+  it("cancels queued dashboard work when Profile blurs", () => {
+    let cleanup: void | (() => void);
+    act(() => {
+      cleanup = focusCallback?.();
+      jest.advanceTimersByTime(220);
+    });
+    expect(idleCallbacks).toHaveLength(1);
+
+    act(() => {
+      cleanup?.();
+      idleCallbacks.shift()?.();
+    });
+
+    expect(idleCancels.at(-1)).toHaveBeenCalledTimes(1);
+    expect(motion.statsDashboardMounted).toBe(false);
   });
 
   it("does not defer a cold transition when Reduce Motion is enabled", () => {

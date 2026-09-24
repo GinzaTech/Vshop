@@ -41,6 +41,7 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
       React.useState<ProfileNavContentMode>("profile");
   const [statsDashboardMounted, setStatsDashboardMounted] =
       React.useState(false);
+  const statsDashboardMountedRef = React.useRef(false);
   const profilePagerRef =
       React.useRef<React.ElementRef<typeof ScrollView>>(null);
   const skinWhitespacePagerOriginRef = React.useRef(0);
@@ -154,21 +155,13 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   const statsExpandedRef = React.useRef(true);
   const lastRegionTapRef = React.useRef(0);
   const dashboardPreloadTaskRef = React.useRef<IdleTask | null>(null);
+  const dashboardPreloadTimerRef = React.useRef<
+      ReturnType<typeof setTimeout> | null
+  >(null);
   const pendingModeTransitionRef = React.useRef<boolean | null>(null);
-
-  React.useEffect(() => {
-    const preloadTask = runWhenIdle(() => {
-      dashboardPreloadTaskRef.current = null;
-      setStatsDashboardMounted(true);
-    });
-    dashboardPreloadTaskRef.current = preloadTask;
-
-    return () => {
-      preloadTask.cancel();
-      if (dashboardPreloadTaskRef.current === preloadTask) {
-        dashboardPreloadTaskRef.current = null;
-      }
-    };
+  const mountStatsDashboard = React.useCallback(() => {
+    statsDashboardMountedRef.current = true;
+    setStatsDashboardMounted(true);
   }, []);
   const legacyContentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: legacyContentProgress.value,
@@ -298,24 +291,24 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
     }
 
     const nextMode = !isPlayerInfoModeRef.current;
-    if (nextMode && !statsDashboardMounted && !reduceMotionEnabled) {
+    if (nextMode && !statsDashboardMountedRef.current && !reduceMotionEnabled) {
       dashboardPreloadTaskRef.current?.cancel();
       dashboardPreloadTaskRef.current = null;
       pendingModeTransitionRef.current = nextMode;
-      setStatsDashboardMounted(true);
+      mountStatsDashboard();
       return;
     }
 
-    if (nextMode && !statsDashboardMounted) {
+    if (nextMode && !statsDashboardMountedRef.current) {
       dashboardPreloadTaskRef.current?.cancel();
       dashboardPreloadTaskRef.current = null;
-      setStatsDashboardMounted(true);
+      mountStatsDashboard();
     }
     startProfileModeTransition(nextMode);
   }, [
+    mountStatsDashboard,
     reduceMotionEnabled,
     startProfileModeTransition,
-    statsDashboardMounted,
   ]);
   React.useEffect(() => {
     const pendingMode = pendingModeTransitionRef.current;
@@ -332,6 +325,31 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   // Focus effect: đồng bộ tone status bar/navigation theo mode, trả giá trị cũ khi rời màn.
   useFocusEffect(
       React.useCallback(() => {
+        const scheduleDashboardPreload = () => {
+          if (
+            statsDashboardMountedRef.current ||
+            dashboardPreloadTaskRef.current
+          ) {
+            return;
+          }
+
+          const preloadTask = runWhenIdle(() => {
+            if (dashboardPreloadTaskRef.current !== preloadTask) return;
+            dashboardPreloadTaskRef.current = null;
+            mountStatsDashboard();
+          });
+          dashboardPreloadTaskRef.current = preloadTask;
+        };
+
+        if (reduceMotionEnabled) {
+          scheduleDashboardPreload();
+        } else {
+          dashboardPreloadTimerRef.current = setTimeout(
+            scheduleDashboardPreload,
+            PROFILE_MODE_MORPH_DURATION_MS,
+          );
+        }
+
         const chromeTone = getProfileChromeTone(
           isPlayerInfoMode ? "player-info" : "profile"
         );
@@ -339,10 +357,26 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
         setPrimaryNavigationTone(chromeTone.primaryNavigation);
 
         return () => {
+          if (dashboardPreloadTimerRef.current) {
+            clearTimeout(dashboardPreloadTimerRef.current);
+            dashboardPreloadTimerRef.current = null;
+          }
+          dashboardPreloadTaskRef.current?.cancel();
+          dashboardPreloadTaskRef.current = null;
+          if (!isPlayerInfoModeRef.current) {
+            statsDashboardMountedRef.current = false;
+            setStatsDashboardMounted(false);
+          }
           setTopInsetTone("light");
           setPrimaryNavigationTone("dark");
         };
-      }, [isPlayerInfoMode, setPrimaryNavigationTone, setTopInsetTone])
+      }, [
+        isPlayerInfoMode,
+        mountStatsDashboard,
+        reduceMotionEnabled,
+        setPrimaryNavigationTone,
+        setTopInsetTone,
+      ])
   );
   // handleStatsDashboardTabChange: đổi tab dashboard (overview/details) + chạy indicator.
   const handleStatsDashboardTabChange = React.useCallback(

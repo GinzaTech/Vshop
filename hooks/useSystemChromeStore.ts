@@ -28,12 +28,25 @@ type SystemChromeState = {
  */
 export const useSystemChromeStore = create<SystemChromeState>((set) => ({
   topInsetTone: "light",
-  setTopInsetTone: (topInsetTone) => set({ topInsetTone }),
+  setTopInsetTone: (topInsetTone) =>
+    set((state) =>
+      state.topInsetTone === topInsetTone ? state : { topInsetTone }
+    ),
   primaryNavigationTone: "dark",
   setPrimaryNavigationTone: (primaryNavigationTone) =>
-    set({ primaryNavigationTone }),
+    set((state) =>
+      state.primaryNavigationTone === primaryNavigationTone
+        ? state
+        : { primaryNavigationTone }
+    ),
   primaryNavigationAccessibilityHidden: false,
   setPrimaryNavigationAccessibilityHidden: (
     primaryNavigationAccessibilityHidden,
-  ) => set({ primaryNavigationAccessibilityHidden }),
+  ) =>
+    set((state) =>
+      state.primaryNavigationAccessibilityHidden ===
+      primaryNavigationAccessibilityHidden
+        ? state
+        : { primaryNavigationAccessibilityHidden }
+    ),
 }));
