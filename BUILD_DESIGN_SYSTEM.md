@@ -217,7 +217,21 @@ Sau khi build:
 4. kiểm tra login, shop, profile, refresh, match history, TLS chat và update channel;
 5. phát hành GitHub Release nếu smoke test đạt.
 
-### Trạng thái source candidate 4.1.9
+### Trạng thái source candidate 4.1.10
+
+- Metadata: app/runtime `4.1.10`, Android `versionCode 91`, iOS `buildNumber 43`.
+- Android primary scenes giữ attached sau preload; secondary scene freeze khi
+  blur. Profile dashboard preload chỉ chạy sau focus/transition/idle.
+- LoadingScreen và ErrorBoundary dùng `RecoveryUpdateActions` không phụ thuộc
+  authenticated route/Paper Portal; update loop guard lưu metadata tối thiểu.
+- Full gate PASS: 91 suite / 956 test, audit, export 10,18/12 MiB tổng,
+  7,71/8 MiB Hermes và asset 1,25/1,50 MiB.
+- Local release APK build bằng signer production hợp lệ; SHA-256
+  `EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`,
+  signer match và zipalign 16 KiB PASS. Cài/metric thiết bị còn `NOT VERIFIED`
+  vì ADB ngắt kết nối.
+
+### Lịch sử source candidate 4.1.9
 
 - Metadata nguồn: version/runtime `4.1.9`, Android `versionCode 90`, iOS
   `buildNumber 42`.

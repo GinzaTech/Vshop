@@ -41,6 +41,27 @@ Navigation motion uses shared timing tokens, transition-aware tab preloading and
 
 # English
 
+## 4.1.10 local release candidate: smooth primary navigation and startup recovery
+
+Android now keeps preloaded primary scenes attached so warm navigation does not
+re-attach Profile's large native hierarchy during the 220 ms shift. Heavy
+Profile dashboard work waits for focus, transition completion and an idle slot;
+blur cancels queued work. The floating indicator adopts an accepted destination
+icon immediately, and repeated system-chrome values no longer notify the root.
+
+Loading and ErrorBoundary surfaces now expose a route-independent update action.
+The recovery state machine checks OTA first, supports a trusted native-release
+fallback, announces checking/downloading/restarting states, preserves valid
+cache/session data and blocks repeated startup failures from the same update.
+
+The full source gate passes 91 suites / 956 tests and the production audit.
+Optimized Android export passes at 10.18/12 MiB total, 7.71/8 MiB Hermes and
+1.25/1.50 MiB largest asset. A local production APK was built with the existing
+authorized EAS signer: `4.1.10 (91)`, 180,799,304 bytes, SHA-256
+`EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`.
+Signature match and 16 KiB zip alignment pass; device install/performance
+measurement remains pending because ADB disconnected after the build.
+
 ## 4.1.9 source candidate: typed Morphicons icon system
 
 The 4.1.9 source candidate routes every application icon, including
@@ -509,6 +530,25 @@ device-runtime result is claimed yet.
 ---
 
 # Tiếng Việt
+
+## Bản local release candidate 4.1.10: chuyển tab mượt và phục hồi cập nhật
+
+Android giữ nóng các primary scene đã preload để khi quay lại Profile không phải
+attach lại toàn bộ native tree đúng lúc animation chạy. Dashboard nặng của
+Profile chỉ mount sau focus + transition + idle; blur sẽ huỷ công việc đang chờ.
+Floating indicator đổi ngay sang icon đích đã chấp nhận và system chrome không
+phát render khi tone không đổi.
+
+Loading/ErrorBoundary có thêm đường kiểm tra cập nhật độc lập với Profile,
+Settings và Riot session. State machine ưu tiên OTA, chỉ mở GitHub Release chính
+chủ khi cần native build, giữ cache/session tốt và chặn cùng update lỗi lặp lại.
+
+Full gate đạt 91 suite / 956 test; Android export đạt 10,18/12 MiB tổng,
+7,71/8 MiB Hermes và asset lớn nhất 1,25/1,50 MiB. APK production local ký bằng
+đúng signer EAS đã build: `4.1.10 (91)`, 180.799.304 byte, SHA-256
+`EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`.
+Chữ ký và zipalign 16 KiB đều PASS; cài/đo thiết bị còn pending vì ADB mất kết
+nối sau build.
 
 ## Bản source candidate 4.1.9: hệ icon Morphicons có type
 

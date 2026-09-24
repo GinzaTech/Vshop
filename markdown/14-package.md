@@ -63,6 +63,11 @@ như quy tắc cấm mọi dependency ngược giữa `utils` và `hooks`. Ví d
 đọc persisted Profile store để giữ dữ liệu tốt sau cold start. Không tạo vòng
 runtime chỉ để chia file; import chỉ dùng type cần dùng `import type`.
 
+Package hiện tại là source/runtime `4.1.10`, Android `91`, iOS `43`. Recovery
+update nằm tại `utils/recovery-update.ts`, UI primitive tại
+`components/ui/RecoveryUpdateActions.tsx`; local signing plugin/script không
+chứa credential và fail-closed nếu signer thiếu.
+
 Nhánh icon là boundary một chiều: consumer chỉ import `AppIcon`/`AppIconName`;
 registry chỉ import `app-icon-lucide.ts`, runtime deep ESM Lucide import chỉ nằm
 trong file này, và chỉ `AppIcon.tsx` import `morphicons/react-native`.

@@ -1,7 +1,7 @@
 # VShop architecture
 
-Tài liệu này mô tả cấu trúc của source candidate `4.1.9`; artifact native đã
-xác minh gần nhất vẫn là release `4.1.8`. `app/` chỉ chịu trách nhiệm routing và
+Tài liệu này mô tả cấu trúc của source candidate `4.1.10`; APK production local
+đã build và xác minh signer nhưng chưa cài do ADB mất kết nối. `app/` chỉ chịu trách nhiệm routing và
 ghép màn hình; network, state, UI dùng lại và domain logic không được đặt trực
 tiếp trong route.
 
@@ -33,6 +33,15 @@ Vshop/
 │       ├── AppIcon.tsx          boundary Morphicons/vendor duy nhất
 │       ├── app-icon-registry.ts semantic token → morphable IconNode có type
 │       ├── app-icon-lucide.ts   deep ESM Lucide + custom Pistol boundary
+│       └── RecoveryUpdateActions.tsx update recovery không phụ thuộc route
+├── hooks/
+│   ├── useRecoveryUpdate.ts     UI state + duplicate suppression
+│   └── useStartupRecoveryWatchdog.ts watchdog bootstrap 8 giây
+├── plugins/
+│   └── withAndroidReleaseSigning.cjs release signer từ environment
+├── scripts/
+│   ├── build-android-release-local.mjs local signed release orchestrator
+│   └── measure-android-primary-tabs.ps1 ADB gfx/memory matrix
 │       ├── app-icon-types.ts    định nghĩa MorphIcon duy nhất
 │       ├── AppRefreshControl.tsx
 │       ├── GlassCard.tsx

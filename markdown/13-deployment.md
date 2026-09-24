@@ -3,6 +3,18 @@
 Phân biệt pipeline tạo artifact và runtime. Build/config dưới đây tồn tại
 trong repository; trạng thái release cụ thể cần đối chiếu bản ghi build.
 
+## Local production 4.1.10
+
+Do EAS Android quota đã hết, `4.1.10 (91)` dùng local Gradle release build với
+keystore production tải từ EAS credentials. Source config plugin chỉ đọc signer
+qua environment; credential JSON, JKS, APK và `android/` đều bị ignore.
+
+Artifact local: `.codex-tmp/builds/VShop-4.1.10-production-91.apk`, 180.799.304
+byte, SHA-256
+`EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`.
+Signer certificate khớp production 4.1.9 và zipalign 16 KiB PASS. ADB chưa kết
+nối lại nên install/runtime/performance 4.1.10 còn `NOT VERIFIED`.
+
 ```mermaid
 flowchart TB
     subgraph Development[Máy phát triển / CI]

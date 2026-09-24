@@ -1,6 +1,6 @@
 # VShop 4.1.10 UI Performance Report
 
-**Status:** Baseline captured; final local-release measurement pending  
+**Status:** Source/local build verified; final device measurement pending
 **Device:** Android `45218ba` (`23013PC75G`, 1080×2400)  
 **Package:** `com.android.vshop`
 
@@ -43,6 +43,21 @@ No TypeError/FATAL/ANR/SIGSEGV
 ```
 
 ## Final local-release evidence
+
+Local Gradle `assembleRelease` produced the authorized-signer production APK:
+
+```text
+Version: 4.1.10 (91)
+Bytes: 180799304
+SHA-256: EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4
+Signer SHA-256: 736f72bc0a3c6a33b4a774115f52f540192448f0105585653ddaa4c93a53c462
+APK signature v2: PASS
+zipalign -P 16: PASS
+Dev Launcher manifest entry: absent
+```
+
+Full source gate passes 91 suites / 956 tests and Android export budgets at
+10.18/12 MiB total, 7.71/8 MiB Hermes and 1.25/1.50 MiB largest asset.
 
 Pending installation of the locally signed `4.1.10 (91)` production APK. Raw
 measurement JSON will be stored under `.codex-tmp/performance/` and will not be

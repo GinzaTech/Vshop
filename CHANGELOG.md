@@ -8,6 +8,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Advance the local native release candidate to `4.1.10` (Android `91`, iOS
+  `43`). Android primary scenes remain attached after preload, secondary scenes
+  freeze while inactive, Profile dashboard warmup waits for focus/transition/
+  idle, and duplicate system-chrome writes are ignored.
+- Make the floating primary-tab indicator adopt the latest accepted destination
+  icon immediately while preserving one mounted MorphIcon and rolling back
+  prevented navigation.
+- Add startup-safe update recovery to LoadingScreen and ErrorBoundary with OTA
+  first, trusted native-release fallback, accessible progress, duplicate-press
+  suppression and a persisted same-update startup-failure guard.
 - Route all application icons through the typed `AppIcon` semantic boundary.
   Every definition, including Valorant-specific weapon, rank and role glyphs,
   now reaches `MorphIcon`; `AppIcon` has no MaterialCommunityIcons fallback.
@@ -50,6 +60,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Validation
 
+- The 4.1.10 full gate passes strict TypeScript, zero-warning ESLint, 91 Jest
+  suites / 956 tests, production audit policy and Android export budgets:
+  10.18/12 MiB total, 7.71/8 MiB Hermes, 1.25/1.50 MiB largest asset.
+- Local Gradle `assembleRelease` completed 1,455 tasks in 20m26s and produced
+  `VShop-4.1.10-production-91.apk` (180,799,304 bytes; SHA-256
+  `EF6AB30B2D5037592C7F2FFFFFCE77F4C8C5CB2FC0D75527978C309EE3E3F3B4`).
+  Its certificate matches the authorized 4.1.9 production signer, APK Signature
+  Scheme v2 verifies, 16 KiB zip alignment passes and no Dev Launcher activity
+  is present. Device install and final performance evidence remain pending due
+  to ADB disconnect.
 - The first full `pnpm run check` attempt passed strict TypeScript,
   zero-warning ESLint, the production dependency-audit policy and 87 Jest
   suites / 909 tests, then failed the unchanged Hermes budget at
@@ -107,8 +127,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Build metadata
 
-- Source/app runtime candidate: `4.1.9`; Android version code: `90`; iOS build
-  number: `42`.
+- Source/app runtime candidate: `4.1.10`; Android version code: `91`; iOS build
+  number: `43`.
+- Distribution: locally signed production APK exists under ignored
+  `.codex-tmp/builds/`; it is not committed or published. Device installation
+  remains required before approving it for distribution.
 - Distribution: the first 4.1.9 production artifact is not approved as a
   standalone/offline release because its embedded bundle has the Profile stub
   defect. The installed production binary is verified only after applying OTA
