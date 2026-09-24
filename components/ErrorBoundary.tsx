@@ -11,6 +11,8 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import RecoveryUpdateActions from "~/components/ui/RecoveryUpdateActions";
+import { markRecoveryStartupFailure } from "~/utils/recovery-update";
 
 type ErrorBoundaryProps = {
   children: React.ReactNode;
@@ -53,6 +55,7 @@ class ErrorBoundaryImpl extends React.Component<ErrorBoundaryProps, ErrorBoundar
         },
       },
     });
+    void markRecoveryStartupFailure();
     if (__DEV__) {
       console.error("[ErrorBoundary]", error, errorInfo.componentStack);
     }
@@ -132,6 +135,9 @@ function ErrorFallback({ error, onReset }: { error: Error; onReset: () => void }
             </Text>
           </Pressable>
         </View>
+        <View style={styles.updateRecovery}>
+          <RecoveryUpdateActions />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -206,6 +212,11 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_PRIMARY,
     fontSize: 15,
     fontWeight: "600",
+  },
+  updateRecovery: {
+    width: "100%",
+    maxWidth: 520,
+    marginTop: 16,
   },
 });
 

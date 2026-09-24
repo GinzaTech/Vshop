@@ -42,6 +42,7 @@ function makeDependencies(
     environment?: RecoveryUpdateDependencies["environment"];
     fetchIsNew?: boolean;
     latestVersion?: string;
+    latestUrl?: string;
     rejectAt?: "check" | "fetch" | "reload" | "release";
     storageValue?: string;
     updateId?: string;
@@ -72,7 +73,9 @@ function makeDependencies(
       if (options.rejectAt === "release") throw new Error("secret-release-token");
       return {
         version: options.latestVersion ?? "4.1.9",
-        url: "https://github.com/GinzaTech/Vshop/releases/latest",
+        url:
+          options.latestUrl ??
+          "https://github.com/GinzaTech/Vshop/releases/latest",
       };
     }),
     storage,
@@ -166,6 +169,19 @@ describe("recovery update", () => {
   it("returns the trusted native release when GitHub is newer", async () => {
     const { dependencies } = makeDependencies({
       available: false,
+      latestVersion: "4.2.0",
+    });
+
+    await expect(runRecoveryUpdate(dependencies, jest.fn())).resolves.toEqual({
+      kind: "native-update",
+      releaseUrl: "https://github.com/GinzaTech/Vshop/releases/latest",
+    });
+  });
+
+  it("rejects a lookalike native release URL", async () => {
+    const { dependencies } = makeDependencies({
+      available: false,
+      latestUrl: "https://github.example/GinzaTech/Vshop/releases/latest",
       latestVersion: "4.2.0",
     });
 

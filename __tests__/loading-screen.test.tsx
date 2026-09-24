@@ -10,6 +10,9 @@ jest.mock("~/components/ui/AppIcon", () =>
     return null;
   },
 );
+jest.mock("~/utils/recovery-update", () => ({
+  startRecoveryUpdate: jest.fn(async () => ({ kind: "up-to-date" })),
+}));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: { time?: string }) => ({
@@ -86,6 +89,22 @@ describe("LoadingScreen recovery controls", () => {
     ).toBeGreaterThan(0);
     expect(
       renderer!.root.findAllByProps({ testID: "startup-use-cache-button" })
+    ).toHaveLength(0);
+  });
+
+  it("offers update recovery even when no startup cache exists", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <LoadingScreen showUpdateRecovery />,
+      );
+    });
+
+    expect(
+      renderer.root.findByProps({ testID: "recovery-check-update-button" }),
+    ).toBeDefined();
+    expect(
+      renderer.root.findAllByProps({ testID: "startup-use-cache-button" }),
     ).toHaveLength(0);
   });
 

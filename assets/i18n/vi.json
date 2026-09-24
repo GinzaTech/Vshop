@@ -8,6 +8,15 @@
     "cache_hint": "Dữ liệu đã lưu có thể không còn mới",
     "last_updated": "Lần đồng bộ thành công gần nhất: {{time}}"
   },
+  "recovery_update": {
+    "check": "Kiểm tra bản cập nhật",
+    "checking": "Đang kiểm tra bản cập nhật…",
+    "downloading": "Đang tải bản cập nhật…",
+    "restarting": "Đang khởi động lại VShop…",
+    "up_to_date": "VShop đang ở phiên bản mới nhất.",
+    "native_required": "Cần cài một bản ứng dụng mới hơn.",
+    "open_release": "Mở bản phát hành mới nhất"
+  },
   "account": "Tài khoản",
   "amount": "Số lượng",
   "accessories": "Cửa hàng phụ kiện",

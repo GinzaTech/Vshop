@@ -8,6 +8,15 @@
     "cache_hint": "Saved data may be out of date",
     "last_updated": "Last successful update: {{time}}"
   },
+  "recovery_update": {
+    "check": "Check for app update",
+    "checking": "Checking for an update…",
+    "downloading": "Downloading the update…",
+    "restarting": "Restarting VShop…",
+    "up_to_date": "VShop is already up to date.",
+    "native_required": "A newer native build is required.",
+    "open_release": "Open latest release"
+  },
   "account": "Account",
   "amount": "Amount",
   "back": "back",

@@ -13,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import AppIcon from "~/components/ui/AppIcon";
+import RecoveryUpdateActions from "~/components/ui/RecoveryUpdateActions";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
 import { useTranslation } from "react-i18next";
 
@@ -40,6 +41,7 @@ type LoadingScreenProps = {
   cachedDataUpdatedAt?: number | null;
   onRetry?: () => void;
   onUseCachedData?: () => void;
+  showUpdateRecovery?: boolean;
 };
 
 /**
@@ -68,6 +70,7 @@ export default function LoadingScreen({
   cachedDataUpdatedAt = null,
   onRetry,
   onUseCachedData,
+  showUpdateRecovery = false,
 }: LoadingScreenProps) {
   const { t } = useTranslation();
   // reduceMotion: bật Reduce Motion thì skeleton đứng yên
@@ -125,45 +128,50 @@ export default function LoadingScreen({
         <Text style={styles.statusText}>{message}</Text>
       </View>
 
-      {showRecoveryActions ? (
+      {showRecoveryActions || showUpdateRecovery ? (
         <View style={styles.recoveryPanel} accessibilityLiveRegion="polite">
-          <Text style={styles.recoveryText}>
-            {recoveryKind === "maintenance"
-              ? t("startup_recovery.maintenance")
-              : "Riot services are unavailable. VShop will keep retrying automatically."}
-          </Text>
-          {canUseCachedData && cachedDataTime ? (
-            <Text style={styles.cacheTimestamp}>
-              {t("startup_recovery.last_updated", { time: cachedDataTime })}
-            </Text>
-          ) : null}
-          <View style={styles.recoveryActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Retry loading VShop data"
-              testID="startup-retry-button"
-              onPress={onRetry}
-              style={styles.retryButton}
-            >
-              <Text style={styles.retryButtonText}>
-                Retry now
+          {showRecoveryActions ? (
+            <>
+              <Text style={styles.recoveryText}>
+                {recoveryKind === "maintenance"
+                  ? t("startup_recovery.maintenance")
+                  : "Riot services are unavailable. VShop will keep retrying automatically."}
               </Text>
-            </Pressable>
-            {canUseCachedData ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("startup_recovery.use_cache")}
-                accessibilityHint={t("startup_recovery.cache_hint")}
-                testID="startup-use-cache-button"
-                onPress={onUseCachedData}
-                style={styles.cacheButton}
-              >
-                <Text style={styles.cacheButtonText}>
-                  {t("startup_recovery.use_cache")}
+              {canUseCachedData && cachedDataTime ? (
+                <Text style={styles.cacheTimestamp}>
+                  {t("startup_recovery.last_updated", { time: cachedDataTime })}
                 </Text>
-              </Pressable>
-            ) : null}
-          </View>
+              ) : null}
+              <View style={styles.recoveryActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry loading VShop data"
+                  testID="startup-retry-button"
+                  onPress={onRetry}
+                  style={styles.retryButton}
+                >
+                  <Text style={styles.retryButtonText}>
+                    Retry now
+                  </Text>
+                </Pressable>
+                {canUseCachedData ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("startup_recovery.use_cache")}
+                    accessibilityHint={t("startup_recovery.cache_hint")}
+                    testID="startup-use-cache-button"
+                    onPress={onUseCachedData}
+                    style={styles.cacheButton}
+                  >
+                    <Text style={styles.cacheButtonText}>
+                      {t("startup_recovery.use_cache")}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </>
+          ) : null}
+          <RecoveryUpdateActions />
         </View>
       ) : null}
 

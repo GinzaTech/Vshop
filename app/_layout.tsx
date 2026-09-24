@@ -77,6 +77,7 @@ import {
 import { MOTION_DURATION, MOTION_TIMING } from "~/constants/Motion";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
 import { markAppInteractive } from "~/utils/startup-performance";
+import { useStartupRecoveryWatchdog } from "~/hooks/useStartupRecoveryWatchdog";
 import { getStartupCacheFallback } from "~/utils/startup-cache";
 import { renewSavedAccountSession } from "~/services/accounts/session";
 import { isSessionChangedError } from "~/utils/session-operations";
@@ -207,6 +208,7 @@ function RootLayout() {
   const [startupRecovery, setStartupRecovery] = useState<StartupRecoveryState>(
     HIDDEN_STARTUP_RECOVERY
   );
+  const startupWatchdogExpired = useStartupRecoveryWatchdog(isPreloading);
   if (hydrated && accountsHydrated) {
     bootstrapRouteRef.current = captureRootBootstrapRoute(
       bootstrapRouteRef.current,
@@ -633,6 +635,9 @@ function RootLayout() {
               cachedDataUpdatedAt={startupRecovery.cachedDataUpdatedAt}
               onRetry={requestStartupRetry}
               onUseCachedData={requestCachedStartup}
+              showUpdateRecovery={
+                startupWatchdogExpired || startupRecovery.visible
+              }
             />
           </View>
         ) : null}

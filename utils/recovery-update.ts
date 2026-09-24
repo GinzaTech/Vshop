@@ -11,6 +11,8 @@ import {
 
 const RECOVERY_UPDATE_ATTEMPT_KEY = "recovery-update-attempt-v1";
 const MAX_FAILED_STARTS = 2;
+const TRUSTED_RELEASE_URL =
+  "https://github.com/GinzaTech/Vshop/releases/latest";
 
 type RecoveryManifest = {
   id?: string;
@@ -103,13 +105,32 @@ function manifestId(manifest: RecoveryManifest | null | undefined) {
     : "unknown-update";
 }
 
+function trustedReleaseUrl(value: string) {
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol === "https:" &&
+      url.hostname === "github.com" &&
+      /^\/GinzaTech\/Vshop\/releases(?:\/|$)/i.test(url.pathname)
+    ) {
+      return value;
+    }
+  } catch {
+    // Fall through to the project-owned release page.
+  }
+  return TRUSTED_RELEASE_URL;
+}
+
 async function resolveNativeFallback(
   dependencies: RecoveryUpdateDependencies,
 ): Promise<RecoveryUpdateState> {
   try {
     const release = await dependencies.getLatestRelease();
     if (compareVersions(dependencies.currentVersion, release.version) < 0) {
-      return { kind: "native-update", releaseUrl: release.url };
+      return {
+        kind: "native-update",
+        releaseUrl: trustedReleaseUrl(release.url),
+      };
     }
     return { kind: "up-to-date" };
   } catch {
