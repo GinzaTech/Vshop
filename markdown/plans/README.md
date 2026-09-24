@@ -17,6 +17,12 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 
 ## Plan hiện tại
 
+- [`2026-09-24-ui-performance-startup-update-recovery-design.md`](2026-09-24-ui-performance-startup-update-recovery-design.md) —
+  spec đã duyệt cho primary-tab/Profile performance, update recovery trước
+  authenticated tree và local native release signing.
+- [`2026-09-24-ui-performance-startup-update-recovery.md`](2026-09-24-ui-performance-startup-update-recovery.md) —
+  implementation plan đang active: 8 task TDD, device metric matrix và local
+  production APK `4.1.10 (91)` với signer verification bắt buộc.
 - [`2026-09-22-ui-ux-quality-roadmap.md`](2026-09-22-ui-ux-quality-roadmap.md) —
   roadmap xử lý Profile multi-Act, cold motion, hierarchy/i18n, accessibility và
   pipeline asset.
