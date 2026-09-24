@@ -49,10 +49,12 @@ bun.lockb
 
 # Signing credentials
 *.jks
+*.keystore.json
 *.p8
 *.p12
 *.key
 *.mobileprovision
+credentials.json
 
 # Editor and OS files
 .idea/
