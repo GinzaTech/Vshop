@@ -25,10 +25,15 @@ describe("AppIcon", () => {
     mockLegacyProps.splice(0);
   });
 
-  it("always honors system Reduce Motion and forwards SVG props", () => {
+  it("always honors system Reduce Motion and ignores caller overrides", () => {
+    const attemptedOverride = {
+      reducedMotion: "never",
+    } as Record<string, unknown>;
+
     act(() => {
       TestRenderer.create(
         <AppIcon
+          {...attemptedOverride}
           name="search"
           size={20}
           color="#fff"
@@ -50,6 +55,39 @@ describe("AppIcon", () => {
     });
   });
 
+  it("exposes exactly one label when the icon is the accessible control", () => {
+    act(() => {
+      TestRenderer.create(
+        <AppIcon name="search" size={20} color="#fff" label="Search" />
+      );
+    });
+
+    const accessibleLabels = [...mockMorphProps, ...mockLegacyProps].filter(
+      (props) => props.label === "Search" || props.accessibilityLabel === "Search"
+    );
+
+    expect(accessibleLabels).toHaveLength(1);
+    expect(mockMorphProps.at(-1)?.label).toBe("Search");
+  });
+
+  it("keeps decorative morph icons out of the accessibility tree", () => {
+    act(() => {
+      TestRenderer.create(
+        <AppIcon
+          name="search"
+          size={20}
+          color="#fff"
+          label="Search"
+          decorative
+        />
+      );
+    });
+
+    expect(mockMorphProps).toHaveLength(1);
+    expect(mockMorphProps.at(-1)?.label).toBeUndefined();
+    expect(mockMorphProps.at(-1)?.reducedMotion).toBe("user");
+  });
+
   it("updates one mounted morph when semantic state changes", () => {
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
@@ -63,6 +101,9 @@ describe("AppIcon", () => {
 
     expect(mockMorphProps).toHaveLength(2);
     expect(mockMorphProps[0].icon).not.toBe(mockMorphProps[1].icon);
+    expect(mockMorphProps.every((props) => props.reducedMotion === "user")).toBe(
+      true
+    );
   });
 
   it("fills the same Heart glyph when the selected state changes", () => {

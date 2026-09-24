@@ -1,7 +1,7 @@
 # Morphicons System — Design Specification
 
 **Ngày:** 2026-09-23
-**Trạng thái:** approved — user duyệt ngày 2026-09-23
+**Trạng thái:** approved — source migration hoàn tất; native build/device còn chờ xác minh
 **Phạm vi:** Expo/React Native VShop, Android/iOS/web boundary, toàn bộ icon UI
 
 ## 1. Mục tiêu
@@ -146,7 +146,7 @@ boundary này.
 Dùng pnpm theo repository:
 
 ```bash
-pnpm add morphicons@1.7.1 lucide react-native-svg
+pnpm add morphicons@1.7.1 lucide@1.47.0 react-native-svg@15.15.4
 ```
 
 Trước implementation plan phải xác minh version `react-native-svg` tương thích
@@ -226,21 +226,40 @@ Mỗi phase giữ semantic key ổn định để review diff, không đổi lay
 - Mỗi phase là diff độc lập có thể revert mà không đổi business state.
 - Không xoá MaterialCommunityIcons dependency/fallback trước khi source audit đạt.
 
-## 9. Acceptance criteria
+## 9. Trạng thái xác minh 2026-09-24
 
-- [ ] Không còn import MaterialCommunityIcons trực tiếp trong app/component/
+- Task 1–6 đã hoàn tất ở source qua các commit `2cf5c81`, `6a58686`,
+  `6704fa9`, `f6c684c`, `6ffa86f`, `7b27218`, `a632fb9`, `f8d11c9` và
+  `a384b78`: dependency được pin, boundary/registry có type và mọi domain đã
+  migrate khỏi direct vendor import.
+- Task 7A đã khóa metadata source candidate ở 4.1.9/Android 90/iOS 42, tăng
+  source policy để chỉ `AppIcon.tsx` được import MaterialCommunityIcons và
+  `morphicons/react-native`, đồng thời cấm namespace/deep Lucide imports.
+- Targeted AppIcon/source-policy tests PASS 2 suite / 9 test, gồm icon-only một
+  label, decorative không tạo label và `reducedMotion="user"` không thể bị
+  caller ghi đè. Strict TypeScript, scoped zero-warning ESLint, metadata
+  assertions, 21 Mermaid diagram, 138 local link và `git diff --check` cũng
+  PASS.
+- Full `pnpm run check`, Android export và bundle budget chưa chạy trong Task
+  7A. Development/production native build, APK install, device interaction,
+  Reduce Motion/TalkBack/VoiceOver thủ công, frame metrics và logcat 4.1.9 đều
+  **NOT VERIFIED**. Không có OTA, artifact, commit hay push 4.1.9 được tuyên bố.
+
+## 10. Acceptance criteria
+
+- [x] Không còn import MaterialCommunityIcons trực tiếp trong app/component/
   feature code ngoài icon boundary.
-- [ ] Mọi icon UI dùng semantic token typed.
-- [ ] Mọi control có state dùng cặp morph hợp lệ; icon tĩnh không animation vô cớ.
+- [x] Mọi icon UI dùng semantic token typed.
+- [x] Mọi control có state dùng cặp morph hợp lệ; icon tĩnh không animation vô cớ.
 - [ ] Reduce Motion, TalkBack/VoiceOver và touch target đạt policy VShop.
-- [ ] Game-specific icon giữ đúng nghĩa qua fallback có kiểm soát.
+- [x] Game-specific icon giữ đúng nghĩa qua fallback có kiểm soát.
 - [ ] Full tests, lint, typecheck, audit và Android export PASS.
 - [ ] Hermes không vượt 8 MiB; total export không vượt 12 MiB.
 - [ ] Development APK mới chạy trên thiết bị và các flow chính không crash/jank
   nghiêm trọng.
-- [ ] README, CHANGELOG, design-system và diagram/package docs được cập nhật.
+- [x] README, CHANGELOG, design-system và diagram/package docs được cập nhật.
 
-## 10. Ngoài phạm vi
+## 11. Ngoài phạm vi
 
 - Không redesign layout, màu hoặc typography trong cùng migration.
 - Không morph ảnh skin/agent/rank raster.

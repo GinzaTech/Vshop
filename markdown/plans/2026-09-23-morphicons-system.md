@@ -35,6 +35,8 @@
 
 ### Task 1: Install and pin the native icon runtime
 
+**Committed evidence:** `2cf5c81` (`chore: add morphicons native icon runtime`).
+
 **Files:**
 - Modify: `package.json`
 - Modify: `pnpm-lock.yaml`
@@ -44,7 +46,7 @@
 - Consumes: Expo SDK 57 bundled native-module map and pnpm workspace policy.
 - Produces: resolvable `morphicons/react-native`, `lucide`, and `react-native-svg` packages for Task 2.
 
-- [ ] **Step 1: Write the failing dependency contract test**
+- [x] **Step 1: Write the failing dependency contract test**
 
 Create `__tests__/app-icon-dependencies.test.ts`:
 
@@ -65,7 +67,7 @@ describe("AppIcon runtime dependencies", () => {
 });
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -75,7 +77,7 @@ pnpm exec jest __tests__/app-icon-dependencies.test.ts --runInBand
 
 Expected: FAIL because the three dependencies are absent.
 
-- [ ] **Step 3: Install exact dependencies with pnpm/Expo**
+- [x] **Step 3: Install exact dependencies with pnpm/Expo**
 
 Run:
 
@@ -88,7 +90,7 @@ pnpm exec expo install --check
 Do not use `npm install`. Confirm that only `package.json` and `pnpm-lock.yaml`
 change.
 
-- [ ] **Step 4: Run GREEN and native compatibility probes**
+- [x] **Step 4: Run GREEN and native compatibility probes**
 
 Run:
 
@@ -100,7 +102,7 @@ pnpm exec expo-doctor
 
 Expected: dependency test PASS, TypeScript PASS, Expo Doctor 21/21.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package.json pnpm-lock.yaml __tests__/app-icon-dependencies.test.ts
@@ -110,6 +112,9 @@ git commit -m "chore: add morphicons native icon runtime"
 ---
 
 ### Task 2: Build the typed AppIcon boundary and registry
+
+**Committed evidence:** `6a58686` (`feat: add typed morphing icon boundary`),
+with the approved fill-state clarification in `6773fa2`.
 
 **Files:**
 - Create: `components/ui/app-icon-types.ts`
@@ -128,7 +133,7 @@ git commit -m "chore: add morphicons native icon runtime"
   - `resolveAppIcon(name: AppIconName): AppIconDefinition`
   - `AppIcon(props: AppIconProps): React.ReactElement`
 
-- [ ] **Step 1: Write RED registry tests**
+- [x] **Step 1: Write RED registry tests**
 
 Create `__tests__/app-icon-registry.test.ts`:
 
@@ -176,7 +181,7 @@ it("resolves ESM package exports through Jest like Metro", () => {
 });
 ```
 
-- [ ] **Step 2: Write RED AppIcon component tests**
+- [x] **Step 2: Write RED AppIcon component tests**
 
 Create `__tests__/app-icon.test.tsx` and mock Morphicons/legacy icon components:
 
@@ -225,7 +230,7 @@ describe("AppIcon", () => {
 });
 ```
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 ```bash
 pnpm exec jest __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx --runInBand
@@ -233,7 +238,7 @@ pnpm exec jest __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx -
 
 Expected: FAIL because the boundary and registry do not exist.
 
-- [ ] **Step 4: Enable the ESM package exports in Jest**
+- [x] **Step 4: Enable the ESM package exports in Jest**
 
 Add `morphicons` and `lucide` to the existing pnpm-aware
 `transformIgnorePatterns` allowlist in `jest.config.js`. Do not deep-import
@@ -248,7 +253,7 @@ pnpm exec jest __tests__/app-icon-runtime.test.ts --runInBand
 
 Expected: PASS without a syntax/export error.
 
-- [ ] **Step 5: Implement types and exact fallback contract**
+- [x] **Step 5: Implement types and exact fallback contract**
 
 Create `components/ui/app-icon-types.ts`:
 
@@ -283,7 +288,7 @@ shield resolve to the three legacy definitions; every other token resolves to a
 Lucide `IconNode`. `unknown` uses Lucide `CircleHelp`. `heart` and `heartFilled`
 both preserve Lucide Heart semantics; only `heartFilled` sets `filled: true`.
 
-- [ ] **Step 6: Implement AppIcon**
+- [x] **Step 6: Implement AppIcon**
 
 `AppIcon` resolves the definition once per `name`. For `kind: "morph"`, render:
 
@@ -307,7 +312,7 @@ controls own semantics. Morphicons forwards `label` as `role`/ARIA attributes on
 the underlying SVG, so `label` is only passed when AppIcon itself is the sole
 accessible element and must be manually checked with TalkBack.
 
-- [ ] **Step 7: Run GREEN and coverage**
+- [x] **Step 7: Run GREEN and coverage**
 
 ```bash
 pnpm exec jest __tests__/app-icon-runtime.test.ts __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx --runInBand --coverage --collectCoverageFrom=components/ui/AppIcon.tsx --collectCoverageFrom=components/ui/app-icon-registry.ts
@@ -317,7 +322,7 @@ pnpm exec eslint components/ui/AppIcon.tsx components/ui/app-icon-types.ts compo
 
 Expected: tests PASS and both new runtime modules meet 80% lines/branches/functions/statements.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add jest.config.js components/ui/AppIcon.tsx components/ui/app-icon-types.ts components/ui/app-icon-registry.ts __tests__/app-icon-runtime.test.ts __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx
@@ -327,6 +332,9 @@ git commit -m "feat: add typed morphing icon boundary"
 ---
 
 ### Task 3: Migrate app shell and shared primitives
+
+**Committed evidence:** `6704fa9` (`refactor: migrate shell icons to AppIcon`)
+and `f6c684c` (`refactor: migrate shared icons to AppIcon`).
 
 **Files:**
 - Modify: `app/reauth.tsx`
@@ -349,7 +357,7 @@ git commit -m "feat: add typed morphing icon boundary"
 - Consumes: Task 2 `AppIcon`, `AppIconName`, `resolveAppIconName`.
 - Produces: shell/navigation/shared controls with no direct vendor import; source allowlist for remaining domain files.
 
-- [ ] **Step 1: Write the RED source-boundary test**
+- [x] **Step 1: Write the RED source-boundary test**
 
 Create `__tests__/app-icon-boundary.test.ts` using `fs`/`path`. Scan `.tsx`
 under `app`, `components`, `features`, and `hooks`. Direct
@@ -398,7 +406,7 @@ const remainingLegacyImports = new Set([
 
 Also fail when source contains `import * as` from `lucide`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 pnpm exec jest __tests__/app-icon-boundary.test.ts --runInBand
@@ -406,7 +414,7 @@ pnpm exec jest __tests__/app-icon-boundary.test.ts --runInBand
 
 Expected: FAIL because shared/shell files still import MaterialCommunityIcons.
 
-- [ ] **Step 3: Add exact shell semantic tokens**
+- [x] **Step 3: Add exact shell semantic tokens**
 
 Extend the registry for shell states:
 
@@ -418,7 +426,7 @@ batteryWarning, bundle, timer, update, updateChecking, imageGrid
 Map selected/unselected navigation states to one mounted AppIcon per tab. Preserve
 the existing tab `accessibilityRole="tab"`, selected state and labels.
 
-- [ ] **Step 4: Replace imports in the nine listed shared/shell files**
+- [x] **Step 4: Replace imports in the nine listed shared/shell files**
 
 Use `AppIcon name="..."` for static controls. Convert these state pairs to one
 mounted component whose `name` prop changes:
@@ -431,7 +439,7 @@ authenticated layout: current selected tab icon ↔ next selected tab icon
 
 Do not add entrance animation to list rows or skeletons.
 
-- [ ] **Step 5: Run GREEN regression tests**
+- [x] **Step 5: Run GREEN regression tests**
 
 ```bash
 pnpm exec jest __tests__/app-icon-boundary.test.ts __tests__/authenticated-navigation.test.tsx __tests__/loading-screen.test.tsx __tests__/media-popup.test.tsx --runInBand
@@ -441,7 +449,7 @@ pnpm run typecheck
 Expected: source-boundary test passes with exactly the remaining allowlist;
 navigation/loading/modal semantics remain green.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/reauth.tsx app/(authenticated)/_layout.tsx components/LoadingScreen.tsx components/BatteryOptimizationWarning.tsx components/BundleImage.tsx components/Countdown.tsx components/GalleryEquip.tsx components/popups/MediaPopup.tsx components/popups/UpdatePopup.tsx components/ui/AppIcon.tsx components/ui/app-icon-registry.ts __tests__/app-icon-boundary.test.ts __tests__/authenticated-navigation.test.tsx __tests__/loading-screen.test.tsx __tests__/media-popup.test.tsx
@@ -451,6 +459,9 @@ git commit -m "refactor: route shell icons through AppIcon"
 ---
 
 ### Task 4: Migrate Profile icons and state morphs
+
+**Committed evidence:** `6ffa86f` (`refactor: migrate profile feature icons`)
+and `7b27218` (`refactor: migrate profile component icons`).
 
 **Files:**
 - Modify: `features/profile/ProfileScreen.tsx`
@@ -474,7 +485,7 @@ git commit -m "refactor: route shell icons through AppIcon"
 - Consumes: shared AppIcon boundary and source allowlist from Task 3.
 - Produces: Profile with semantic icon tokens and state morphs; zero Profile files in direct-import allowlist.
 
-- [ ] **Step 1: Write RED Profile motion tests**
+- [x] **Step 1: Write RED Profile motion tests**
 
 Create `__tests__/profile-icon-motion.test.tsx` with the project’s existing
 Profile mocks. Assert these state changes update AppIcon `name` without replacing
@@ -490,7 +501,7 @@ season panel: collapsed ↔ expanded
 Assert parent buttons keep `accessibilityState.selected/expanded` and the icon
 is decorative when the parent already has a label.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 pnpm exec jest __tests__/profile-icon-motion.test.tsx --runInBand
@@ -498,7 +509,7 @@ pnpm exec jest __tests__/profile-icon-motion.test.tsx --runInBand
 
 Expected: FAIL because Profile still renders vendor icons.
 
-- [ ] **Step 3: Add Profile registry tokens**
+- [x] **Step 3: Add Profile registry tokens**
 
 Add named tokens:
 
@@ -511,7 +522,7 @@ overview, details, season, export, emptyData
 `weaponPistol`, rank crest and Valorant role shields stay legacy/game-specific.
 All calendar/chart/database/edit/navigation symbols use Lucide data.
 
-- [ ] **Step 4: Replace direct imports in all eleven Profile files**
+- [x] **Step 4: Replace direct imports in all eleven Profile files**
 
 Update typed data structures from vendor icon-name strings to `AppIconName`.
 For example:
@@ -527,7 +538,7 @@ type DashboardTab = {
 Do not alter existing Profile layout, gesture, transition duration or numeric
 hierarchy.
 
-- [ ] **Step 5: Remove Profile files from the source allowlist and run GREEN**
+- [x] **Step 5: Remove Profile files from the source allowlist and run GREEN**
 
 ```bash
 pnpm exec jest __tests__/profile-icon-motion.test.tsx __tests__/player-info-view.test.tsx __tests__/profile-motion-cold-transition.test.tsx __tests__/app-icon-boundary.test.ts --runInBand
@@ -536,7 +547,7 @@ pnpm run typecheck
 
 Expected: all tests PASS; the boundary test reports no Profile direct imports.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add features/profile components/profile components/ui/app-icon-registry.ts __tests__/profile-icon-motion.test.tsx __tests__/player-info-view.test.tsx __tests__/profile-motion-cold-transition.test.tsx __tests__/app-icon-boundary.test.ts
@@ -546,6 +557,9 @@ git commit -m "refactor: migrate profile icons to morphicons"
 ---
 
 ### Task 5: Migrate Match, Store and reference-screen icons
+
+**Committed evidence:** `a632fb9` (`refactor: migrate match icons to AppIcon`)
+and `f8d11c9` (`refactor: migrate commerce icons to AppIcon`).
 
 **Files:**
 - Modify: `components/match-detail/EconomyChart.tsx`
@@ -577,7 +591,7 @@ git commit -m "refactor: migrate profile icons to morphicons"
 - Consumes: `AppIconName`, AppIcon and the controlled game-specific fallback.
 - Produces: Match/commerce/reference modules with no direct vendor import; state-pair coverage for list-safe icons.
 
-- [ ] **Step 1: Write RED state-pair and large-list tests**
+- [x] **Step 1: Write RED state-pair and large-list tests**
 
 Create `__tests__/stateful-icon-pairs.test.tsx`. Cover these transitions:
 
@@ -595,7 +609,7 @@ the current color; it must not substitute HeartPlus/HeartMinus for selected
 state. Render 100 static MatchImage rows and assert no timer, `withRepeat`, or changing
 icon prop is created for static empty-state icons.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 pnpm exec jest __tests__/stateful-icon-pairs.test.tsx --runInBand
@@ -603,7 +617,7 @@ pnpm exec jest __tests__/stateful-icon-pairs.test.tsx --runInBand
 
 Expected: FAIL because these files still use vendor icon strings.
 
-- [ ] **Step 3: Add exact registry tokens**
+- [x] **Step 3: Add exact registry tokens**
 
 ```text
 sortAscending, sortDescending, wishlist, wishlistFilled, upgrade,
@@ -615,13 +629,13 @@ performance, share, retry, emptyImage, completed, incomplete
 Round outcome and rank/weapon visuals that encode Valorant taxonomy remain typed
 legacy definitions. Generic close/search/clock/calendar/arrow icons use Lucide.
 
-- [ ] **Step 4: Migrate the nineteen files and typed icon-bearing objects**
+- [x] **Step 4: Migrate the nineteen files and typed icon-bearing objects**
 
 Replace vendor-name fields with `AppIconName`. Keep Match/Store API data and
 list keys unchanged. One mounted AppIcon changes `name` for each pair above;
 static list icons never receive a changing prop.
 
-- [ ] **Step 5: Shrink allowlist and run GREEN**
+- [x] **Step 5: Shrink allowlist and run GREEN**
 
 After this task, `remainingLegacyImports` may contain only:
 
@@ -642,7 +656,7 @@ pnpm run typecheck
 
 Expected: PASS with the exact five-file allowlist.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/(authenticated) components/match-detail components/matches components/ui/app-icon-registry.ts __tests__/stateful-icon-pairs.test.tsx __tests__/match-detail-accessibility.test.tsx __tests__/match-card.test.tsx __tests__/app-icon-boundary.test.ts
@@ -652,6 +666,8 @@ git commit -m "refactor: migrate match and store icons"
 ---
 
 ### Task 6: Migrate Combat, social and Settings icons
+
+**Committed evidence:** `a384b78` (`refactor: complete app icon migration`).
 
 **Files:**
 - Modify: `features/combat/CombatSessionScreen.tsx`
@@ -669,7 +685,7 @@ git commit -m "refactor: migrate match and store icons"
 - Consumes: completed semantic registry and legacy fallback.
 - Produces: zero direct MaterialCommunityIcons imports outside `AppIcon.tsx`.
 
-- [ ] **Step 1: Write RED interaction tests**
+- [x] **Step 1: Write RED interaction tests**
 
 Create `__tests__/combat-social-icon-motion.test.tsx` and cover:
 
@@ -685,7 +701,7 @@ settings rows stay static and preserve labels
 Assert no test renders an accessible child icon inside an already-labelled
 Pressable.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```bash
 pnpm exec jest __tests__/combat-social-icon-motion.test.tsx --runInBand
@@ -693,7 +709,7 @@ pnpm exec jest __tests__/combat-social-icon-motion.test.tsx --runInBand
 
 Expected: FAIL because the five files still use direct vendor icons.
 
-- [ ] **Step 3: Add final registry tokens**
+- [x] **Step 3: Add final registry tokens**
 
 ```text
 party, ready, cancelReady, connected, disconnected, friendSearch,
@@ -704,13 +720,13 @@ settingsAccount, settingsLanguage, settingsSwap, settingsAbout
 Keep agent-role shields and crossed-sword game taxonomy behind the typed legacy
 fallback. Generic account/link/send/copy/refresh/close icons use Lucide.
 
-- [ ] **Step 4: Migrate all five files and empty the allowlist**
+- [x] **Step 4: Migrate all five files and empty the allowlist**
 
 Change dynamic objects such as settings rows and friend-state metadata to
 `AppIconName`. Set `remainingLegacyImports` to an empty set and make the source
 test allow MaterialCommunityIcons only in `components/ui/AppIcon.tsx`.
 
-- [ ] **Step 5: Run GREEN**
+- [x] **Step 5: Run GREEN**
 
 ```bash
 pnpm exec jest __tests__/combat-social-icon-motion.test.tsx __tests__/combat-screen-lifecycle.test.tsx __tests__/core-accessibility.test.ts __tests__/app-icon-boundary.test.ts --runInBand
@@ -719,7 +735,7 @@ pnpm run typecheck
 
 Expected: PASS; direct-import count outside AppIcon equals zero.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add features/combat/CombatSessionScreen.tsx app/(authenticated)/combat.tsx app/(authenticated)/friends.tsx app/(authenticated)/settings.tsx app/chat/[friendId].tsx components/ui/app-icon-registry.ts __tests__/combat-social-icon-motion.test.tsx __tests__/combat-screen-lifecycle.test.tsx __tests__/core-accessibility.test.ts __tests__/app-icon-boundary.test.ts
@@ -729,6 +745,10 @@ git commit -m "refactor: complete app icon migration"
 ---
 
 ### Task 7: Release hardening, documentation and device verification
+
+**Task 7A status (2026-09-24):** metadata, final policy tests and documentation
+are implemented in the working tree. Full check/export, native build, device
+verification, final review, commit and push remain open.
 
 **Files:**
 - Modify: `app.json`
@@ -748,7 +768,7 @@ git commit -m "refactor: complete app icon migration"
 - Consumes: completed icon boundary and all migrated domains.
 - Produces: native release candidate 4.1.9, Android versionCode 90, iOS buildNumber 42, final evidence and clean pushable branch.
 
-- [ ] **Step 1: Add final source-policy assertions**
+- [x] **Step 1: Add final source-policy assertions**
 
 Extend `__tests__/app-icon-boundary.test.ts` to assert:
 
@@ -763,7 +783,7 @@ expect(rawMorphIconImportsOutsideBoundary).toEqual([]);
 Extend `__tests__/app-icon.test.tsx` so icon-only labels produce one accessible
 node, decorative icons produce none, and `reducedMotion="user"` is immutable.
 
-- [ ] **Step 2: Run RED if any migration escaped the boundary**
+- [x] **Step 2: Run RED if any migration escaped the boundary**
 
 ```bash
 pnpm exec jest __tests__/app-icon-boundary.test.ts __tests__/app-icon.test.tsx --runInBand
@@ -772,7 +792,11 @@ pnpm exec jest __tests__/app-icon-boundary.test.ts __tests__/app-icon.test.tsx -
 Expected: PASS only when all direct imports and accessibility leaks are removed;
 otherwise fix the reported exact files before continuing.
 
-- [ ] **Step 3: Update native version metadata**
+Observed 2026-09-24: the pre-change gate was already GREEN at 2 suites / 7
+tests because Tasks 1–6 had removed the escapes. The expanded final policy was
+also GREEN at 2 suites / 9 tests; no RED defect or runtime-code fix was needed.
+
+- [x] **Step 3: Update native version metadata**
 
 Set:
 
@@ -786,7 +810,7 @@ app.json expo.ios.buildNumber = 42
 This prevents the new `react-native-svg` binary from being published to the
 4.1.8 runtime via OTA.
 
-- [ ] **Step 4: Update documentation**
+- [x] **Step 4: Update documentation**
 
 Document:
 
@@ -802,6 +826,26 @@ Run Mermaid/link validation:
 ```bash
 node .codex-tmp/diagram-validation/validate.mjs
 ```
+
+- [x] **Step 4A: Run the scoped Task 7A source gates**
+
+Task 7A deliberately stops before the full app/export/build gate:
+
+```bash
+pnpm exec jest __tests__/app-icon-boundary.test.ts __tests__/app-icon.test.tsx --runInBand
+pnpm run typecheck
+pnpm exec eslint components/ui/AppIcon.tsx components/ui/app-icon-types.ts components/ui/app-icon-registry.ts __tests__/app-icon-boundary.test.ts __tests__/app-icon.test.tsx --max-warnings=0
+node .codex-tmp/diagram-validation/validate.mjs
+git diff --check
+```
+
+Expected: both targeted suites, strict TypeScript, scoped zero-warning ESLint,
+all Mermaid/local-link validation and whitespace checks pass. Do not run
+`pnpm run check`, export or build as part of Task 7A.
+
+Observed 2026-09-24: 2 suites / 9 tests PASS; strict TypeScript PASS; scoped
+ESLint PASS with zero warnings; metadata 4.1.9/90/42 PASS; 21 Mermaid diagrams
+and 138 local links PASS; `git diff --check` PASS.
 
 - [ ] **Step 5: Run complete source and security gates**
 

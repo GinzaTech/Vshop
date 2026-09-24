@@ -2,7 +2,7 @@
   "expo": {
     "name": "VShop",
     "slug": "vshop",
-    "version": "4.1.8",
+    "version": "4.1.9",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "dev.vasc.vshop",
-      "buildNumber": "41",
+      "buildNumber": "42",
       "supportsTablet": true
     },
     "android": {
@@ -32,7 +32,7 @@
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "package": "com.android.vshop",
-      "versionCode": 89
+      "versionCode": 90
     },
     "web": {
       "bundler": "metro",

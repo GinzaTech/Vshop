@@ -8,6 +8,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Route all application icons through the typed `AppIcon` semantic boundary.
+  Named Lucide data feeds Morphicons through `react-native-svg`; only the
+  boundary owns the controlled MaterialCommunityIcons fallback for
+  Valorant-specific weapon, rank and role glyphs. Stateful controls keep one
+  mounted icon, the wishlist selected state deliberately reuses the Heart path
+  with a fill change, and every morph follows the user's Reduce Motion setting.
+- Advance the source/native candidate to `4.1.9` (Android `90`, iOS `42`). The
+  added `react-native-svg` runtime requires a rebuilt binary, so this source
+  must not be delivered to the existing 4.1.8 runtime by OTA.
 - Treat a 403 from the exact trusted Riot Name Service endpoint as an authentication failure while leaving other gameplay 403 responses unchanged. Startup now renews or reauthenticates instead of looping on an unavailable-services screen; probable maintenance/network failures can offer the latest complete same-account snapshot, including stale snapshots, with the last successful sync time and explicit stale-data warning.
 - Start Profile Act history from an immutable per-account local baseline. The current Act resets to zero and counts only post-baseline Competitive matches; legacy Act rows remain recoverable but are hidden and ignored, future Acts stay selectable, and the start Act cannot fall back to Riot's full-Act MMR totals.
 - Render match-economy and Profile RR trend lines on a shared native Skia canvas instead of creating one rotated React Native view per segment. Web keeps a lightweight view fallback and does not load CanvasKit.
@@ -19,6 +28,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Validation
 
+- Final AppIcon policy/component tests pass 2 suites / 9 tests. They pin the
+  sole MaterialCommunityIcons and Morphicons import boundary, reject namespace
+  and deep Lucide imports, keep decorative icons silent, expose one label for
+  icon-only use and require `reducedMotion="user"` across state changes.
+- Task 7A scoped gates pass strict TypeScript, zero-warning ESLint for the
+  AppIcon boundary/registry/tests, metadata assertions, all 21 Mermaid diagrams,
+  138 local documentation links and `git diff --check`. The full app check,
+  audit and Android export were intentionally not run in this source-only pass.
+- A 4.1.9 native development/production build, APK installation, device flows,
+  TalkBack/VoiceOver traversal, frame metrics, logcat review and final
+  Android/Hermes export budgets are **NOT VERIFIED**. No 4.1.9 OTA, EAS build,
+  APK, commit or push is claimed by this source-hardening pass.
 - Android development client `4.1.8 (89)` reproduced the Name Service 403 startup loop, then verified the fix: silent renewal completed, `syncAllData` finished in 3,131 ms and Profile rendered without FATAL/ANR/SIGSEGV. A real Riot maintenance outage was not induced; maintenance copy, stale same-account fallback and hostile/lookalike URL rejection are covered by source tests.
 - `pnpm run check` passed: strict TypeScript, zero-warning ESLint, 79 Jest suites / 828 tests, production dependency-audit policy, and Android export/budget (10.46 MiB total; 7.99 MiB JS/Hermes). Critical `season-actions.ts` branch coverage is 80.82%.
 - DEV-only Match/Profile fixture payloads and flow tracing now resolve to tiny fail-closed production facades, preserving the full development harness while keeping the unchanged 8 MiB Hermes budget and excluding trace/storage instrumentation from release bundles.
@@ -26,6 +47,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - An eight-Act offline fixture verified selector overflow on hardware: left/right horizontal swipes changed visible chip bounds, first/middle/final Act taps selected correctly, and a vertical swipe beginning on the selector still scrolled the dashboard.
 - The reset-from-now one-season deep link and live Riot-account migration are **NOT VERIFIED** because the Android device disconnected from ADB before this final pass; source/component tests are not presented as device proof.
 - The demo forward morph improved from 89.47% jank/P95 117 ms to a five-run median 66.67%/38 ms; reverse measured 75%/46 ms after adding the static-rank fast path. The 220 ms interaction is materially shorter, but the ≤5%/≤32 ms roadmap target is not met and remains open.
+
+### Build metadata
+
+- Source/app runtime candidate: `4.1.9`; Android version code: `90`; iOS build
+  number: `42`.
+- Distribution: pending native rebuild and device verification. The latest
+  signed downloadable artifact remains 4.1.8/89; 4.1.9 has no verified build
+  artifact and is not approved for OTA publication.
 
 ## [4.1.8] - 2026-09-16
 

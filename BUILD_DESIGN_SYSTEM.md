@@ -69,8 +69,22 @@ Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout c
 | `EmptyStateCard` | trạng thái rỗng có nội dung hướng dẫn |
 | `TwoColumnGrid` | grid nhỏ có số lượng item hữu hạn |
 | `AppRefreshControl` | pull-to-refresh đồng nhất Android/iOS |
+| `AppIcon` | boundary semantic có type duy nhất cho icon Lucide/Morphicons và fallback game đặc thù |
 
 Trước khi tạo component mới, kiểm tra `components/ui/`. Primitive không được chứa domain logic hoặc tự gọi Riot API.
+
+### AppIcon boundary
+
+- Screen/component chỉ truyền `AppIconName`; không import trực tiếp
+  `morphicons/react-native` hoặc MaterialCommunityIcons.
+- `app-icon-registry.ts` dùng named imports từ `lucide`. Namespace import và
+  deep import `lucide/*` bị source-policy test cấm để giữ tree shaking.
+- Chuỗi runtime chuẩn là semantic token → Lucide `IconNode` → Morphicons →
+  `react-native-svg`. Hình pistol/rank/role đặc thù Valorant được giữ đúng nghĩa
+  qua fallback MaterialCommunityIcons chỉ nằm trong `AppIcon.tsx`.
+- `heart` ↔ `heartFilled` và `wishlist` ↔ `wishlistFilled` là ngoại lệ fill có
+  chủ đích: dùng cùng path Heart, đổi `fill="none"` sang màu hiện tại; không đổi
+  sang HeartPlus/HeartMinus và không giả path morph.
 
 ## 4. Motion system
 
@@ -100,6 +114,10 @@ Quy tắc:
 13. Gesture thu gọn Profile dùng manual activation phải `fail()` khi touch kết thúc mà chưa activate. Header có transform/z-index phải dùng `pointerEvents="box-none"` cho khoảng trống; player-data mode tắt body-collapse pan để selector/tab/scroll con nhận touch đúng, trong khi loadout mode vẫn giữ collapse gesture.
 14. Dashboard Profile lạnh phải mount hoàn tất trước frame bắt đầu morph. Warm transition dùng `MOTION_TIMING.standard` (220 ms); Reduce Motion nhảy trực tiếp tới trạng thái cuối. Không mount/aggregate toàn dashboard, interpolate nền toàn màn hình hoặc chạy reveal cho stat subtree đã bị che trong cùng cửa sổ animation.
 15. Mọi nhóm tab phải có `tablist`, từng tab có `selected`; modal toàn cục phải ẩn background khỏi TalkBack/VoiceOver và chặn background touch trong lúc mở.
+16. Icon đổi trạng thái phải giữ cùng một `AppIcon` đã mount và đổi semantic
+    `name`; mọi `MorphIcon` dùng spring `snappy` và
+    `reducedMotion="user"`. Không thêm entrance/infinite icon animation cho row
+    danh sách hoặc để animation trì hoãn business state.
 
 ## 5. Lists, loading và refresh
 
@@ -113,6 +131,9 @@ Quy tắc:
 ## 6. Accessibility và responsive layout
 
 - Button/pressable cần `accessibilityRole`, label khi icon-only và `accessibilityState` cho selected/disabled/busy.
+- Icon trong button/tab đã có label là decorative; parent giữ role, label và
+  state. Chỉ `AppIcon` icon-only mới truyền `label`, tạo đúng một accessibility
+  node. Fallback game luôn bị ẩn khỏi TalkBack/VoiceOver để tránh node trùng.
 - Text có thể dài phải có `numberOfLines` hoặc container co giãn đúng.
 - Grid thay đổi số cột theo chiều rộng; không hard-code card width vượt viewport.
 - Chỉ Match Session được landscape. Màn còn lại phải ổn định ở portrait và hỗ trợ tablet khi có thể.
@@ -148,6 +169,9 @@ Trước native release:
 6. commit và push source đã kiểm chứng.
 
 Runtime version dùng policy `appVersion`, vì vậy thay app version tạo runtime OTA mới.
+Dependency native mới như `react-native-svg` bắt buộc tăng app/runtime version,
+rebuild development/production binary và xác minh cài đặt trước khi publish.
+Không được dùng OTA để đưa JavaScript phụ thuộc module native mới vào runtime cũ.
 
 ## 9. Production APK
 
@@ -173,6 +197,22 @@ Sau khi build:
 3. cài sạch trên thiết bị thật;
 4. kiểm tra login, shop, profile, refresh, match history, TLS chat và update channel;
 5. phát hành GitHub Release nếu smoke test đạt.
+
+### Trạng thái source candidate 4.1.9
+
+- Metadata nguồn: version/runtime `4.1.9`, Android `versionCode 90`, iOS
+  `buildNumber 42`.
+- Migration AppIcon đã hoàn tất ở source: direct MaterialCommunityIcons và
+  `morphicons/react-native` chỉ còn trong `components/ui/AppIcon.tsx`; registry
+  dùng named Lucide imports và fallback game có kiểm soát.
+- Targeted source policy/AppIcon tests đã PASS 2 suite / 9 test. Strict
+  TypeScript, scoped zero-warning ESLint, metadata assertions, 21 Mermaid
+  diagram, 138 local link và `git diff --check` cũng PASS. Full
+  `pnpm run check`, audit, Android export/budget và security gate vẫn phải chạy
+  ở bước release đầy đủ.
+- Development/production native build, artifact URL, APK install, device flows,
+  TalkBack/VoiceOver, Reduce Motion on-device, frame metrics và logcat 4.1.9 đều
+  **NOT VERIFIED**. Không có OTA/build/artifact 4.1.9 được tuyên bố.
 
 ### Bằng chứng release 4.1.8
 

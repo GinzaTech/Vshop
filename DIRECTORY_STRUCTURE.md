@@ -1,6 +1,9 @@
 # VShop architecture
 
-Tài liệu này mô tả cấu trúc đang được sử dụng ở release `4.1.8`. `app/` chỉ chịu trách nhiệm routing và ghép màn hình; network, state, UI dùng lại và domain logic không được đặt trực tiếp trong route.
+Tài liệu này mô tả cấu trúc của source candidate `4.1.9`; artifact native đã
+xác minh gần nhất vẫn là release `4.1.8`. `app/` chỉ chịu trách nhiệm routing và
+ghép màn hình; network, state, UI dùng lại và domain logic không được đặt trực
+tiếp trong route.
 
 Bộ [17 loại sơ đồ](markdown/README.md) mô tả luồng, dữ liệu, thành phần và
 deployment; [LOGIC_AUDIT.md](LOGIC_AUDIT.md) ghi kết quả kiểm tra và phần chưa xác minh.
@@ -27,6 +30,9 @@ Vshop/
 │   ├── popups/                  overlay/modal dùng toàn app
 │   ├── profile/                 profile dashboard sections
 │   └── ui/                      design-system primitives
+│       ├── AppIcon.tsx          boundary Morphicons/vendor duy nhất
+│       ├── app-icon-registry.ts semantic token → Lucide/fallback có type
+│       ├── app-icon-types.ts    union definition cho morph/legacy
 │       ├── AppRefreshControl.tsx
 │       ├── GlassCard.tsx
 │       ├── ValorantButton.tsx
@@ -98,6 +104,11 @@ Vshop/
 - `PlayerInfoView` ghép dashboard Tổng quan/Chi tiết và dùng các helper
   `player-stats-data`, `player-stats-format`; tab state nằm trong
   `useProfileDashboardTabStore`, không sao chép logic win rate.
+- `components/ui/AppIcon.tsx` là boundary icon runtime duy nhất. Screen/feature
+  truyền `AppIconName`; registry dùng named Lucide data, Morphicons render qua
+  `react-native-svg`, còn MaterialCommunityIcons chỉ là fallback cho pictogram
+  game không có hình tương đương chính xác. Wishlist filled giữ cùng Heart path
+  và chỉ đổi fill.
 - Các hook dữ liệu màn hình theo dõi tài khoản, token và vòng đời. Combat
   polling chỉ hoạt động khi màn hình có focus và app ở foreground.
 - `utils/log-redaction.ts` là boundary chẩn đoán chung. Flow trace và API log
@@ -119,8 +130,11 @@ Quy tắc:
 5. Endpoint động phải validate region và encode ID trước khi gửi.
 6. Animation tương tác chạy trên UI thread bằng Reanimated; timing/spring lấy từ `constants/Motion.ts`.
 7. Animation lặp hoặc trang trí phải tôn trọng thiết lập Reduce Motion của hệ điều hành.
-8. Pull-to-refresh dùng `useAsyncRefresh` + `AppRefreshControl` và phải giữ vùng cuộn khi dữ liệu rỗng.
-9. Chi tiết coding rule xem `AGENTS.md`; token/build rule xem `BUILD_DESIGN_SYSTEM.md`.
+8. Icon UI dùng `AppIconName`; direct MaterialCommunityIcons/Morphicons chỉ được
+   xuất hiện trong `AppIcon.tsx`, không dùng namespace/deep Lucide import. Icon
+   trong control đã có label là decorative; state accessibility nằm ở parent.
+9. Pull-to-refresh dùng `useAsyncRefresh` + `AppRefreshControl` và phải giữ vùng cuộn khi dữ liệu rỗng.
+10. Chi tiết coding rule xem `AGENTS.md`; token/build rule xem `BUILD_DESIGN_SYSTEM.md`.
 
 ## State, cache và refresh
 
@@ -191,3 +205,9 @@ pnpm dlx eas-cli@latest build --profile production --platform android
 ```
 
 Không phát hành Gradle release local nếu `android/app/build.gradle` còn dùng `debug.keystore`. Checklist chi tiết và artifact policy nằm trong `BUILD_DESIGN_SYSTEM.md`.
+
+Source candidate 4.1.9 dùng `react-native-svg` trong chuỗi
+Lucide → Morphicons → SVG nên bắt buộc rebuild native client. Metadata là
+4.1.9/Android 90/iOS 42, nhưng build, export budget, APK install, device
+interaction, accessibility thủ công và performance 4.1.9 hiện **NOT VERIFIED**.
+Không publish OTA 4.1.9 cho runtime 4.1.8.

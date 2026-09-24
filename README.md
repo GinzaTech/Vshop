@@ -41,6 +41,31 @@ Navigation motion uses shared timing tokens, transition-aware tab preloading and
 
 # English
 
+## 4.1.9 source candidate: typed Morphicons icon system
+
+The 4.1.9 source candidate routes application icons through the typed
+`components/ui/AppIcon.tsx` boundary. Screens and shared components use VShop
+semantic names; the registry imports named Lucide icon data, Morphicons renders
+state transitions, and `react-native-svg` supplies the native SVG runtime. Only
+`AppIcon` may import Morphicons or the controlled MaterialCommunityIcons
+fallback used for Valorant-specific weapon, rank and role glyphs whose meaning
+must not be approximated by a generic icon.
+
+Stateful controls update one mounted `AppIcon`, every Morphicons render pins
+`reducedMotion="user"`, and labelled parent buttons/tabs keep role, label and
+selected/expanded/disabled state while their child icon remains decorative.
+An icon-only `AppIcon` may expose one label. The wishlist selected state is the
+documented fill exception: it keeps the same Heart path and changes only
+`fill`, rather than substituting a different symbol.
+
+The source metadata is `4.1.9`, Android `versionCode 90` and iOS
+`buildNumber 42`. Because `react-native-svg` is a native dependency, 4.1.9
+requires a newly built binary and must not be sent to the 4.1.8 runtime as an
+OTA. A development/production build, APK installation, device interaction,
+TalkBack/VoiceOver, frame metrics and final export budgets are all
+**NOT VERIFIED** for 4.1.9. The latest downloadable signed release remains
+4.1.8 until those gates finish.
+
 ## Release 4.1.8 source highlights
 
 Profile now has a coordinated reversible player-data transition, a full dark canvas,
@@ -122,6 +147,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 | **State** | Zustand 5 + persist middleware |
 | **Storage** | MMKV working cache + native SQLite match archive; AES-256 MMKV session storage with a Keychain/Keystore-protected key; AsyncStorage migration/fallback |
 | **Animations** | react-native-reanimated 4.5 with centralized motion tokens |
+| **Icons** | typed `AppIcon` semantics → named Lucide data → Morphicons → `react-native-svg`, with one controlled game-specific fallback |
 | **UI** | react-native-paper, custom glassmorphism design system |
 | **i18n** | react-i18next (18 languages) |
 | **Network** | axios with gzip, keep-alive, request dedup |
@@ -398,7 +424,7 @@ app/                    # Expo Router screens
   (authenticated)/      # Tab navigator + all authenticated screens
   _layout.tsx           # Root layout (providers, bootstrap)
 components/             # Reusable UI components
-  ui/                   # Design system primitives (GlassCard, ValorantButton, etc.)
+  ui/                   # Design primitives, including the sole AppIcon vendor boundary
   matches/              # Match-related components
   match-detail/         # Match detail screen components
 hooks/                  # Zustand stores (user, match, profile, wishlist, combat)
@@ -425,6 +451,8 @@ pnpm dlx eas-cli@latest build --profile production --platform android
 
 Install via QR code or APK from the Expo dashboard. The current signed APK is
 also attached to [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/releases/tag/v4.1.8).
+The 4.1.9 source candidate requires a fresh native build; no 4.1.9 APK or
+device-runtime result is claimed yet.
 
 ## Credits
 
@@ -436,6 +464,28 @@ also attached to [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/rele
 ---
 
 # Tiếng Việt
+
+## Bản source candidate 4.1.9: hệ icon Morphicons có type
+
+Source candidate 4.1.9 đưa toàn bộ icon ứng dụng qua boundary có type
+`components/ui/AppIcon.tsx`. Screen và component dùng semantic name của VShop;
+registry import named Lucide icon data, Morphicons render chuyển trạng thái và
+`react-native-svg` cung cấp SVG runtime native. Chỉ `AppIcon` được import
+Morphicons hoặc fallback MaterialCommunityIcons có kiểm soát cho hình vũ khí,
+rank và role đặc thù Valorant không thể thay bằng icon chung gần giống.
+
+Control có trạng thái cập nhật trên cùng một `AppIcon`, mọi Morphicons render
+đều khóa `reducedMotion="user"`, còn button/tab cha giữ role, label và state
+selected/expanded/disabled để icon con chỉ mang tính trang trí. `AppIcon`
+icon-only được phép tạo đúng một label. Wishlist selected là ngoại lệ fill đã
+được duyệt: giữ nguyên path Heart và chỉ đổi `fill`, không đổi sang ký hiệu khác.
+
+Metadata source hiện là `4.1.9`, Android `versionCode 90`, iOS `buildNumber 42`.
+Do `react-native-svg` là dependency native, 4.1.9 phải có binary build mới và
+không được phát qua OTA cho runtime 4.1.8. Development/production build, cài APK,
+interaction trên thiết bị, TalkBack/VoiceOver, frame metrics và export budget
+cuối cùng của 4.1.9 đều **NOT VERIFIED**. Bản ký có thể tải mới nhất vẫn là
+4.1.8 cho đến khi các gate đó hoàn tất.
 
 ## Điểm nổi bật mã nguồn 4.1.8
 
@@ -515,6 +565,7 @@ Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHA
 | **State** | Zustand 5 + persist middleware |
 | **Storage** | MMKV cho working cache + SQLite native cho kho trận; MMKV AES-256 cho session với khóa được bảo vệ bởi Keychain/Keystore; tự migrate/fallback AsyncStorage |
 | **Animation** | react-native-reanimated 4.5 và motion token tập trung |
+| **Icon** | semantic `AppIcon` có type → named Lucide data → Morphicons → `react-native-svg`, kèm một fallback game đặc thù có kiểm soát |
 | **UI** | react-native-paper, design system glassmorphism tùy chỉnh |
 | **Đa ngôn ngữ** | react-i18next (18 ngôn ngữ) |
 | **Mạng** | axios với gzip, keep-alive, chống request trùng |
@@ -783,7 +834,7 @@ app/                    # Màn hình Expo Router
   (authenticated)/      # Tab navigator + tất cả màn hình đã đăng nhập
   _layout.tsx           # Layout gốc (providers, bootstrap)
 components/             # Component UI tái sử dụng
-  ui/                   # Primitives design system (GlassCard, ValorantButton, ...)
+  ui/                   # Primitive design system và boundary vendor AppIcon duy nhất
   matches/              # Component liên quan trận đấu
   match-detail/         # Component màn hình chi tiết trận
 hooks/                  # Zustand stores (user, match, profile, wishlist, combat)
@@ -810,6 +861,8 @@ pnpm dlx eas-cli@latest build --profile production --platform android
 
 Cài qua QR code hoặc file APK từ dashboard Expo. APK đã ký hiện tại cũng được
 đính kèm tại [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/releases/tag/v4.1.8).
+Source candidate 4.1.9 cần native build mới; hiện chưa tuyên bố có APK 4.1.9
+hoặc kết quả runtime trên thiết bị.
 
 ## Ghi công
 

@@ -24,8 +24,10 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
   source hoàn tất; mốc Act theo tài khoản, cache/archive filtering và full gate
   đã PASS; device/live Riot migration còn `NOT VERIFIED` do ADB ngắt kết nối.
 - [`2026-09-23-morphicons-system-design.md`](2026-09-23-morphicons-system-design.md) —
-  spec đã duyệt cho icon boundary toàn app, Morphicons state transitions,
-  accessibility, native dependency và bundle/device gates.
+  spec đã duyệt; migration source và Task 7A metadata/policy/docs đã hoàn tất.
+  Native build, bundle/device metrics và accessibility thủ công còn
+  `NOT VERIFIED`.
 - [`2026-09-23-morphicons-system.md`](2026-09-23-morphicons-system.md) —
-  implementation plan 7 task cho dependency, icon boundary, migration theo
-  domain, native rebuild, accessibility, bundle và device verification.
+  implementation plan: Task 1–6 hoàn tất theo commit evidence; Task 7A hoàn tất
+  source release metadata, final policy tests và docs. Full check/export,
+  native rebuild, install/device verification, final review/commit/push vẫn mở.
