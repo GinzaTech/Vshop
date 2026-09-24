@@ -25,7 +25,7 @@ const productionMockStubs = new Map([
   ],
   [
     "~/mocks/profile-ui",
-    path.join(__dirname, "mocks", "disabled.production.js"),
+    path.join(__dirname, "mocks", "profile-ui.production.js"),
   ],
   [
     "~/utils/flow-tracer",

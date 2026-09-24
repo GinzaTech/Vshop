@@ -911,7 +911,17 @@ Observed 2026-09-24:
   4.1.8. No 4.1.9 OTA may be published to that runtime; a new native binary is
   still required and remains unverified.
 
-- [ ] **Step 6: Rebuild and install the development APK**
+- [x] **Step 6: Rebuild and install the development APK**
+
+Observed: development build `a20dfc19-bcbd-4e6f-9eac-c66d81dd5033` reached
+`FINISHED`, downloaded as a 4.1.9 (90) Dev Launcher APK and installed on device
+`45218ba`. Production build `da222966-d25f-41a2-9827-23043c5c426f` also reached
+`FINISHED` and installed, but runtime evidence exposed a production-only
+Profile preload TypeError. Root cause was the empty Profile fixture alias;
+`profile-ui.production.js` now keeps the stripped boundary callable with only
+immutable empty/null data. The post-fix full gate passes 88 suites / 911 tests
+and the unchanged export budgets. A fixed production rebuild/install is still
+required before Step 7 can be completed.
 
 Use the project’s EAS development profile. Wait for `FINISHED`, resolve the
 artifact URL, download it to one explicit workspace path, then install:

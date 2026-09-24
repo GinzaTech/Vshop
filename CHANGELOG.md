@@ -39,6 +39,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Allow an explicit DEV-only Profile demo deep link to replace an early root bootstrap snapshot and keep that demo offline, so gesture and visual testing does not depend on a valid Riot session or emit public-API error overlays.
 - Localize Profile statistics and the audited Equipment, Agent, Item Upgrades and About copy; add tablist/state semantics, Android media-modal background isolation, stable Match Detail selectors, accessible economy markers and announced scoreboard sort direction.
 
+### Fixed
+
+- Keep the production Profile fixture alias callable while stripping all demo
+  payloads. The first 4.1.9 production APK exposed a Profile preload
+  `TypeError` because Metro replaced `~/mocks/profile-ui` with an empty module
+  while `useProfileSession` still called `getProfileDemoSeasonData()`. The new
+  immutable `profile-ui.production.js` contract returns only empty/null data and
+  is pinned by a production resolver test.
+
 ### Validation
 
 - The first full `pnpm run check` attempt passed strict TypeScript,
@@ -52,6 +61,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - After deleting the last unused vendor-glyph return surface, the final full
   `pnpm run check` passes 87 Jest suites / 910 tests, the production audit
   policy and the same optimized Android export budgets.
+- After the device-discovered production fixture fix, the new final full gate
+  passes 88 Jest suites / 911 tests, the production audit policy and the same
+  10.16/12 MiB total, 7.69/8 MiB Hermes and 1.25/1.50 MiB asset budgets.
 - Final AppIcon policy tests enforce zero MaterialCommunityIcons runtime
   imports, keep the sole Morphicons import in `AppIcon.tsx`, and allow Lucide
   runtime deep imports only in `app-icon-lucide.ts`. They also keep decorative
@@ -64,11 +76,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `expo-constants`, `expo-notifications`, `expo-router` and `expo-updates` are
   each one patch behind Doctor's current SDK 57 recommendation. This migration
   does not hide or auto-upgrade that separate dependency set.
-- A 4.1.9 native development/production build, APK installation, device flows,
-  TalkBack/VoiceOver traversal, frame metrics and device logcat review are
-  **NOT VERIFIED**. The optimized static Android export is not APK/device proof;
-  production-environment parity does not make 4.1.9 compatible with the 4.1.8
-  binary/runtime. No 4.1.9 OTA, EAS build, APK, commit or push is claimed.
+- EAS development build `a20dfc19-bcbd-4e6f-9eac-c66d81dd5033` and initial
+  production build `da222966-d25f-41a2-9827-23043c5c426f` both finished for
+  4.1.9 (90). The development APK installed successfully; the initial
+  production APK also installed, then physical device `45218ba` exposed the
+  Profile preload TypeError above. That production artifact is rejected and a
+  fixed production rebuild/install is still pending. TalkBack/VoiceOver,
+  complete UI flows and frame metrics remain **NOT VERIFIED**.
 - Android development client `4.1.8 (89)` reproduced the Name Service 403 startup loop, then verified the fix: silent renewal completed, `syncAllData` finished in 3,131 ms and Profile rendered without FATAL/ANR/SIGSEGV. A real Riot maintenance outage was not induced; maintenance copy, stale same-account fallback and hostile/lookalike URL rejection are covered by source tests.
 - `pnpm run check` passed: strict TypeScript, zero-warning ESLint, 79 Jest suites / 828 tests, production dependency-audit policy, and Android export/budget (10.46 MiB total; 7.99 MiB JS/Hermes). Critical `season-actions.ts` branch coverage is 80.82%.
 - DEV-only Match/Profile fixture payloads and flow tracing now resolve to tiny fail-closed production facades, preserving the full development harness while keeping the unchanged 8 MiB Hermes budget and excluding trace/storage instrumentation from release bundles.
@@ -81,9 +95,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Source/app runtime candidate: `4.1.9`; Android version code: `90`; iOS build
   number: `42`.
-- Distribution: pending native rebuild and device verification. The latest
-  signed downloadable artifact remains 4.1.8/89; 4.1.9 has no verified build
-  artifact and is not approved for OTA publication.
+- Distribution: 4.1.9 development and production artifacts exist, but the first
+  production artifact is rejected by runtime evidence. A fixed production
+  rebuild and device verification remain required before release; no 4.1.9 OTA
+  is approved by this evidence.
 
 ## [4.1.8] - 2026-09-16
 

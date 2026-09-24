@@ -84,10 +84,12 @@ silently change that dependency set.
 The source metadata is `4.1.9`, Android `versionCode 90` and iOS
 `buildNumber 42`. Because `react-native-svg` is a native dependency, 4.1.9
 requires a newly built binary and must not be sent to the 4.1.8 runtime as an
-OTA. The optimized static export is verified, but an EAS development/production
-build, APK installation, device interaction, TalkBack/VoiceOver, frame metrics
-and device logcat are **NOT VERIFIED** for 4.1.9. The latest downloadable signed
-release remains 4.1.8 until those gates finish.
+OTA. Development and the first production APK both built and installed, but
+physical production startup exposed a Profile preload TypeError caused by an
+empty production fixture alias. The alias now has a tested immutable
+empty/null contract and the full gate passes 88 suites / 911 tests; the first
+production artifact is rejected and a fixed rebuild/install is still required.
+Complete UI flows, TalkBack/VoiceOver and frame metrics remain **NOT VERIFIED**.
 
 ## Release 4.1.8 source highlights
 
@@ -535,11 +537,12 @@ các budget Android ở trên.
 
 Metadata source hiện là `4.1.9`, Android `versionCode 90`, iOS `buildNumber 42`.
 Do `react-native-svg` là dependency native, 4.1.9 phải có binary build mới và
-không được phát qua OTA cho runtime 4.1.8. Static export tối ưu đã được xác minh,
-nhưng EAS development/production build, cài APK, interaction trên thiết bị,
-TalkBack/VoiceOver, frame metrics và logcat thiết bị của 4.1.9 đều
-**NOT VERIFIED**. Bản ký có thể tải mới nhất vẫn là 4.1.8 cho đến khi các gate
-đó hoàn tất.
+không được phát qua OTA cho runtime 4.1.8. APK development và production đầu
+tiên đều build/cài được, nhưng cold-start production trên thiết bị phát hiện
+Profile preload TypeError do production fixture alias rỗng. Alias đã được sửa
+bằng contract empty/null bất biến có test; full gate mới đạt 88 suite / 911
+test. Artifact production đầu bị loại và vẫn cần rebuild/cài lại. Toàn bộ UI,
+TalkBack/VoiceOver và frame metrics còn **NOT VERIFIED**.
 
 ## Điểm nổi bật mã nguồn 4.1.8
 
