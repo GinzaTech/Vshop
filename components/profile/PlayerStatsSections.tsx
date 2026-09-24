@@ -1,7 +1,7 @@
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { CachedImage as Image } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
 import type { MatchHistoryRecord, SeasonPerformanceStats } from "~/types/match-ui";
 import type { CompetitiveRankSummary } from "~/utils/profile-cache";
 import { getMatchHistoryResult } from "~/utils/match-result";
@@ -29,7 +29,7 @@ export function PerformanceCard({
   return (
     <>
       <CardHeader
-        icon="hexagon-multiple-outline"
+        icon="overview"
         title="PERFORMANCE OVERVIEW"
         right={
           <View style={styles.performanceHeaderActions}>
@@ -47,7 +47,12 @@ export function PerformanceCard({
                 pressed && styles.buttonPressed,
               ]}
             >
-              <Icon name="chart-box-outline" size={10} color={STATS_COLORS.accent} />
+              <AppIcon
+                color={STATS_COLORS.accent}
+                decorative
+                name="details"
+                size={10}
+              />
               <Text style={styles.outlineButtonText}>DETAILS</Text>
             </Pressable>
           </View>
@@ -114,7 +119,7 @@ export function AgentsMapsCard({
   return (
     <>
       <CardHeader
-        icon="account-group-outline"
+        icon="accountGroup"
         title="AGENTS & MAPS"
         right={<Text style={styles.headerMeta}>{totalGames} GAMES</Text>}
       />
@@ -226,7 +231,7 @@ export function RecentCompetitiveCard({ matches }: RecentCompetitiveCardProps) {
   return (
     <>
       <CardHeader
-        icon="history"
+        icon="clock"
         title="RECENT COMP"
         right={<Text style={styles.headerMeta}>{recent.length} MATCHES</Text>}
       />
@@ -257,7 +262,12 @@ export function RecentCompetitiveCard({ matches }: RecentCompetitiveCardProps) {
                     recyclingKey={stats.rankIcon}
                   />
                 ) : (
-                  <Icon name="shield-outline" size={17} color={STATS_COLORS.textMuted} />
+                  <AppIcon
+                    color={STATS_COLORS.textMuted}
+                    decorative
+                    name="shield"
+                    size={17}
+                  />
                 )}
                 <View style={styles.recentRankTextWrap}>
                   <Text style={styles.recentRankName} numberOfLines={1}>
@@ -339,7 +349,7 @@ export function RankSummaryCard({ competitiveRank }: RankSummaryCardProps) {
 
   return (
     <>
-      <CardHeader icon="shield-star-outline" title="RANK PROFILE" />
+      <CardHeader icon="rank" title="RANK PROFILE" />
       <View style={styles.rankSummaryGrid}>
         {entries.map((entry, index) => (
           <View
@@ -356,7 +366,12 @@ export function RankSummaryCard({ competitiveRank }: RankSummaryCardProps) {
                 recyclingKey={entry.icon}
               />
             ) : (
-              <Icon name="shield-outline" size={28} color={STATS_COLORS.textMuted} />
+              <AppIcon
+                color={STATS_COLORS.textMuted}
+                decorative
+                name="shield"
+                size={28}
+              />
             )}
             <View style={styles.rankSummaryText}>
               <Text style={styles.metricLabel}>{entry.label}</Text>

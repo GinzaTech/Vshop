@@ -1,6 +1,6 @@
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { LayoutChangeEvent, Pressable, ScrollView, Text, View } from "react-native";
+import AppIcon from "~/components/ui/AppIcon";
 import type { MatchHistoryRecord } from "~/types/match-ui";
 import { GpuLineChartCanvas } from "~/components/ui/GpuLineChartCanvas";
 import { buildChartSegments } from "~/utils/chart-geometry";
@@ -37,7 +37,7 @@ export function ActivityCard({ matches }: ActivityCardProps) {
   return (
     <>
       <CardHeader
-        icon="calendar-blank-outline"
+        icon="calendar"
         title="ACTIVITY"
         right={<Text style={styles.headerMeta}>{matches.length} MATCHES</Text>}
       />
@@ -197,7 +197,7 @@ export function RrTrendCard({ matches }: RrTrendCardProps) {
   return (
     <>
       <CardHeader
-        icon="chart-timeline-variant"
+        icon="chartLine"
         title="RR TREND"
         right={<Text style={styles.headerMeta}>{points.length} PTS · RECENT</Text>}
       />
@@ -216,7 +216,12 @@ export function RrTrendCard({ matches }: RrTrendCardProps) {
           </>
         ) : (
           <View style={styles.trendEmpty}>
-            <Icon name="chart-line" size={20} color={STATS_COLORS.textMuted} />
+            <AppIcon
+              color={STATS_COLORS.textMuted}
+              decorative
+              name="chartLine"
+              size={20}
+            />
             <Text style={styles.emptyStateText}>NOT ENOUGH RR DATA</Text>
           </View>
         )}

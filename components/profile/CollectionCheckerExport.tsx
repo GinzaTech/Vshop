@@ -3,7 +3,6 @@
 // dựng offline một sheet 1080px ngoài màn hình (header, hồ sơ, summary,
 // lưới skin card), chờ ảnh load xong rồi chụp bằng view-shot và lưu vào
 // Thư viện qua expo-media-library. Provider cung cấp context cho nút export.
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
   ActivityIndicator,
@@ -18,6 +17,7 @@ import Toast from "react-native-toast-message";
 import { captureRef } from "react-native-view-shot";
 
 import { CachedImage } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
 import {
   WEAPON_NAME_ORDER,
   type OwnedWeaponCollectionItem,
@@ -491,7 +491,12 @@ function CheckerSummary({
             onReady={onImageReady}
           />
         ) : (
-          <Icon name="shield-outline" size={styles.rankIcon.width} color="#9fa6b4" />
+          <AppIcon
+            color="#9fa6b4"
+            decorative
+            name="shield"
+            size={styles.rankIcon.width}
+          />
         )}
         <View style={styles.rankCopy}>
           <Text style={styles.rankSeason}>CURRENT RANK</Text>
@@ -602,12 +607,14 @@ function CheckerSkinCard({
           onReady={onImageReady}
         />
       ) : (
-        <Icon
-          name="pistol"
-          size={styles.skinFallback.width}
-          color="#777284"
-          style={styles.skinFallback}
-        />
+        <View style={styles.skinFallback}>
+          <AppIcon
+            color="#777284"
+            decorative
+            name="weaponPistol"
+            size={styles.skinFallback.width}
+          />
+        </View>
       )}
       <View style={styles.skinFooter}>
         <View style={[styles.rarityDot, { borderColor: tierColor }]} />
@@ -1025,7 +1032,7 @@ export function CollectionCheckerExport() {
         {exporting ? (
           <ActivityIndicator size="small" color="#ffffff" />
         ) : (
-          <Icon name="download" size={22} color="#ffffff" />
+          <AppIcon color="#ffffff" decorative name="export" size={22} />
         )}
       </Pressable>
   );

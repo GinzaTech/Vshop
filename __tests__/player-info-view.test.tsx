@@ -1,4 +1,3 @@
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { StyleSheet } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
@@ -7,7 +6,14 @@ import PlayerInfoView from "~/components/profile/PlayerInfoView";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useProfileDashboardTabStore } from "~/features/profile/useProfileDashboardTabStore";
 
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => jest.fn(() => null));
+function MockAppIcon(props: Record<string, unknown>) {
+  return React.createElement("AppIcon", props);
+}
+
+jest.mock("~/components/ui/AppIcon", () => ({
+  __esModule: true,
+  default: MockAppIcon,
+}));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, options?: { count?: number; label?: string; season?: string }) =>
@@ -77,7 +83,7 @@ describe("PlayerInfoView interaction layout", () => {
     useProfileDashboardTabStore.setState({ activeTab: "overview" });
   });
 
-  it("keeps both dashboard panels mounted while changing their visibility", () => {
+  it("keeps both dashboard panels and their semantic icons mounted while changing visibility", () => {
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
       renderer = TestRenderer.create(<PlayerInfoView {...baseProps} />);
@@ -91,6 +97,18 @@ describe("PlayerInfoView interaction layout", () => {
     });
     expect(StyleSheet.flatten(initialOverview.props.style).opacity).toBe(1);
     expect(StyleSheet.flatten(initialDetails.props.style).opacity).toBe(0);
+    const initialIcons = renderer!.root.findAllByType(MockAppIcon);
+    expect(initialIcons.map((icon) => icon.props.name)).toEqual(
+      expect.arrayContaining([
+        "season",
+        "target",
+        "chartBar",
+        "shield",
+        "accountGroup",
+        "grid",
+        "emptyData",
+      ]),
+    );
     const refreshControlRenderCount = (AppRefreshControl as jest.Mock).mock.calls
       .length;
 
@@ -108,6 +126,11 @@ describe("PlayerInfoView interaction layout", () => {
     const visibleDetails = renderer!.root.findByProps({
       testID: "profile-details-panel",
     });
+    expect(hiddenOverview).toBe(initialOverview);
+    expect(visibleDetails).toBe(initialDetails);
+    expect(renderer!.root.findAllByType(MockAppIcon)).toHaveLength(
+      initialIcons.length,
+    );
     expect(hiddenOverview).toBeTruthy();
     expect(visibleDetails).toBeTruthy();
     expect(renderer!.root.findByProps({ testID: "profile-tab-panel-stack" })).toBeTruthy();
@@ -125,10 +148,20 @@ describe("PlayerInfoView interaction layout", () => {
     act(() => renderer!.unmount());
   });
 
-  it("renders compact season chips without shrinking their effective touch target", () => {
+  it("renders a semantic season icon without inventing a collapsed control", () => {
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
       renderer = TestRenderer.create(<PlayerInfoView {...baseProps} />);
+    });
+
+    const summary = renderer!.root.findByProps({
+      testID: "profile-season-current-summary",
+    });
+    expect(summary.props.accessibilityRole).toBeUndefined();
+    expect(summary.props.accessibilityState).toBeUndefined();
+    expect(summary.findByType(MockAppIcon).props).toMatchObject({
+      decorative: true,
+      name: "season",
     });
 
     const chip = renderer!.root.findByProps({ testID: "profile-season-act-old" });
@@ -140,7 +173,6 @@ describe("PlayerInfoView interaction layout", () => {
       right: 3,
       top: 7,
     });
-    expect(Icon).toHaveBeenCalled();
     act(() => renderer!.unmount());
   });
 

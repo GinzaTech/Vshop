@@ -31,13 +31,6 @@ const remainingLegacyImports = new Set([
   "components/matches/MatchHistoryHeader.tsx",
   "components/matches/MatchImage.tsx",
   "components/matches/MatchStates.tsx",
-  "components/profile/CollectionCheckerExport.tsx",
-  "components/profile/CompactPlayerProfileCard.tsx",
-  "components/profile/PlayerInfoView.tsx",
-  "components/profile/PlayerStatsActivity.tsx",
-  "components/profile/PlayerStatsPrimitives.tsx",
-  "components/profile/PlayerStatsSections.tsx",
-  "components/profile/RankSplitGroup.tsx",
   "features/combat/CombatSessionScreen.tsx",
 ]);
 

@@ -1,7 +1,8 @@
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Text, View } from "react-native";
 import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedStyle } from "react-native-reanimated";
+import AppIcon from "~/components/ui/AppIcon";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { STATS_COLORS, styles } from "./player-stats-styles";
 import { DashboardTone, toneColor } from "./player-stats-format";
 export type DashboardCardProps = {
@@ -55,12 +56,12 @@ export function DashboardCard({
 /**
  * CardHeaderProps – Props của CardHeader.
  *
- * @param icon – Icon MaterialCommunityIcons trong ô vuông accent.
+ * @param icon – Semantic AppIcon trong ô vuông accent.
  * @param right – (tuỳ chọn) Node hiển thị bên phải header (badge, nút...).
  * @param title – Tiêu đề card (font mono, uppercase).
  */
 export type CardHeaderProps = {
-  icon: React.ComponentProps<typeof Icon>["name"];
+  icon: AppIconName;
   right?: React.ReactNode;
   title: string;
 };
@@ -79,7 +80,12 @@ export function CardHeader({ icon, right, title }: CardHeaderProps) {
     <View style={styles.cardHeader}>
       <View style={styles.cardHeaderTitleRow}>
         <View style={styles.cardHeaderIcon}>
-          <Icon name={icon} size={11} color={STATS_COLORS.accent} />
+          <AppIcon
+            color={STATS_COLORS.accent}
+            decorative
+            name={icon}
+            size={11}
+          />
         </View>
         <Text style={styles.cardHeaderTitle}>{title}</Text>
       </View>
@@ -172,7 +178,7 @@ export type DetailSectionProps = {
 export function DetailSection({ rows, title }: DetailSectionProps) {
   return (
     <>
-      <CardHeader icon="code-tags" title={title} />
+      <CardHeader icon="details" title={title} />
       {rows.map((row) => (
         <View key={row.label} style={styles.detailRow}>
           <Text style={styles.detailLabel}>{row.label}</Text>

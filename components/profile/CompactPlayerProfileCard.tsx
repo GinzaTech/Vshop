@@ -3,11 +3,11 @@
 // bề mặt, viền và animation do khung hero sở hữu để hai trạng thái thật sự
 // dùng chung một card thay vì cross-fade giữa hai card tách rời.
 
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CachedImage as Image } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
 
 type CompactPlayerProfileCardProps = {
@@ -59,9 +59,10 @@ export function CompactPlayerProfileCard({
 
         <View style={styles.metaRow}>
           <View style={styles.metaChip}>
-            <Icon
+            <AppIcon
               color={COLORS.TEXT_TERTIARY}
-              name="star-circle-outline"
+              decorative
+              name="rank"
               size={12}
             />
             <Text numberOfLines={1} style={styles.metaText}>
@@ -69,7 +70,12 @@ export function CompactPlayerProfileCard({
             </Text>
           </View>
           <View style={styles.metaChip}>
-            <Icon color={COLORS.TEXT_TERTIARY} name="earth" size={12} />
+            <AppIcon
+              color={COLORS.TEXT_TERTIARY}
+              decorative
+              name="region"
+              size={12}
+            />
             <Text numberOfLines={1} style={styles.metaText}>
               {regionLabel || "VAL"}
             </Text>

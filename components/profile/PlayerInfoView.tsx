@@ -11,7 +11,6 @@
 // Hai panel Tổng quan/Chi tiết luôn được layout sẵn để đổi tab không phải dựng
 // lại card. Bảng Đặc vụ/Bản đồ vẫn dùng motion nhẹ và tôn trọng Reduce Motion.
 
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
   ActivityIndicator,
@@ -36,7 +35,9 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CachedImage as Image } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { MOTION_DURATION } from "~/constants/Motion";
 import {
   getProfileContentBottomPadding,
@@ -190,12 +191,14 @@ const PlayerInfoSkeleton = () => (
 const SectionDividerHeader = ({ title }: { title: string }) => (
   <View style={styles.sectionDividerHeader}>
     <View style={styles.sectionDividerLine} />
-    <Icon
-      name="target"
-      size={15}
-      color={PLAYER_INFO_TOKENS.sectionPink}
-      style={styles.sectionHeaderIcon}
-    />
+    <View style={styles.sectionHeaderIcon}>
+      <AppIcon
+        color={PLAYER_INFO_TOKENS.sectionPink}
+        decorative
+        name="target"
+        size={15}
+      />
+    </View>
     <Text style={styles.sectionDividerTitle}>{title}</Text>
     <View style={styles.sectionDividerLine} />
   </View>
@@ -325,9 +328,10 @@ const SeasonSelector = React.memo(function SeasonSelector({
       testID="profile-season-current-summary"
     >
       <View style={styles.seasonIconWrap}>
-        <Icon
+        <AppIcon
           color={PLAYER_INFO_TOKENS.accent}
-          name="calendar-range"
+          decorative
+          name="season"
           size={16}
         />
       </View>
@@ -407,12 +411,12 @@ const SeasonSelector = React.memo(function SeasonSelector({
 
 /**
  * PerformanceGridCellProps – Một ô của grid Phong độ.
- * @param icon – Tên icon MaterialCommunityIcons đặt cạnh nhãn.
+ * @param icon – Tên semantic AppIcon đặt cạnh nhãn.
  * @param label – Nhãn metric (ADR, K/D, HS, Thắng).
  * @param value – Chuỗi đã format.
  */
 type PerformanceGridCellProps = {
-  icon: React.ComponentProps<typeof Icon>["name"];
+  icon: AppIconName;
   label: string;
   value: string;
 };
@@ -424,12 +428,14 @@ type PerformanceGridCellProps = {
 const PerformanceGridCell = ({ icon, label, value }: PerformanceGridCellProps) => (
   <View style={styles.performanceCell}>
     <View style={styles.performanceCellLabelRow}>
-      <Icon
-        name={icon}
-        size={14}
-        color={PLAYER_INFO_TOKENS.textMuted}
-        style={styles.sectionHeaderIcon}
-      />
+      <View style={styles.sectionHeaderIcon}>
+        <AppIcon
+          color={PLAYER_INFO_TOKENS.textMuted}
+          decorative
+          name={icon}
+          size={14}
+        />
+      </View>
       <Text style={styles.metricLabel} numberOfLines={1}>
         {label}
       </Text>
@@ -457,12 +463,14 @@ const PerformanceCard = ({ stats }: { stats: SeasonPerformanceStats | null }) =>
     {/* Header: tiêu đề + số trận trong Act */}
     <View style={styles.performanceHeader}>
       <View style={styles.performanceHeaderTitleRow}>
-        <Icon
-          name="chart-bar"
-          size={16}
-          color={PLAYER_INFO_TOKENS.textPrimary}
-          style={styles.sectionHeaderIcon}
-        />
+        <View style={styles.sectionHeaderIcon}>
+          <AppIcon
+            color={PLAYER_INFO_TOKENS.textPrimary}
+            decorative
+            name="chartBar"
+            size={16}
+          />
+        </View>
         <Text style={styles.cardTitle}>
           {t("profile_page.stats.performance")}
         </Text>
@@ -488,7 +496,7 @@ const PerformanceCard = ({ stats }: { stats: SeasonPerformanceStats | null }) =>
         />
         <View style={styles.performanceGridDivider} />
         <PerformanceGridCell
-          icon="shield-half-full"
+          icon="shield"
           label={t("match_ui.metrics.hs")}
           value={formatPercent(stats?.headshotPercent)}
         />
@@ -496,13 +504,13 @@ const PerformanceCard = ({ stats }: { stats: SeasonPerformanceStats | null }) =>
       <View style={styles.verticalDivider} />
       <View style={styles.performanceGridCol}>
         <PerformanceGridCell
-          icon="sword"
+          icon="combatSword"
           label={t("match_ui.metrics.kd")}
           value={formatTwoDecimals(stats?.kd)}
         />
         <View style={styles.performanceGridDivider} />
         <PerformanceGridCell
-          icon="shield-check-outline"
+          icon="shield"
           label={t("profile_page.stats.wins")}
           value={formatPercent(stats?.winRate)}
         />
@@ -539,6 +547,22 @@ const StatsTableCard = ({
   const [tableMode, setTableMode] = React.useState<TableMode>("agents");
   const tableMorph = useSharedValue(1);
   const rows = tableMode === "agents" ? agentRows : mapRows;
+  const tableTabs: {
+    icon: AppIconName;
+    key: TableMode;
+    label: string;
+  }[] = [
+    {
+      key: "agents",
+      label: t("profile_page.stats.breakdown_agents"),
+      icon: "accountGroup",
+    },
+    {
+      key: "maps",
+      label: t("profile_page.stats.breakdown_maps"),
+      icon: "grid",
+    },
+  ];
 
   // tabRowWidth + indicatorTranslateX: underline lavender 2dp trượt giữa 2 tab
   // (mỗi tab chiếm 50% chiều rộng hàng) theo timing chuẩn 150–200ms.
@@ -588,20 +612,7 @@ const StatsTableCard = ({
           pointerEvents="none"
           style={[styles.tableTabIndicator, indicatorAnimatedStyle]}
         />
-        {(
-          [
-            {
-              key: "agents",
-              label: t("profile_page.stats.breakdown_agents"),
-              icon: "account-group",
-            },
-            {
-              key: "maps",
-              label: t("profile_page.stats.breakdown_maps"),
-              icon: "grid-large",
-            },
-          ] as const
-        ).map((tab) => {
+        {tableTabs.map((tab) => {
           const active = tableMode === tab.key;
           return (
             <Pressable
@@ -615,16 +626,18 @@ const StatsTableCard = ({
               style={styles.tableTab}
               testID={`profile-breakdown-tab-${tab.key}`}
             >
-              <Icon
-                name={tab.icon}
-                size={14}
-                color={
-                  active
-                    ? PLAYER_INFO_TOKENS.textPrimary
-                    : PLAYER_INFO_TOKENS.textMuted
-                }
-                style={styles.sectionHeaderIcon}
-              />
+              <View style={styles.sectionHeaderIcon}>
+                <AppIcon
+                  color={
+                    active
+                      ? PLAYER_INFO_TOKENS.textPrimary
+                      : PLAYER_INFO_TOKENS.textMuted
+                  }
+                  decorative
+                  name={tab.icon}
+                  size={14}
+                />
+              </View>
               <Text
                 style={[
                   styles.tableTabLabel,
@@ -646,10 +659,11 @@ const StatsTableCard = ({
         {rows.length === 0 ? (
           // Empty state: giữ card + tabs, không render bảng rỗng thừa divider
           <View style={styles.tableEmpty}>
-            <Icon
-              name="database-off"
-              size={20}
+            <AppIcon
               color={PLAYER_INFO_TOKENS.textMuted}
+              decorative
+              name="emptyData"
+              size={20}
             />
             <Text style={styles.tableEmptyText}>
               {tableMode === "agents"

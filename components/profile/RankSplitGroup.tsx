@@ -3,7 +3,6 @@
 // rank liền khối tách thành 2 ô hiển thị act stats. Toàn bộ chuyển động
 // điều khiển bởi shared value splitProgress (0 = rank, 1 = act). Chi tiết
 // style xem doc của `styles` ở cuối file.
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -14,6 +13,11 @@ import Animated, {
 
 import { CachedImage as Image } from "~/components/CachedImage";
 import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
+import AppIcon from "~/components/ui/AppIcon";
+import {
+  resolveAppIconName,
+  type AppIconName,
+} from "~/components/ui/app-icon-registry";
 import { COLORS } from "~/constants/DesignSystem";
 
 /**
@@ -22,6 +26,29 @@ import { COLORS } from "~/constants/DesignSystem";
  */
 export type RankSplitContentMode = "rank" | "blank" | "act";
 
+// Compatibility adapter for the four values still produced by the feature
+// data hook outside this component slice. Every other runtime value is routed
+// through resolveAppIconName and therefore fails closed to `unknown`.
+const RANK_SPLIT_LEGACY_ICON_MAP = {
+  "close-octagon-outline": "error",
+  "percent-outline": "chartLine",
+  "shield-check-outline": "shield",
+  "trophy-outline": "peakRank",
+} as const satisfies Record<string, AppIconName>;
+
+type RankSplitLegacyIconName = keyof typeof RANK_SPLIT_LEGACY_ICON_MAP;
+
+function resolveRankSplitIconName(value: unknown): AppIconName {
+  if (
+    typeof value === "string" &&
+    Object.prototype.hasOwnProperty.call(RANK_SPLIT_LEGACY_ICON_MAP, value)
+  ) {
+    return RANK_SPLIT_LEGACY_ICON_MAP[value as RankSplitLegacyIconName];
+  }
+
+  return resolveAppIconName(value);
+}
+
 /**
  * RankSplitStat – Một ô chỉ số act: key (keyExtractor), nhãn, giá trị, icon.
  */
@@ -29,7 +56,7 @@ export type RankSplitStat = {
   key: string;
   label: string;
   value: string;
-  icon: React.ComponentProps<typeof Icon>["name"];
+  icon: AppIconName | RankSplitLegacyIconName;
 };
 
 /**
@@ -160,10 +187,11 @@ function RankSplitGroup({
                 recyclingKey={rankIconUrl}
               />
             ) : (
-              <Icon
-                name="shield-outline"
-                size={18}
+              <AppIcon
                 color="rgba(255,255,255,0.6)"
+                decorative
+                name="shield"
+                size={18}
               />
             )}
             <Text numberOfLines={1} style={styles.rankValue}>
@@ -223,10 +251,11 @@ function RankSplitGroup({
               recyclingKey={rankIconUrl}
             />
           ) : (
-            <Icon
-              name="shield-outline"
-              size={18}
+            <AppIcon
               color="rgba(255,255,255,0.6)"
+              decorative
+              name="shield"
+              size={18}
             />
           )}
           <TypewriterSwapText
@@ -248,7 +277,12 @@ function RankSplitGroup({
         {stats.map((stat) => (
           <View key={stat.key} style={styles.actCell}>
             <View style={styles.actLabelRow}>
-              <Icon name={stat.icon} size={11} color="#ff4655" />
+              <AppIcon
+                color="#ff4655"
+                decorative
+                name={resolveRankSplitIconName(stat.icon)}
+                size={11}
+              />
               <TypewriterSwapText
                 animate={animateText}
                 text={actStatsVisible ? stat.label : ""}

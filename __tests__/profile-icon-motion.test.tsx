@@ -70,6 +70,10 @@ jest.mock("react-native-reanimated", () => {
   };
 });
 
+const ActualRankSplitGroup = jest.requireActual<
+  typeof import("~/components/profile/RankSplitGroup")
+>("~/components/profile/RankSplitGroup").default;
+
 const sharedValue = (value: number): SharedValue<number> =>
   ({ value }) as SharedValue<number>;
 
@@ -238,6 +242,59 @@ describe("Profile semantic icon state motion", () => {
       decorative: true,
       name: "selected",
     });
+    act(() => renderer!.unmount());
+  });
+
+  it("keeps RankSplit icons mounted and fails unknown dynamic input closed", () => {
+    const stats = [
+      {
+        icon: "trophy-outline",
+        key: "wins",
+        label: "Wins",
+        value: "1",
+      },
+      {
+        icon: "not-an-icon" as never,
+        key: "unknown",
+        label: "Unknown",
+        value: "--",
+      },
+    ] as React.ComponentProps<typeof ActualRankSplitGroup>["stats"];
+    const createRankSplit = (contentMode: "act" | "blank") => (
+      <ActualRankSplitGroup
+        animateText={false}
+        contentMode={contentMode}
+        rankIconUrl={null}
+        rankLabel="Current rank"
+        rankValue="Unrated"
+        splitProgress={sharedValue(contentMode === "act" ? 1 : 0)}
+        stats={stats}
+      />
+    );
+    let renderer: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(createRankSplit("blank"));
+    });
+
+    const root = renderer!.root.children[0];
+    const initialIcons = renderer!.root
+      .findAllByType(MockAppIcon)
+      .filter((icon) => icon.props.color === "#ff4655");
+    expect(initialIcons.map((icon) => icon.props.name)).toEqual([
+      "peakRank",
+      "unknown",
+    ]);
+
+    act(() => {
+      renderer!.update(createRankSplit("act"));
+    });
+
+    const updatedIcons = renderer!.root
+      .findAllByType(MockAppIcon)
+      .filter((icon) => icon.props.color === "#ff4655");
+    expect(renderer!.root.children[0]).toBe(root);
+    expect(updatedIcons[0]).toBe(initialIcons[0]);
+    expect(updatedIcons[1]).toBe(initialIcons[1]);
     act(() => renderer!.unmount());
   });
 });
