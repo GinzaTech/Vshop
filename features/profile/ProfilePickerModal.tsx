@@ -5,11 +5,11 @@
 
 import React from "react";
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { Modal, Portal, Searchbar } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 
 import { CachedImage as Image } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";
 import { FALLBACK_IMAGE, formatSpraySlot, type EquippedSpray, type EquippedWeapon, type IdentityDetails } from "~/components/GalleryProfile";
 import { getContentTierVisual } from "~/utils/content-tier";
@@ -186,6 +186,8 @@ export function ProfilePickerModal({
                     <ActivityIndicator animating color={palette.accent} />
                 ) : null}
                 <TouchableOpacity
+                    accessibilityLabel={t("common.close", { defaultValue: "Đóng" })}
+                    accessibilityRole="button"
                     activeOpacity={0.8}
                     onPress={handleDismissPicker}
                     style={[
@@ -196,7 +198,12 @@ export function ProfilePickerModal({
                       },
                     ]}
                 >
-                  <Icon name="close" size={18} color={palette.textPrimary} />
+                  <AppIcon
+                    color={palette.textPrimary}
+                    decorative
+                    name="close"
+                    size={18}
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -380,8 +387,9 @@ export function ProfilePickerModal({
                                           },
                                         ]}
                                     >
-                                      <Icon
-                                          name="arrow-up-bold-circle-outline"
+                                      <AppIcon
+                                          decorative
+                                          name="chevronUp"
                                           size={12}
                                           color={tier.text}
                                       />
@@ -630,7 +638,12 @@ export function ProfilePickerModal({
                                         { backgroundColor: palette.accent },
                                       ]}
                                   >
-                                    <Icon name="check" size={13} color={COLORS.PURE_WHITE} />
+                                    <AppIcon
+                                      color={COLORS.PURE_WHITE}
+                                      decorative
+                                      name="selected"
+                                      size={13}
+                                    />
                                   </View>
                               ) : null}
                             </View>
@@ -701,8 +714,9 @@ export function ProfilePickerModal({
                             >
                               {option.name}
                             </Text>
-                            <Icon
-                                name={option.selected ? "check-circle" : "chevron-right"}
+                            <AppIcon
+                                decorative
+                                name={option.selected ? "selected" : "unselected"}
                                 size={20}
                                 color={
                                   option.selected ? palette.accent : palette.textSecondary
@@ -823,7 +837,12 @@ export function ProfilePickerModal({
                           },
                         ]}
                     >
-                      <Icon name="close" size={16} color={palette.textPrimary} />
+                      <AppIcon
+                        color={palette.textPrimary}
+                        decorative
+                        name="close"
+                        size={16}
+                      />
                     </TouchableOpacity>
                     <Text
                         style={[styles.chromaPanelTitle, { color: palette.textPrimary }]}

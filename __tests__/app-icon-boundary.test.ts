@@ -39,10 +39,6 @@ const remainingLegacyImports = new Set([
   "components/profile/PlayerStatsSections.tsx",
   "components/profile/RankSplitGroup.tsx",
   "features/combat/CombatSessionScreen.tsx",
-  "features/profile/ProfileEquipmentSections.tsx",
-  "features/profile/ProfileHeroCard.tsx",
-  "features/profile/ProfilePickerModal.tsx",
-  "features/profile/ProfileScreen.tsx",
 ]);
 
 function listSourceFiles(directory: string): string[] {

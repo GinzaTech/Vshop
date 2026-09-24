@@ -62,6 +62,29 @@ const TASK_3_SEMANTIC_TOKENS = [
   "imageGrid",
 ] as const;
 
+const TASK_4_PROFILE_SEMANTIC_TOKENS = [
+  "equipmentProfile",
+  "playerStats",
+  "edit",
+  "region",
+  "accountSynced",
+  "accountWarning",
+  "rank",
+  "peakRank",
+  "collection",
+  "skin",
+  "loadout",
+  "spray",
+  "flex",
+  "selected",
+  "unselected",
+  "overview",
+  "details",
+  "season",
+  "export",
+  "emptyData",
+] as const;
+
 describe("AppIcon registry", () => {
   it("resolves stable semantic names", () => {
     expect(resolveAppIconName("search")).toBe("search");
@@ -95,6 +118,12 @@ describe("AppIcon registry", () => {
     );
   });
 
+  it("contains every Task 4 Profile semantic token", () => {
+    expect(Object.keys(APP_ICON_REGISTRY)).toEqual(
+      expect.arrayContaining(TASK_4_PROFILE_SEMANTIC_TOKENS),
+    );
+  });
+
   it("keeps Valorant-only glyphs behind the legacy boundary", () => {
     expect(resolveAppIcon("weaponPistol")).toEqual({
       kind: "legacy",
@@ -108,7 +137,11 @@ describe("AppIcon registry", () => {
       kind: "legacy",
       legacyName: "shield-account-outline",
     });
-    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(51);
+    expect(resolveAppIcon("equipmentProfile")).toEqual({
+      kind: "legacy",
+      legacyName: "shield-account-outline",
+    });
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(70);
   });
 
   it("keeps Heart semantics while marking the selected state as filled", () => {

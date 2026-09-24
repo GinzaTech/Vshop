@@ -4,9 +4,9 @@ import { FlatList, Platform, RefreshControl, ScrollView, Text, TouchableOpacity,
 import Animated from "react-native-reanimated";
 import { ActivityIndicator, Searchbar } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import PlayerInfoView from "~/components/profile/PlayerInfoView";
 import { CollectionCheckerExport, CollectionCheckerExportProvider } from "~/components/profile/CollectionCheckerExport";
+import AppIcon from "~/components/ui/AppIcon";
 import { TabKey, EquippedWeapon, OwnedWeaponCollectionItem } from "~/components/GalleryProfile";
 import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";
@@ -253,7 +253,12 @@ function Profile() {
             </Animated.View>
             {identityDetails ? (
                 <View style={styles.topAvatarEditBadge}>
-                  <Icon name="pencil" size={8} color={COLORS.PURE_WHITE} />
+                  <AppIcon
+                    color={COLORS.PURE_WHITE}
+                    decorative
+                    name="edit"
+                    size={8}
+                  />
                 </View>
             ) : null}
           </TouchableOpacity>

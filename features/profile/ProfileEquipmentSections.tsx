@@ -5,10 +5,10 @@
 
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import type { TFunction } from "i18next";
 
 import { CachedImage as Image } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
 import {
   FALLBACK_IMAGE,
   formatSpraySlot,
@@ -88,7 +88,12 @@ export function ProfileIdentitySection({
             recyclingKey={identityDetails.cardArt}
           />
           <View style={styles.identityLevelBadge}>
-            <Icon name="star-circle-outline" size={13} color={COLORS.PURE_WHITE} />
+            <AppIcon
+              color={COLORS.PURE_WHITE}
+              decorative
+              name="rank"
+              size={13}
+            />
             <Text style={styles.identityLevelText}>{identityDetails.level}</Text>
           </View>
         </TouchableOpacity>
@@ -106,8 +111,9 @@ export function ProfileIdentitySection({
               {identityDetails.cardName ||
                 t("equip_page.identity.card_fallback")}
             </Text>
-            <Icon
-              name="pencil-outline"
+            <AppIcon
+              decorative
+              name="edit"
               size={16}
               color={COLORS.TEXT_SECONDARY}
             />
@@ -135,8 +141,9 @@ export function ProfileIdentitySection({
                   t("equip_page.identity.title_fallback")}
               </Text>
             </View>
-            <Icon
-              name="chevron-right"
+            <AppIcon
+              decorative
+              name="forward"
               size={18}
               color={COLORS.TEXT_SECONDARY}
             />

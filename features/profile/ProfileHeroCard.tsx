@@ -2,7 +2,6 @@
 // Hai trạng thái dùng chung một bề mặt: nội dung trang bị tách/mờ khi card co,
 // sau đó nội dung hồ sơ ngang xuất hiện. Chiều quay về chạy ngược tự nhiên.
 
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { LayoutChangeEvent, Pressable, Text, View } from "react-native";
 import Animated, {
@@ -21,6 +20,7 @@ import RankSplitGroup, {
   type RankSplitStat,
 } from "~/components/profile/RankSplitGroup";
 import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";
 import {
@@ -275,12 +275,13 @@ export function ProfileHeroCard({
                 pointerEvents="none"
                 style={[styles.heroModeThumb, modeThumbStyle]}
               >
-                <Icon
+                <AppIcon
                   color={COLORS.PURE_WHITE}
+                  decorative
                   name={
                     isPlayerInfoMode
-                      ? "chart-box-outline"
-                      : "shield-account-outline"
+                      ? "playerStats"
+                      : "equipmentProfile"
                   }
                   size={14}
                 />
@@ -309,7 +310,12 @@ export function ProfileHeroCard({
               pressed && styles.heroModePressed,
             ]}
           >
-            <Icon color={COLORS.PURE_WHITE} name="web" size={13} />
+            <AppIcon
+              color={COLORS.PURE_WHITE}
+              decorative
+              name="region"
+              size={13}
+            />
             <Text style={styles.heroRegionText}>{regionLabel}</Text>
           </Pressable>
         </View>
@@ -324,9 +330,10 @@ export function ProfileHeroCard({
         </View>
         <View style={styles.heroMetaRow}>
           <View style={styles.heroMetaPill}>
-            <Icon
+            <AppIcon
               color="rgba(255,255,255,0.7)"
-              name="star-circle-outline"
+              decorative
+              name="rank"
               size={13}
             />
             <Text style={styles.heroMetaText}>
@@ -334,9 +341,10 @@ export function ProfileHeroCard({
             </Text>
           </View>
           <View style={styles.heroMetaPill}>
-            <Icon
+            <AppIcon
               color="rgba(255,255,255,0.7)"
-              name={hasAuth ? "check-decagram-outline" : "alert-circle-outline"}
+              decorative
+              name={hasAuth ? "accountSynced" : "accountWarning"}
               size={13}
             />
             <Text style={styles.heroMetaText}>
@@ -378,9 +386,10 @@ export function ProfileHeroCard({
                       <Animated.View
                         style={[styles.heroStatIconLayer, playerStatsStyle]}
                       >
-                        <Icon
+                        <AppIcon
                           color={COLORS.VALORANT_RED}
-                          name="chart-box-outline"
+                          decorative
+                          name="playerStats"
                           size={15}
                         />
                       </Animated.View>
