@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react";
+import { clearRecoveryUpdateFailure } from "~/utils/recovery-update";
 
 const startupStartedAt = globalThis.performance?.now?.() ?? Date.now();
 let interactiveMarked = false;
@@ -7,6 +8,7 @@ let interactiveMarked = false;
 export const markAppInteractive = (route: string): void => {
   if (interactiveMarked) return;
   interactiveMarked = true;
+  void clearRecoveryUpdateFailure();
 
   const now = globalThis.performance?.now?.() ?? Date.now();
   const durationMs = Math.max(0, now - startupStartedAt);

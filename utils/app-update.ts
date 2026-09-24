@@ -90,7 +90,7 @@ export type ApplyOtaUpdateResult =
  * Trả về null nếu đang ở web, Expo Go, hoặc require thất bại.
  * @returns UpdatesModule | null
  */
-const getUpdatesModule = (): UpdatesModule | null => {
+export const getUpdatesModule = (): UpdatesModule | null => {
   if (Platform.OS === "web" || isExpoGo) {
     return null;
   }
@@ -108,7 +108,7 @@ const getUpdatesModule = (): UpdatesModule | null => {
  * Ưu tiên: web > expo-go > development > standalone.
  * @returns UpdateEnvironment
  */
-const getUpdateEnvironment = (): UpdateEnvironment => {
+export const getUpdateEnvironment = (): UpdateEnvironment => {
   if (Platform.OS === "web") {
     return "web";
   }
@@ -142,7 +142,7 @@ const normalizeVersion = (version: string) =>
  * @param right - Version thứ hai
  * @returns -1 nếu left < right, 1 nếu left > right, 0 nếu bằng nhau
  */
-const compareVersions = (left: string, right: string) => {
+export const compareVersions = (left: string, right: string) => {
   const leftParts = normalizeVersion(left);
   const rightParts = normalizeVersion(right);
   const maxLength = Math.max(leftParts.length, rightParts.length);
@@ -168,7 +168,7 @@ const compareVersions = (left: string, right: string) => {
  * Ưu tiên: nativeApplicationVersion > expoConfig.version > "0.0.0"
  * @returns string - Version hiện tại
  */
-const getCurrentVersion = () =>
+export const getCurrentVersion = () =>
   Application.nativeApplicationVersion ||
   Constants.expoConfig?.version ||
   "0.0.0";
@@ -187,7 +187,7 @@ const getCurrentBuild = () =>
  * Fetch phiên bản release mới nhất từ GitHub API.
  * @returns Promise<{ version: string; url: string }> - Version và URL release
  */
-const getLatestRelease = async () => {
+export const getLatestRelease = async () => {
   const response = await axios.request<{
     tag_name: string;
     html_url?: string;
