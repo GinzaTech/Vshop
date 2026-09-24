@@ -153,6 +153,9 @@ export function FloatingTabBar({
     ({ user }) => user.shops.nightMarket.length > 0
   );
   const [collapsed, setCollapsed] = useState(false);
+  const [pendingIndicatorRoute, setPendingIndicatorRoute] = useState<
+    string | null
+  >(null);
   const collapseProgress = useSharedValue(1); // 1 = mở, 0 = thu gọn
   const moreLongPressHandledRef = useRef(false);
   const lastIndicatorTarget = useRef<number | null>(null);
@@ -163,6 +166,7 @@ export function FloatingTabBar({
   // hoàn tất, cho phép nhấn lại tab đó ở lần tiếp theo (chống double-press).
   useEffect(() => {
     pendingTabNameRef.current = null;
+    setPendingIndicatorRoute(null);
   }, [activeRoute?.key]);
 
   // Track khi tab bar chuyển từ hidden → visible (Back từ sub-screen)
@@ -238,6 +242,10 @@ export function FloatingTabBar({
     activeVisibleIndex * tabButtonWidth +
     (tabButtonWidth - INDICATOR_SIZE) / 2;
   const indicatorTranslateX = useSharedValue(indicatorTargetX);
+  const indicatorRouteName =
+    pendingIndicatorRoute && pendingIndicatorRoute in PRIMARY_ROUTES
+      ? pendingIndicatorRoute
+      : activeRoute.name;
   // Cleanup: hủy animation indicator + collapse khi unmount để tránh leak
   // shared value animation (rule cleanup của AGENTS.md).
   useEffect(() => () => {
@@ -369,7 +377,7 @@ export function FloatingTabBar({
               ]}
             >
               <AppIcon
-                name={PRIMARY_ROUTES[activeRoute.name].icon}
+                name={PRIMARY_ROUTES[indicatorRouteName].icon}
                 size={22}
                 color={
                   primaryNavigationTone === "light"
@@ -424,6 +432,7 @@ export function FloatingTabBar({
 
                     if ((!focused || pendingTabNameRef.current !== null) && !event.defaultPrevented) {
                       pendingTabNameRef.current = route.name;
+                      setPendingIndicatorRoute(route.name);
                       pausePreload(route.key);
                       flowTracer.startTrace(
                         `Vshop Tab Navigation: ${activeRoute.name} to ${route.name}`

@@ -260,9 +260,11 @@ describe("FloatingTabBar", () => {
     });
   });
 
-  const renderTabBar = () => {
+  const renderTabBar = (options: { prevented?: boolean } = {}) => {
     const navigation = {
-      emit: jest.fn(() => ({ defaultPrevented: false })),
+      emit: jest.fn(() => ({
+        defaultPrevented: options.prevented ?? false,
+      })),
       navigate: jest.fn(),
       preload: jest.fn(),
     };
@@ -317,6 +319,43 @@ describe("FloatingTabBar", () => {
     const nextActiveIcon = getActiveIcon();
     expect(nextActiveIcon).toBe(activeIcon);
     expect(nextActiveIcon?.props.name).toBe("navShop");
+  });
+
+  it("shows the accepted destination icon immediately on press", () => {
+    const { renderer } = renderTabBar();
+
+    act(() => getTab(renderer, "bundles").props.onPress());
+
+    expect(
+      renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props
+        .name,
+    ).toBe("navStore");
+  });
+
+  it("keeps the confirmed icon when navigation is prevented", () => {
+    const { navigation, renderer } = renderTabBar({ prevented: true });
+
+    act(() => getTab(renderer, "bundles").props.onPress());
+
+    expect(
+      renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props
+        .name,
+    ).toBe("navProfile");
+    expect(navigation.navigate).not.toHaveBeenCalled();
+  });
+
+  it("replaces an in-flight destination with the latest accepted press", () => {
+    const { renderer } = renderTabBar();
+
+    act(() => {
+      getTab(renderer, "shop").props.onPress();
+      getTab(renderer, "settings").props.onPress();
+    });
+
+    expect(
+      renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props
+        .name,
+    ).toBe("navMore");
   });
 
   it("isolates the authenticated background while the media popup is open", () => {
