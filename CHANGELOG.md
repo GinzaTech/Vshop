@@ -83,6 +83,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   Profile preload TypeError above. That production artifact is rejected and a
   fixed production rebuild/install is still pending. TalkBack/VoiceOver,
   complete UI flows and frame metrics remain **NOT VERIFIED**.
+- A fixed production rebuild was attempted from `e7f17e5` but EAS rejected it
+  before creating a build because the account's monthly Android Free quota was
+  exhausted. No local debug-signed APK was substituted. Instead, production OTA
+  group `5ba85a7f-a273-45a0-8ccc-90c13c1fc97a` was published and verified for
+  runtime `4.1.9` only; 4.1.8 binaries cannot receive it.
+- Device `45218ba` downloaded the verified Android update
+  `01a0d2e9-c3ea-79e6-8958-1d05d9cc2c8c`. On the next cold start the production
+  app remained foreground with no Profile TypeError, FATAL, ANR or SIGSEGV.
+  Hardware smoke tests passed Profile equipment → player data, Overview ↔
+  Details, the reverse player-data → equipment transition and all five primary
+  tabs. A two-transition frame sample recorded 79 frames, 14 janky frames by the
+  current metric (17.72%), P95 25 ms and P99 31 ms. Manual TalkBack and broader
+  flow coverage remain **NOT VERIFIED** because a phone call interrupted the
+  session.
 - Android development client `4.1.8 (89)` reproduced the Name Service 403 startup loop, then verified the fix: silent renewal completed, `syncAllData` finished in 3,131 ms and Profile rendered without FATAL/ANR/SIGSEGV. A real Riot maintenance outage was not induced; maintenance copy, stale same-account fallback and hostile/lookalike URL rejection are covered by source tests.
 - `pnpm run check` passed: strict TypeScript, zero-warning ESLint, 79 Jest suites / 828 tests, production dependency-audit policy, and Android export/budget (10.46 MiB total; 7.99 MiB JS/Hermes). Critical `season-actions.ts` branch coverage is 80.82%.
 - DEV-only Match/Profile fixture payloads and flow tracing now resolve to tiny fail-closed production facades, preserving the full development harness while keeping the unchanged 8 MiB Hermes budget and excluding trace/storage instrumentation from release bundles.
@@ -95,10 +109,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Source/app runtime candidate: `4.1.9`; Android version code: `90`; iOS build
   number: `42`.
-- Distribution: 4.1.9 development and production artifacts exist, but the first
-  production artifact is rejected by runtime evidence. A fixed production
-  rebuild and device verification remain required before release; no 4.1.9 OTA
-  is approved by this evidence.
+- Distribution: the first 4.1.9 production artifact is not approved as a
+  standalone/offline release because its embedded bundle has the Profile stub
+  defect. The installed production binary is verified only after applying OTA
+  group `5ba85a7f-a273-45a0-8ccc-90c13c1fc97a` for runtime 4.1.9. A fresh
+  production APK embedding `e7f17e5` still requires restored EAS build quota.
 
 ## [4.1.8] - 2026-09-16
 

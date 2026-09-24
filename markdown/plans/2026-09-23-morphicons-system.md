@@ -921,7 +921,11 @@ Profile preload TypeError. Root cause was the empty Profile fixture alias;
 `profile-ui.production.js` now keeps the stripped boundary callable with only
 immutable empty/null data. The post-fix full gate passes 88 suites / 911 tests
 and the unchanged export budgets. A fixed production rebuild/install is still
-required before Step 7 can be completed.
+required for a standalone/offline release. EAS rejected that rebuild before
+creation because monthly Android Free quota was exhausted. Production OTA group
+`5ba85a7f-a273-45a0-8ccc-90c13c1fc97a` was therefore published and verified for
+runtime 4.1.9 only; device `45218ba` downloaded it and the next cold start
+removed the Profile TypeError without exposing runtime 4.1.8.
 
 Use the project’s EAS development profile. Wait for `FINISHED`, resolve the
 artifact URL, download it to one explicit workspace path, then install:
@@ -943,6 +947,13 @@ present. If device serial differs, use the actual single connected serial and
 record it; never run unpinned ADB mutation with multiple devices.
 
 - [ ] **Step 7: Device interaction and performance evidence**
+
+Partial hardware evidence is complete: Profile equipment → player data,
+Overview ↔ Details, reverse player-data → equipment and all five primary tabs
+passed without TypeError/FATAL/ANR/SIGSEGV. One two-transition gfx sample
+recorded 79 frames, 14 janky frames (17.72%), P95 25 ms and P99 31 ms. A phone
+call interrupted the session; TalkBack, Reduce Motion on/off and the remaining
+manual flows stay open, so Step 7 remains incomplete.
 
 Verify on hardware:
 

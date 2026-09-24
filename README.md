@@ -88,8 +88,14 @@ OTA. Development and the first production APK both built and installed, but
 physical production startup exposed a Profile preload TypeError caused by an
 empty production fixture alias. The alias now has a tested immutable
 empty/null contract and the full gate passes 88 suites / 911 tests; the first
-production artifact is rejected and a fixed rebuild/install is still required.
-Complete UI flows, TalkBack/VoiceOver and frame metrics remain **NOT VERIFIED**.
+production artifact is rejected as a standalone/offline release. EAS could not
+create a fixed rebuild because the monthly Android Free quota was exhausted;
+no debug-signed local APK replaced it. Verified production OTA group
+`5ba85a7f-a273-45a0-8ccc-90c13c1fc97a` delivers commit `e7f17e5` only to
+runtime 4.1.9. Device `45218ba` applied that update and passed Profile
+equipment/player-data, Overview/Details and five-primary-tab smoke tests with no
+TypeError, FATAL, ANR or SIGSEGV. Manual TalkBack and broader flows remain
+**NOT VERIFIED**.
 
 ## Release 4.1.8 source highlights
 
@@ -541,8 +547,13 @@ không được phát qua OTA cho runtime 4.1.8. APK development và production 
 tiên đều build/cài được, nhưng cold-start production trên thiết bị phát hiện
 Profile preload TypeError do production fixture alias rỗng. Alias đã được sửa
 bằng contract empty/null bất biến có test; full gate mới đạt 88 suite / 911
-test. Artifact production đầu bị loại và vẫn cần rebuild/cài lại. Toàn bộ UI,
-TalkBack/VoiceOver và frame metrics còn **NOT VERIFIED**.
+test. Artifact production đầu bị loại như một bản phát hành độc lập/offline;
+EAS không tạo rebuild mới vì quota Android Free tháng này đã hết và không dùng
+APK local ký debug để thay thế. OTA production đã xác minh group
+`5ba85a7f-a273-45a0-8ccc-90c13c1fc97a` đưa commit `e7f17e5` chỉ tới runtime
+4.1.9. Thiết bị `45218ba` đã áp dụng update và vượt smoke test Profile hai chế
+độ, Tổng quan/Chi tiết cùng năm tab chính, không có TypeError/FATAL/ANR/SIGSEGV.
+TalkBack và các flow rộng hơn còn **NOT VERIFIED**.
 
 ## Điểm nổi bật mã nguồn 4.1.8
 
