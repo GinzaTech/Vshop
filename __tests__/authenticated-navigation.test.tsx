@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, StyleSheet } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import AuthenticatedLayout, { FloatingTabBar } from "~/app/(authenticated)/_layout";
@@ -12,6 +12,7 @@ import { COLORS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { withTiming } from "react-native-reanimated";
 import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
+import SecondaryTabScene from "~/components/ui/SecondaryTabScene";
 import AppIcon from "~/components/ui/AppIcon";
 
 let mockReduceMotion = false;
@@ -239,6 +240,57 @@ describe("FloatingTabBar", () => {
     act(() => renderer.update(<PrimaryTabScene>{child}</PrimaryTabScene>));
     expect(StyleSheet.flatten(scene.props.style).opacity).not.toBe(0);
     expect(scene.props.pointerEvents).toBe("auto");
+  });
+
+  it("unmounts secondary route content when it loses focus", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <SecondaryTabScene>
+          <View testID="secondary-heavy-content" />
+        </SecondaryTabScene>,
+      );
+    });
+    renderers.push(renderer);
+    expect(
+      renderer.root.findAllByProps({ testID: "secondary-heavy-content" }),
+    ).not.toHaveLength(0);
+
+    mockSceneFocused = false;
+    act(() => {
+      renderer.update(
+        <SecondaryTabScene>
+          <View testID="secondary-heavy-content" />
+        </SecondaryTabScene>,
+      );
+    });
+    expect(
+      renderer.root.findAllByProps({ testID: "secondary-heavy-content" }),
+    ).toHaveLength(0);
+  });
+
+  it("wraps secondary routes in the lifecycle-bounded scene", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<AuthenticatedLayout />);
+    });
+    renderers.push(renderer);
+    const screenLayout = latestTabsProps?.screenLayout as (input: {
+      children: React.ReactNode;
+      route: { name: string };
+    }) => React.ReactElement;
+
+    const secondary = screenLayout({
+      children: <View />,
+      route: { name: "about" },
+    });
+    const primary = screenLayout({
+      children: <View />,
+      route: { name: "profile" },
+    });
+
+    expect(secondary.type).toBe(SecondaryTabScene);
+    expect(primary.type).toBe(PrimaryTabScene);
   });
 
   it.each([[200, 16], [720, 32]])("bounds scene movement for a %s px viewport", (width, distance) => {

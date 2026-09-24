@@ -227,6 +227,34 @@ describe("recovery update", () => {
     expect(storage.values.has(ATTEMPT_KEY)).toBe(false);
   });
 
+  it("does not count transient download failures as startup failures", async () => {
+    const { dependencies, storage, updates } = makeDependencies({
+      rejectAt: "fetch",
+    });
+
+    await runRecoveryUpdate(dependencies, jest.fn());
+    await runRecoveryUpdate(dependencies, jest.fn());
+
+    expect(updates.fetchUpdateAsync).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(storage.values.get(ATTEMPT_KEY) ?? "null")).toEqual({
+      failures: 0,
+      updateId: "update-b",
+    });
+  });
+
+  it("does not count a failed reload as a post-reload startup failure", async () => {
+    const { dependencies, storage } = makeDependencies({
+      rejectAt: "reload",
+    });
+
+    await runRecoveryUpdate(dependencies, jest.fn());
+
+    expect(JSON.parse(storage.values.get(ATTEMPT_KEY) ?? "null")).toEqual({
+      failures: 0,
+      updateId: "update-b",
+    });
+  });
+
   it.each(["development", "expo-go", "web"] as const)(
     "fails closed in %s",
     async (environment) => {

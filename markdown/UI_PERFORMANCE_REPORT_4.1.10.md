@@ -1,7 +1,7 @@
 # VShop 4.1.10 UI Performance Report
 
 **Status:** Source/local build verified; final device measurement pending
-**Device:** Android `45218ba` (`23013PC75G`, 1080×2400)  
+**Device:** Android `45218ba` (`23013PC75G`, 1080×2400)
 **Package:** `com.android.vshop`
 
 ## Baseline

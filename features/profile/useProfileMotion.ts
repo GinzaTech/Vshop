@@ -320,7 +320,12 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
       startProfileModeTransition(pendingMode);
     });
 
-    return () => cancelAnimationFrame(frameId);
+    return () => {
+      cancelAnimationFrame(frameId);
+      if (pendingModeTransitionRef.current === pendingMode) {
+        pendingModeTransitionRef.current = null;
+      }
+    };
   }, [startProfileModeTransition, statsDashboardMounted]);
   // Focus effect: đồng bộ tone status bar/navigation theo mode, trả giá trị cũ khi rời màn.
   useFocusEffect(
@@ -357,6 +362,7 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
         setPrimaryNavigationTone(chromeTone.primaryNavigation);
 
         return () => {
+          pendingModeTransitionRef.current = null;
           if (dashboardPreloadTimerRef.current) {
             clearTimeout(dashboardPreloadTimerRef.current);
             dashboardPreloadTimerRef.current = null;

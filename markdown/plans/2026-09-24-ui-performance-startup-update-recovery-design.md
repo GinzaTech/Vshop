@@ -1,9 +1,9 @@
 # UI Performance and Startup Update Recovery Design
 
-**Date:** 2026-09-24  
-**Status:** Proposed — awaiting user review  
-**Workspace:** `C:\Users\kona\Desktop\Project\Vshop`  
-**Target:** Android production runtime first; preserve iOS/web boundaries  
+**Date:** 2026-09-24
+**Status:** Approved and in implementation
+**Workspace:** `C:\Users\kona\Desktop\Project\Vshop`
+**Target:** Android production runtime first; preserve iOS/web boundaries
 **Build policy:** native Android build runs locally because EAS Android quota is exhausted
 
 ## 1. Intent

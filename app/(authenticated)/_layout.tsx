@@ -33,6 +33,7 @@ import AppIcon from "~/components/ui/AppIcon";
 import type { AppIconName } from "~/components/ui/app-icon-registry";
 import PressFeedback from "~/components/ui/PressFeedback";
 import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
+import SecondaryTabScene from "~/components/ui/SecondaryTabScene";
 import { COLORS, SHADOWS } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { useUserStore } from "~/hooks/useUserStore";
@@ -603,7 +604,7 @@ function Layout() {
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenLayout={({ children, route }) => route.name in PRIMARY_ROUTES
           ? <PrimaryTabScene>{children}</PrimaryTabScene>
-          : <>{children}</>}
+          : <SecondaryTabScene>{children}</SecondaryTabScene>}
         screenOptions={{
           // Secondary pages share a short fade; primary tabs override with shift.
           animation: reduceMotionEnabled ? "none" : "fade",

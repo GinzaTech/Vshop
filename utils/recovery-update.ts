@@ -90,15 +90,6 @@ async function writeAttempt(
   );
 }
 
-async function recordFailure(storage: RecoveryStorage, updateId: string) {
-  const existing = await readAttempt(storage);
-  await writeAttempt(storage, {
-    failures:
-      existing?.updateId === updateId ? existing.failures + 1 : 1,
-    updateId,
-  });
-}
-
 function manifestId(manifest: RecoveryManifest | null | undefined) {
   return typeof manifest?.id === "string" && manifest.id.length > 0
     ? manifest.id
@@ -207,7 +198,6 @@ export async function runRecoveryUpdate(
   try {
     fetchResult = await dependencies.updates.fetchUpdateAsync();
   } catch {
-    await recordFailure(dependencies.storage, updateId);
     return finish({
       kind: "error",
       message: "Unable to download the update right now.",
@@ -223,7 +213,6 @@ export async function runRecoveryUpdate(
   try {
     await dependencies.updates.reloadAsync();
   } catch {
-    await recordFailure(dependencies.storage, updateId);
     return finish({
       kind: "error",
       message: "The update downloaded but VShop could not restart.",

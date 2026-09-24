@@ -178,6 +178,27 @@ describe("Profile cold mode transition", () => {
     expect(motion.statsDashboardMounted).toBe(false);
   });
 
+  it("clears a cold pending morph when Profile blurs before its frame", () => {
+    let cleanup: void | (() => void);
+    act(() => {
+      cleanup = focusCallback?.();
+      motion.toggleHeroMode();
+    });
+    expect(motion.statsDashboardMounted).toBe(true);
+    expect(animationFrames).toHaveLength(1);
+
+    act(() => {
+      cleanup?.();
+    });
+    expect(motion.statsDashboardMounted).toBe(false);
+
+    act(() => {
+      motion.toggleHeroMode();
+    });
+    expect(motion.statsDashboardMounted).toBe(true);
+    expect(animationFrames).toHaveLength(2);
+  });
+
   it("does not defer a cold transition when Reduce Motion is enabled", () => {
     mockReduceMotionEnabled = true;
     act(() => {
