@@ -1,4 +1,4 @@
-import { Heart } from "lucide";
+import { Heart, LogOut, UserRoundX } from "lucide";
 import {
   APP_ICON_REGISTRY,
   resolveAppIcon,
@@ -119,6 +119,27 @@ const TASK_5_SEMANTIC_TOKENS = [
   "objectiveCrosshair",
 ] as const;
 
+const TASK_6_SEMANTIC_TOKENS = [
+  "party",
+  "ready",
+  "cancelReady",
+  "connected",
+  "disconnected",
+  "friendSearch",
+  "chatSend",
+  "leaveParty",
+  "copyCode",
+  "combatLive",
+  "combatPregame",
+  "lockAgent",
+  "settingsAccount",
+  "settingsDeleteAccount",
+  "settingsLanguage",
+  "settingsLogoutAll",
+  "settingsSwap",
+  "settingsAbout",
+] as const;
+
 const CONTROLLED_LEGACY_MAPPINGS = {
   shield: "shield-account-outline",
   equipmentProfile: "shield-account-outline",
@@ -175,7 +196,32 @@ describe("AppIcon registry", () => {
     expect(Object.keys(APP_ICON_REGISTRY)).toEqual(
       expect.arrayContaining(TASK_5_SEMANTIC_TOKENS),
     );
-    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(98);
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(116);
+  });
+
+  it("contains every Task 6 Combat, social, and Settings semantic token", () => {
+    expect(Object.keys(APP_ICON_REGISTRY)).toEqual(
+      expect.arrayContaining(TASK_6_SEMANTIC_TOKENS),
+    );
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(116);
+  });
+
+  it.each(TASK_6_SEMANTIC_TOKENS)(
+    "maps Task 6 generic semantic token %s to named Lucide data",
+    (name) => {
+      expect(resolveAppIcon(name)).toMatchObject({ kind: "morph" });
+    },
+  );
+
+  it("keeps destructive Settings actions semantically distinct", () => {
+    expect(resolveAppIcon("settingsDeleteAccount")).toEqual({
+      kind: "morph",
+      icon: UserRoundX,
+    });
+    expect(resolveAppIcon("settingsLogoutAll")).toEqual({
+      kind: "morph",
+      icon: LogOut,
+    });
   });
 
   it("keeps Valorant-only glyphs behind the legacy boundary", () => {
@@ -195,7 +241,7 @@ describe("AppIcon registry", () => {
       kind: "legacy",
       legacyName: "shield-account-outline",
     });
-    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(98);
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(116);
   });
 
   it("maps every controlled game glyph to its exact legacy definition", () => {

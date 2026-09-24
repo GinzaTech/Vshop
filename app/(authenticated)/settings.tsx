@@ -21,7 +21,6 @@ import {
 import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -40,6 +39,8 @@ import {
   checkForAppUpdate,
 } from "~/utils/app-update";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import AppIcon from "~/components/ui/AppIcon";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { fullBackgroundSync } from "~/utils/app-sync";
 import { hasReusableAccessToken } from "~/utils/auth-session";
@@ -269,19 +270,19 @@ function Settings() {
   const shortcutItems: {
     key: string;
     label: string | undefined;
-    icon: React.ComponentProps<typeof Icon>["name"];
+    icon: AppIconName;
     route?: string;
     onPress?: () => void;
   }[] = [
-    { key: "equip", label: t("equip"), icon: "shield-sword-outline", route: "/equip" },
-    { key: "accessories", label: t("accessories"), icon: "cards-outline", route: "/accessories" },
-    { key: "gallery", label: t("gallery"), icon: "image-multiple-outline", route: "/gallery" },
-    { key: "agent", label: t("agent"), icon: "account-group-outline", route: "/agent" },
+    { key: "equip", label: t("equip"), icon: "equipmentProfile", route: "/equip" },
+    { key: "accessories", label: t("accessories"), icon: "accessory", route: "/accessories" },
+    { key: "gallery", label: t("gallery"), icon: "imageGrid", route: "/gallery" },
+    { key: "agent", label: t("agent"), icon: "accountGroup", route: "/agent" },
     { key: "combat", label: t("combat"), icon: "target", route: "/combat" },
     { key: "history", label: t("history"), icon: "history", route: "/history" },
-    { key: "crosshair", label: t("crosshair"), icon: "crosshairs-gps", route: "/crosshair" },
-    { key: "leaderboard", label: t("leaderboard_page.title"), icon: "podium", route: "/leaderboard" },
-    { key: "friends", label: t("friends_page.title"), icon: "account-group-outline", route: "/friends" },
+    { key: "crosshair", label: t("crosshair"), icon: "crosshair", route: "/crosshair" },
+    { key: "leaderboard", label: t("leaderboard_page.title"), icon: "leaderboardSeason", route: "/leaderboard" },
+    { key: "friends", label: t("friends_page.title"), icon: "party", route: "/friends" },
     {
       key: "update",
       label: t("settings_page.check_update"),
@@ -309,7 +310,7 @@ function Settings() {
     danger,
     compact,
   }: {
-    icon: React.ComponentProps<typeof Icon>["name"];
+    icon: AppIconName;
     title: string;
     description?: string;
     onPress?: () => void;
@@ -334,10 +335,11 @@ function Settings() {
             danger && styles.rowIconDanger,
           ]}
         >
-          <Icon
+          <AppIcon
             name={icon}
             size={compact ? 16 : 18}
             color={danger ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
+            decorative
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -351,7 +353,14 @@ function Settings() {
           ) : null}
         </View>
       </View>
-      {right ?? <Icon name="chevron-right" size={20} color={COLORS.TEXT_SECONDARY} />}
+      {right ?? (
+        <AppIcon
+          name="chevronRight"
+          size={20}
+          color={COLORS.TEXT_SECONDARY}
+          decorative
+        />
+      )}
     </TouchableOpacity>
   );
 
@@ -400,7 +409,7 @@ function Settings() {
               }}
             >
               <View style={styles.shortcutIcon}>
-                <Icon name={item.icon} size={20} color={COLORS.TEXT_PRIMARY} />
+                <AppIcon name={item.icon} size={20} color={COLORS.TEXT_PRIMARY} decorative />
               </View>
               <Text style={styles.shortcutLabel}>{item.label}</Text>
             </TouchableOpacity>
@@ -411,13 +420,13 @@ function Settings() {
         <Text style={styles.sectionTitle}>{t("settings_page.preferences")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
-            icon: "translate",
+            icon: "settingsLanguage",
             title: t("language"),
             onPress: () => router.push("/language"),
           })}
           {Platform.OS === "android"
             ? renderRow({
-                icon: "cellphone-message",
+                icon: "settings",
                 title: t("wishlist.notification.name"),
                 description: t("wishlist.notification.info"),
                 onPress: toggleNotificationState,
@@ -432,7 +441,7 @@ function Settings() {
             : null}
           {__DEV__
             ? renderRow({
-                icon: "cellphone-screenshot",
+                icon: "imageGrid",
                 title: t("screenshot_mode"),
                 onPress: toggleScreenshotMode,
                 right: (
@@ -450,22 +459,22 @@ function Settings() {
         <Text style={styles.sectionTitle}>{t("settings_page.links")}</Text>
         <GlassCard style={styles.card}>
           {renderRow({
-            icon: "forum-outline",
+            icon: "accountGroup",
             title: t("discord_server"),
             onPress: () => Linking.openURL("https://discord.gg/gB2nM6vKrD"),
           })}
           {renderRow({
-            icon: "information-outline",
+            icon: "settingsAbout",
             title: t("credits"),
             onPress: () => Linking.openURL("https://vshop.one/credits"),
           })}
           {renderRow({
-            icon: "shield-check-outline",
+            icon: "success",
             title: t("privacy_policy"),
             onPress: () => Linking.openURL("https://vshop.one/privacy"),
           })}
           {renderRow({
-            icon: "account-remove-outline",
+            icon: "settingsDeleteAccount",
             title: t("delete_account"),
             onPress: () =>
               Linking.openURL(
@@ -523,10 +532,11 @@ function Settings() {
                       isCurrent && styles.accountAvatarCurrent,
                     ]}
                   >
-                    <Icon
-                      name="account-outline"
+                    <AppIcon
+                      name="settingsAccount"
                       size={21}
                       color={isCurrent ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
+                      decorative
                     />
                   </View>
                   <View style={styles.accountCopy}>
@@ -550,9 +560,9 @@ function Settings() {
                   {isSwitching ? (
                     <ActivityIndicator size="small" color={COLORS.TEXT_PRIMARY} />
                   ) : isCurrent ? (
-                    <Icon name="check-circle" size={22} color={COLORS.SUCCESS} />
+                    <AppIcon name="success" size={22} color={COLORS.SUCCESS} decorative />
                   ) : (
-                    <Icon name="swap-horizontal" size={22} color={COLORS.TEXT_SECONDARY} />
+                    <AppIcon name="settingsSwap" size={22} color={COLORS.TEXT_SECONDARY} decorative />
                   )}
                 </TouchableOpacity>
                 {!isCurrent ? (
@@ -566,7 +576,7 @@ function Settings() {
                       account: displayName,
                     })}
                   >
-                    <Icon name="close" size={20} color={COLORS.TEXT_SECONDARY} />
+                    <AppIcon name="close" size={20} color={COLORS.TEXT_SECONDARY} decorative />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -580,19 +590,19 @@ function Settings() {
         </Text>
         <GlassCard style={styles.card}>
           {renderRow({
-            icon: "account-plus-outline",
+            icon: "settingsAccount",
             title: t("settings_page.accounts.add"),
             description: t("settings_page.accounts.add_description"),
             onPress: () => void handleAddAccount(),
           })}
           {renderRow({
-            icon: "content-copy",
+            icon: "copyCode",
             title: t("copy_riot_id"),
             description: user.id,
             onPress: () => Clipboard.setStringAsync(user.id),
           })}
           {renderRow({
-            icon: "logout",
+            icon: "settingsLogoutAll",
             title: t("settings_page.accounts.logout_all"),
             onPress: handleLogout,
             danger: true,

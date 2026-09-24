@@ -4,7 +4,6 @@
 // hiệu suất ranked 5 trận (COMP) hoặc chỉ số trận live (MATCH), poll 10s.
 // Dữ liệu: useCombatStore (snapshot live/pregame) + session-insights (intel).
 
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
@@ -33,6 +32,7 @@ import {
 import { formatSessionQueueLabel } from "~/utils/valorant-session";
 import { lockScreenOrientation } from "~/utils/screen-orientation";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import AppIcon from "~/components/ui/AppIcon";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { useRiotScreenSession } from "~/hooks/useRiotScreenSession";
 import { useCombatScreenActivity } from "~/features/combat/useCombatScreenActivity";
@@ -447,7 +447,7 @@ export default function CombatSessionScreen() {
               recyclingKey={presentation.agent.displayIcon}
             />
           ) : (
-            <Icon name="account-outline" size={18} color={TRACKER_COLORS.muted} />
+            <AppIcon name="account" size={18} color={TRACKER_COLORS.muted} decorative />
           )}
         </View>
 
@@ -532,10 +532,11 @@ export default function CombatSessionScreen() {
                 recyclingKey={presentation.peakIcon}
               />
             ) : (
-              <Icon
-                name="chart-timeline-variant-shimmer"
+              <AppIcon
+                name="peakRank"
                 size={15}
                 color={TRACKER_COLORS.faint}
+                decorative
               />
             )}
             <Text style={styles.peakRankName} numberOfLines={1}>
@@ -587,7 +588,12 @@ export default function CombatSessionScreen() {
           {players.map((player) => renderPlayerRow(player, accent))}
           {players.length === 0 ? (
             <View style={styles.emptyRoster}>
-              <Icon name="account-group-outline" size={22} color={TRACKER_COLORS.faint} />
+              <AppIcon
+                name="accountGroup"
+                size={22}
+                color={TRACKER_COLORS.faint}
+                decorative
+              />
               <Text style={styles.emptyRosterText}>
                 {t("combat_session_page.roster_empty")}
               </Text>
@@ -664,7 +670,7 @@ export default function CombatSessionScreen() {
                 pressed && styles.headerActionPressed,
               ]}
             >
-              <Icon name="chevron-left" size={22} color={TRACKER_COLORS.text} />
+              <AppIcon name="back" size={22} color={TRACKER_COLORS.text} decorative />
             </Pressable>
             <View style={styles.headerAvatar}>
               {currentPresentation?.agent?.displayIcon ? (
@@ -678,7 +684,7 @@ export default function CombatSessionScreen() {
                   recyclingKey={currentPresentation.agent.displayIcon}
                 />
               ) : (
-                <Icon name="account" size={20} color={TRACKER_COLORS.muted} />
+                <AppIcon name="account" size={20} color={TRACKER_COLORS.muted} decorative />
               )}
             </View>
             <View style={styles.headerPlayerText}>
@@ -723,11 +729,11 @@ export default function CombatSessionScreen() {
                 pressed && styles.headerActionPressed,
               ]}
             >
-              <Icon
+              <AppIcon
                 name={
                   statsViewMode === "match"
-                    ? "sword-cross"
-                    : "chart-timeline-variant"
+                    ? "combatSword"
+                    : "performance"
                 }
                 size={13}
                 color={
@@ -735,6 +741,7 @@ export default function CombatSessionScreen() {
                     ? TRACKER_COLORS.red
                     : TRACKER_COLORS.cyan
                 }
+                decorative
               />
               <Text
                 style={[
@@ -770,6 +777,7 @@ export default function CombatSessionScreen() {
               accessibilityLabel={t("combat_page.actions.refresh", {
                 defaultValue: "Refresh",
               })}
+              accessibilityState={{ busy: loading, disabled: loading }}
               disabled={loading}
               onPress={() => void loadSnapshot()}
               style={({ pressed }) => [
@@ -777,11 +785,12 @@ export default function CombatSessionScreen() {
                 pressed && styles.headerActionPressed,
               ]}
             >
-              {loading ? (
-                <ActivityIndicator size={16} color={TRACKER_COLORS.cyan} />
-              ) : (
-                <Icon name="refresh" size={19} color={TRACKER_COLORS.text} />
-              )}
+              <AppIcon
+                name={loading ? "loading" : "refresh"}
+                size={19}
+                color={loading ? TRACKER_COLORS.cyan : TRACKER_COLORS.text}
+                decorative
+              />
             </Pressable>
           </View>
         </View>
@@ -789,7 +798,7 @@ export default function CombatSessionScreen() {
         {/* Thanh tóm tắt: số người chơi, map, queue, số người có rank data */}
         <View style={[styles.summaryBar, isTight && styles.summaryBarTight]}>
           <View style={styles.summaryItem}>
-            <Icon name="account-group-outline" size={14} color={TRACKER_COLORS.cyan} />
+            <AppIcon name="accountGroup" size={14} color={TRACKER_COLORS.cyan} decorative />
             <Text style={styles.summaryValue}>{allPlayers.length}/10</Text>
             <Text style={styles.summaryLabel}>
               {t("combat_session_page.players", { defaultValue: "PLAYERS" })}
@@ -797,21 +806,21 @@ export default function CombatSessionScreen() {
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Icon name="map-marker-outline" size={14} color={TRACKER_COLORS.muted} />
+            <AppIcon name="map" size={14} color={TRACKER_COLORS.muted} decorative />
             <Text style={styles.summaryValue} numberOfLines={1}>
               {mapInfo?.displayName || "—"}
             </Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Icon name="sword-cross" size={14} color={TRACKER_COLORS.muted} />
+            <AppIcon name="combatSword" size={14} color={TRACKER_COLORS.muted} decorative />
             <Text style={styles.summaryValue} numberOfLines={1}>
               {queueLabel}
             </Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Icon name="shield-account-outline" size={14} color={TRACKER_COLORS.muted} />
+            <AppIcon name="shield" size={14} color={TRACKER_COLORS.muted} decorative />
             <Text style={styles.summaryValue}>
               {playerSubjectKey ? Object.values(playerIntel).filter(
                 (intel) => intel.status === "ready"
@@ -829,7 +838,7 @@ export default function CombatSessionScreen() {
             {loading ? (
               <ActivityIndicator size="large" color={TRACKER_COLORS.cyan} />
             ) : (
-              <Icon name="sword-cross" size={38} color={TRACKER_COLORS.faint} />
+              <AppIcon name="combatSword" size={38} color={TRACKER_COLORS.faint} decorative />
             )}
             <View style={styles.emptyStateText}>
               <Text style={styles.emptyStateTitle}>
@@ -890,7 +899,7 @@ export default function CombatSessionScreen() {
                         recyclingKey={selectedPresentation.agent.displayIcon}
                       />
                     ) : (
-                      <Icon name="account" size={30} color={TRACKER_COLORS.muted} />
+                      <AppIcon name="account" size={30} color={TRACKER_COLORS.muted} decorative />
                     )}
                   </View>
                   <View style={styles.modalTitleBlock}>
@@ -964,7 +973,7 @@ export default function CombatSessionScreen() {
                       pressed && styles.headerActionPressed,
                     ]}
                   >
-                    <Icon name="close" size={20} color={TRACKER_COLORS.text} />
+                    <AppIcon name="close" size={20} color={TRACKER_COLORS.text} decorative />
                   </Pressable>
                 </View>
               </View>
@@ -983,7 +992,7 @@ export default function CombatSessionScreen() {
                       recyclingKey={selectedPresentation.currentIcon}
                     />
                   ) : (
-                    <Icon name="shield-outline" size={34} color={TRACKER_COLORS.faint} />
+                    <AppIcon name="shield" size={34} color={TRACKER_COLORS.faint} decorative />
                   )}
                   <View>
                     <Text style={styles.modalCardLabel}>
@@ -1011,10 +1020,11 @@ export default function CombatSessionScreen() {
                       recyclingKey={selectedPresentation.peakIcon}
                     />
                   ) : (
-                    <Icon
-                      name="chart-timeline-variant-shimmer"
+                    <AppIcon
+                      name="peakRank"
                       size={34}
                       color={TRACKER_COLORS.faint}
+                      decorative
                     />
                   )}
                   <View>
@@ -1125,7 +1135,7 @@ export default function CombatSessionScreen() {
                 (statsViewMode === "competitive" &&
                   selectedPerformance.status === "private") ? (
                 <View style={styles.privateNotice}>
-                  <Icon name="lock-outline" size={15} color={TRACKER_COLORS.warning} />
+                  <AppIcon name="lockAgent" size={15} color={TRACKER_COLORS.warning} decorative />
                   <Text style={styles.privateNoticeText}>
                     {t("combat_session_page.private_profile", {
                       defaultValue:

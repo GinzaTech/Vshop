@@ -10,11 +10,11 @@ import {
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { useTranslation } from "react-i18next";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
-import type { ComponentProps } from "react";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import GlassCard from "~/components/ui/GlassCard";
+import AppIcon from "~/components/ui/AppIcon";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { COLORS } from "~/constants/DesignSystem";
 import { useChatStore, type ChatFriend } from "~/utils/chat-store";
 import { refreshFriendsRoster } from "~/utils/chat-service";
@@ -24,15 +24,15 @@ import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { filterFriendsByRiotId } from "~/utils/friend-search";
 
 // FriendStateInfo: thông tin hiển thị cho trạng thái của bạn bè
-type FriendStateInfo = { icon: ComponentProps<typeof Icon>["name"]; color: string; label: string };
+type FriendStateInfo = { icon: AppIconName; color: string; label: string };
 
 // STATE_ICONS: mapping trạng thái → icon, màu sắc, label
 const STATE_ICONS: Record<string, FriendStateInfo> = {
-  chat: { icon: "account-check", color: COLORS.SUCCESS, label: "friends_page.in_menu" },
-  dnd: { icon: "bell-off", color: COLORS.STATUS_BUSY, label: "friends_page.dnd" },
-  away: { icon: "clock-outline", color: COLORS.STATUS_AWAY, label: "friends_page.idle" },
-  mobile: { icon: "cellphone", color: COLORS.STATUS_INFO, label: "friends_page.mobile" },
-  offline: { icon: "account-off-outline", color: COLORS.TEXT_SECONDARY, label: "friends_page.offline" },
+  chat: { icon: "connected", color: COLORS.SUCCESS, label: "friends_page.in_menu" },
+  dnd: { icon: "connected", color: COLORS.STATUS_BUSY, label: "friends_page.dnd" },
+  away: { icon: "clock", color: COLORS.STATUS_AWAY, label: "friends_page.idle" },
+  mobile: { icon: "connected", color: COLORS.STATUS_INFO, label: "friends_page.mobile" },
+  offline: { icon: "disconnected", color: COLORS.TEXT_SECONDARY, label: "friends_page.offline" },
 };
 
 // FRIEND_STATE_ORDER: thứ tự sắp xếp bạn bè theo trạng thái
@@ -92,10 +92,11 @@ export default function FriendsScreen() {
               : t("friends_page.open_search")
           }
         >
-          <Icon
-            name={searchVisible ? "close" : "magnify"}
+          <AppIcon
+            name={searchVisible ? "close" : "friendSearch"}
             size={24}
             color={COLORS.TEXT_PRIMARY}
+            decorative
           />
         </Pressable>
       ),
@@ -219,7 +220,7 @@ export default function FriendsScreen() {
           <Text style={styles.friendStatus}>{item.status ? item.status : t(stateInfo.label)}</Text>
         </View>
         {/* Icon trạng thái */}
-        <Icon name={stateInfo.icon} size={18} color={stateInfo.color} />
+        <AppIcon name={stateInfo.icon} size={18} color={stateInfo.color} decorative />
       </Pressable>
     );
   };
@@ -228,7 +229,7 @@ export default function FriendsScreen() {
     <View style={styles.screen}>
       {searchVisible ? (
         <View style={styles.searchBar}>
-          <Icon name="magnify" size={22} color={COLORS.TEXT_SECONDARY} />
+          <AppIcon name="friendSearch" size={22} color={COLORS.TEXT_SECONDARY} decorative />
           <TextInput
             testID="friends-search-input"
             autoFocus
@@ -253,7 +254,7 @@ export default function FriendsScreen() {
               accessibilityRole="button"
               accessibilityLabel={t("friends_page.clear_search")}
             >
-              <Icon name="close-circle" size={20} color={COLORS.TEXT_SECONDARY} />
+              <AppIcon name="close" size={20} color={COLORS.TEXT_SECONDARY} decorative />
             </Pressable>
           ) : null}
         </View>
@@ -270,7 +271,7 @@ export default function FriendsScreen() {
           <GlassCard style={styles.emptyCard}>
             {normalizedSearchQuery ? (
               <>
-                <Icon name="account-search-outline" size={48} color={COLORS.TEXT_SECONDARY} />
+                <AppIcon name="friendSearch" size={48} color={COLORS.TEXT_SECONDARY} decorative />
                 <Text style={styles.emptyTitle}>{t("friends_page.search_empty_title")}</Text>
                 <Text style={styles.emptySubtitle}>
                   {t("friends_page.search_empty_subtitle", { query: searchQuery.trim() })}
@@ -283,10 +284,11 @@ export default function FriendsScreen() {
               </>
             ) : (
               <>
-                <Icon
-                  name={loadError ? "wifi-alert" : "account-group-outline"}
+                <AppIcon
+                  name={loadError ? "error" : "accountGroup"}
                   size={48}
                   color={COLORS.TEXT_SECONDARY}
+                  decorative
                 />
                 <Text style={styles.emptyTitle}>
                   {loadError ?? t("friends_page.empty_title")}

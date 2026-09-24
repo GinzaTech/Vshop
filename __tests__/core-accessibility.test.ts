@@ -60,4 +60,43 @@ describe("core journey automation and accessibility contracts", () => {
     expect(controlSource).toContain('accessibilityLabel={t("common.close")}');
     expect(controlSource).toContain(hitSlop);
   });
+
+  it("keeps Task 6 state on labelled parent controls", () => {
+    const combatSession = read("features/combat/CombatSessionScreen.tsx");
+    expect(combatSession).toContain('accessibilityRole="button"');
+    expect(combatSession).toContain(
+      'accessibilityLabel={t("combat_page.actions.refresh",',
+    );
+    expect(combatSession).toContain(
+      "accessibilityState={{ busy: loading, disabled: loading }}",
+    );
+
+    const combat = read("app/(authenticated)/combat.tsx");
+    expect(combat).toContain('t("combat_page.actions.unready")');
+    expect(combat).toContain('t("combat_page.actions.ready")');
+    expect(combat).toContain(
+      "accessibilityState={{ busy: partyReadyLoading, disabled: partyReadyLoading }}",
+    );
+
+    const chat = read("app/chat/[friendId].tsx");
+    expect(chat).toContain('accessibilityLabel={t("chat_page.send")}');
+    expect(chat).toMatch(/accessibilityState=\{\{\s*disabled: !canSend,/);
+
+    const settings = read("app/(authenticated)/settings.tsx");
+    expect(settings).toContain("accessibilityLabel={title}");
+    expect(settings).toContain("accessibilityState={{ disabled: !onPress }}");
+  });
+
+  it.each([
+    "features/combat/CombatSessionScreen.tsx",
+    "app/(authenticated)/combat.tsx",
+    "app/(authenticated)/friends.tsx",
+    "app/(authenticated)/settings.tsx",
+    "app/chat/[friendId].tsx",
+  ])("keeps every Task 6 child AppIcon decorative in %s", (file) => {
+    const iconTags = read(file).match(/<AppIcon\b[\s\S]*?\/>/g) ?? [];
+
+    expect(iconTags.length).toBeGreaterThan(0);
+    expect(iconTags.filter((tag) => !/\bdecorative\b/.test(tag))).toEqual([]);
+  });
 });

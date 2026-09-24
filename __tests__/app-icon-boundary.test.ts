@@ -7,13 +7,7 @@ const MATERIAL_COMMUNITY_MODULE =
   "@expo/vector-icons/MaterialCommunityIcons";
 const MORPHICONS_MODULE = "morphicons/react-native";
 
-const remainingLegacyImports = new Set([
-  "app/(authenticated)/combat.tsx",
-  "app/(authenticated)/friends.tsx",
-  "app/(authenticated)/settings.tsx",
-  "app/chat/[friendId].tsx",
-  "features/combat/CombatSessionScreen.tsx",
-]);
+const remainingLegacyImports = new Set<string>();
 
 function listSourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -41,19 +35,17 @@ function findFiles(pattern: RegExp): string[] {
 }
 
 describe("AppIcon source boundary", () => {
-  it("keeps direct MaterialCommunityIcons imports at the boundary and exact remaining allowlist", () => {
+  it("keeps MaterialCommunityIcons exclusively inside the AppIcon boundary", () => {
     const directMaterialCommunityImports = findFiles(
       new RegExp(
         `(?:from\\s+|import\\s+)["']${MATERIAL_COMMUNITY_MODULE}["']`,
       ),
     );
 
-    expect(directMaterialCommunityImports).toContain(APP_ICON_BOUNDARY);
-    expect(
-      directMaterialCommunityImports.filter(
-        (filePath) => filePath !== APP_ICON_BOUNDARY,
-      ),
-    ).toEqual([...remainingLegacyImports].sort());
+    expect(directMaterialCommunityImports).toEqual([
+      APP_ICON_BOUNDARY,
+      ...remainingLegacyImports,
+    ]);
   });
 
   it("keeps direct MorphIcon imports inside the AppIcon boundary", () => {

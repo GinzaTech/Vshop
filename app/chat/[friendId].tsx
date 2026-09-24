@@ -25,7 +25,6 @@ import {
   requestChatHistory,
   sendChatMessage,
 } from "~/utils/chat-service";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { COLORS } from "~/constants/DesignSystem";
 import {
   SafeAreaView,
@@ -33,6 +32,7 @@ import {
 } from "react-native-safe-area-context";
 import { useUserStore } from "~/hooks/useUserStore";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import AppIcon from "~/components/ui/AppIcon";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { useTranslation } from "react-i18next";
 import { sanitizeErrorForLog } from "~/utils/log-redaction";
@@ -252,7 +252,7 @@ export default function ChatScreen() {
           accessibilityLabel={t("chat_page.back")}
           hitSlop={8}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.TEXT_PRIMARY} />
+          <AppIcon name="back" size={24} color={COLORS.TEXT_PRIMARY} decorative />
         </Pressable>
         <View style={styles.headerIdentity}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -343,10 +343,11 @@ export default function ChatScreen() {
             pointerEvents="none"
             style={styles.sendButtonSurface}
           >
-            <Icon
-              name="send"
+            <AppIcon
+              name="chatSend"
               size={20}
               color={COLORS.PURE_WHITE}
+              decorative
             />
           </View>
         </Pressable>

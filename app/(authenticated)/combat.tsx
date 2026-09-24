@@ -15,7 +15,6 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { CachedImage as Image } from "~/components/CachedImage";
 import * as Clipboard from "expo-clipboard";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
 import Animated, {
   FadeInDown,
@@ -29,6 +28,7 @@ import GlassCard from "~/components/ui/GlassCard";
 import InfoPill from "~/components/ui/InfoPill";
 import ValorantButton from "~/components/ui/ValorantButton";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";
 import { getAssets } from "~/utils/valorant-assets";
 import {
@@ -467,10 +467,11 @@ export function PartyChatPanel({
           onPress={onRefreshPartyChat}
           style={styles.partyChatRefreshButton}
         >
-          <Icon
+          <AppIcon
             name={loading || partyRefreshing ? "loading" : "refresh"}
             size={18}
             color={COLORS.TEXT_PRIMARY}
+            decorative
           />
         </TouchableOpacity>
       </View>
@@ -541,7 +542,7 @@ export function PartyChatPanel({
           onPress={handleSendChat}
           style={[styles.chatSendButton, sendDisabled ? styles.chatSendButtonDisabled : null]}
         >
-          <Icon name="send" size={17} color={COLORS.PURE_WHITE} />
+          <AppIcon name="chatSend" size={17} color={COLORS.PURE_WHITE} decorative />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -830,16 +831,25 @@ export default function Combat() {
               {/* Hàng metrics: map name, party size, queue */}
               <View style={styles.metricRow}>
                 <InfoPill style={styles.metricPill}>
-                  <Icon name="map-outline" size={14} color={COLORS.TEXT_PRIMARY} />
+                  <AppIcon name="map" size={14} color={COLORS.TEXT_PRIMARY} decorative />
                   <Text style={styles.metricText} numberOfLines={1}>{mapDisplayName}</Text>
                 </InfoPill>
                 <InfoPill style={styles.metricPillCompact}>
-                  <Icon name="account-group-outline" size={14} color={COLORS.TEXT_PRIMARY} />
+                  <AppIcon name="party" size={14} color={COLORS.TEXT_PRIMARY} decorative />
                   <Text style={styles.metricText}>{partySize}/{partyCapacity}</Text>
                 </InfoPill>
                 {!isIdleSession ? (
                   <InfoPill style={styles.metricPill}>
-                    <Icon name="pulse" size={14} color={COLORS.TEXT_PRIMARY} />
+                    <AppIcon
+                      name={
+                        sessionSnapshot.state === "pregame"
+                          ? "combatPregame"
+                          : "combatLive"
+                      }
+                      size={14}
+                      color={COLORS.TEXT_PRIMARY}
+                      decorative
+                    />
                     <Text style={styles.metricText} numberOfLines={1}>
                       {sessionLoading ? t("combat_page.loading") : queueDisplayLabel}
                     </Text>
@@ -859,6 +869,11 @@ export default function Combat() {
               {sessionSnapshot.partyId ? (
                 <TouchableOpacity
                   accessibilityRole="button"
+                  accessibilityLabel={
+                    currentPartyMember?.IsReady
+                      ? t("combat_page.actions.unready")
+                      : t("combat_page.actions.ready")
+                  }
                   accessibilityState={{ busy: partyReadyLoading, disabled: partyReadyLoading }}
                   activeOpacity={0.75}
                   disabled={partyReadyLoading}
@@ -872,10 +887,11 @@ export default function Combat() {
                   {partyReadyLoading ? (
                     <ActivityIndicator size="small" color={currentPartyMember?.IsReady ? COLORS.WARNING : COLORS.SUCCESS} />
                   ) : (
-                    <Icon
-                      name={currentPartyMember?.IsReady ? "close-circle-outline" : "check-circle-outline"}
+                    <AppIcon
+                      name={currentPartyMember?.IsReady ? "cancelReady" : "ready"}
                       size={15}
                       color={currentPartyMember?.IsReady ? COLORS.WARNING : COLORS.SUCCESS}
+                      decorative
                     />
                   )}
                   <Text numberOfLines={1} style={[styles.partyReadyButtonText, { color: currentPartyMember?.IsReady ? COLORS.WARNING : COLORS.SUCCESS }]}>
@@ -925,7 +941,7 @@ export default function Combat() {
                       style={styles.smallIconButton}
                       onPress={handleCopyCode}
                     >
-                      <Icon name="content-copy" size={15} color={COLORS.TEXT_PRIMARY} />
+                      <AppIcon name="copyCode" size={15} color={COLORS.TEXT_PRIMARY} decorative />
                     </TouchableOpacity>
                     {copied ? (
                       <Animated.View
@@ -933,7 +949,7 @@ export default function Combat() {
                         exiting={FadeOut.duration(120).reduceMotion(ReduceMotion.System)}
                         style={styles.copiedBadge}
                       >
-                        <Icon name="check-circle-outline" size={14} color={COLORS.SUCCESS} />
+                        <AppIcon name="success" size={14} color={COLORS.SUCCESS} decorative />
                         <Text style={styles.copiedText}>{t("combat_page.copied")}</Text>
                       </Animated.View>
                     ) : null}
@@ -947,7 +963,7 @@ export default function Combat() {
                     disabled={partyCodeLoading}
                     onPress={handleDisableCode}
                   >
-                    <Icon name="link-off" size={15} color={COLORS.WARNING} />
+                    <AppIcon name="disconnected" size={15} color={COLORS.WARNING} decorative />
                   </TouchableOpacity>
                 </>
               ) : null}
@@ -994,7 +1010,7 @@ export default function Combat() {
                 {quitPartyLoading ? (
                   <ActivityIndicator size="small" color={COLORS.WARNING} />
                 ) : (
-                  <Icon name="logout-variant" size={15} color={COLORS.WARNING} />
+                  <AppIcon name="leaveParty" size={15} color={COLORS.WARNING} decorative />
                 )}
                 <Text style={styles.quitPartyButtonText}>{t("combat_page.actions.quit_party")}</Text>
               </TouchableOpacity>

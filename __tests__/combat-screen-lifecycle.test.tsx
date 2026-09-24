@@ -42,7 +42,7 @@ jest.mock("~/features/combat/session-insights", () => ({
 jest.mock("~/utils/valorant-assets", () => ({ getAssets: () => ({ maps: [], competitiveTiers: [] }), getAgent: () => ({ agents: [] }) }));
 jest.mock("~/utils/screen-orientation", () => ({ lockScreenOrientation: jest.fn().mockResolvedValue(false) }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => "Icon");
+jest.mock("~/components/ui/AppIcon", () => "AppIcon");
 jest.mock("expo-status-bar", () => ({ StatusBar: "StatusBar" }));
 jest.mock("react-native-safe-area-context", () => ({ SafeAreaView: "SafeAreaView" }));
 jest.mock("~/components/CachedImage", () => ({ CachedImage: "Image" }));
