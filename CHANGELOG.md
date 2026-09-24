@@ -9,11 +9,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Route all application icons through the typed `AppIcon` semantic boundary.
-  Named Lucide data feeds Morphicons through `react-native-svg`; only the
-  boundary owns the controlled MaterialCommunityIcons fallback for
-  Valorant-specific weapon, rank and role glyphs. Stateful controls keep one
-  mounted icon, the wishlist selected state deliberately reuses the Heart path
-  with a fill change, and every morph follows the user's Reduce Motion setting.
+  Every definition, including Valorant-specific weapon, rank and role glyphs,
+  now reaches `MorphIcon`; `AppIcon` has no MaterialCommunityIcons fallback.
+  Stateful controls keep one mounted icon, the wishlist selected state
+  deliberately reuses the Heart path with a fill change, and every morph
+  follows the user's Reduce Motion setting.
+- Pin `lucide` at `1.47.0`, isolate its runtime deep ESM icon imports in
+  `components/ui/app-icon-lucide.ts`, and keep the Valorant pistol as a local
+  `IconNode` so the AppIcon path avoids the Lucide CommonJS barrel and no longer
+  needs a vector-font fallback. Jest now transforms `.mjs` through the Expo
+  transformer. Expo's export still contains a transitive
+  `MaterialCommunityIcons.ttf` asset; it remains included in the measured asset
+  budget and is not claimed as removed by this migration.
+- Run the Android export gate with Expo's optimized module graph and tree
+  shaking. The development, preview and production EAS profiles carry the same
+  environment; `production-store` inherits it from production. The
+  `@hyeon004/vshop` EAS production environment is also set and verified with
+  both optimizer values as plaintext variables for future
+  `eas update --environment production` runs.
 - Advance the source/native candidate to `4.1.9` (Android `90`, iOS `42`). The
   added `react-native-svg` runtime requires a rebuilt binary, so this source
   must not be delivered to the existing 4.1.8 runtime by OTA.
@@ -28,18 +41,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Validation
 
-- Final AppIcon policy/component tests pass 2 suites / 9 tests. They pin the
-  sole MaterialCommunityIcons and Morphicons import boundary, reject namespace
-  and deep Lucide imports, keep decorative icons silent, expose one label for
-  icon-only use and require `reducedMotion="user"` across state changes.
-- Task 7A scoped gates pass strict TypeScript, zero-warning ESLint for the
-  AppIcon boundary/registry/tests, metadata assertions, all 21 Mermaid diagrams,
-  138 local documentation links and `git diff --check`. The full app check,
-  audit and Android export were intentionally not run in this source-only pass.
+- The first full `pnpm run check` attempt passed strict TypeScript,
+  zero-warning ESLint, the production dependency-audit policy and 87 Jest
+  suites / 909 tests, then failed the unchanged Hermes budget at
+  8.79/8.00 MiB. The invocation is not reported as a full-check pass.
+- Isolating only the Lucide deep ESM imports reduced Hermes to 8.26 MiB, still
+  above budget. With Expo optimized graph/tree shaking enabled, the final
+  Android export gate passes at 10.16/12 MiB total, 7.69/8 MiB JS/Hermes and
+  1.25/1.50 MiB for the largest asset.
+- After deleting the last unused vendor-glyph return surface, the final full
+  `pnpm run check` passes 87 Jest suites / 910 tests, the production audit
+  policy and the same optimized Android export budgets.
+- Final AppIcon policy tests enforce zero MaterialCommunityIcons runtime
+  imports, keep the sole Morphicons import in `AppIcon.tsx`, and allow Lucide
+  runtime deep imports only in `app-icon-lucide.ts`. They also keep decorative
+  icons silent, expose one label for icon-only use and require
+  `reducedMotion="user"` across state changes.
+- Documentation validation parses all 21 Mermaid diagrams, resolves 138 local
+  documentation links and passes `git diff --check`.
+- `pnpm dlx expo-doctor` passes 20/21 checks. Its only failure is the existing
+  Expo SDK patch-alignment warning: `@expo/metro-runtime`, `expo`,
+  `expo-constants`, `expo-notifications`, `expo-router` and `expo-updates` are
+  each one patch behind Doctor's current SDK 57 recommendation. This migration
+  does not hide or auto-upgrade that separate dependency set.
 - A 4.1.9 native development/production build, APK installation, device flows,
-  TalkBack/VoiceOver traversal, frame metrics, logcat review and final
-  Android/Hermes export budgets are **NOT VERIFIED**. No 4.1.9 OTA, EAS build,
-  APK, commit or push is claimed by this source-hardening pass.
+  TalkBack/VoiceOver traversal, frame metrics and device logcat review are
+  **NOT VERIFIED**. The optimized static Android export is not APK/device proof;
+  production-environment parity does not make 4.1.9 compatible with the 4.1.8
+  binary/runtime. No 4.1.9 OTA, EAS build, APK, commit or push is claimed.
 - Android development client `4.1.8 (89)` reproduced the Name Service 403 startup loop, then verified the fix: silent renewal completed, `syncAllData` finished in 3,131 ms and Profile rendered without FATAL/ANR/SIGSEGV. A real Riot maintenance outage was not induced; maintenance copy, stale same-account fallback and hostile/lookalike URL rejection are covered by source tests.
 - `pnpm run check` passed: strict TypeScript, zero-warning ESLint, 79 Jest suites / 828 tests, production dependency-audit policy, and Android export/budget (10.46 MiB total; 7.99 MiB JS/Hermes). Critical `season-actions.ts` branch coverage is 80.82%.
 - DEV-only Match/Profile fixture payloads and flow tracing now resolve to tiny fail-closed production facades, preserving the full development harness while keeping the unchanged 8 MiB Hermes budget and excluding trace/storage instrumentation from release bundles.

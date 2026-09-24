@@ -69,7 +69,7 @@ Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout c
 | `EmptyStateCard` | trạng thái rỗng có nội dung hướng dẫn |
 | `TwoColumnGrid` | grid nhỏ có số lượng item hữu hạn |
 | `AppRefreshControl` | pull-to-refresh đồng nhất Android/iOS |
-| `AppIcon` | boundary semantic có type duy nhất cho icon Lucide/Morphicons và fallback game đặc thù |
+| `AppIcon` | boundary semantic có type duy nhất; mọi icon, kể cả glyph Valorant, render qua Morphicons |
 
 Trước khi tạo component mới, kiểm tra `components/ui/`. Primitive không được chứa domain logic hoặc tự gọi Riot API.
 
@@ -77,11 +77,18 @@ Trước khi tạo component mới, kiểm tra `components/ui/`. Primitive khôn
 
 - Screen/component chỉ truyền `AppIconName`; không import trực tiếp
   `morphicons/react-native` hoặc MaterialCommunityIcons.
-- `app-icon-registry.ts` dùng named imports từ `lucide`. Namespace import và
-  deep import `lucide/*` bị source-policy test cấm để giữ tree shaking.
+- `AppIcon.tsx` là nơi duy nhất import `morphicons/react-native`; source runtime
+  không còn import MaterialCommunityIcons.
+- `app-icon-registry.ts` chỉ import từ `app-icon-lucide.ts`. File boundary này
+  cô lập mọi runtime deep ESM import `lucide/dist/esm/icons/*.mjs`; namespace và
+  runtime barrel import bị source-policy test cấm. `lucide` phải giữ exact pin
+  `1.47.0` vì các internal path phụ thuộc đúng version.
 - Chuỗi runtime chuẩn là semantic token → Lucide `IconNode` → Morphicons →
-  `react-native-svg`. Hình pistol/rank/role đặc thù Valorant được giữ đúng nghĩa
-  qua fallback MaterialCommunityIcons chỉ nằm trong `AppIcon.tsx`.
+  `react-native-svg`. Pistol dùng `IconNode` local trong `app-icon-lucide.ts`;
+  rank/role và các glyph Valorant khác cũng map sang vector data morphable, không
+  dùng fallback icon font.
+- Jest map `.mjs` sang Expo JS transformer để unit/component tests đọc đúng các
+  deep ESM module giống Metro.
 - `heart` ↔ `heartFilled` và `wishlist` ↔ `wishlistFilled` là ngoại lệ fill có
   chủ đích: dùng cùng path Heart, đổi `fill="none"` sang màu hiện tại; không đổi
   sang HeartPlus/HeartMinus và không giả path morph.
@@ -133,7 +140,7 @@ Quy tắc:
 - Button/pressable cần `accessibilityRole`, label khi icon-only và `accessibilityState` cho selected/disabled/busy.
 - Icon trong button/tab đã có label là decorative; parent giữ role, label và
   state. Chỉ `AppIcon` icon-only mới truyền `label`, tạo đúng một accessibility
-  node. Fallback game luôn bị ẩn khỏi TalkBack/VoiceOver để tránh node trùng.
+  node. Glyph game cũng đi qua `MorphIcon` và tuân cùng decorative/label policy.
 - Text có thể dài phải có `numberOfLines` hoặc container co giãn đúng.
 - Grid thay đổi số cột theo chiều rộng; không hard-code card width vượt viewport.
 - Chỉ Match Session được landscape. Màn còn lại phải ổn định ở portrait và hỗ trợ tablet khi có thể.
@@ -156,6 +163,18 @@ pnpm run test:api
 `check:android` (Android export và bundle budget). Export dùng thư mục tạm
 riêng dưới `.codex-tmp/` và tự dọn sau khi hoàn tất hoặc lỗi. Không cần chạy
 export lần thứ hai; bản export không phải APK đã build/cài trên thiết bị.
+
+`check:android` luôn đặt `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` và
+`EXPO_UNSTABLE_TREE_SHAKING=1` cho Expo export. `eas.json` mang cùng hai biến ở
+development, preview và production; `production-store` extends production nên
+kế thừa cùng graph/tree-shaking contract. Không đo local export bằng một env rồi
+build EAS bằng env khác.
+
+EAS project `@hyeon004/vshop` production environment đã được set và verify cả
+hai biến trên dưới dạng plaintext. Vì vậy future
+`eas update --environment production` dùng cùng optimizer với export/build.
+Đây chỉ là parity cấu hình: tuyệt đối không OTA source 4.1.9 phụ thuộc native
+`react-native-svg` vào binary/runtime 4.1.8.
 
 ## 8. Versioning
 
@@ -202,14 +221,21 @@ Sau khi build:
 
 - Metadata nguồn: version/runtime `4.1.9`, Android `versionCode 90`, iOS
   `buildNumber 42`.
-- Migration AppIcon đã hoàn tất ở source: direct MaterialCommunityIcons và
-  `morphicons/react-native` chỉ còn trong `components/ui/AppIcon.tsx`; registry
-  dùng named Lucide imports và fallback game có kiểm soát.
-- Targeted source policy/AppIcon tests đã PASS 2 suite / 9 test. Strict
-  TypeScript, scoped zero-warning ESLint, metadata assertions, 21 Mermaid
-  diagram, 138 local link và `git diff --check` cũng PASS. Full
-  `pnpm run check`, audit, Android export/budget và security gate vẫn phải chạy
-  ở bước release đầy đủ.
+- Migration AppIcon đã hoàn tất ở source: không còn MaterialCommunityIcons
+  runtime; `morphicons/react-native` chỉ được import trong `AppIcon.tsx`, còn
+  runtime deep ESM imports của `lucide@1.47.0` chỉ nằm trong
+  `app-icon-lucide.ts`. Mọi entry registry, gồm custom local Pistol `IconNode`,
+  có `kind: "morph"`.
+- Lần `pnpm run check` đầy đủ đầu tiên đạt strict TypeScript, ESLint không
+  warning, production audit policy và 87 Jest suite / 909 test, rồi fail budget
+  Hermes ở 8,79/8,00 MiB. Chỉ deep import giảm còn 8,26 MiB, vẫn fail.
+- Android gate cuối với Expo optimized graph/tree shaking PASS: tổng
+  10,16/12 MiB, Hermes 7,69/8 MiB, asset lớn nhất 1,25/1,50 MiB. Đây là static
+  export/budget evidence, không phải native APK evidence.
+- EAS project `@hyeon004/vshop` production environment đã set/verify hai
+  optimizer vars dạng plaintext; future `eas update --environment production`
+  dùng cùng graph/tree shaking. 4.1.9 vẫn không được OTA vào runtime 4.1.8.
+- 21 Mermaid diagram, 138 local link và `git diff --check` PASS.
 - Development/production native build, artifact URL, APK install, device flows,
   TalkBack/VoiceOver, Reduce Motion on-device, frame metrics và logcat 4.1.9 đều
   **NOT VERIFIED**. Không có OTA/build/artifact 4.1.9 được tuyên bố.

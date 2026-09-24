@@ -31,8 +31,9 @@ Vshop/
 │   ├── profile/                 profile dashboard sections
 │   └── ui/                      design-system primitives
 │       ├── AppIcon.tsx          boundary Morphicons/vendor duy nhất
-│       ├── app-icon-registry.ts semantic token → Lucide/fallback có type
-│       ├── app-icon-types.ts    union definition cho morph/legacy
+│       ├── app-icon-registry.ts semantic token → morphable IconNode có type
+│       ├── app-icon-lucide.ts   deep ESM Lucide + custom Pistol boundary
+│       ├── app-icon-types.ts    định nghĩa MorphIcon duy nhất
 │       ├── AppRefreshControl.tsx
 │       ├── GlassCard.tsx
 │       ├── ValorantButton.tsx
@@ -105,10 +106,11 @@ Vshop/
   `player-stats-data`, `player-stats-format`; tab state nằm trong
   `useProfileDashboardTabStore`, không sao chép logic win rate.
 - `components/ui/AppIcon.tsx` là boundary icon runtime duy nhất. Screen/feature
-  truyền `AppIconName`; registry dùng named Lucide data, Morphicons render qua
-  `react-native-svg`, còn MaterialCommunityIcons chỉ là fallback cho pictogram
-  game không có hình tương đương chính xác. Wishlist filled giữ cùng Heart path
-  và chỉ đổi fill.
+  truyền `AppIconName`; registry nhận exact-version Lucide data từ
+  `app-icon-lucide.ts`, Morphicons render mọi glyph qua `react-native-svg`, và
+  không còn MaterialCommunityIcons fallback. Deep ESM runtime import chỉ được
+  phép trong boundary Lucide; pistol dùng `IconNode` local. Wishlist filled giữ
+  cùng Heart path và chỉ đổi fill.
 - Các hook dữ liệu màn hình theo dõi tài khoản, token và vòng đời. Combat
   polling chỉ hoạt động khi màn hình có focus và app ở foreground.
 - `utils/log-redaction.ts` là boundary chẩn đoán chung. Flow trace và API log
@@ -130,9 +132,10 @@ Quy tắc:
 5. Endpoint động phải validate region và encode ID trước khi gửi.
 6. Animation tương tác chạy trên UI thread bằng Reanimated; timing/spring lấy từ `constants/Motion.ts`.
 7. Animation lặp hoặc trang trí phải tôn trọng thiết lập Reduce Motion của hệ điều hành.
-8. Icon UI dùng `AppIconName`; direct MaterialCommunityIcons/Morphicons chỉ được
-   xuất hiện trong `AppIcon.tsx`, không dùng namespace/deep Lucide import. Icon
-   trong control đã có label là decorative; state accessibility nằm ở parent.
+8. Icon UI dùng `AppIconName`; không import MaterialCommunityIcons, còn direct
+   Morphicons chỉ được xuất hiện trong `AppIcon.tsx`. Runtime deep Lucide import
+   chỉ nằm tại `app-icon-lucide.ts`; không dùng namespace hoặc runtime barrel.
+   Icon trong control đã có label là decorative; state accessibility ở parent.
 9. Pull-to-refresh dùng `useAsyncRefresh` + `AppRefreshControl` và phải giữ vùng cuộn khi dữ liệu rỗng.
 10. Chi tiết coding rule xem `AGENTS.md`; token/build rule xem `BUILD_DESIGN_SYSTEM.md`.
 
@@ -194,6 +197,17 @@ pnpm run test:api        # gọi mạng thật các public API app đang dùng
 pnpm run check           # typecheck + lint + test:ci + audit + Android export/budget
 ```
 
+Gate Android đặt `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` và
+`EXPO_UNSTABLE_TREE_SHAKING=1`; development/preview/production EAS dùng cùng
+env, còn `production-store` kế thừa production. Lần full check đầu đạt source,
+audit và 87 suite / 909 test nhưng fail Hermes 8,79/8,00 MiB; deep-import-only
+đạt 8,26 MiB. Export tối ưu cuối PASS 10,16/12 MiB tổng, 7,69/8 MiB Hermes và
+1,25/1,50 MiB asset lớn nhất.
+
+EAS project `@hyeon004/vshop` production environment đã set/verify hai optimizer
+vars dạng plaintext, nên future `eas update --environment production` dùng cùng
+optimizer. Parity này không cho phép 4.1.9 OTA vào binary/runtime 4.1.8.
+
 API Riot cần access token/entitlements token chỉ được integration-test bằng session thử nghiệm hợp lệ. Các endpoint thay đổi trạng thái như lock agent, quit game, queue, loadout và party không được tự động gọi trong smoke test để tránh thay đổi tài khoản thật; URL/missing-param/encoding của chúng được kiểm tra đầy đủ bằng contract test.
 
 ## Build và release
@@ -207,7 +221,8 @@ pnpm dlx eas-cli@latest build --profile production --platform android
 Không phát hành Gradle release local nếu `android/app/build.gradle` còn dùng `debug.keystore`. Checklist chi tiết và artifact policy nằm trong `BUILD_DESIGN_SYSTEM.md`.
 
 Source candidate 4.1.9 dùng `react-native-svg` trong chuỗi
-Lucide → Morphicons → SVG nên bắt buộc rebuild native client. Metadata là
-4.1.9/Android 90/iOS 42, nhưng build, export budget, APK install, device
-interaction, accessibility thủ công và performance 4.1.9 hiện **NOT VERIFIED**.
-Không publish OTA 4.1.9 cho runtime 4.1.8.
+Lucide `IconNode` → Morphicons → SVG nên bắt buộc rebuild native client.
+Metadata là 4.1.9/Android 90/iOS 42 và optimized static export budget đã PASS,
+nhưng EAS native build, APK install, device interaction, accessibility thủ công
+và performance 4.1.9 hiện **NOT VERIFIED**. Không publish OTA 4.1.9 cho runtime
+4.1.8.

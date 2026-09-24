@@ -9,10 +9,10 @@ flowchart TB
     Primitives[UI primitives, DesignSystem, Motion]
     AppIcon[AppIcon semantic boundary]
     IconRegistry[Typed icon registry]
-    Lucide[Named Lucide IconNode data]
+    LucideBoundary[app-icon-lucide deep ESM boundary]
     Morphicons[Morphicons state transition runtime]
     Svg[react-native-svg]
-    GameFallback[Controlled game-specific fallback]
+    LocalPistol[Custom local Pistol IconNode]
     Stores[Zustand domain stores]
     Hooks[Screen lifecycle và local data hooks]
     Domain[Transforms, thống kê, cache policy, sync]
@@ -30,10 +30,10 @@ flowchart TB
     UI --> Primitives
     UI --> AppIcon
     AppIcon --> IconRegistry
-    IconRegistry --> Lucide
+    IconRegistry --> LucideBoundary
+    LucideBoundary --> LocalPistol
     AppIcon --> Morphicons
     Morphicons --> Svg
-    AppIcon --> GameFallback
     Svg --> Native
     UI --> Hooks
     UI --> Stores
@@ -60,13 +60,13 @@ Network DTO được chuyển sang view model trước khi render bảng/card. P
 chỉ lưu subset cần thiết, không lưu promise hoặc loading flags. Tracer/log là
 chẩn đoán opt-in, không phải dependency cần thiết để app hoạt động.
 
-`AppIcon` là nơi duy nhất biết vendor. UI chỉ dùng semantic token có type;
-Lucide cung cấp path data, Morphicons chuyển trạng thái và `react-native-svg`
-render SVG native. Fallback MaterialCommunityIcons chỉ giữ pictogram
-Valorant-specific không có hình tương đương chính xác. Fallback không path-morph
-với Lucide; wishlist selected giữ cùng Heart path và chỉ đổi fill. Icon con của
-control đã có label là decorative, còn icon-only chỉ tạo một accessibility node;
-mọi morph dùng `reducedMotion="user"`.
+`AppIcon` là boundary Morphicons duy nhất. UI chỉ dùng semantic token có type;
+`app-icon-lucide.ts` cô lập deep ESM Lucide path data, Morphicons chuyển trạng
+thái và `react-native-svg` render SVG native. Pistol dùng custom local
+`IconNode`; mọi glyph Valorant cũng đi qua MorphIcon và không còn
+MaterialCommunityIcons fallback. Wishlist selected giữ cùng Heart path và chỉ
+đổi fill. Icon con của control đã có label là decorative, còn icon-only chỉ tạo
+một accessibility node; mọi morph dùng `reducedMotion="user"`.
 
 Nguồn: [cấu trúc dự án](../DIRECTORY_STRUCTURE.md), [HTTP clients](../services/http/clients.ts),
 [match facade](../utils/match-ui.ts), [storage](../utils/storage.ts).

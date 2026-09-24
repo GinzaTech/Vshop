@@ -20,10 +20,10 @@ flowchart TD
     Assets[assets/ ảnh và i18n]
     AppIcon[components/ui/AppIcon.tsx]
     IconRegistry[components/ui/app-icon-registry.ts]
-    Lucide[lucide named data]
+    LucideBoundary[app-icon-lucide deep ESM data]
     Morphicons[morphicons/react-native]
     Svg[react-native-svg]
-    GameFallback[MaterialCommunityIcons fallback]
+    LocalPistol[custom local Pistol IconNode]
     App --> Features
     App --> Components
     App --> Hooks
@@ -52,10 +52,10 @@ flowchart TD
     Features --> AppIcon
     Components --> AppIcon
     AppIcon --> IconRegistry
-    IconRegistry --> Lucide
+    IconRegistry --> LucideBoundary
+    LucideBoundary --> LocalPistol
     AppIcon --> Morphicons
     Morphicons --> Svg
-    AppIcon --> GameFallback
 ```
 
 Một số `utils` tương thích cũ re-export service, nên không diễn giải hình này
@@ -64,11 +64,12 @@ như quy tắc cấm mọi dependency ngược giữa `utils` và `hooks`. Ví d
 runtime chỉ để chia file; import chỉ dùng type cần dùng `import type`.
 
 Nhánh icon là boundary một chiều: consumer chỉ import `AppIcon`/`AppIconName`;
-chỉ registry import named Lucide data và chỉ `AppIcon.tsx` import
-`morphicons/react-native` cùng fallback MaterialCommunityIcons. Namespace hoặc
-deep Lucide import bị cấm. `react-native-svg` là native dependency, vì vậy thay
-đổi này cần binary 4.1.9 mới; OTA vào runtime 4.1.8 không hợp lệ. Build và device
-verification 4.1.9 vẫn **NOT VERIFIED**.
+registry chỉ import `app-icon-lucide.ts`, runtime deep ESM Lucide import chỉ nằm
+trong file này, và chỉ `AppIcon.tsx` import `morphicons/react-native`.
+MaterialCommunityIcons không còn trong runtime AppIcon; pistol là local
+`IconNode`. `react-native-svg` là native dependency, vì vậy thay đổi này cần
+binary 4.1.9 mới; OTA vào runtime 4.1.8 không hợp lệ. Optimized static export đã
+PASS, còn native build và device verification 4.1.9 vẫn **NOT VERIFIED**.
 
 Nguồn: [DIRECTORY_STRUCTURE](../DIRECTORY_STRUCTURE.md),
 [valorant facade](../utils/valorant-api.ts), [match facade](../utils/match-ui.ts).

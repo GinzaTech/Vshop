@@ -24,10 +24,11 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
   source hoàn tất; mốc Act theo tài khoản, cache/archive filtering và full gate
   đã PASS; device/live Riot migration còn `NOT VERIFIED` do ADB ngắt kết nối.
 - [`2026-09-23-morphicons-system-design.md`](2026-09-23-morphicons-system-design.md) —
-  spec đã duyệt; migration source và Task 7A metadata/policy/docs đã hoàn tất.
-  Native build, bundle/device metrics và accessibility thủ công còn
-  `NOT VERIFIED`.
+  spec đã duyệt; migration source, zero-fallback AppIcon và optimized Android
+  export/budget đã hoàn tất. Native APK/device metrics và accessibility thủ
+  công còn `NOT VERIFIED`.
 - [`2026-09-23-morphicons-system.md`](2026-09-23-morphicons-system.md) —
-  implementation plan: Task 1–6 hoàn tất theo commit evidence; Task 7A hoàn tất
-  source release metadata, final policy tests và docs. Full check/export,
-  native rebuild, install/device verification, final review/commit/push vẫn mở.
+  implementation plan: Task 1–6 hoàn tất theo commit evidence; Task 7 đã đạt
+  source gates 87 suite / 910 test và optimized export 10,16/12 MiB tổng,
+  7,69/8 MiB Hermes. Native rebuild, APK install/device verification và final
+  commit/push vẫn mở.

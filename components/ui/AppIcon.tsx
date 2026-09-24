@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useMemo } from "react";
 import type { ReactElement } from "react";
 import type { SvgProps } from "react-native-svg";
@@ -28,19 +27,6 @@ export default function AppIcon({
   testID,
 }: AppIconProps): ReactElement {
   const definition = useMemo(() => resolveAppIcon(name), [name]);
-
-  if (definition.kind === "legacy") {
-    return (
-      <MaterialCommunityIcons
-        name={definition.legacyName}
-        size={size}
-        color={color}
-        importantForAccessibility="no"
-        accessibilityElementsHidden
-        testID={testID}
-      />
-    );
-  }
 
   return (
     <MorphIcon

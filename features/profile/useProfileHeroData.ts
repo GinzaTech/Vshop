@@ -2,7 +2,7 @@ import React from "react";
 import { type RankSplitStat } from "~/components/profile/RankSplitGroup";
 import { CATEGORY_ORDER } from "~/components/GalleryProfile";
 import { COLORS } from "~/constants/DesignSystem";
-import { formatOneDecimal, formatPercentage } from "~/features/profile/profile-loadout";
+import { formatPercentage } from "~/features/profile/profile-loadout";
 import type { useProfileSession } from "./useProfileSession";
 import type { useProfileState } from "./useProfileState";
 
@@ -40,50 +40,6 @@ export function useProfileHeroData({ colors, user, t, dashboardSeasonStats, comp
       ],
       [t, user.balances.kc, user.balances.rad, user.balances.vp]
   );
-  // playerPerformanceStats: HS/KD/ACS trung bình act (từ seasonStats khớp authKey).
-  const playerPerformanceStats = React.useMemo(() => {
-    const seasonStats = dashboardSeasonStats;
-
-    if (!seasonStats || seasonStats.matchCount === 0) {
-      return [
-        { key: "hs", label: "HS TB", value: "--", icon: "target-account" as const },
-        { key: "kd", label: "K/D TB", value: "--", icon: "sword-cross" as const },
-        { key: "acs", label: "ACS TB", value: "--", icon: "speedometer" as const },
-      ];
-    }
-
-    const averageHeadshot =
-        seasonStats.headshotPercent !== null
-            ? formatPercentage(seasonStats.headshotPercent)
-            : "--";
-    const averageKd =
-        seasonStats.kd !== null
-            ? formatOneDecimal(seasonStats.kd)
-            : "--";
-    const averageAcs =
-        seasonStats.acs !== null ? Math.round(seasonStats.acs).toString() : "--";
-
-    return [
-      {
-        key: "hs",
-        label: "HS TB",
-        value: averageHeadshot,
-        icon: "target-account" as const,
-      },
-      {
-        key: "kd",
-        label: "K/D TB",
-        value: averageKd,
-        icon: "sword-cross" as const,
-      },
-      {
-        key: "acs",
-        label: "ACS TB",
-        value: averageAcs,
-        icon: "speedometer" as const,
-      },
-    ];
-  }, [dashboardSeasonStats]);
   // actRankSummaryStats: trái = thắng/thua act; phải = KAST + tỉ lệ thắng act.
   const actRankSummaryStats = React.useMemo(() => {
     const seasonStats = dashboardSeasonStats;
@@ -191,5 +147,5 @@ export function useProfileHeroData({ colors, user, t, dashboardSeasonStats, comp
       },
       [categoryLabels, t]
   );
-  return { palette, regionLabel, profileStats, playerPerformanceStats, actRankSummaryStats, tabItems, formatCategoryLabel };
+  return { palette, regionLabel, profileStats, actRankSummaryStats, tabItems, formatCategoryLabel };
 }

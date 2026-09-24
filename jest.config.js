@@ -1,4 +1,6 @@
 /** @type {import('jest').Config} */
+const expoPreset = require("jest-expo/jest-preset");
+
 module.exports = {
   preset: "jest-expo",
   clearMocks: true,
@@ -8,6 +10,10 @@ module.exports = {
     "^~/(.*)$": "<rootDir>/$1",
   },
   setupFilesAfterEnv: ["@shopify/react-native-skia/jestSetup.js"],
+  transform: {
+    ...expoPreset.transform,
+    "\\.mjs$": expoPreset.transform["\\.[jt]sx?$"],
+  },
   transformIgnorePatterns: [
     "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|@shopify|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|morphicons|lucide))",
     "/node_modules/react-native-reanimated/plugin/",

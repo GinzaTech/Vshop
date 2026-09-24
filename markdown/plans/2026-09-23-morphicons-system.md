@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Route every VShop UI icon through a typed `AppIcon` boundary and morph stateful Lucide icons with Morphicons while preserving game-specific fallbacks, accessibility, Reduce Motion and the existing release budgets.
+**Goal:** Route every VShop UI icon, including Valorant-specific glyphs, through a typed `AppIcon`/`MorphIcon` boundary while preserving semantics, accessibility, Reduce Motion and the existing release budgets.
 
-**Architecture:** `AppIcon` owns vendor selection, Morphicons configuration and accessibility defaults; `app-icon-registry.ts` maps VShop semantic tokens to named Lucide data or one controlled MaterialCommunityIcons fallback. Screens migrate by domain and change only semantic icon names, while source-policy tests shrink the direct-import allowlist to zero.
+**Architecture:** `AppIcon` owns Morphicons configuration and accessibility defaults; `app-icon-registry.ts` maps VShop semantic tokens to morphable `IconNode` data from `app-icon-lucide.ts`. That file is the sole exact-version Lucide deep-ESM runtime boundary and owns the custom local Pistol node. Screens change only semantic names; MaterialCommunityIcons has no AppIcon runtime path.
 
 **Tech Stack:** Expo SDK 57, React Native 0.86.3, React 19.2.3, Reanimated 4.5.1, Morphicons 1.7.1, Lucide data 1.47.0, react-native-svg 15.15.4, Jest, pnpm.
 
@@ -14,11 +14,11 @@
 
 - Use `pnpm`; never create npm/yarn/bun lock files.
 - Install exactly `morphicons@1.7.1`, `lucide@1.47.0` and Expo-pinned `react-native-svg@15.15.4`.
-- Import icon data with named `lucide` imports; `import * as Icons` is forbidden.
-- Every `MorphIcon` uses `reducedMotion="user"` and the `snappy` spring unless a test pins an instant static/fallback path.
+- Keep `lucide` exact-pinned at `1.47.0`; runtime deep ESM imports are allowed only in `components/ui/app-icon-lucide.ts`. Runtime barrel/namespace imports are forbidden.
+- Every `MorphIcon` uses `reducedMotion="user"` and the `snappy` spring.
 - Business state owns the selected icon; animation never owns or delays state updates.
 - Parent controls retain accessibility role/label/state and 48 dp Android / 44 pt iOS touch targets.
-- Game-specific pictograms keep their meaning through one fallback inside `AppIcon`; screens never import the fallback vendor.
+- Game-specific pictograms keep their meaning through reviewed Lucide/local `IconNode` data; Pistol is local and every glyph still renders through `MorphIcon`.
 - Hermes must remain at or below 8 MiB and total Android export at or below 12 MiB. Do not change the thresholds.
 - `react-native-svg` requires a rebuilt native client. No OTA may target the existing 4.1.8 runtime.
 - Preserve unrelated worktree changes and never use destructive Git commands.
@@ -26,7 +26,7 @@
 ## Review Focus
 
 - Unknown/dynamic icon strings resolve the typed `unknown` token rather than indexing the registry unsafely — pinned in Task 2.
-- A lookalike Lucide icon must not replace a Valorant-specific weapon/rank/role glyph with different meaning — pinned in Tasks 2 and 6.
+- A lookalike Lucide icon must not replace a Valorant-specific weapon/rank/role glyph with different meaning; custom local vector data is allowed behind the Lucide boundary — pinned in Tasks 2 and 6.
 - Rapid state changes must update one mounted MorphIcon rather than remounting by key and losing interruption continuity — pinned in Task 2.
 - Reduce Motion and icon-only accessibility must remain correct without duplicate TalkBack nodes — pinned in Tasks 2 and 7.
 - Large lists must not start entrance/infinite animation per row or import the entire Lucide catalog — pinned in Tasks 5 and 7.
@@ -119,6 +119,7 @@ with the approved fill-state clarification in `6773fa2`.
 **Files:**
 - Create: `components/ui/app-icon-types.ts`
 - Create: `components/ui/app-icon-registry.ts`
+- Create: `components/ui/app-icon-lucide.ts`
 - Create: `components/ui/AppIcon.tsx`
 - Modify: `jest.config.js`
 - Test: `__tests__/app-icon-registry.test.ts`
@@ -126,7 +127,7 @@ with the approved fill-state clarification in `6773fa2`.
 - Test: `__tests__/app-icon-runtime.test.ts`
 
 **Interfaces:**
-- Consumes: `MorphIcon` from `morphicons/react-native`, `IconNode` and named icons from `lucide`, MaterialCommunityIcons only inside `AppIcon.tsx`.
+- Consumes: `MorphIcon` from `morphicons/react-native` and exact-version `IconNode` data isolated by `app-icon-lucide.ts`.
 - Produces:
   - `type AppIconName = keyof typeof APP_ICON_REGISTRY`
   - `resolveAppIconName(value: unknown): AppIconName`
@@ -157,10 +158,10 @@ describe("AppIcon registry", () => {
     }
   );
 
-  it("keeps Valorant-only glyphs behind the legacy boundary", () => {
-    expect(resolveAppIcon("weapon-pistol")).toEqual({
-      kind: "legacy",
-      legacyName: "pistol",
+  it("keeps Valorant-only glyphs on the morph boundary", () => {
+    expect(resolveAppIcon("weaponPistol")).toEqual({
+      kind: "morph",
+      icon: Pistol,
     });
     expect(Object.keys(APP_ICON_REGISTRY).length).toBeGreaterThan(40);
   });
@@ -168,11 +169,11 @@ describe("AppIcon registry", () => {
 ```
 
 Create `__tests__/app-icon-runtime.test.ts` as an unmocked package-exports smoke
-test. It must import `MorphIcon` from the public subpath and one named Lucide
-data export, then assert that both resolve without any deep `dist/` import:
+test. The final production path imports `MorphIcon` from the public subpath and
+Lucide `.mjs` icon data only through `app-icon-lucide.ts`:
 
 ```ts
-import { Search } from "lucide";
+import { Search } from "~/components/ui/app-icon-lucide";
 import { MorphIcon } from "morphicons/react-native";
 
 it("resolves ESM package exports through Jest like Metro", () => {
@@ -183,7 +184,7 @@ it("resolves ESM package exports through Jest like Metro", () => {
 
 - [x] **Step 2: Write RED AppIcon component tests**
 
-Create `__tests__/app-icon.test.tsx` and mock Morphicons/legacy icon components:
+Create `__tests__/app-icon.test.tsx` and mock Morphicons:
 
 ```tsx
 import React from "react";
@@ -197,7 +198,6 @@ jest.mock("morphicons/react-native", () => ({
     return null;
   },
 }));
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => () => null);
 
 describe("AppIcon", () => {
   beforeEach(() => morphProps.splice(0));
@@ -238,12 +238,13 @@ pnpm exec jest __tests__/app-icon-registry.test.ts __tests__/app-icon.test.tsx -
 
 Expected: FAIL because the boundary and registry do not exist.
 
-- [x] **Step 4: Enable the ESM package exports in Jest**
+- [x] **Step 4: Enable Lucide ESM modules in Jest**
 
 Add `morphicons` and `lucide` to the existing pnpm-aware
-`transformIgnorePatterns` allowlist in `jest.config.js`. Do not deep-import
-`morphicons/dist/react-native.js`; RN 0.86/Metro resolves
-`morphicons/react-native` through package exports.
+`transformIgnorePatterns` allowlist and map `.mjs` to the Expo JavaScript
+transformer in `jest.config.js`. Do not deep-import Morphicons; RN 0.86/Metro
+resolves `morphicons/react-native` through package exports. Lucide runtime deep
+imports stay isolated in `app-icon-lucide.ts`.
 
 Run:
 
@@ -253,7 +254,7 @@ pnpm exec jest __tests__/app-icon-runtime.test.ts --runInBand
 
 Expected: PASS without a syntax/export error.
 
-- [x] **Step 5: Implement types and exact fallback contract**
+- [x] **Step 5: Implement the all-morph definition contract**
 
 Create `components/ui/app-icon-types.ts`:
 
@@ -265,11 +266,7 @@ export type MorphIconDefinition = {
   icon: IconNode;
   filled?: true;
 };
-export type LegacyIconDefinition = {
-  kind: "legacy";
-  legacyName: "pistol" | "sword-cross" | "shield-account-outline";
-};
-export type AppIconDefinition = MorphIconDefinition | LegacyIconDefinition;
+export type AppIconDefinition = MorphIconDefinition;
 ```
 
 The initial registry must include these semantic tokens before domain tasks add
@@ -283,10 +280,11 @@ clock, share, copy, send, download, edit, globe, map, target, chartLine,
 chartBar, databaseOff, shield, weaponPistol, combatSword
 ```
 
-Use named Lucide imports. `weaponPistol`, `combatSword` and the Valorant role
-shield resolve to the three legacy definitions; every other token resolves to a
-Lucide `IconNode`. `unknown` uses Lucide `CircleHelp`. `heart` and `heartFilled`
-both preserve Lucide Heart semantics; only `heartFilled` sets `filled: true`.
+Import icon data only from `app-icon-lucide.ts`. `weaponPistol` resolves to the
+custom local Pistol `IconNode`; `combatSword` and Valorant role shields resolve
+to reviewed morphable vector data. Every registry definition has
+`kind: "morph"`. `unknown` uses Lucide `CircleHelp`; `heart` and `heartFilled`
+preserve the same Heart path and only the latter sets `filled: true`.
 
 - [x] **Step 6: Implement AppIcon**
 
@@ -306,11 +304,10 @@ both preserve Lucide Heart semantics; only `heartFilled` sets `filled: true`.
 />
 ```
 
-For `kind: "legacy"`, render MaterialCommunityIcons with
-`importantForAccessibility="no"` and `accessibilityElementsHidden`. Parent
-controls own semantics. Morphicons forwards `label` as `role`/ARIA attributes on
-the underlying SVG, so `label` is only passed when AppIcon itself is the sole
-accessible element and must be manually checked with TalkBack.
+There is no legacy render branch. Parent controls own semantics. Morphicons
+forwards `label` as `role`/ARIA attributes on the underlying SVG, so `label` is
+only passed when AppIcon itself is the sole accessible element and must be
+manually checked with TalkBack.
 
 - [x] **Step 7: Run GREEN and coverage**
 
@@ -519,8 +516,8 @@ rank, peakRank, collection, skin, loadout, spray, flex, selected, unselected,
 overview, details, season, export, emptyData
 ```
 
-`weaponPistol`, rank crest and Valorant role shields stay legacy/game-specific.
-All calendar/chart/database/edit/navigation symbols use Lucide data.
+`weaponPistol`, rank crest and Valorant role shields stay game-specific but use
+morphable `IconNode` data. Pistol is local; generic symbols use Lucide data.
 
 - [x] **Step 4: Replace direct imports in all eleven Profile files**
 
@@ -588,7 +585,7 @@ and `f8d11c9` (`refactor: migrate commerce icons to AppIcon`).
 - Test: `__tests__/stateful-icon-pairs.test.tsx`
 
 **Interfaces:**
-- Consumes: `AppIconName`, AppIcon and the controlled game-specific fallback.
+- Consumes: `AppIconName`, AppIcon and morphable game-specific `IconNode` data.
 - Produces: Match/commerce/reference modules with no direct vendor import; state-pair coverage for list-safe icons.
 
 - [x] **Step 1: Write RED state-pair and large-list tests**
@@ -627,7 +624,8 @@ performance, share, retry, emptyImage, completed, incomplete
 ```
 
 Round outcome and rank/weapon visuals that encode Valorant taxonomy remain typed
-legacy definitions. Generic close/search/clock/calendar/arrow icons use Lucide.
+semantic definitions and resolve to morphable vector data. Generic symbols use
+Lucide.
 
 - [x] **Step 4: Migrate the nineteen files and typed icon-bearing objects**
 
@@ -682,8 +680,8 @@ git commit -m "refactor: migrate match and store icons"
 - Test: `__tests__/combat-social-icon-motion.test.tsx`
 
 **Interfaces:**
-- Consumes: completed semantic registry and legacy fallback.
-- Produces: zero direct MaterialCommunityIcons imports outside `AppIcon.tsx`.
+- Consumes: completed semantic registry and game-specific morphable vectors.
+- Produces: zero direct MaterialCommunityIcons imports in application runtime.
 
 - [x] **Step 1: Write RED interaction tests**
 
@@ -717,14 +715,15 @@ chatSend, leaveParty, copyCode, combatLive, combatPregame, lockAgent,
 settingsAccount, settingsLanguage, settingsSwap, settingsAbout
 ```
 
-Keep agent-role shields and crossed-sword game taxonomy behind the typed legacy
-fallback. Generic account/link/send/copy/refresh/close icons use Lucide.
+Keep agent-role shields and crossed-sword game taxonomy behind typed semantic
+tokens backed by morphable vectors. Generic symbols use Lucide.
 
 - [x] **Step 4: Migrate all five files and empty the allowlist**
 
 Change dynamic objects such as settings rows and friend-state metadata to
-`AppIconName`. Set `remainingLegacyImports` to an empty set and make the source
-test allow MaterialCommunityIcons only in `components/ui/AppIcon.tsx`.
+`AppIconName`. Set `remainingLegacyImports` to an empty set. Final bundle
+hardening removes the temporary MaterialCommunityIcons allowance from
+`components/ui/AppIcon.tsx` as well.
 
 - [x] **Step 5: Run GREEN**
 
@@ -746,38 +745,57 @@ git commit -m "refactor: complete app icon migration"
 
 ### Task 7: Release hardening, documentation and device verification
 
-**Task 7A status (2026-09-24):** metadata, final policy tests and documentation
-are implemented in the working tree. Full check/export, native build, device
-verification, final review, commit and push remain open.
+**Task 7 status (2026-09-24):** metadata, final zero-fallback policy, Lucide
+deep-ESM isolation and optimized Android export/budget are implemented in the
+working tree. Native build, APK/device verification, final commit and push
+remain open.
 
 **Files:**
 - Modify: `app.json`
 - Modify: `package.json`
+- Modify: `eas.json`
+- Modify: `jest.config.js`
+- Modify: `scripts/check-android-export.mjs`
+- Modify: `components/ui/AppIcon.tsx`
+- Modify: `components/ui/app-icon-registry.ts`
+- Modify: `components/ui/app-icon-types.ts`
+- Create: `components/ui/app-icon-lucide.ts`
+- Create: `types/lucide-icon-modules.d.ts`
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 - Modify: `BUILD_DESIGN_SYSTEM.md`
 - Modify: `DIRECTORY_STRUCTURE.md`
 - Modify: `markdown/11-component.md`
+- Modify: `markdown/13-deployment.md`
 - Modify: `markdown/14-package.md`
+- Modify: `markdown/plans/README.md`
 - Modify: `markdown/plans/2026-09-23-morphicons-system-design.md`
 - Modify: `markdown/plans/2026-09-23-morphicons-system.md`
 - Test: `__tests__/app-icon-boundary.test.ts`
+- Test: `__tests__/app-icon-registry.test.ts`
 - Test: `__tests__/app-icon.test.tsx`
 
 **Interfaces:**
-- Consumes: completed icon boundary and all migrated domains.
-- Produces: native release candidate 4.1.9, Android versionCode 90, iOS buildNumber 42, final evidence and clean pushable branch.
+- Consumes: completed icon migration and the unchanged 12 MiB total / 8 MiB
+  Hermes / 1.5 MiB largest-asset budgets.
+- Produces: source candidate 4.1.9 (Android 90, iOS 42), a passing optimized
+  static Android export and aligned local/EAS optimizer configuration. It does
+  not produce or verify a native APK/device runtime.
 
 - [x] **Step 1: Add final source-policy assertions**
 
 Extend `__tests__/app-icon-boundary.test.ts` to assert:
 
 ```ts
-expect(directMaterialCommunityImports).toEqual([
+expect(directMaterialCommunityImports).toEqual([]);
+expect(namespaceLucideImports).toEqual([]);
+expect(runtimeBarrelImports).toEqual([]);
+expect(deepLucideImports).toEqual([
+  "components/ui/app-icon-lucide.ts",
+]);
+expect(directMorphIconImports).toEqual([
   "components/ui/AppIcon.tsx",
 ]);
-expect(namespaceLucideImports).toEqual([]);
-expect(rawMorphIconImportsOutsideBoundary).toEqual([]);
 ```
 
 Extend `__tests__/app-icon.test.tsx` so icon-only labels produce one accessible
@@ -792,9 +810,9 @@ pnpm exec jest __tests__/app-icon-boundary.test.ts __tests__/app-icon.test.tsx -
 Expected: PASS only when all direct imports and accessibility leaks are removed;
 otherwise fix the reported exact files before continuing.
 
-Observed 2026-09-24: the pre-change gate was already GREEN at 2 suites / 7
-tests because Tasks 1–6 had removed the escapes. The expanded final policy was
-also GREEN at 2 suites / 9 tests; no RED defect or runtime-code fix was needed.
+Observed 2026-09-24: the earlier Task 7A policy was GREEN, then bundle hardening
+removed the remaining AppIcon MaterialCommunityIcons branch and tightened the
+Lucide boundary. Final full-suite evidence is recorded in Step 5.
 
 - [x] **Step 3: Update native version metadata**
 
@@ -807,17 +825,22 @@ app.json expo.android.versionCode = 90
 app.json expo.ios.buildNumber = 42
 ```
 
-This prevents the new `react-native-svg` binary from being published to the
+This creates a new app-version runtime for the native dependency. It prevents
+the new `react-native-svg`-dependent JavaScript from being published to the
 4.1.8 runtime via OTA.
 
 - [x] **Step 4: Update documentation**
 
 Document:
 
-- AppIcon semantic boundary and fallback ownership;
+- AppIcon semantic boundary and zero-fallback ownership;
 - Morphicons/Lucide/react-native-svg dependency chain;
+- exact-version Lucide deep ESM boundary, local Pistol `IconNode` and Jest
+  `.mjs` transform;
 - Reduce Motion and accessibility rules;
 - state-pair policy and game-specific exceptions;
+- optimized graph/tree-shaking parity across local export, EAS build profiles
+  and the EAS production update environment;
 - native rebuild/runtime boundary;
 - exact source/device/bundle evidence and any NOT VERIFIED item.
 
@@ -847,7 +870,7 @@ Observed 2026-09-24: 2 suites / 9 tests PASS; strict TypeScript PASS; scoped
 ESLint PASS with zero warnings; metadata 4.1.9/90/42 PASS; 21 Mermaid diagrams
 and 138 local links PASS; `git diff --check` PASS.
 
-- [ ] **Step 5: Run complete source and security gates**
+- [x] **Step 5: Run complete source and Android export gates**
 
 ```bash
 pnpm run check
@@ -855,9 +878,38 @@ git diff --check
 git status --short
 ```
 
-Run an added-line secret scan for private keys, GitHub/AWS tokens, JWTs, Riot
-cookies and bearer tokens. Expected: 79+ suites pass, critical files remain above
-80%, audit policy passes, total export ≤12 MiB, Hermes ≤8 MiB and no secret hit.
+Observed 2026-09-24:
+
+1. The first `pnpm run check` attempt passed strict TypeScript, zero-warning
+   ESLint, production audit policy and 87 Jest suites / 909 tests, then failed
+   the unchanged Hermes budget at 8.79/8.00 MiB. The entire invocation is not
+   labelled PASS.
+2. Isolating Lucide runtime deep ESM imports in `app-icon-lucide.ts` reduced
+   Hermes to 8.26 MiB, still over budget.
+3. `check:android` with `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` and
+   `EXPO_UNSTABLE_TREE_SHAKING=1` passed at 10.16/12 MiB total,
+   7.69/8 MiB JS/Hermes and 1.25/1.50 MiB largest asset.
+4. `pnpm dlx expo-doctor` passed 20/21 checks. The only failure is the existing
+   SDK 57 patch-alignment warning for six Expo packages, each one patch behind
+   Doctor's current recommendation; it remains recorded rather than silently
+   upgraded inside the icon migration.
+5. After deleting the unused `playerPerformanceStats` vendor-glyph return
+   surface, the final `pnpm run check` passed 87 suites / 910 tests, production
+   audit policy and the same 10.16/12 MiB total, 7.69/8 MiB Hermes and
+   1.25/1.50 MiB largest-asset gates.
+
+- [x] **Step 5A: Align build and update optimizer environments**
+
+- `scripts/check-android-export.mjs` supplies both optimizer variables to the
+  local/CI Expo export.
+- `eas.json` supplies the same values to development, preview and production;
+  `production-store` inherits them from production.
+- The EAS project `@hyeon004/vshop` production environment has been set and
+  verified with both values as plaintext variables. Future
+  `eas update --environment production` therefore uses the same optimizer.
+- Environment parity does **not** make 4.1.9 OTA-compatible with binary/runtime
+  4.1.8. No 4.1.9 OTA may be published to that runtime; a new native binary is
+  still required and remains unverified.
 
 - [ ] **Step 6: Rebuild and install the development APK**
 

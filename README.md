@@ -43,13 +43,15 @@ Navigation motion uses shared timing tokens, transition-aware tab preloading and
 
 ## 4.1.9 source candidate: typed Morphicons icon system
 
-The 4.1.9 source candidate routes application icons through the typed
-`components/ui/AppIcon.tsx` boundary. Screens and shared components use VShop
-semantic names; the registry imports named Lucide icon data, Morphicons renders
-state transitions, and `react-native-svg` supplies the native SVG runtime. Only
-`AppIcon` may import Morphicons or the controlled MaterialCommunityIcons
-fallback used for Valorant-specific weapon, rank and role glyphs whose meaning
-must not be approximated by a generic icon.
+The 4.1.9 source candidate routes every application icon, including
+Valorant-specific glyphs, through the typed `components/ui/AppIcon.tsx`
+boundary and `MorphIcon`. Screens and shared components use VShop semantic
+names; `app-icon-registry.ts` consumes exact icon data from
+`app-icon-lucide.ts`, Morphicons renders state transitions, and
+`react-native-svg` supplies the native SVG runtime. The Lucide runtime deep ESM
+imports are isolated to `app-icon-lucide.ts`, `lucide` is pinned at `1.47.0`,
+and the pistol is a local `IconNode`. `AppIcon` no longer imports or renders a
+MaterialCommunityIcons fallback.
 
 Stateful controls update one mounted `AppIcon`, every Morphicons render pins
 `reducedMotion="user"`, and labelled parent buttons/tabs keep role, label and
@@ -58,13 +60,34 @@ An icon-only `AppIcon` may expose one label. The wishlist selected state is the
 documented fill exception: it keeps the same Heart path and changes only
 `fill`, rather than substituting a different symbol.
 
+Jest transforms Lucide's `.mjs` modules with the Expo transformer. The first
+full `pnpm run check` attempt passed strict source checks, the production audit
+policy and 87 Jest suites / 909 tests, then correctly failed the unchanged
+Hermes budget at 8.79/8.00 MiB. Isolating the deep ESM imports reduced Hermes to
+8.26 MiB but was not enough by itself. The final Android gate enables Expo's
+optimized module graph and tree shaking and passes at 10.16/12 MiB total,
+7.69/8 MiB Hermes and 1.25/1.50 MiB for the largest asset. The development,
+preview and production EAS profiles carry the same optimization environment;
+`production-store` inherits it from production. The EAS project
+`@hyeon004/vshop` production environment has also been set and verified with
+both values as plaintext variables, so future
+`eas update --environment production` runs use the same optimizer.
+After removing the last unused vendor-glyph surface, the final complete
+`pnpm run check` passes 87 suites / 910 tests, the production audit policy and
+the same Android export budgets.
+
+`pnpm dlx expo-doctor` currently passes 20/21 checks. Its only failure is the
+separately tracked SDK 57 patch-alignment warning for six Expo packages that
+are each one patch behind Doctor's recommendation; this icon migration does not
+silently change that dependency set.
+
 The source metadata is `4.1.9`, Android `versionCode 90` and iOS
 `buildNumber 42`. Because `react-native-svg` is a native dependency, 4.1.9
 requires a newly built binary and must not be sent to the 4.1.8 runtime as an
-OTA. A development/production build, APK installation, device interaction,
-TalkBack/VoiceOver, frame metrics and final export budgets are all
-**NOT VERIFIED** for 4.1.9. The latest downloadable signed release remains
-4.1.8 until those gates finish.
+OTA. The optimized static export is verified, but an EAS development/production
+build, APK installation, device interaction, TalkBack/VoiceOver, frame metrics
+and device logcat are **NOT VERIFIED** for 4.1.9. The latest downloadable signed
+release remains 4.1.8 until those gates finish.
 
 ## Release 4.1.8 source highlights
 
@@ -147,7 +170,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 | **State** | Zustand 5 + persist middleware |
 | **Storage** | MMKV working cache + native SQLite match archive; AES-256 MMKV session storage with a Keychain/Keystore-protected key; AsyncStorage migration/fallback |
 | **Animations** | react-native-reanimated 4.5 with centralized motion tokens |
-| **Icons** | typed `AppIcon` semantics → named Lucide data → Morphicons → `react-native-svg`, with one controlled game-specific fallback |
+| **Icons** | typed `AppIcon` semantics → exact-version Lucide ESM `IconNode` data → Morphicons → `react-native-svg`; custom local pistol path, no icon-font fallback |
 | **UI** | react-native-paper, custom glassmorphism design system |
 | **i18n** | react-i18next (18 languages) |
 | **Network** | axios with gzip, keep-alive, request dedup |
@@ -424,7 +447,10 @@ app/                    # Expo Router screens
   (authenticated)/      # Tab navigator + all authenticated screens
   _layout.tsx           # Root layout (providers, bootstrap)
 components/             # Reusable UI components
-  ui/                   # Design primitives, including the sole AppIcon vendor boundary
+  ui/                   # Design primitives and the sole AppIcon/Morphicons boundary
+    AppIcon.tsx          # Renders every semantic icon through MorphIcon
+    app-icon-registry.ts # Semantic AppIconName -> IconNode definitions
+    app-icon-lucide.ts   # Only Lucide runtime deep-ESM import boundary
   matches/              # Match-related components
   match-detail/         # Match detail screen components
 hooks/                  # Zustand stores (user, match, profile, wishlist, combat)
@@ -449,6 +475,17 @@ pnpm dlx eas-cli@latest build --profile development --platform android
 pnpm dlx eas-cli@latest build --profile production --platform android
 ```
 
+The local Android export gate and every EAS build profile use
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` and
+`EXPO_UNSTABLE_TREE_SHAKING=1`; `production-store` inherits the production
+environment.
+
+The `@hyeon004/vshop` EAS production environment also has both optimizer values
+set and verified as plaintext variables for future
+`eas update --environment production` runs. This configuration parity does not
+permit a 4.1.9 OTA to binary/runtime 4.1.8; 4.1.9 still requires a newly built
+native binary.
+
 Install via QR code or APK from the Expo dashboard. The current signed APK is
 also attached to [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/releases/tag/v4.1.8).
 The 4.1.9 source candidate requires a fresh native build; no 4.1.9 APK or
@@ -467,12 +504,14 @@ device-runtime result is claimed yet.
 
 ## Bản source candidate 4.1.9: hệ icon Morphicons có type
 
-Source candidate 4.1.9 đưa toàn bộ icon ứng dụng qua boundary có type
-`components/ui/AppIcon.tsx`. Screen và component dùng semantic name của VShop;
-registry import named Lucide icon data, Morphicons render chuyển trạng thái và
-`react-native-svg` cung cấp SVG runtime native. Chỉ `AppIcon` được import
-Morphicons hoặc fallback MaterialCommunityIcons có kiểm soát cho hình vũ khí,
-rank và role đặc thù Valorant không thể thay bằng icon chung gần giống.
+Source candidate 4.1.9 đưa mọi icon ứng dụng, kể cả glyph đặc thù Valorant, qua
+boundary có type `components/ui/AppIcon.tsx` và `MorphIcon`. Screen/component
+dùng semantic name của VShop; `app-icon-registry.ts` nhận icon data chính xác từ
+`app-icon-lucide.ts`, Morphicons render chuyển trạng thái và `react-native-svg`
+cung cấp SVG runtime native. Mọi deep ESM import Lucide runtime được cô lập tại
+`app-icon-lucide.ts`, `lucide` được pin đúng `1.47.0`, còn pistol dùng
+`IconNode` local. `AppIcon` không còn import hoặc render fallback
+MaterialCommunityIcons.
 
 Control có trạng thái cập nhật trên cùng một `AppIcon`, mọi Morphicons render
 đều khóa `reducedMotion="user"`, còn button/tab cha giữ role, label và state
@@ -480,12 +519,27 @@ selected/expanded/disabled để icon con chỉ mang tính trang trí. `AppIcon`
 icon-only được phép tạo đúng một label. Wishlist selected là ngoại lệ fill đã
 được duyệt: giữ nguyên path Heart và chỉ đổi `fill`, không đổi sang ký hiệu khác.
 
+Jest dùng Expo transformer cho module `.mjs` của Lucide. Lần chạy
+`pnpm run check` đầy đủ đầu tiên đã đạt strict source checks, production audit
+policy và 87 Jest suite / 909 test, sau đó fail đúng budget Hermes không đổi ở
+8,79/8,00 MiB. Chỉ cô lập deep ESM import giảm Hermes còn 8,26 MiB nhưng vẫn
+chưa đủ. Gate Android cuối bật Expo optimized module graph và tree shaking,
+PASS ở 10,16/12 MiB tổng, 7,69/8 MiB Hermes và 1,25/1,50 MiB asset lớn nhất.
+Các profile EAS development, preview và production mang cùng env tối ưu;
+`production-store` kế thừa từ production. EAS project `@hyeon004/vshop` cũng đã
+set/verify hai giá trị dạng plaintext trong production environment, nên các lần
+`eas update --environment production` sau này dùng cùng optimizer.
+Sau khi xoá bề mặt tên glyph vendor không còn được sử dụng, lần
+`pnpm run check` cuối đạt 87 suite / 910 test, production audit policy và cùng
+các budget Android ở trên.
+
 Metadata source hiện là `4.1.9`, Android `versionCode 90`, iOS `buildNumber 42`.
 Do `react-native-svg` là dependency native, 4.1.9 phải có binary build mới và
-không được phát qua OTA cho runtime 4.1.8. Development/production build, cài APK,
-interaction trên thiết bị, TalkBack/VoiceOver, frame metrics và export budget
-cuối cùng của 4.1.9 đều **NOT VERIFIED**. Bản ký có thể tải mới nhất vẫn là
-4.1.8 cho đến khi các gate đó hoàn tất.
+không được phát qua OTA cho runtime 4.1.8. Static export tối ưu đã được xác minh,
+nhưng EAS development/production build, cài APK, interaction trên thiết bị,
+TalkBack/VoiceOver, frame metrics và logcat thiết bị của 4.1.9 đều
+**NOT VERIFIED**. Bản ký có thể tải mới nhất vẫn là 4.1.8 cho đến khi các gate
+đó hoàn tất.
 
 ## Điểm nổi bật mã nguồn 4.1.8
 
@@ -565,7 +619,7 @@ Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHA
 | **State** | Zustand 5 + persist middleware |
 | **Storage** | MMKV cho working cache + SQLite native cho kho trận; MMKV AES-256 cho session với khóa được bảo vệ bởi Keychain/Keystore; tự migrate/fallback AsyncStorage |
 | **Animation** | react-native-reanimated 4.5 và motion token tập trung |
-| **Icon** | semantic `AppIcon` có type → named Lucide data → Morphicons → `react-native-svg`, kèm một fallback game đặc thù có kiểm soát |
+| **Icon** | semantic `AppIcon` có type → Lucide ESM `IconNode` đúng version → Morphicons → `react-native-svg`; pistol path local, không có fallback icon font |
 | **UI** | react-native-paper, design system glassmorphism tùy chỉnh |
 | **Đa ngôn ngữ** | react-i18next (18 ngôn ngữ) |
 | **Mạng** | axios với gzip, keep-alive, chống request trùng |
@@ -834,7 +888,10 @@ app/                    # Màn hình Expo Router
   (authenticated)/      # Tab navigator + tất cả màn hình đã đăng nhập
   _layout.tsx           # Layout gốc (providers, bootstrap)
 components/             # Component UI tái sử dụng
-  ui/                   # Primitive design system và boundary vendor AppIcon duy nhất
+  ui/                   # Primitive design system và boundary AppIcon/Morphicons duy nhất
+    AppIcon.tsx          # Render mọi semantic icon qua MorphIcon
+    app-icon-registry.ts # AppIconName semantic -> định nghĩa IconNode
+    app-icon-lucide.ts   # Boundary deep ESM import Lucide runtime duy nhất
   matches/              # Component liên quan trận đấu
   match-detail/         # Component màn hình chi tiết trận
 hooks/                  # Zustand stores (user, match, profile, wishlist, combat)
@@ -858,6 +915,20 @@ pnpm dlx eas-cli@latest build --profile development --platform android
 ```bash
 pnpm dlx eas-cli@latest build --profile production --platform android
 ```
+
+Gate Android local và mọi profile EAS đều dùng
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` cùng
+`EXPO_UNSTABLE_TREE_SHAKING=1`; `production-store` kế thừa env production.
+
+Production environment của EAS project `@hyeon004/vshop` cũng đã set/verify hai
+plaintext vars này cho `eas update --environment production`. Việc đồng nhất
+optimizer không cho phép OTA 4.1.9 vào binary/runtime 4.1.8; 4.1.9 vẫn cần
+native binary build mới.
+
+`pnpm dlx expo-doctor` hiện đạt 20/21 check. Điểm chưa đạt duy nhất là cảnh báo
+đồng bộ patch SDK 57 đã được theo dõi riêng: sáu gói Expo đang chậm hơn một patch
+so với khuyến nghị hiện tại của Doctor; migration icon này không tự ý nâng nhóm
+dependency đó.
 
 Cài qua QR code hoặc file APK từ dashboard Expo. APK đã ký hiện tại cũng được
 đính kèm tại [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/releases/tag/v4.1.8).

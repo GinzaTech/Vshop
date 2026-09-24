@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 
 const SOURCE_ROOTS = ["app", "components", "features", "hooks"] as const;
 const APP_ICON_BOUNDARY = "components/ui/AppIcon.tsx";
+const APP_ICON_DATA_BOUNDARY = "components/ui/app-icon-lucide.ts";
 const MATERIAL_COMMUNITY_MODULE =
   "@expo/vector-icons/MaterialCommunityIcons";
 const MORPHICONS_MODULE = "morphicons/react-native";
@@ -39,12 +40,12 @@ function moduleImportPattern(moduleName: string): RegExp {
 }
 
 describe("AppIcon source boundary", () => {
-  it("keeps MaterialCommunityIcons exclusively inside the AppIcon boundary", () => {
+  it("does not ship the legacy MaterialCommunityIcons runtime", () => {
     const directMaterialCommunityImports = findFiles(
       moduleImportPattern(MATERIAL_COMMUNITY_MODULE),
     );
 
-    expect(directMaterialCommunityImports).toEqual([APP_ICON_BOUNDARY]);
+    expect(directMaterialCommunityImports).toEqual([]);
   });
 
   it("keeps direct MorphIcon imports inside the AppIcon boundary", () => {
@@ -55,15 +56,25 @@ describe("AppIcon source boundary", () => {
     expect(directMorphIconImports).toEqual([APP_ICON_BOUNDARY]);
   });
 
-  it("does not use namespace or deep Lucide imports", () => {
+  it("keeps runtime Lucide imports tree-shakeable and isolated", () => {
     const namespaceLucideImports = findFiles(
       /import\s+\*\s+as\s+\w+\s+from\s+["']lucide["']/,
+    );
+    const runtimeBarrelImports = findFiles(
+      /(?:^|\n)\s*import\s+(?!type\s)[^;]*?\sfrom\s+["']lucide["']|(?:require\s*\(\s*|import\s*\(\s*)["']lucide["']/,
     );
     const deepLucideImports = findFiles(
       /(?:from\s+|import\s+|import\s*\(\s*|require\s*\(\s*)["']lucide\//,
     );
 
     expect(namespaceLucideImports).toEqual([]);
-    expect(deepLucideImports).toEqual([]);
+    expect(runtimeBarrelImports).toEqual([]);
+    expect(deepLucideImports).toEqual([APP_ICON_DATA_BOUNDARY]);
+  });
+
+  it("does not retain unused vendor glyph names in application source", () => {
+    expect(
+      findFiles(/["'](?:target-account|sword-cross|speedometer)["']/),
+    ).toEqual([]);
   });
 });

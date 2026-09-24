@@ -7,13 +7,17 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const temporaryRoot = path.join(workspace, ".codex-tmp");
+const metroOptimizationEnv = {
+  EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH: "1",
+  EXPO_UNSTABLE_TREE_SHAKING: "1",
+};
 
 const runNode = (args) => new Promise((resolve, reject) => {
   const child = spawn(process.execPath, args, {
     cwd: workspace,
     stdio: "inherit",
     windowsHide: true,
-    env: { ...process.env, CI: "1" },
+    env: { ...process.env, ...metroOptimizationEnv, CI: "1" },
   });
   child.once("error", reject);
   child.once("exit", (code, signal) => {

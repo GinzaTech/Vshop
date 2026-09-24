@@ -1,7 +1,7 @@
 # Morphicons System — Design Specification
 
 **Ngày:** 2026-09-23
-**Trạng thái:** approved — source migration hoàn tất; native build/device còn chờ xác minh
+**Trạng thái:** approved — source migration và optimized Android export hoàn tất; native build/device còn chờ xác minh
 **Phạm vi:** Expo/React Native VShop, Android/iOS/web boundary, toàn bộ icon UI
 
 ## 1. Mục tiêu
@@ -13,12 +13,12 @@ không bỏ qua Reduce Motion và không tăng budget Hermes hiện tại.
 
 “Toàn bộ icon” trong spec này có nghĩa:
 
-- mọi screen/component không còn import trực tiếp MaterialCommunityIcons;
-- icon UI chuẩn đi qua `AppIcon` và dùng Lucide icon data;
+- source runtime không còn import MaterialCommunityIcons, kể cả trong `AppIcon`;
+- mọi icon UI đi qua `AppIcon` và được render bằng `MorphIcon`;
 - icon thay đổi trạng thái morph giữa hai hình tương ứng;
 - icon tĩnh vẫn dùng cùng `AppIcon` nhưng không tự morph vô cớ;
-- hình game đặc thù không có Lucide tương đương dùng fallback có kiểm soát bên
-  trong `AppIcon`, không tạo đường import riêng ở screen.
+- hình game đặc thù dùng Lucide `IconNode` phù hợp hoặc vector data local; pistol
+  dùng custom local `IconNode`, không dùng fallback icon font.
 
 ## 2. Bối cảnh và ràng buộc đã xác minh
 
@@ -27,12 +27,15 @@ không bỏ qua Reduce Motion và không tăng budget Hermes hiện tại.
 - `morphicons` 1.7.1 có entry `morphicons/react-native`, là ESM-only, nhận
   `IconNode`/path data và render qua `react-native-svg`; nó không nhận component
   từ MaterialCommunityIcons.
-- Binding React Native yêu cầu `react-native-svg >= 14`; project chưa khai báo
-  dependency này trực tiếp.
+- Binding React Native yêu cầu `react-native-svg >= 14`; project pin bản Expo
+  tương thích `15.15.4`.
 - Morphicons không cung cấp bộ hình; cần package `lucide` dạng data, không dùng
   `lucide-react-native` component package.
-- Android export hiện 7,99/8,00 MiB Hermes. Không tăng threshold để hợp thức hoá
-  dependency mới.
+- `lucide` được exact-pin ở `1.47.0` vì runtime dùng internal deep ESM path;
+  Jest cần transform `.mjs` bằng Expo transformer.
+- Lần full check đầu đạt source/audit và 87 suite / 909 test nhưng export fail
+  Hermes 8,79/8,00 MiB. Chỉ deep import giảm còn 8,26 MiB; optimized graph/tree
+  shaking cuối cùng đạt 7,69/8 MiB mà không tăng threshold.
 - `react-native-svg` là native dependency nên development client và production
   binary phải được build lại; OTA không đủ.
 
@@ -69,19 +72,22 @@ type AppIconProps = {
 ```
 
 `name` là semantic token của VShop, không phải tên vendor. Screen không biết
-Lucide hay fallback nào đứng sau token đó.
+Lucide `IconNode` hoặc custom local vector nào đứng sau token đó.
 
 ### 3.2 Registry và tree shaking
 
-Tạo `components/ui/app-icon-registry.ts` với named imports từ `lucide`. Không
-`import * as Icons` vì sẽ làm mất tree shaking và vượt bundle budget.
+`components/ui/app-icon-registry.ts` chỉ import icon data từ
+`components/ui/app-icon-lucide.ts`. Boundary Lucide dùng import chính xác
+`lucide/dist/esm/icons/*.mjs`; đây là nơi duy nhất được phép có runtime deep ESM
+import. Không dùng runtime barrel hoặc `import * as Icons` vì Metro kéo toàn bộ
+catalog và vượt bundle budget.
 
 Registry chứa:
 
 - semantic name;
-- Lucide `IconNode` mặc định;
-- optional fallback cho hình không có bản tương đương chính xác;
-- metadata `morphGroup` dùng để review cặp chuyển đổi hợp lệ.
+- Lucide hoặc local `IconNode` morphable;
+- metadata fill tối thiểu cho trạng thái dùng cùng path;
+- semantic type suy ra trực tiếp từ key registry.
 
 Registry phải là nguồn duy nhất. Dynamic string từ API/store được normalize qua
 type guard; giá trị lạ dùng token `unknown`, không được truy cập object tùy ý.
@@ -129,17 +135,13 @@ vì re-render và không chạy entrance liên tục. Icon tĩnh render ở tr�
 - Reduce Motion hệ điều hành làm morph đổi tức thời.
 - Touch target Android tối thiểu 48 dp, iOS tối thiểu 44 pt được giữ ở parent.
 
-### 3.6 Fallback cho icon game đặc thù
+### 3.6 Vector morphable cho icon game đặc thù
 
 Những hình như pistol, rank crest, agent role hoặc Valorant taxonomy không được
-ép sang Lucide nếu làm sai nghĩa. Chúng dùng một trong hai dạng:
-
-1. asset/image game hiện có;
-2. MaterialCommunityIcons fallback nằm duy nhất trong implementation `AppIcon`.
-
-Fallback không morph path với Lucide. Khi state đổi, nó crossfade/instant swap
-theo Reduce Motion. Mục tiêu cuối là không còn import vendor icon trực tiếp ngoài
-boundary này.
+ép sang một Lucide glyph sai nghĩa. Rank/role dùng `IconNode` phù hợp đã review;
+pistol dùng neutral sidearm silhouette khai báo local trong
+`app-icon-lucide.ts`. Tất cả vẫn đi qua cùng registry → `AppIcon` → `MorphIcon`
+pipeline, nên không có nhánh MaterialCommunityIcons hoặc crossfade fallback.
 
 ## 4. Dependency và native boundary
 
@@ -170,8 +172,9 @@ Migration theo domain, mỗi phase vẫn compile và test được:
 3. Profile/Match Detail/History;
 4. Store/Shop/Bundle/Gallery/Item Upgrades;
 5. Combat/Friends/Chat/Settings và modal;
-6. dynamic icon maps + game-specific fallback;
-7. xoá import MaterialCommunityIcons khỏi screen/component và audit bundle.
+6. dynamic icon maps + custom game-specific `IconNode`;
+7. xoá toàn bộ runtime MaterialCommunityIcons import, cô lập deep ESM Lucide và
+   audit bundle.
 
 Mỗi phase giữ semantic key ổn định để review diff, không đổi layout/copy cùng lúc.
 
@@ -179,7 +182,7 @@ Mỗi phase giữ semantic key ổn định để review diff, không đổi lay
 
 ### Unit/component
 
-- mọi semantic token resolve đúng icon hoặc fallback;
+- mọi semantic token resolve đúng morphable `IconNode`;
 - token lạ resolve `unknown` an toàn;
 - cùng một `AppIcon` đổi semantic `name` tạo MorphIcon transition;
 - icon tĩnh không tự animate lại khi parent re-render;
@@ -189,9 +192,9 @@ Mỗi phase giữ semantic key ổn định để review diff, không đổi lay
 
 ### Integration/source policy
 
-- source test cấm import trực tiếp `@expo/vector-icons/MaterialCommunityIcons`
-  ngoài `AppIcon` fallback;
-- source test cấm `import * as` từ `lucide`;
+- source test cấm mọi import `@expo/vector-icons/MaterialCommunityIcons`;
+- source test cấm `import * as` và runtime barrel import từ `lucide`;
+- source test chỉ cho deep Lucide runtime import trong `app-icon-lucide.ts`;
 - source test kiểm mọi icon-only Pressable có semantic label ở parent;
 - typecheck/lint không warning.
 
@@ -200,6 +203,12 @@ Mỗi phase giữ semantic key ổn định để review diff, không đổi lay
 - `pnpm run check`;
 - Expo Doctor;
 - Android export và Hermes ≤ 8 MiB, tổng ≤ 12 MiB;
+- Android export dùng `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` và
+  `EXPO_UNSTABLE_TREE_SHAKING=1`; EAS development/preview/production dùng cùng
+  env và `production-store` kế thừa production;
+- EAS project `@hyeon004/vshop` production environment set/verify hai giá trị
+  trên dạng plaintext để future `eas update --environment production` dùng cùng
+  optimizer; parity này không thay đổi native runtime compatibility;
 - native development build cài được và load `react-native-svg`;
 - test current/selected/expanded/loading flows trên Android 60 Hz;
 - logcat không có FATAL/ANR/SIGSEGV;
@@ -208,13 +217,17 @@ Mỗi phase giữ semantic key ổn định để review diff, không đổi lay
 
 ## 7. Bundle và hiệu năng
 
-- Named Lucide imports là bắt buộc.
-- Không tạo registry bằng runtime string lookup trên toàn package.
+- Exact deep ESM Lucide imports chỉ được phép trong `app-icon-lucide.ts`;
+  `lucide` phải giữ pin `1.47.0`.
+- Không dùng CommonJS/runtime barrel hoặc tạo registry bằng dynamic lookup trên
+  toàn package.
 - Production tiếp tục strip DEV fixtures/flow tracing.
-- Sau migration, kiểm xem font MaterialCommunityIcons còn consumer nào; chỉ bỏ
-  asset/import khi không còn consumer runtime.
-- Không tăng budget. Nếu vượt, giảm dependency/import hoặc giữ fallback tĩnh;
-  không sửa threshold.
+- Application source không import MaterialCommunityIcons runtime cho AppIcon;
+  pistol là local `IconNode` nên không cần icon-font fallback. Expo export vẫn
+  chứa `MaterialCommunityIcons.ttf` từ dependency khác; asset này tiếp tục được
+  tính trong budget và không được tuyên bố đã loại bỏ.
+- Không tăng budget. Nếu vượt, giảm dependency/import và bật cùng Expo optimized
+  graph/tree-shaking contract ở local/EAS; không sửa threshold.
 - Morphicons cập nhật `d` bằng `setNativeProps`, tránh React render mỗi frame;
   vẫn phải đo thiết bị vì số lượng icon đồng thời có thể lớn.
 
@@ -224,7 +237,8 @@ Mỗi phase giữ semantic key ổn định để review diff, không đổi lay
 - Nếu SVG/native module không load, development build gate phải fail; không tạo
   fallback im lặng làm production trắng icon.
 - Mỗi phase là diff độc lập có thể revert mà không đổi business state.
-- Không xoá MaterialCommunityIcons dependency/fallback trước khi source audit đạt.
+- Chỉ bỏ MaterialCommunityIcons runtime path sau khi source-policy test xác nhận
+  zero import và mọi registry entry đều là `kind: "morph"`.
 
 ## 9. Trạng thái xác minh 2026-09-24
 
@@ -232,29 +246,39 @@ Mỗi phase giữ semantic key ổn định để review diff, không đổi lay
   `6704fa9`, `f6c684c`, `6ffa86f`, `7b27218`, `a632fb9`, `f8d11c9` và
   `a384b78`: dependency được pin, boundary/registry có type và mọi domain đã
   migrate khỏi direct vendor import.
-- Task 7A đã khóa metadata source candidate ở 4.1.9/Android 90/iOS 42, tăng
-  source policy để chỉ `AppIcon.tsx` được import MaterialCommunityIcons và
-  `morphicons/react-native`, đồng thời cấm namespace/deep Lucide imports.
-- Targeted AppIcon/source-policy tests PASS 2 suite / 9 test, gồm icon-only một
-  label, decorative không tạo label và `reducedMotion="user"` không thể bị
-  caller ghi đè. Strict TypeScript, scoped zero-warning ESLint, metadata
-  assertions, 21 Mermaid diagram, 138 local link và `git diff --check` cũng
-  PASS.
-- Full `pnpm run check`, Android export và bundle budget chưa chạy trong Task
-  7A. Development/production native build, APK install, device interaction,
-  Reduce Motion/TalkBack/VoiceOver thủ công, frame metrics và logcat 4.1.9 đều
-  **NOT VERIFIED**. Không có OTA, artifact, commit hay push 4.1.9 được tuyên bố.
+- Task 7 đã khóa metadata source candidate ở 4.1.9/Android 90/iOS 42. Source
+  policy hiện yêu cầu zero MaterialCommunityIcons import, chỉ `AppIcon.tsx`
+  import `morphicons/react-native`, và chỉ `app-icon-lucide.ts` chứa runtime deep
+  ESM Lucide imports. Pistol là local `IconNode`; mọi registry entry là morph.
+- Lần `pnpm run check` đầu đạt strict TypeScript, zero-warning ESLint,
+  production audit policy và 87 Jest suite / 909 test, nhưng toàn lệnh fail ở
+  Hermes 8,79/8,00 MiB. Deep-import-only đạt 8,26 MiB, vẫn fail.
+- Gate Android cuối bật Expo optimized graph/tree shaking và PASS ở
+  10,16/12 MiB tổng, 7,69/8 MiB Hermes, 1,25/1,50 MiB asset lớn nhất. Cùng env
+  được khai báo cho các EAS profile. EAS project `@hyeon004/vshop` production
+  environment cũng đã set/verify hai plaintext vars cho future
+  `eas update --environment production`. Jest đã transform `.mjs` qua Expo
+  preset.
+- 21 Mermaid diagram, 138 local link và `git diff --check` PASS.
+- Development/production native build, APK install, device interaction, Reduce
+  Motion/TalkBack/VoiceOver thủ công, frame metrics và logcat 4.1.9 đều
+  **NOT VERIFIED**. Static export/config parity không phải APK/device proof và
+  tuyệt đối không cho phép OTA 4.1.9 vào binary/runtime 4.1.8; không có OTA, EAS
+  build, artifact, commit hay push 4.1.9 được tuyên bố.
 
 ## 10. Acceptance criteria
 
-- [x] Không còn import MaterialCommunityIcons trực tiếp trong app/component/
-  feature code ngoài icon boundary.
+- [x] Không còn runtime import MaterialCommunityIcons trong AppIcon/app/component/
+  feature code.
 - [x] Mọi icon UI dùng semantic token typed.
 - [x] Mọi control có state dùng cặp morph hợp lệ; icon tĩnh không animation vô cớ.
 - [ ] Reduce Motion, TalkBack/VoiceOver và touch target đạt policy VShop.
-- [x] Game-specific icon giữ đúng nghĩa qua fallback có kiểm soát.
-- [ ] Full tests, lint, typecheck, audit và Android export PASS.
-- [ ] Hermes không vượt 8 MiB; total export không vượt 12 MiB.
+- [x] Game-specific icon giữ đúng nghĩa qua morphable `IconNode`; pistol dùng
+  vector local.
+- [x] Typecheck, lint, 87 suite / 910 test, audit và final Android export gate
+  PASS; lần full-check đầu fail budget được ghi riêng, không bị gọi nhầm là pass.
+- [x] Optimized export đạt Hermes 7,69/8 MiB, total 10,16/12 MiB và largest
+  asset 1,25/1,50 MiB.
 - [ ] Development APK mới chạy trên thiết bị và các flow chính không crash/jank
   nghiêm trọng.
 - [x] README, CHANGELOG, design-system và diagram/package docs được cập nhật.

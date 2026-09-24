@@ -3,7 +3,6 @@ import TestRenderer, { act } from "react-test-renderer";
 import AppIcon from "~/components/ui/AppIcon";
 
 const mockMorphProps: Record<string, unknown>[] = [];
-const mockLegacyProps: Record<string, unknown>[] = [];
 
 jest.mock("morphicons/react-native", () => ({
   MorphIcon: (props: Record<string, unknown>) => {
@@ -12,17 +11,9 @@ jest.mock("morphicons/react-native", () => ({
   },
 }));
 
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
-  function MockMaterialCommunityIcons(props: Record<string, unknown>) {
-    mockLegacyProps.push(props);
-    return null;
-  }
-);
-
 describe("AppIcon", () => {
   beforeEach(() => {
     mockMorphProps.splice(0);
-    mockLegacyProps.splice(0);
   });
 
   it("always honors system Reduce Motion and ignores caller overrides", () => {
@@ -62,7 +53,7 @@ describe("AppIcon", () => {
       );
     });
 
-    const accessibleLabels = [...mockMorphProps, ...mockLegacyProps].filter(
+    const accessibleLabels = mockMorphProps.filter(
       (props) => props.label === "Search" || props.accessibilityLabel === "Search"
     );
 
@@ -125,7 +116,7 @@ describe("AppIcon", () => {
     expect(mockMorphProps[0].icon).toBe(mockMorphProps[1].icon);
   });
 
-  it("keeps the controlled legacy fallback hidden from accessibility", () => {
+  it("renders the Valorant pistol through the same animated boundary", () => {
     act(() => {
       TestRenderer.create(
         <AppIcon
@@ -138,15 +129,13 @@ describe("AppIcon", () => {
       );
     });
 
-    expect(mockMorphProps).toHaveLength(0);
-    expect(mockLegacyProps.at(-1)).toMatchObject({
-      name: "pistol",
+    expect(mockMorphProps).toHaveLength(1);
+    expect(mockMorphProps.at(-1)).toMatchObject({
       size: 24,
       color: "#f00",
-      importantForAccessibility: "no",
-      accessibilityElementsHidden: true,
+      label: "Sidearm",
+      reducedMotion: "user",
       testID: "sidearm-icon",
     });
-    expect(mockLegacyProps.at(-1)).not.toHaveProperty("accessibilityLabel");
   });
 });

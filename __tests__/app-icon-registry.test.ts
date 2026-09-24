@@ -1,4 +1,16 @@
-import { Heart, LogOut, UserRoundX } from "lucide";
+import {
+  Bomb,
+  Crosshair,
+  Flag,
+  Heart,
+  Hourglass,
+  LogOut,
+  Pistol,
+  ShieldCheck,
+  ShieldUser,
+  Swords,
+  UserRoundX,
+} from "~/components/ui/app-icon-lucide";
 import {
   APP_ICON_REGISTRY,
   resolveAppIcon,
@@ -140,17 +152,17 @@ const TASK_6_SEMANTIC_TOKENS = [
   "settingsAbout",
 ] as const;
 
-const CONTROLLED_LEGACY_MAPPINGS = {
-  shield: "shield-account-outline",
-  equipmentProfile: "shield-account-outline",
-  weaponPistol: "pistol",
-  combatSword: "sword-cross",
-  roundElimination: "crosshairs-gps",
-  roundSpikeDefused: "shield-check-outline",
-  roundSpikeDetonated: "bomb",
-  roundTimeExpired: "timer-sand",
-  roundSurrender: "flag-outline",
-  objectiveCrosshair: "crosshairs-gps",
+const CONTROLLED_GAME_MAPPINGS = {
+  shield: ShieldUser,
+  equipmentProfile: ShieldUser,
+  weaponPistol: Pistol,
+  combatSword: Swords,
+  roundElimination: Crosshair,
+  roundSpikeDefused: ShieldCheck,
+  roundSpikeDetonated: Bomb,
+  roundTimeExpired: Hourglass,
+  roundSurrender: Flag,
+  objectiveCrosshair: Crosshair,
 } as const;
 
 describe("AppIcon registry", () => {
@@ -224,53 +236,41 @@ describe("AppIcon registry", () => {
     });
   });
 
-  it("keeps Valorant-only glyphs behind the legacy boundary", () => {
+  it("keeps Valorant-specific glyphs on the animated boundary", () => {
     expect(resolveAppIcon("weaponPistol")).toEqual({
-      kind: "legacy",
-      legacyName: "pistol",
+      kind: "morph",
+      icon: Pistol,
     });
     expect(resolveAppIcon("combatSword")).toEqual({
-      kind: "legacy",
-      legacyName: "sword-cross",
+      kind: "morph",
+      icon: Swords,
     });
     expect(resolveAppIcon("shield")).toEqual({
-      kind: "legacy",
-      legacyName: "shield-account-outline",
+      kind: "morph",
+      icon: ShieldUser,
     });
     expect(resolveAppIcon("equipmentProfile")).toEqual({
-      kind: "legacy",
-      legacyName: "shield-account-outline",
+      kind: "morph",
+      icon: ShieldUser,
     });
     expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(116);
   });
 
-  it("maps every controlled game glyph to its exact legacy definition", () => {
-    for (const name of Object.keys(CONTROLLED_LEGACY_MAPPINGS) as (
-      keyof typeof CONTROLLED_LEGACY_MAPPINGS
+  it("maps every controlled game glyph to morphable vector data", () => {
+    for (const name of Object.keys(CONTROLLED_GAME_MAPPINGS) as (
+      keyof typeof CONTROLLED_GAME_MAPPINGS
     )[]) {
       expect(resolveAppIcon(name)).toEqual({
-        kind: "legacy",
-        legacyName: CONTROLLED_LEGACY_MAPPINGS[name],
+        kind: "morph",
+        icon: CONTROLLED_GAME_MAPPINGS[name],
       });
     }
 
-    const legacyNames = new Set(
-      Object.values(APP_ICON_REGISTRY)
-        .filter((definition) => definition.kind === "legacy")
-        .map((definition) => definition.legacyName),
-    );
-    expect([...legacyNames].sort()).toEqual(
-      [
-        "bomb",
-        "crosshairs-gps",
-        "flag-outline",
-        "pistol",
-        "shield-account-outline",
-        "shield-check-outline",
-        "sword-cross",
-        "timer-sand",
-      ].sort(),
-    );
+    expect(
+      Object.values(APP_ICON_REGISTRY).every(
+        (definition) => definition.kind === "morph",
+      ),
+    ).toBe(true);
   });
 
   it("keeps Heart semantics while marking the selected state as filled", () => {

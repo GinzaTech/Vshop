@@ -12,6 +12,8 @@ flowchart TB
         Src --> Check
         Src --> Metro
     end
+    Optimizer[Expo optimized graph + tree shaking]
+    EASProdEnv[EAS production env: 2 verified plaintext vars]
     subgraph Build[Expo EAS Build]
         Native[Native prebuild và compile]
         Dev[Development APK: dev client]
@@ -22,6 +24,8 @@ flowchart TB
         Native --> AAB
     end
     Release[GitHub Release: signed APK asset + checksum]
+    Optimizer --> Check
+    Optimizer --> Native
     Check -->|Source đã kiểm chứng| Native
     subgraph Runtime[Thiết bị Android / iOS]
         App[Native app + Hermes JS]
@@ -43,7 +47,8 @@ flowchart TB
     Prod -->|FINISHED + artifact URL| Release
     Metro -. Chỉ dev client .-> App
     App --> Riot[Riot / public API / chat]
-    Updates[Expo Updates: runtime và channel tương thích] -->|JS và assets OTA| App
+    EASProdEnv --> Updates[Expo Updates: runtime và channel tương thích]
+    Updates -->|JS và assets OTA| App
 ```
 
 Android/iOS trong repo là output prebuild, không phải nguồn cấu hình chính.
@@ -52,6 +57,18 @@ Nguồn là `app.json`, plugin Expo và TypeScript. `production` xuất APK;
 được suy ra đã build chỉ vì Android thành công. OTA không thay native binary.
 Baseline là metadata local nhỏ qua storage adapter; SQLite vẫn giữ archive và
 không đồng bộ mốc này giữa thiết bị.
+
+Gate export local và các EAS build profile dùng
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` cùng
+`EXPO_UNSTABLE_TREE_SHAKING=1`; `production-store` kế thừa production. EAS
+project `@hyeon004/vshop` production environment cũng đã set/verify hai giá trị
+dạng plaintext, nên future `eas update --environment production` dùng cùng
+optimizer. Đây không phải bằng chứng tương thích runtime: source 4.1.9 có native
+dependency mới và tuyệt đối không được OTA vào binary/runtime 4.1.8.
+
+Optimized static export 4.1.9 đã PASS budget 10,16/12 MiB tổng, 7,69/8 MiB
+Hermes và 1,25/1,50 MiB asset lớn nhất. Native EAS build, APK install và runtime
+thiết bị 4.1.9 vẫn **NOT VERIFIED**.
 
 Release 4.1.8 dùng EAS build
 [`6e0a0273-9bac-46c5-b1d8-66c230b24557`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557)
