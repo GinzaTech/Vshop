@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { useTranslation } from "react-i18next";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
 import {
   ABOUT_TOGGLES_STORAGE_KEY,
@@ -25,6 +24,7 @@ import {
 import { setStoredItem, removeStoredItem } from "~/utils/storage";
 import { sanitizeErrorForLog } from "~/utils/log-redaction";
 import GlassCard from "~/components/ui/GlassCard";
+import AppIcon from "~/components/ui/AppIcon";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
@@ -178,7 +178,7 @@ export default function AboutScreen() {
       {/* ── Hero ── */}
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Icon name="information-outline" size={24} color={COLORS.PURE_WHITE} />
+          <AppIcon name="info" size={24} color={COLORS.PURE_WHITE} decorative />
         </View>
         <View style={styles.heroCopy}>
           <Text style={styles.title}>{t("about_page.title")}</Text>
@@ -233,7 +233,7 @@ export default function AboutScreen() {
             <Text style={styles.sectionTitle}>{t("about_page.feature_toggles")}</Text>
             {hasToggleOverrides && (
               <TouchableOpacity style={styles.btnDanger} onPress={handleResetToggles}>
-                <Icon name="restore" size={14} color={COLORS.WARNING} />
+                <AppIcon name="history" size={14} color={COLORS.WARNING} decorative />
                 <Text style={styles.btnDangerText}>{t("about_page.reset_action")}</Text>
               </TouchableOpacity>
             )}
@@ -241,7 +241,7 @@ export default function AboutScreen() {
 
           {hasToggleOverrides && (
             <View style={styles.overrideBanner}>
-              <Icon name="information-outline" size={14} color={COLORS.ACCENT} />
+              <AppIcon name="info" size={14} color={COLORS.ACCENT} decorative />
               <Text style={styles.overrideBannerText}>
                 {t("about_page.toggle_override_active", {
                   count: Object.keys(toggleOverrides).length,
@@ -251,7 +251,7 @@ export default function AboutScreen() {
           )}
 
           <View style={styles.configNote}>
-            <Icon name="information-outline" size={16} color={COLORS.TEXT_SECONDARY} />
+            <AppIcon name="info" size={16} color={COLORS.TEXT_SECONDARY} decorative />
             <Text style={styles.configNoteText}>
               {t("about_page.feature_toggles_note")}
             </Text>

@@ -38,4 +38,26 @@ describe("core journey automation and accessibility contracts", () => {
     expect(source.match(/accessibilityRole="tablist"/g)).toHaveLength(2);
     expect(source).toContain('accessibilityLabel={t("profile_page.stats.navigation")}');
   });
+
+  it.each([
+    [
+      "app/(authenticated)/item_upgrades.tsx",
+      "item-upgrades-clear-search",
+      "hitSlop={8}",
+    ],
+    [
+      "app/(authenticated)/leaderboard.tsx",
+      "leaderboard-clear-search",
+      "hitSlop={13}",
+    ],
+  ])("keeps the clear-search control named and touchable in %s", (file, testID, hitSlop) => {
+    const source = read(file);
+    const controlStart = source.indexOf(`testID="${testID}"`);
+    const controlSource = source.slice(controlStart, controlStart + 320);
+
+    expect(controlStart).toBeGreaterThanOrEqual(0);
+    expect(controlSource).toContain('accessibilityRole="button"');
+    expect(controlSource).toContain('accessibilityLabel={t("common.close")}');
+    expect(controlSource).toContain(hitSlop);
+  });
 });

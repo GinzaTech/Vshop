@@ -12,9 +12,9 @@ import {
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { useTranslation } from "react-i18next";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { CachedImage as Image } from "~/components/CachedImage";
 
+import AppIcon from "~/components/ui/AppIcon";
 import { useUserStore } from "~/hooks/useUserStore";
 import { getItemUpgrades } from "~/utils/valorant-api";
 import { getAssetLookups } from "~/utils/valorant-assets";
@@ -255,7 +255,7 @@ export default function ItemUpgradesScreen() {
       <View style={styles.sidegradeSection}>
         {/* Tiêu đề section "Biến thể" */}
         <View style={styles.sectionTitleRow}>
-          <Icon name="palette-swatch-outline" size={16} color={COLORS.VALORANT_RED} />
+          <AppIcon name="palette" size={16} color={COLORS.VALORANT_RED} decorative />
           <Text style={styles.sidegradeTitle}>
             {t("item_upgrades_page.sidegrade_title")}
           </Text>
@@ -270,6 +270,9 @@ export default function ItemUpgradesScreen() {
           return (
             <TouchableOpacity
               key={opt.OptionID}
+              accessibilityRole="radio"
+              accessibilityLabel={rewardMeta.name}
+              accessibilityState={{ selected: isSelected }}
               style={[styles.optionRow, isSelected && styles.optionRowSelected]}
               // Bật/tắt chọn option này
               onPress={() =>
@@ -292,7 +295,7 @@ export default function ItemUpgradesScreen() {
                 />
               ) : (
                 <View style={styles.optionImageFallback}>
-                  <Icon name="palette-outline" size={16} color={COLORS.TEXT_SECONDARY} />
+                  <AppIcon name="palette" size={16} color={COLORS.TEXT_SECONDARY} decorative />
                 </View>
               )}
               {/* Thông tin: tên + chi phí */}
@@ -311,10 +314,11 @@ export default function ItemUpgradesScreen() {
                 </View>
               </View>
               {/* Radio button */}
-              <Icon
-                name={isSelected ? "radiobox-marked" : "radiobox-blank"}
+              <AppIcon
+                name={isSelected ? "selected" : "unselected"}
                 size={20}
                 color={isSelected ? COLORS.VALORANT_RED : COLORS.TEXT_SECONDARY}
+                decorative
               />
             </TouchableOpacity>
           );
@@ -358,11 +362,14 @@ export default function ItemUpgradesScreen() {
               recyclingKey={itemMeta.icon}
             />
           ) : (
-            <Icon name="pistol" size={34} color={COLORS.TEXT_SECONDARY} />
+            <AppIcon name="weaponPistol" size={34} color={COLORS.TEXT_SECONDARY} decorative />
           )}
         </View>
         {/* Header card – bấm để mở rộng/thu gọn */}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={itemMeta.name}
+          accessibilityState={{ expanded: isExpanded }}
           activeOpacity={0.86}
           style={styles.defHeader}
           onPress={() => setExpandedDef(isExpanded ? null : def.ID)}
@@ -380,7 +387,7 @@ export default function ItemUpgradesScreen() {
                 recyclingKey={itemMeta.icon}
               />
             ) : (
-              <Icon name="pistol" size={30} color={COLORS.TEXT_SECONDARY} />
+              <AppIcon name="weaponPistol" size={30} color={COLORS.TEXT_SECONDARY} decorative />
             )}
           </View>
 
@@ -394,13 +401,13 @@ export default function ItemUpgradesScreen() {
             </Text>
             <View style={styles.cardMetaRow}>
               <View style={styles.metaChip}>
-                <Icon name="arrow-up-bold-hexagon-outline" size={13} color={COLORS.TEXT_PRIMARY} />
+                <AppIcon name="upgrade" size={13} color={COLORS.TEXT_PRIMARY} decorative />
                 <Text style={styles.metaChipText}>
                   {t("item_upgrades_page.level_count", { count: levels.length })}
                 </Text>
               </View>
               <View style={styles.metaChip}>
-                <Icon name="palette-outline" size={13} color={COLORS.TEXT_PRIMARY} />
+                <AppIcon name="palette" size={13} color={COLORS.TEXT_PRIMARY} decorative />
                 <Text style={styles.metaChipText}>
                   {t("item_upgrades_page.variant_count", { count: sidegradeCount })}
                 </Text>
@@ -414,10 +421,11 @@ export default function ItemUpgradesScreen() {
               <CurrencyIcon icon="rad" style={styles.currencyIcon} />
               <Text style={styles.cardCostText}>{progressionCost || "--"}</Text>
             </View>
-            <Icon
-              name={isExpanded ? "chevron-up" : "chevron-down"}
+            <AppIcon
+              name={isExpanded ? "chevronUp" : "chevronDown"}
               size={20}
               color={COLORS.TEXT_SECONDARY}
+              decorative
             />
           </View>
         </TouchableOpacity>
@@ -429,7 +437,7 @@ export default function ItemUpgradesScreen() {
             {levels.length > 0 ? (
               <View style={styles.progressionPanel}>
                 <View style={styles.sectionTitleRow}>
-                  <Icon name="timeline-check-outline" size={16} color={COLORS.VALORANT_RED} />
+                  <AppIcon name="timeline" size={16} color={COLORS.VALORANT_RED} decorative />
                   <Text style={styles.progressionTitle}>
                     {t("item_upgrades_page.upgrade_title")}
                   </Text>
@@ -522,7 +530,7 @@ export default function ItemUpgradesScreen() {
           {/* Hero section: icon + tiêu đề */}
           <View style={styles.hero}>
             <View style={styles.heroIcon}>
-              <Icon name="lightning-bolt" size={24} color={COLORS.PURE_WHITE} />
+              <AppIcon name="upgrade" size={24} color={COLORS.PURE_WHITE} decorative />
             </View>
             <View style={styles.heroCopy}>
               <Text style={styles.title}>{t("item_upgrades_page.title")}</Text>
@@ -554,7 +562,7 @@ export default function ItemUpgradesScreen() {
 
           {/* Thanh tìm kiếm */}
           <View style={styles.searchBox}>
-            <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
+            <AppIcon name="search" size={20} color={COLORS.TEXT_SECONDARY} decorative />
             <TextInput
               value={query}
               onChangeText={setQuery}
@@ -565,11 +573,15 @@ export default function ItemUpgradesScreen() {
             />
             {query ? (
               <TouchableOpacity
+                testID="item-upgrades-clear-search"
+                accessibilityRole="button"
+                accessibilityLabel={t("common.close")}
+                hitSlop={8}
                 activeOpacity={0.75}
                 onPress={() => setQuery("")}
                 style={styles.clearSearchButton}
               >
-                <Icon name="close" size={16} color={COLORS.TEXT_SECONDARY} />
+                <AppIcon name="close" size={16} color={COLORS.TEXT_SECONDARY} decorative />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -578,7 +590,7 @@ export default function ItemUpgradesScreen() {
       ListEmptyComponent={
         // Empty state: hiển thị khi không có dữ liệu hoặc không có kết quả tìm kiếm
         <GlassCard style={styles.emptyCard}>
-          <Icon name="lightning-bolt-outline" size={30} color={COLORS.TEXT_SECONDARY} />
+          <AppIcon name="upgrade" size={30} color={COLORS.TEXT_SECONDARY} decorative />
           <Text style={styles.emptyTitle}>
             {definitions.length === 0
               ? t("item_upgrades_page.empty_title")

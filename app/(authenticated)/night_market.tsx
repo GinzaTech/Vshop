@@ -10,9 +10,9 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
 
+import AppIcon from "~/components/ui/AppIcon";
 import Countdown from "~/components/Countdown";
 import NightMarketItem from "~/components/NightMarketItem";
 import { useUserStore } from "~/hooks/useUserStore";
@@ -72,7 +72,7 @@ function NightMarket() {
       {user.shops.nightMarket.length === 0 ? (
         <EmptyStateCard
           centered
-          icon={<Icon name="weather-night" size={36} color={COLORS.TEXT_PRIMARY} />}
+          icon={<AppIcon name="nightMarket" size={36} color={COLORS.TEXT_PRIMARY} decorative />}
           title={t("night_market_page.empty_title")}
           subtitle={t("night_market_page.empty_subtitle")}
         />
@@ -83,7 +83,9 @@ function NightMarket() {
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>Vshop</Text>
           <View style={styles.marketBadge}>
-            <Icon name="moon-waning-crescent" size={10} color="#ff4655" style={{ marginRight: 4 }} />
+            <View style={{ marginRight: 4 }}>
+              <AppIcon name="nightMarket" size={10} color="#ff4655" decorative />
+            </View>
             <Text style={styles.marketBadgeText}>{t("night_market_page.badge")}</Text>
           </View>
         </View>
@@ -102,7 +104,9 @@ function NightMarket() {
       {/* Black Countdown Pill Banner: đếm ngược thời gian */}
       <View style={styles.countdownContainer}>
         <View style={styles.countdownPill}>
-          <Icon name="clock-outline" size={16} color={COLORS.PURE_WHITE} style={{ marginRight: 6 }} />
+          <View style={{ marginRight: 6 }}>
+            <AppIcon name="clock" size={16} color={COLORS.PURE_WHITE} decorative />
+          </View>
           <Text style={styles.countdownPillLabel}>{t("night_market_page.ends_in")}</Text>
           <Countdown timestamp={timestamp} textStyle={{ color: COLORS.PURE_WHITE, fontWeight: "700" }} />
         </View>
@@ -117,7 +121,9 @@ function NightMarket() {
 
       {/* Bottom Info Note: thông tin phụ */}
       <View style={styles.infoNoteCard}>
-        <Icon name="information-outline" size={20} color={COLORS.TEXT_SECONDARY} style={{ marginRight: 12 }} />
+        <View style={{ marginRight: 12 }}>
+          <AppIcon name="info" size={20} color={COLORS.TEXT_SECONDARY} decorative />
+        </View>
         <Text style={styles.infoNoteText}>
           {t("night_market_page.info_note")}
         </Text>

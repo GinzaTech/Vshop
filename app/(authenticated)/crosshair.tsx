@@ -2,9 +2,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
 
+import AppIcon from "~/components/ui/AppIcon";
 import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { CROSSHAIR_DB, type CrosshairData } from "~/constants/CrosshairData";
@@ -144,7 +144,7 @@ export default function CrosshairDatabase() {
         {/* Toolbar: search + tabs */}
         <View style={styles.toolbar}>
           <View style={styles.searchBar}>
-            <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
+            <AppIcon name="search" size={20} color={COLORS.TEXT_SECONDARY} decorative />
             <TextInput style={styles.input} placeholder={t("crosshair_page.search_placeholder")}
               accessibilityLabel={t("crosshair_page.search_placeholder")}
               placeholderTextColor={COLORS.TEXT_SECONDARY} value={search} onChangeText={setSearch} />
@@ -189,7 +189,7 @@ export default function CrosshairDatabase() {
                   {isCopied ? (
                     <View style={styles.copiedBadge}><Text style={styles.copiedText}>{t("crosshair_page.copied")}</Text></View>
                   ) : (
-                    <View style={styles.cardFooter}><Icon name="crosshairs" size={14} color={COLORS.TEXT_SECONDARY} /></View>
+                    <View style={styles.cardFooter}><AppIcon name="crosshair" size={14} color={COLORS.TEXT_SECONDARY} decorative /></View>
                   )}
                 </GlassCard>
               </TouchableOpacity>

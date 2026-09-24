@@ -1,9 +1,9 @@
 // ===== Import thư viện =====
 import React from "react";
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
 
+import AppIcon from "~/components/ui/AppIcon";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import GalleryWeapon from "~/components/GalleryWeapon";
 import { getAssets } from "~/utils/valorant-assets";
@@ -103,7 +103,7 @@ function Gallery() {
 
       {/* Search bar */}
       <View style={styles.searchBar}>
-        <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
+        <AppIcon name="search" size={20} color={COLORS.TEXT_SECONDARY} decorative />
         <TextInput
           testID="gallery-search-input"
           accessibilityLabel={t("gallery_page.search_placeholder")}

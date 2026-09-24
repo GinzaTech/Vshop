@@ -4,8 +4,9 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
+import AppIcon from "~/components/ui/AppIcon";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { useContractsScreenData } from "~/hooks/useContractsScreenData";
 import { getAgent } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
@@ -22,6 +23,13 @@ type ContractEntry = {
 };
 
 type ContractMission = ContractsResponse["Missions"][number];
+type ContractType = "battlepass" | "eventpass" | "agent_contract";
+
+const CONTRACT_ICON_BY_TYPE = {
+  battlepass: "contract",
+  eventpass: "season",
+  agent_contract: "account",
+} as const satisfies Record<ContractType, AppIconName>;
 
 // Tiền tố ID để phân biệt battle pass và event pass
 const BATTLEPASS_CONTRACT_PREFIX = "79cf2ea0-";
@@ -81,7 +89,7 @@ export default function ContractsScreen() {
   // Hiển thị: icon/portrait, tên, cấp độ, badge active, thanh XP, progress text
   const renderContractCard = (
     contract: ContractEntry,
-    type: "battlepass" | "eventpass" | "agent_contract"
+    type: ContractType
   ) => {
     const agent = type === "agent_contract" ? getAgentForContract(contract.ContractDefinitionID) : null;
     const definition = getContractDefinition(contract.ContractDefinitionID);
@@ -92,7 +100,7 @@ export default function ContractsScreen() {
       : 0;
     const title = agent?.displayName || definition?.displayName ||
       (type === "battlepass" ? t("contracts_page.battlepass") : type === "eventpass" ? t("contracts_page.eventpass") : t("contracts_page.agent_contract"));
-    const iconName = type === "battlepass" ? "ticket-confirmation-outline" : type === "eventpass" ? "calendar-star" : "account-star-outline";
+    const iconName: AppIconName = CONTRACT_ICON_BY_TYPE[type];
     const portrait = agent?.fullPortraitV2 || agent?.fullPortrait || agent?.bustPortrait || definition?.displayIcon || agent?.displayIcon;
 
     return (
@@ -103,24 +111,24 @@ export default function ContractsScreen() {
             {portrait ? (
               <Image cacheId={`contract:${contract.ContractDefinitionID}:portrait`} source={{ uri: portrait }} style={styles.contractImage} contentFit="contain" />
             ) : (
-              <Icon name={iconName} size={34} color={COLORS.TEXT_SECONDARY} />
+              <AppIcon name={iconName} size={34} color={COLORS.TEXT_SECONDARY} decorative />
             )}
           </View>
           {/* Thông tin chính */}
           <View style={styles.contractMain}>
             <View style={styles.contractTitleRow}>
-              <View style={styles.contractTypeIcon}><Icon name={iconName} size={15} color={COLORS.PURE_WHITE} /></View>
+              <View style={styles.contractTypeIcon}><AppIcon name={iconName} size={15} color={COLORS.PURE_WHITE} decorative /></View>
               <Text style={styles.contractName} numberOfLines={1}>{title}</Text>
             </View>
             {/* Badge cấp độ + active */}
             <View style={styles.contractMetaRow}>
               <View style={styles.levelBadge}>
-                <Icon name="stairs-up" size={13} color={COLORS.TEXT_PRIMARY} />
+                <AppIcon name="upgrade" size={13} color={COLORS.TEXT_PRIMARY} decorative />
                 <Text style={styles.levelBadgeText}>Lv. {contract.ProgressionLevelReached}</Text>
               </View>
               {isActive ? (
                 <View style={styles.activeBadge}>
-                  <Icon name="check" size={12} color={COLORS.PURE_WHITE} />
+                  <AppIcon name="check" size={12} color={COLORS.PURE_WHITE} decorative />
                   <Text style={styles.activeBadgeText}>{t("contracts_page.activated")}</Text>
                 </View>
               ) : null}
@@ -148,7 +156,7 @@ export default function ContractsScreen() {
     return (
       <View key={mission.ID} style={styles.missionRow}>
         <View style={styles.missionIcon}>
-          <Icon name={isComplete ? "check-circle" : "flag-checkered"} size={18} color={isComplete ? COLORS.SUCCESS : COLORS.TEXT_PRIMARY} />
+          <AppIcon name={isComplete ? "completed" : "incomplete"} size={18} color={isComplete ? COLORS.SUCCESS : COLORS.TEXT_PRIMARY} decorative />
         </View>
         <View style={styles.missionInfo}>
           <Text style={styles.missionId} numberOfLines={1}>{mission.ID.substring(0, 8)}...</Text>
@@ -159,7 +167,7 @@ export default function ContractsScreen() {
           ) : null}
         </View>
         {isComplete ? (
-          <Icon name="check-circle" size={20} color={COLORS.SUCCESS} />
+          <AppIcon name="completed" size={20} color={COLORS.SUCCESS} decorative />
         ) : (
           <View style={styles.missionBarWrap}><View style={[styles.missionBarFill, { width: target && target > 0 ? `${(current / target) * 100}%` : "0%" }]} /></View>
         )}
@@ -189,7 +197,7 @@ export default function ContractsScreen() {
     >
       {/* Hero header: icon passport + tiêu đề */}
       <View style={styles.hero}>
-        <View style={styles.heroIcon}><Icon name="passport" size={26} color={COLORS.PURE_WHITE} /></View>
+        <View style={styles.heroIcon}><AppIcon name="contract" size={26} color={COLORS.PURE_WHITE} decorative /></View>
         <View style={styles.heroCopy}>
           <Text style={styles.title}>{t("contracts_page.title")}</Text>
           <Text style={styles.subtitle}>{t("contracts_page.subtitle")}</Text>
@@ -199,12 +207,12 @@ export default function ContractsScreen() {
       {/* Thống kê: số agent contracts + số missions */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Icon name="account-star-outline" size={18} color={COLORS.TEXT_PRIMARY} />
+          <AppIcon name="account" size={18} color={COLORS.TEXT_PRIMARY} decorative />
           <Text style={styles.statValue}>{agentContracts.length}</Text>
           <Text style={styles.statLabel}>{t("contracts_page.agent_contracts_title")}</Text>
         </View>
         <View style={styles.statCard}>
-          <Icon name="clipboard-check-outline" size={18} color={COLORS.TEXT_PRIMARY} />
+          <AppIcon name="mission" size={18} color={COLORS.TEXT_PRIMARY} decorative />
           <Text style={styles.statValue}>{missionList.length}</Text>
           <Text style={styles.statLabel}>{t("contracts_page.missions_title")}</Text>
         </View>

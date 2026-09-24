@@ -8,19 +8,9 @@ const MATERIAL_COMMUNITY_MODULE =
 const MORPHICONS_MODULE = "morphicons/react-native";
 
 const remainingLegacyImports = new Set([
-  "app/(authenticated)/about.tsx",
-  "app/(authenticated)/accessories.tsx",
-  "app/(authenticated)/bundles.tsx",
   "app/(authenticated)/combat.tsx",
-  "app/(authenticated)/contracts.tsx",
-  "app/(authenticated)/crosshair.tsx",
   "app/(authenticated)/friends.tsx",
-  "app/(authenticated)/gallery.tsx",
-  "app/(authenticated)/item_upgrades.tsx",
-  "app/(authenticated)/leaderboard.tsx",
-  "app/(authenticated)/night_market.tsx",
   "app/(authenticated)/settings.tsx",
-  "app/(authenticated)/shop.tsx",
   "app/chat/[friendId].tsx",
   "features/combat/CombatSessionScreen.tsx",
 ]);

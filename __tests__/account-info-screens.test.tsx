@@ -40,7 +40,10 @@ jest.mock("~/utils/valorant-assets", () => ({ getAgent: () => ({ agents: [] }) }
 jest.mock("~/utils/localization", () => ({ getVAPILang: () => "en-US" }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock("react-native-paper", () => ({ ActivityIndicator: "ActivityIndicator" }));
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => "Icon");
+jest.mock("~/components/ui/AppIcon", () => ({
+  __esModule: true,
+  default: "AppIcon",
+}));
 jest.mock("~/components/CachedImage", () => ({ CachedImage: "CachedImage" }));
 jest.mock("~/components/ui/GlassCard", () => ({
   __esModule: true,

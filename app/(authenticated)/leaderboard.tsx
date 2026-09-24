@@ -14,8 +14,8 @@ import {
 import { ActivityIndicator } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 
+import AppIcon from "~/components/ui/AppIcon";
 import { useUserStore } from "~/hooks/useUserStore";
 import { fetchCompetitiveTiers, getAssets } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
@@ -210,7 +210,7 @@ export default function LeaderboardScreen() {
       {/* Dải chọn mùa giải (season chips) */}
       {seasons.length > 0 && (
         <View style={styles.seasonRow}>
-          <Icon name="calendar-range" size={16} color={COLORS.TEXT_SECONDARY} />
+          <AppIcon name="season" size={16} color={COLORS.TEXT_SECONDARY} decorative />
           <ScrollView
             horizontal
             style={styles.seasonScroller}
@@ -245,7 +245,7 @@ export default function LeaderboardScreen() {
 
       {/* Thanh tìm kiếm người chơi */}
       <View style={styles.searchBar}>
-        <Icon name="magnify" size={18} color={COLORS.TEXT_SECONDARY} />
+        <AppIcon name="search" size={18} color={COLORS.TEXT_SECONDARY} decorative />
         <TextInput
           style={styles.searchInput}
           placeholder={t("leaderboard_page.search_placeholder")}
@@ -254,8 +254,14 @@ export default function LeaderboardScreen() {
           onChangeText={setSearchQuery}
         />
         {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
-            <Icon name="close-circle" size={18} color={COLORS.TEXT_SECONDARY} />
+          <TouchableOpacity
+            testID="leaderboard-clear-search"
+            accessibilityRole="button"
+            accessibilityLabel={t("common.close")}
+            hitSlop={13}
+            onPress={() => setSearchQuery("")}
+          >
+            <AppIcon name="close" size={18} color={COLORS.TEXT_SECONDARY} decorative />
           </TouchableOpacity>
         ) : null}
       </View>

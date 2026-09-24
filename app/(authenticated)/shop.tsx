@@ -12,7 +12,6 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -24,6 +23,7 @@ import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import AppIcon from "~/components/ui/AppIcon";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { refreshShopAndBalances } from "~/utils/app-sync";
 import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
@@ -136,12 +136,14 @@ function Shop() {
             onPress={() => setMode("wishlist")}
           >
             <View style={styles.chipWishlistContent}>
-              <Icon
-                name={mode === "wishlist" ? "heart" : "heart-outline"}
-                size={15}
-                color={mode === "wishlist" ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
-                style={{ marginRight: 5 }}
-              />
+              <View style={styles.wishlistIcon}>
+                <AppIcon
+                  name={mode === "wishlist" ? "wishlistFilled" : "wishlist"}
+                  size={15}
+                  color={mode === "wishlist" ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
+                  decorative
+                />
+              </View>
               <Text style={[styles.chipLabel, mode === "wishlist" && styles.chipLabelActive]}>
                 {t("shop_page.filters.wishlist")}
               </Text>
@@ -150,7 +152,7 @@ function Shop() {
         </View>
 
         <InfoPill testID="shop-refresh-countdown" style={styles.metricPill}>
-          <Icon name="clock-outline" size={15} color={COLORS.TEXT_PRIMARY} />
+          <AppIcon name="clock" size={15} color={COLORS.TEXT_PRIMARY} decorative />
           <Countdown
             timestamp={timestamp}
             compact
@@ -330,6 +332,9 @@ const styles = StyleSheet.create({
   chipWishlistContent: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  wishlistIcon: {
+    marginRight: 5,
   },
   // metricPill – Pill thông số
   metricPill: {

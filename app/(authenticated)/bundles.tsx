@@ -10,7 +10,6 @@ import {
   type ViewStyle,
   View,
 } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { BlurTargetView, BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 import { Modal, Portal, useTheme } from "react-native-paper";
@@ -29,6 +28,7 @@ import InfoPill from "~/components/ui/InfoPill";
 import PageIntro from "~/components/ui/PageIntro";
 import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import AppIcon from "~/components/ui/AppIcon";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { refreshShopAndBalances } from "~/utils/app-sync";
 import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
@@ -110,10 +110,11 @@ function Bundles() {
         <EmptyStateCard
           centered
           icon={
-            <Icon
-              name="package-variant-closed"
+            <AppIcon
+              name="bundle"
               size={38}
               color={COLORS.TEXT_PRIMARY}
+              decorative
             />
           }
           title={t("bundles_page.empty_title")}
@@ -223,7 +224,12 @@ function Bundles() {
                     onPress={dismissBundle}
                     style={styles.modalCloseButton}
                   >
-                    <Icon name="close" size={22} color={COLORS.PURE_WHITE} />
+                    <AppIcon
+                      name="close"
+                      size={22}
+                      color={COLORS.PURE_WHITE}
+                      decorative
+                    />
                   </TouchableOpacity>
                 </View>
 

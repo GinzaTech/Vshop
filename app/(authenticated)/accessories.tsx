@@ -4,7 +4,6 @@
 
 import React from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
 
 import Countdown from "~/components/Countdown";
@@ -16,6 +15,7 @@ import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
 import TwoColumnGrid from "~/components/ui/TwoColumnGrid";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import AppIcon from "~/components/ui/AppIcon";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { refreshShopAndBalances } from "~/utils/app-sync";
 
@@ -71,7 +71,7 @@ function AccessoryShop() {
     >
       {/* ── Thanh tìm kiếm ── */}
       <View style={styles.searchBar}>
-        <Icon name="magnify" size={20} color={COLORS.TEXT_SECONDARY} />
+        <AppIcon name="search" size={20} color={COLORS.TEXT_SECONDARY} decorative />
         <TextInput
           testID="accessories-search-input"
           accessibilityLabel={t("accessories_page.search_placeholder")}
@@ -91,7 +91,7 @@ function AccessoryShop() {
           <Text style={styles.metricText}>{user.balances.kc}</Text>
         </InfoPill>
         <InfoPill style={styles.metricPill}>
-          <Icon name="clock-outline" size={16} color={COLORS.TEXT_PRIMARY} />
+          <AppIcon name="clock" size={16} color={COLORS.TEXT_PRIMARY} decorative />
           <Countdown
             timestamp={timestamp}
             showIcon={false}

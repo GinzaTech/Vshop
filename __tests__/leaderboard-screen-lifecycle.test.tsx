@@ -9,6 +9,11 @@ const account = (id: string, region = "ap") => ({ id, region, accessToken: `acce
 let mockUser = account("one");
 const mockContent = jest.fn();
 const mockLeaderboard = jest.fn();
+
+function MockAppIcon(props: Record<string, unknown>) {
+  return React.createElement("AppIcon", props);
+}
+
 jest.mock("~/hooks/useUserStore", () => ({
   useUserStore: Object.assign(<T,>(select: (state: { user: typeof mockUser }) => T) => select({ user: mockUser }), {
     getState: () => ({ user: mockUser }),
@@ -23,7 +28,10 @@ jest.mock("~/utils/valorant-assets", () => ({
   fetchCompetitiveTiers: jest.fn(),
 }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => "Icon");
+jest.mock("~/components/ui/AppIcon", () => ({
+  __esModule: true,
+  default: MockAppIcon,
+}));
 jest.mock("react-native-paper", () => ({ ActivityIndicator: "ActivityIndicator" }));
 jest.mock("~/components/CachedImage", () => ({ CachedImage: "Image" }));
 jest.mock("~/components/ui/GlassCard", () => "GlassCard");
@@ -51,6 +59,30 @@ describe("leaderboard screen request ownership", () => {
   });
   afterEach(() => { act(() => renderer?.unmount()); jest.restoreAllMocks(); });
   const mount = async () => { await act(async () => { renderer = TestRenderer.create(<LeaderboardScreen />); }); };
+
+  it("uses the season semantic icon without changing season control semantics", async () => {
+    await mount();
+
+    const seasonIcons = renderer.root
+      .findAllByType(MockAppIcon)
+      .filter((icon) => ["season", "leaderboardSeason"].includes(icon.props.name));
+    expect(seasonIcons).toHaveLength(1);
+    expect(seasonIcons[0].props.name).toBe("season");
+    expect(seasonIcons[0].props.decorative).toBe(true);
+
+    const seasonControls = renderer.root
+      .findAllByType(TouchableOpacity)
+      .filter((control) => control.props.accessibilityState?.selected !== undefined);
+    expect(seasonControls).toHaveLength(2);
+    expect(seasonControls.map((control) => control.props.accessibilityRole)).toEqual([
+      "button",
+      "button",
+    ]);
+    expect(seasonControls.map((control) => control.props.accessibilityState)).toEqual([
+      { selected: true },
+      { selected: false },
+    ]);
+  });
 
   it.each([account("two"), account("one", "eu")])("reinitializes and clears rows for a stable account/region change: %j", async (next) => {
     await mount();
