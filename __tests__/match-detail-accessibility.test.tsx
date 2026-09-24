@@ -1,23 +1,35 @@
 import React from "react";
+import { Image } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import { EconomyChart } from "~/components/match-detail/EconomyChart";
+import { RoundDetailPanel } from "~/components/match-detail/PerformanceStats";
+import { RoundTimeline } from "~/components/match-detail/RoundTimeline";
 import {
   MatchDetailTabs,
   type MatchDetailTab,
 } from "~/components/match-detail/MatchDetailTabs";
 import { ScoreboardTable } from "~/components/match-detail/ScoreboardTable";
 import { StickyShareBar } from "~/components/match-detail/StickyShareBar";
-import type { EconomyPoint, ScoreboardPlayer } from "~/types/match-ui";
+import type {
+  EconomyPoint,
+  RoundDetail,
+  RoundOutcome,
+  ScoreboardPlayer,
+} from "~/types/match-ui";
 
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
-  function MockMaterialCommunityIcon() {
-    return null;
-  },
-);
+function MockAppIcon(props: Record<string, unknown>) {
+  return React.createElement("AppIcon", props);
+}
+
+jest.mock("~/components/ui/AppIcon", () => ({
+  __esModule: true,
+  default: MockAppIcon,
+}));
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
+    i18n: { language: "en" },
     t: (key: string, options?: Record<string, unknown>) => {
       if (key === "match_ui.round.label") return `Round ${options?.number}`;
       if (key === "match_ui.round.count") return `${options?.count} rounds`;
@@ -67,6 +79,7 @@ jest.mock("~/components/matches/MatchImage", () => ({
 }));
 
 jest.mock("~/utils/match-ui", () => ({
+  formatDuration: (value: number) => `${value}s`,
   formatMetric: (value: number | undefined) => String(value ?? "--"),
   formatPercent: (value: number | undefined) => `${value ?? "--"}%`,
   formatSigned: (value: number | undefined) => String(value ?? "--"),
@@ -150,6 +163,21 @@ const scoreboardPlayers: ScoreboardPlayer[] = [
   },
 ];
 
+const makeRound = (
+  roundNumber: number,
+  outcome: RoundOutcome,
+  events: RoundDetail["events"] = [],
+): RoundDetail => ({
+  roundNumber,
+  winningTeam: "A",
+  sideForTeamA: "attack",
+  outcome,
+  durationSeconds: 90,
+  teamAEconomy: 4_000,
+  teamBEconomy: 3_000,
+  events,
+});
+
 describe("Match Detail accessibility contracts", () => {
   it("exposes stable tablist, tab, and share selectors", () => {
     const onChange = jest.fn<void, [MatchDetailTab]>();
@@ -180,6 +208,10 @@ describe("Match Detail accessibility contracts", () => {
     expect(scoreboardTab.props.accessibilityState).toEqual({ selected: true });
     expect(performanceTab.props.accessibilityState).toEqual({ selected: false });
     expect(shareButton.props.accessibilityRole).toBe("button");
+    expect(shareButton.findByType(MockAppIcon).props).toMatchObject({
+      decorative: true,
+      name: "share",
+    });
 
     act(() => performanceTab.props.onPress());
     act(() => shareButton.props.onPress());
@@ -345,6 +377,70 @@ describe("Match Detail accessibility contracts", () => {
       "Alpha, Jett",
       "Partial, Sova",
     ]);
+
+    act(() => renderer.unmount());
+  });
+
+  it("preserves exact semantic tokens for every Valorant round outcome", () => {
+    const outcomes: RoundOutcome[] = [
+      "elimination",
+      "spike_defused",
+      "spike_detonated",
+      "time_expired",
+      "surrender",
+      "unknown",
+    ];
+    let renderer!: TestRenderer.ReactTestRenderer;
+
+    act(() => {
+      renderer = TestRenderer.create(
+        <RoundTimeline
+          rounds={outcomes.map((outcome, index) =>
+            makeRound(index + 1, outcome),
+          )}
+          selectedPlayerId="player-a"
+          selectedRoundNumber={null}
+          onSelectRound={jest.fn()}
+        />,
+      );
+    });
+
+    expect(
+      renderer.root.findAllByType(MockAppIcon).map((icon) => icon.props.name),
+    ).toEqual([
+      "roundElimination",
+      "roundSpikeDefused",
+      "roundSpikeDetonated",
+      "roundTimeExpired",
+      "roundSurrender",
+      "unknown",
+    ]);
+
+    act(() => renderer.unmount());
+  });
+
+  it("keeps the spike asset and exact objective fallback tokens", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <RoundDetailPanel
+          round={makeRound(1, "spike_defused", [
+            { id: "plant", timestampSeconds: 10, type: "plant" },
+            { id: "defuse", timestampSeconds: 20, type: "defuse" },
+            { id: "ability", timestampSeconds: 30, type: "ability" },
+          ])}
+          selectedPlayerTeam="A"
+          players={[]}
+        />,
+      );
+    });
+
+    expect(renderer.root.findByType(Image).props.accessibilityLabel).toBe(
+      "match_ui.round.plant_spike",
+    );
+    expect(
+      renderer.root.findAllByType(MockAppIcon).map((icon) => icon.props.name),
+    ).toEqual(["roundSpikeDefused", "objectiveCrosshair"]);
 
     act(() => renderer.unmount());
   });

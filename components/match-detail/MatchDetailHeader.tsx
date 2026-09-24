@@ -1,12 +1,12 @@
 // ===== MatchDetailHeader.tsx =====
 // Header màn chi tiết trận: ảnh map full-bleed phủ scrim, mode + tên map,
 // tỉ số 2 đội (A vs B), nút đóng và hàng meta (thời điểm, thời lượng).
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { MatchImage } from "~/components/matches/MatchImage";
+import AppIcon from "~/components/ui/AppIcon";
 import {
   MATCH_COLORS,
   MATCH_LAYOUT,
@@ -62,7 +62,7 @@ export function MatchDetailHeader({
           uri={match.mapImageUrl}
           cacheId={`map:${match.mapName}:match-detail-header`}
           style={StyleSheet.absoluteFill}
-          icon="map-outline"
+          icon="map"
         />
       ) : null}
       <View style={styles.scrim} />
@@ -106,19 +106,34 @@ export function MatchDetailHeader({
             pressed && styles.closeButtonPressed,
           ]}
         >
-          <Icon name="close" size={23} color={MATCH_COLORS.textPrimary} />
+          <AppIcon
+            name="close"
+            size={23}
+            color={MATCH_COLORS.textPrimary}
+            decorative
+          />
         </Pressable>
       </View>
 
       <View style={styles.metaRow}>
         <View style={styles.metaItem}>
-          <Icon name="calendar-blank-outline" size={15} color={MATCH_COLORS.textSecondary} />
+          <AppIcon
+            name="calendar"
+            size={15}
+            color={MATCH_COLORS.textSecondary}
+            decorative
+          />
           <Text style={styles.metaText} numberOfLines={1}>
             {dateLabel}
           </Text>
         </View>
         <View style={styles.metaItem}>
-          <Icon name="clock-outline" size={15} color={MATCH_COLORS.textSecondary} />
+          <AppIcon
+            name="clock"
+            size={15}
+            color={MATCH_COLORS.textSecondary}
+            decorative
+          />
           <Text style={styles.metaText}>{formatDuration(match.durationSeconds)}</Text>
         </View>
       </View>

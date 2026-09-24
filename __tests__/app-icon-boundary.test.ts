@@ -22,15 +22,6 @@ const remainingLegacyImports = new Set([
   "app/(authenticated)/settings.tsx",
   "app/(authenticated)/shop.tsx",
   "app/chat/[friendId].tsx",
-  "components/match-detail/EconomyChart.tsx",
-  "components/match-detail/MatchDetailHeader.tsx",
-  "components/match-detail/PerformanceStats.tsx",
-  "components/match-detail/RoundTimeline.tsx",
-  "components/match-detail/ScoreboardTable.tsx",
-  "components/match-detail/StickyShareBar.tsx",
-  "components/matches/MatchHistoryHeader.tsx",
-  "components/matches/MatchImage.tsx",
-  "components/matches/MatchStates.tsx",
   "features/combat/CombatSessionScreen.tsx",
 ]);
 

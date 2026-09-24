@@ -85,6 +85,53 @@ const TASK_4_PROFILE_SEMANTIC_TOKENS = [
   "emptyData",
 ] as const;
 
+const TASK_5_SEMANTIC_TOKENS = [
+  "sortAscending",
+  "sortDescending",
+  "wishlist",
+  "wishlistFilled",
+  "upgrade",
+  "palette",
+  "timeline",
+  "contract",
+  "mission",
+  "leaderboardSeason",
+  "nightMarket",
+  "crosshair",
+  "accessory",
+  "bundle",
+  "history",
+  "match",
+  "map",
+  "skull",
+  "economy",
+  "performance",
+  "share",
+  "retry",
+  "emptyImage",
+  "completed",
+  "incomplete",
+  "roundElimination",
+  "roundSpikeDefused",
+  "roundSpikeDetonated",
+  "roundTimeExpired",
+  "roundSurrender",
+  "objectiveCrosshair",
+] as const;
+
+const CONTROLLED_LEGACY_MAPPINGS = {
+  shield: "shield-account-outline",
+  equipmentProfile: "shield-account-outline",
+  weaponPistol: "pistol",
+  combatSword: "sword-cross",
+  roundElimination: "crosshairs-gps",
+  roundSpikeDefused: "shield-check-outline",
+  roundSpikeDetonated: "bomb",
+  roundTimeExpired: "timer-sand",
+  roundSurrender: "flag-outline",
+  objectiveCrosshair: "crosshairs-gps",
+} as const;
+
 describe("AppIcon registry", () => {
   it("resolves stable semantic names", () => {
     expect(resolveAppIconName("search")).toBe("search");
@@ -124,6 +171,13 @@ describe("AppIcon registry", () => {
     );
   });
 
+  it("contains every Task 5 semantic token without duplicating existing keys", () => {
+    expect(Object.keys(APP_ICON_REGISTRY)).toEqual(
+      expect.arrayContaining(TASK_5_SEMANTIC_TOKENS),
+    );
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(98);
+  });
+
   it("keeps Valorant-only glyphs behind the legacy boundary", () => {
     expect(resolveAppIcon("weaponPistol")).toEqual({
       kind: "legacy",
@@ -141,7 +195,36 @@ describe("AppIcon registry", () => {
       kind: "legacy",
       legacyName: "shield-account-outline",
     });
-    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(70);
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(98);
+  });
+
+  it("maps every controlled game glyph to its exact legacy definition", () => {
+    for (const name of Object.keys(CONTROLLED_LEGACY_MAPPINGS) as (
+      keyof typeof CONTROLLED_LEGACY_MAPPINGS
+    )[]) {
+      expect(resolveAppIcon(name)).toEqual({
+        kind: "legacy",
+        legacyName: CONTROLLED_LEGACY_MAPPINGS[name],
+      });
+    }
+
+    const legacyNames = new Set(
+      Object.values(APP_ICON_REGISTRY)
+        .filter((definition) => definition.kind === "legacy")
+        .map((definition) => definition.legacyName),
+    );
+    expect([...legacyNames].sort()).toEqual(
+      [
+        "bomb",
+        "crosshairs-gps",
+        "flag-outline",
+        "pistol",
+        "shield-account-outline",
+        "shield-check-outline",
+        "sword-cross",
+        "timer-sand",
+      ].sort(),
+    );
   });
 
   it("keeps Heart semantics while marking the selected state as filled", () => {
@@ -150,6 +233,18 @@ describe("AppIcon registry", () => {
 
     expect(heart).toEqual({ kind: "morph", icon: Heart });
     expect(heartFilled).toEqual({
+      kind: "morph",
+      icon: Heart,
+      filled: true,
+    });
+  });
+
+  it("keeps wishlist semantics on the same Heart path", () => {
+    expect(resolveAppIcon("wishlist")).toEqual({
+      kind: "morph",
+      icon: Heart,
+    });
+    expect(resolveAppIcon("wishlistFilled")).toEqual({
       kind: "morph",
       icon: Heart,
       filled: true,

@@ -166,7 +166,7 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
               uri={match.agent.iconUrl}
               cacheId={`agent:${match.agent.id}:display-icon`}
               style={styles.agentImage}
-              icon="account-outline"
+              icon="account"
               iconSize={25}
             />
             {match.rank ? (
@@ -175,7 +175,7 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
                   uri={match.rank.iconUrl}
                   cacheId={`rank:${match.rank.tier}:icon`}
                   style={styles.rankImage}
-                  icon="shield-outline"
+                  icon="shield"
                   iconSize={13}
                   contentFit="contain"
                 />

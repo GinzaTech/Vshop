@@ -1,7 +1,6 @@
 // ===== MatchHistoryHeader.tsx =====
 // Header màn hình lịch sử trận đấu: hàng trên (nút back + tiêu đề) và
 // khối hồ sơ người chơi (avatar, Riot ID #tag, badge rank).
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
   Pressable,
@@ -12,6 +11,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { MatchImage } from "~/components/matches/MatchImage";
+import AppIcon from "~/components/ui/AppIcon";
 import {
   MATCH_COLORS,
   MATCH_LAYOUT,
@@ -69,7 +69,12 @@ function MatchHistoryHeaderComponent({
             pressed && styles.iconButtonPressed,
           ]}
         >
-          <Icon name="arrow-left" size={22} color={MATCH_COLORS.textPrimary} />
+          <AppIcon
+            name="back"
+            size={22}
+            color={MATCH_COLORS.textPrimary}
+            decorative
+          />
         </Pressable>
         <Text style={styles.screenTitle}>{t("match_ui.history_title")}</Text>
         <View style={styles.topBarSpacer} />
@@ -80,7 +85,7 @@ function MatchHistoryHeaderComponent({
           uri={avatarUrl}
           cacheId={avatarUrl ? `profile-card:${avatarUrl}` : undefined}
           style={styles.avatar}
-          icon="account-outline"
+          icon="account"
           iconSize={28}
         />
         <View style={styles.identity}>
@@ -101,7 +106,7 @@ function MatchHistoryHeaderComponent({
               uri={rankIconUrl}
               cacheId={`rank:${rankIconUrl}`}
               style={styles.rankIcon}
-              icon="shield-outline"
+              icon="shield"
               iconSize={18}
               contentFit="contain"
             />

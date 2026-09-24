@@ -53,7 +53,7 @@ export const PlayerPerformanceSummary = React.memo(
             uri={summary.agentFullImageUrl}
             cacheId={`agent:${summary.playerId}:full-portrait`}
             style={[styles.artwork, compact && styles.artworkCompact]}
-            icon="account-outline"
+            icon="account"
             iconSize={40}
             contentFit="cover"
           />
@@ -67,7 +67,7 @@ export const PlayerPerformanceSummary = React.memo(
               uri={summary.rankIconUrl}
               cacheId={`rank:${summary.rankName}:performance`}
               style={styles.rankIcon}
-              icon="shield-outline"
+              icon="shield"
               iconSize={14}
               contentFit="contain"
             />

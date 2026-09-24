@@ -1,7 +1,6 @@
 // ===== RoundTimeline.tsx =====
 // Timeline các vòng của trận: mỗi vòng một ô bấm được, hiển thị đội thắng
 // (màu), kết thúc vòng (icon), số kill/chết của người chơi đang chọn.
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
   Pressable,
@@ -13,6 +12,8 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import AppIcon from "~/components/ui/AppIcon";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import {
   MATCH_COLORS,
   MATCH_RADIUS,
@@ -39,17 +40,21 @@ type RoundTimelineProps = {
 const CELL_WIDTH = 48;
 
 /**
- * outcomeIcon – Ánh xạ kết thúc vòng → tên icon MaterialCommunityIcons.
+ * outcomeIcon – Ánh xạ exhaustive kết thúc vòng → semantic AppIcon.
  * @param outcome – Loại kết thúc vòng (defuse/detonate/hết giờ/đầu hàng/kill).
- * @returns Tên icon tương ứng, mặc định "crosshairs-gps" (loại bỏ đội địch).
+ * @returns Semantic token tương ứng với kết quả vòng.
  */
-const outcomeIcon = (outcome: RoundDetail["outcome"]) => {
-  if (outcome === "spike_defused") return "shield-check-outline" as const;
-  if (outcome === "spike_detonated") return "bomb" as const;
-  if (outcome === "time_expired") return "timer-sand" as const;
-  if (outcome === "surrender") return "flag-outline" as const;
-  return "crosshairs-gps" as const;
-};
+const ROUND_OUTCOME_ICONS = {
+  elimination: "roundElimination",
+  spike_defused: "roundSpikeDefused",
+  spike_detonated: "roundSpikeDetonated",
+  surrender: "roundSurrender",
+  time_expired: "roundTimeExpired",
+  unknown: "unknown",
+} as const satisfies Record<RoundDetail["outcome"], AppIconName>;
+
+const outcomeIcon = (outcome: RoundDetail["outcome"]): AppIconName =>
+  ROUND_OUTCOME_ICONS[outcome];
 
 /**
  * RoundTimeline – Dải timeline cuộn ngang các vòng (memo hoá).
@@ -137,18 +142,29 @@ export const RoundTimeline = React.memo(function RoundTimeline({
                     selected && styles.roundBarSelected,
                   ]}
                 >
-                  <Icon
+                  <AppIcon
                     name={outcomeIcon(round.outcome)}
                     size={16}
                     color={MATCH_COLORS.textPrimary}
+                    decorative
                   />
                   {kills > 0 ? (
                     <View style={styles.eventBadge}>
-                      <Icon name="skull-outline" size={11} color={MATCH_COLORS.textPrimary} />
+                      <AppIcon
+                        name="skull"
+                        size={11}
+                        color={MATCH_COLORS.textPrimary}
+                        decorative
+                      />
                       <Text style={styles.eventCount}>{kills}</Text>
                     </View>
                   ) : died ? (
-                    <Icon name="skull" size={13} color={MATCH_COLORS.loss} />
+                    <AppIcon
+                      name="skull"
+                      size={13}
+                      color={MATCH_COLORS.loss}
+                      decorative
+                    />
                   ) : null}
                 </View>
                 <Text style={[styles.roundNumber, selected && styles.roundNumberSelected]}>

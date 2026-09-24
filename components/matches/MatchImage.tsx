@@ -1,9 +1,7 @@
 // ===== MatchImage.tsx =====
 // Ảnh dùng trong các màn hình match (agent, rank, map...): hiển thị ảnh cached,
 // tự fallback sang icon khi không có URI hoặc ảnh load lỗi.
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
-import type { ComponentProps } from "react";
 import {
   StyleSheet,
   View,
@@ -12,6 +10,8 @@ import {
 } from "react-native";
 
 import { CachedImage } from "~/components/CachedImage";
+import AppIcon from "~/components/ui/AppIcon";
+import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { MATCH_COLORS } from "~/constants/MatchTheme";
 
 /**
@@ -20,7 +20,7 @@ import { MATCH_COLORS } from "~/constants/MatchTheme";
  * @param uri – (tuỳ chọn) URL ảnh; undefined/rỗng → hiển thị icon fallback.
  * @param cacheId – (tuỳ chọn) Cache key ổn định truyền xuống CachedImage.
  * @param style – Style ảnh (cũng dùng cho khối fallback nên cần kích thước).
- * @param icon – (mặc định "image-outline") Icon MaterialCommunityIcons fallback.
+ * @param icon – (mặc định "emptyImage") Semantic AppIcon fallback.
  * @param iconSize – (mặc định 22) Kích thước icon fallback.
  * @param contentFit – (mặc định "cover") Kiểu fit ảnh trong khung.
  */
@@ -28,7 +28,7 @@ type MatchImageProps = {
   uri?: string;
   cacheId?: string;
   style: StyleProp<ImageStyle>;
-  icon?: ComponentProps<typeof Icon>["name"];
+  icon?: AppIconName;
   iconSize?: number;
   contentFit?: "cover" | "contain";
 };
@@ -50,7 +50,7 @@ function MatchImageComponent({
   uri,
   cacheId,
   style,
-  icon = "image-outline",
+  icon = "emptyImage",
   iconSize = 22,
   contentFit = "cover",
 }: MatchImageProps) {
@@ -63,7 +63,12 @@ function MatchImageComponent({
   if (!uri || failed) {
     return (
       <View style={[style, styles.fallback]}>
-        <Icon name={icon} size={iconSize} color={MATCH_COLORS.textMuted} />
+        <AppIcon
+          name={icon}
+          size={iconSize}
+          color={MATCH_COLORS.textMuted}
+          decorative
+        />
       </View>
     );
   }

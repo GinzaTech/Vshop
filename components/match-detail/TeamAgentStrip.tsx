@@ -76,7 +76,7 @@ export const TeamAgentStrip = React.memo(function TeamAgentStrip({
                 uri={player.agentIconUrl}
                 cacheId={`agent:${player.playerId}:performance-strip`}
                 style={styles.agentImage}
-                icon="account-outline"
+                icon="account"
                 iconSize={22}
               />
             </View>

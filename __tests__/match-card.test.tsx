@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 import React from "react";
 import { StyleSheet } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
@@ -27,6 +29,27 @@ const makeMatch = (result: MatchResult): MatchHistoryItem => ({
   placement: 1, kills: 1, deaths: 1, assists: 1, kd: 1, adr: 100, acs: 200,
 });
 
+const MATCH_COMPONENT_ROOTS = [
+  "components/match-detail",
+  "components/matches",
+] as const;
+const MATCH_IMAGE_VENDOR_ALIASES = [
+  "account-outline",
+  "hexagon-outline",
+  "image-outline",
+  "map-outline",
+  "pistol",
+  "shield-outline",
+] as const;
+
+function listSourceFiles(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(directory, entry.name);
+    if (entry.isDirectory()) return listSourceFiles(entryPath);
+    return entry.name.endsWith(".tsx") ? [entryPath] : [];
+  });
+}
+
 describe("match result card", () => {
   it.each<MatchResult>(["win", "loss", "draw", "cancelled", "unknown"])("labels %s truthfully and opens its match", (result) => {
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -44,5 +67,18 @@ describe("match result card", () => {
       act(() => button.props.onPress());
       expect(open).toHaveBeenCalledWith("match");
     } finally { act(() => renderer.unmount()); }
+  });
+
+  it("keeps known vendor aliases out of every MatchImage caller prop", () => {
+    const vendorAliasPattern = new RegExp(
+      `\\bicon=["'](?:${MATCH_IMAGE_VENDOR_ALIASES.join("|")})["']`,
+    );
+    const violations = MATCH_COMPONENT_ROOTS.flatMap((root) =>
+      listSourceFiles(root)
+        .filter((filePath) => vendorAliasPattern.test(readFileSync(filePath, "utf8")))
+        .map((filePath) => relative(process.cwd(), filePath).replaceAll("\\", "/")),
+    );
+
+    expect(violations).toEqual([]);
   });
 });

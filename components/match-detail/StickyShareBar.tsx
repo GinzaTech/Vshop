@@ -1,11 +1,11 @@
 // ===== StickyShareBar.tsx =====
 // Thanh chia sẻ cố định đáy màn chi tiết trận, chèn safe-area bottom.
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
+import AppIcon from "~/components/ui/AppIcon";
 import {
   MATCH_COLORS,
   MATCH_LAYOUT,
@@ -46,7 +46,12 @@ export function StickyShareBar({ onShare }: StickyShareBarProps) {
           pressed && styles.shareButtonPressed,
         ]}
       >
-        <Icon name="share-variant-outline" size={21} color={MATCH_COLORS.textPrimary} />
+        <AppIcon
+          name="share"
+          size={21}
+          color={MATCH_COLORS.textPrimary}
+          decorative
+        />
         <Text style={styles.shareLabel}>{t("match_ui.actions.share")}</Text>
       </Pressable>
     </View>

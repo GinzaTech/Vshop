@@ -1,5 +1,9 @@
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
+import AppIcon from "~/components/ui/AppIcon";
+import {
+  resolveAppIconName,
+  type AppIconName,
+} from "~/components/ui/app-icon-registry";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
 import {
   Animated,
@@ -17,6 +21,26 @@ import {
   MATCH_RADIUS,
   MATCH_SPACING,
 } from "~/constants/MatchTheme";
+
+const LEGACY_MATCH_STATE_ICON_ALIASES = {
+  "alert-circle-outline": "error",
+} as const satisfies Record<string, AppIconName>;
+
+type LegacyMatchStateIconName = keyof typeof LEGACY_MATCH_STATE_ICON_ALIASES;
+
+/** Adapter hẹp cho hai caller route cũ; giá trị lạ fail closed về `unknown`. */
+const resolveMatchStateIcon = (value: unknown): AppIconName => {
+  if (
+    typeof value === "string" &&
+    Object.prototype.hasOwnProperty.call(LEGACY_MATCH_STATE_ICON_ALIASES, value)
+  ) {
+    return LEGACY_MATCH_STATE_ICON_ALIASES[
+      value as LegacyMatchStateIconName
+    ];
+  }
+
+  return resolveAppIconName(value);
+};
 
 // Vòng lặp shimmer dùng chung — TẤT CẢ skeleton cùng interpolate từ MỘT giá trị
 // Một shared native-driver loop duy nhất tránh tốn animation work cho từng
@@ -71,7 +95,7 @@ const useSharedShimmerLoop = () => {
 /**
  * MatchStatePanelProps – Props của MatchStatePanel (panel lỗi/rỗng).
  *
- * @param icon – Icon trạng thái: "history" (rỗng) hoặc "alert-circle-outline".
+ * @param icon – Semantic icon hoặc alias lỗi hẹp của caller route hiện tại.
  * @param title – Tiêu đề trạng thái.
  * @param body – Mô tả chi tiết bên dưới tiêu đề.
  * @param primaryLabel – Nhãn nút hành động chính (VD: "Thử lại").
@@ -81,7 +105,7 @@ const useSharedShimmerLoop = () => {
  *                           mới render nút.
  */
 type MatchStatePanelProps = {
-  icon: "history" | "alert-circle-outline";
+  icon: AppIconName | LegacyMatchStateIconName;
   title: string;
   body: string;
   primaryLabel: string;
@@ -115,7 +139,12 @@ export function MatchStatePanel({
 }: MatchStatePanelProps) {
   return (
     <View style={styles.statePanel} accessibilityLiveRegion="polite">
-      <Icon name={icon} size={34} color={MATCH_COLORS.textSecondary} />
+      <AppIcon
+        name={resolveMatchStateIcon(icon)}
+        size={34}
+        color={MATCH_COLORS.textSecondary}
+        decorative
+      />
       <Text style={styles.stateTitle}>{title}</Text>
       <Text style={styles.stateBody}>{body}</Text>
       <View style={styles.stateActions}>
@@ -127,7 +156,12 @@ export function MatchStatePanel({
             pressed && styles.buttonPressed,
           ]}
         >
-          <Icon name="refresh" size={19} color={MATCH_COLORS.textPrimary} />
+          <AppIcon
+            name="retry"
+            size={19}
+            color={MATCH_COLORS.textPrimary}
+            decorative
+          />
           <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
         </Pressable>
         {secondaryLabel && onSecondaryPress ? (
@@ -139,7 +173,12 @@ export function MatchStatePanel({
               pressed && styles.buttonPressed,
             ]}
           >
-            <Icon name="arrow-left" size={19} color={MATCH_COLORS.textPrimary} />
+            <AppIcon
+              name="back"
+              size={19}
+              color={MATCH_COLORS.textPrimary}
+              decorative
+            />
             <Text style={styles.secondaryButtonText}>{secondaryLabel}</Text>
           </Pressable>
         ) : null}

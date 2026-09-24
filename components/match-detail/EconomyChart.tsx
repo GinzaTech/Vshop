@@ -2,7 +2,6 @@
 // Biểu đồ kinh tế (credits) theo từng vòng trong màn chi tiết trận đấu.
 // Cho phép chọn chỉ số hiển thị (chênh lệch / tổng / từng đội / loadout /
 // đã tiêu), vẽ line chart bằng View xoay, marker bấm được và tooltip vòng.
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
   Pressable,
@@ -13,13 +12,14 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 
+import AppIcon from "~/components/ui/AppIcon";
+import { GpuLineChartCanvas } from "~/components/ui/GpuLineChartCanvas";
 import {
   MATCH_COLORS,
   MATCH_LAYOUT,
   MATCH_RADIUS,
   MATCH_SPACING,
 } from "~/constants/MatchTheme";
-import { GpuLineChartCanvas } from "~/components/ui/GpuLineChartCanvas";
 import type { EconomyPoint } from "~/types/match-ui";
 import { buildChartSegments } from "~/utils/chart-geometry";
 
@@ -228,10 +228,11 @@ export const EconomyChart = React.memo(function EconomyChart({
           <Text style={styles.metricButtonText} numberOfLines={1}>
             {activeLabel}
           </Text>
-          <Icon
-            name={menuOpen ? "chevron-up" : "chevron-down"}
+          <AppIcon
+            name={menuOpen ? "chevronUp" : "chevronDown"}
             size={18}
             color={MATCH_COLORS.textSecondary}
+            decorative
           />
         </Pressable>
       </View>
@@ -311,7 +312,12 @@ export const EconomyChart = React.memo(function EconomyChart({
 
       {points.length === 0 ? (
         <View style={styles.emptyChart}>
-          <Icon name="chart-line" size={28} color={MATCH_COLORS.textMuted} />
+          <AppIcon
+            name="economy"
+            size={28}
+            color={MATCH_COLORS.textMuted}
+            decorative
+          />
           <Text style={styles.emptyText}>{t("match_ui.states.partial")}</Text>
         </View>
       ) : (

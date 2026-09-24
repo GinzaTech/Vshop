@@ -8,7 +8,15 @@ export type MorphIconDefinition = {
 
 export type LegacyIconDefinition = {
   kind: "legacy";
-  legacyName: "pistol" | "sword-cross" | "shield-account-outline";
+  legacyName:
+    | "bomb"
+    | "crosshairs-gps"
+    | "flag-outline"
+    | "pistol"
+    | "shield-account-outline"
+    | "shield-check-outline"
+    | "sword-cross"
+    | "timer-sand";
 };
 
 export type AppIconDefinition =

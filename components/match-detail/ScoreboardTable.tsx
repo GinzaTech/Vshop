@@ -1,7 +1,6 @@
 // ===== ScoreboardTable.tsx =====
 // Bảng tổng quan trận: cột người chơi cố định (agent, tên, marker đội) +
 // vùng chỉ số cuộn ngang với nhiều cột sắp xếp được (ACS, K, D, K/D, ADR...).
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import {
   Pressable,
@@ -14,6 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { MatchImage } from "~/components/matches/MatchImage";
+import AppIcon from "~/components/ui/AppIcon";
 import {
   MATCH_COLORS,
   MATCH_LAYOUT,
@@ -159,7 +159,7 @@ const ScoreboardStatsRow = React.memo(function ScoreboardStatsRow({
                     : undefined
                 }
                 style={styles.rankIcon}
-                icon="shield-outline"
+                icon="shield"
                 iconSize={15}
                 contentFit="contain"
               />
@@ -174,7 +174,7 @@ const ScoreboardStatsRow = React.memo(function ScoreboardStatsRow({
                   uri={player.trsIconUrl}
                   cacheId={`trs:${player.trsIconUrl}`}
                   style={styles.trsIcon}
-                  icon="hexagon-outline"
+                  icon="performance"
                   iconSize={12}
                   contentFit="contain"
                 />
@@ -300,7 +300,7 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
         uri={player.agent.iconUrl}
         cacheId={`agent:${player.playerId}:${player.agent.name}`}
         style={styles.agentIcon}
-        icon="account-outline"
+        icon="account"
         iconSize={18}
       />
       <View style={styles.playerIdentity}>
@@ -312,7 +312,12 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
         </Text>
       </View>
       {player.isCurrentUser ? (
-        <Icon name="account-check" size={15} color={MATCH_COLORS.teamA} />
+        <AppIcon
+          name="accountSynced"
+          size={15}
+          color={MATCH_COLORS.teamA}
+          decorative
+        />
       ) : null}
     </Pressable>
   );
@@ -432,10 +437,15 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
                       {column.label}
                     </Text>
                     {active ? (
-                      <Icon
-                        name={sort.direction === "desc" ? "arrow-down" : "arrow-up"}
+                      <AppIcon
+                        name={
+                          sort.direction === "desc"
+                            ? "sortDescending"
+                            : "sortAscending"
+                        }
                         size={12}
                         color={MATCH_COLORS.tabIndicator}
+                        decorative
                       />
                     ) : null}
                   </Pressable>

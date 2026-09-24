@@ -2,12 +2,12 @@
 // Tập hợp section chi tiết hiệu suất trong tab Performance: panel chi tiết
 // một vòng (sự kiện chiến đấu, kinh tế), chỉ số theo bên (tấn công/phòng ngự),
 // bảng đối đầu và bảng vũ khí.
-import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { MatchImage } from "~/components/matches/MatchImage";
+import AppIcon from "~/components/ui/AppIcon";
 import {
   MATCH_COLORS,
   MATCH_RADIUS,
@@ -106,7 +106,7 @@ function RoundCombatEvent({
           uri={actor?.agentIconUrl}
           cacheId={`round-event:${actor?.playerId ?? "actor"}:agent`}
           style={styles.eventAgentImage}
-          icon="account-outline"
+          icon="account"
           iconSize={20}
         />
         <View
@@ -132,7 +132,7 @@ function RoundCombatEvent({
               uri={event.weaponImageUrl}
               cacheId={`round-event:${event.weaponId ?? event.id}:weapon`}
               style={styles.eventWeaponImage}
-              icon="pistol"
+              icon="weaponPistol"
               iconSize={20}
               contentFit="contain"
             />
@@ -147,7 +147,7 @@ function RoundCombatEvent({
               uri={target?.agentIconUrl}
               cacheId={`round-event:${target?.playerId ?? "target"}:agent`}
               style={styles.eventAgentImage}
-              icon="account-outline"
+              icon="account"
               iconSize={20}
             />
             <View
@@ -169,14 +169,15 @@ function RoundCombatEvent({
                 accessibilityLabel={objectiveLabel}
               />
             ) : (
-              <Icon
+              <AppIcon
                 name={
                   event.type === "defuse"
-                    ? "shield-check-outline"
-                    : "crosshairs-gps"
+                    ? "roundSpikeDefused"
+                    : "objectiveCrosshair"
                 }
                 size={23}
                 color={MATCH_COLORS.textPrimary}
+                decorative
               />
             )}
           </View>
@@ -452,7 +453,7 @@ export function OpponentBreakdownTable({
                   uri={opponent.opponentAgentIconUrl}
                   cacheId={`opponent:${opponent.opponentPlayerId}:agent`}
                   style={styles.opponentIcon}
-                  icon="account-outline"
+                  icon="account"
                   iconSize={16}
                 />
                 <Text style={styles.opponentName} numberOfLines={1}>
@@ -502,7 +503,7 @@ export function WeaponStatsTable({ weapons }: { weapons: WeaponPerformance[] }) 
                 uri={weapon.weaponImageUrl}
                 cacheId={`weapon:${weapon.weaponId}:display-icon`}
                 style={styles.weaponImage}
-                icon="pistol"
+                icon="weaponPistol"
                 iconSize={20}
                 contentFit="contain"
               />
