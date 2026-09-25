@@ -240,4 +240,46 @@ describe("useRiotWebAuthBroker", () => {
     await act(async () => opening);
     expect(client.cancelAuth).toHaveBeenCalledWith(authSessionId);
   });
+
+  it("deduplicates rapid start presses before the server responds", async () => {
+    const client = createClient();
+    let resolveStart!: (value: { authSessionId: string }) => void;
+    client.startAuth.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveStart = resolve;
+    }));
+    await mount(client);
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    await act(async () => {
+      first = latest.start();
+      second = latest.start();
+      await Promise.resolve();
+    });
+    expect(client.startAuth).toHaveBeenCalledTimes(1);
+    resolveStart({ authSessionId });
+    await act(async () => {
+      await Promise.all([first, second]);
+    });
+    expect(latest.state).toEqual({ kind: "waiting", authSessionId });
+  });
+
+  it("keeps cancelled state when start resolves after cancel", async () => {
+    const client = createClient();
+    let resolveStart!: (value: { authSessionId: string }) => void;
+    client.startAuth.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveStart = resolve;
+    }));
+    await mount(client);
+    let opening!: Promise<void>;
+    await act(async () => {
+      opening = latest.start();
+      await Promise.resolve();
+    });
+    await act(async () => latest.cancel());
+    expect(latest.state).toEqual({ kind: "cancelled" });
+    resolveStart({ authSessionId });
+    await act(async () => opening);
+    expect(client.cancelAuth).toHaveBeenCalledWith(authSessionId);
+    expect(latest.state).toEqual({ kind: "cancelled" });
+  });
 });

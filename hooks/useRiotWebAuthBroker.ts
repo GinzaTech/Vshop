@@ -67,6 +67,8 @@ export function useRiotWebAuthBroker({
   const authSessionRef = useRef<string | null>(null);
   const authStartedAtRef = useRef(0);
   const pollingRef = useRef(false);
+  const openingRef = useRef(false);
+  const operationRef = useRef(0);
   const callbackRef = useRef(onCallback);
   const loginUrlRef = useRef(loginUrl);
   const pollRef = useRef<() => Promise<void>>(async () => undefined);
@@ -159,6 +161,7 @@ export function useRiotWebAuthBroker({
     void connect();
     return () => {
       mountedRef.current = false;
+      operationRef.current += 1;
       clearTimer();
       void cancelSession();
     };
@@ -166,11 +169,13 @@ export function useRiotWebAuthBroker({
 
   const start = useCallback(async () => {
     const currentLoginUrl = loginUrlRef.current;
-    if (!client || !currentLoginUrl || authSessionRef.current) return;
+    if (!client || !currentLoginUrl || authSessionRef.current || openingRef.current) return;
+    openingRef.current = true;
+    const operation = ++operationRef.current;
     setState({ kind: "opening" });
     try {
       const result = await client.startAuth(currentLoginUrl);
-      if (!mountedRef.current) {
+      if (!mountedRef.current || operation !== operationRef.current) {
         await client.cancelAuth(result.authSessionId).catch(() => undefined);
         return;
       }
@@ -179,16 +184,22 @@ export function useRiotWebAuthBroker({
       setState({ kind: "waiting", authSessionId: result.authSessionId });
       schedulePoll();
     } catch (error) {
-      if (mountedRef.current) setState({ kind: "error", code: errorCode(error) });
+      if (mountedRef.current && operation === operationRef.current) {
+        setState({ kind: "error", code: errorCode(error) });
+      }
+    } finally {
+      openingRef.current = false;
     }
   }, [client, now, schedulePoll]);
 
   const cancel = useCallback(async () => {
+    operationRef.current += 1;
     await cancelSession();
     if (mountedRef.current) setState({ kind: "cancelled" });
   }, [cancelSession]);
 
   const retry = useCallback(async () => {
+    operationRef.current += 1;
     await cancelSession();
     await connect();
   }, [cancelSession, connect]);
