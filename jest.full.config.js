@@ -33,6 +33,7 @@ const remediatedFiles = [
   "hooks/useMatchDetailsData.ts",
   "hooks/useRiotInteractiveLogin.ts",
   "components/LoginWebView.tsx",
+  "components/LoginWebView.web.tsx",
   "components/profile/player-stats-data.ts",
   "features/matches/**/*.ts",
   "features/combat/useCombat*.ts",
@@ -65,6 +66,7 @@ module.exports = {
     "!**/*.web.ts",
     "services/pentest-companion/client.web.ts",
     "services/http/riot-adapter.web.ts",
+    "components/LoginWebView.web.tsx",
     "!**/index.ts",
   ],
   coverageThreshold: {

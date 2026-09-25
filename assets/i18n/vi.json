@@ -860,6 +860,21 @@
     "retry_hint": "Kiểm tra kết nối rồi thử lại. Phiên đăng nhập Riot của bạn vẫn được giữ.",
     "retry": "Thử lại",
     "error": "WebView error",
-    "http_error": "HTTP {{statusCode}} {{description}}"
+    "http_error": "HTTP {{statusCode}} {{description}}",
+    "desktop_eyebrow": "Pentest trên máy tính",
+    "desktop_title": "Đăng nhập Riot trong cửa sổ trình duyệt riêng",
+    "desktop_description": "VShop mở một cửa sổ thuộc Riot được cô lập và không đưa thông tin đăng nhập vào tab Expo. Companion local chỉ hoạt động trong phiên kiểm thử phát triển được ủy quyền.",
+    "desktop_open": "Mở đăng nhập Riot",
+    "desktop_cancel": "Hủy đăng nhập",
+    "desktop_retry": "Thử lại companion",
+    "desktop_checking": "Đang kiểm tra pentest companion local…",
+    "desktop_ready_read_only": "Đã sẵn sàng. Các thao tác thay đổi tài khoản Riot đang bị chặn mặc định.",
+    "desktop_ready_mutation": "Đã sẵn sàng. Chế độ mutation tường minh đang bật cho phiên local này.",
+    "desktop_opening": "Đang mở cửa sổ Riot được cô lập…",
+    "desktop_waiting": "Hãy hoàn tất đăng nhập trong cửa sổ Riot.",
+    "desktop_completing": "Đang xác minh callback Riot và tải tài khoản…",
+    "desktop_cancelled": "Đã hủy đăng nhập. Bạn có thể bắt đầu một lượt mới.",
+    "desktop_timeout": "Đăng nhập Riot đã hết thời gian. Hãy bắt đầu một lượt mới.",
+    "desktop_unavailable": "Pentest companion local chưa chạy. Hãy khởi động VShop bằng pnpm run web:pentest."
   }
 }
