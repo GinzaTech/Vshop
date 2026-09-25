@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getRiotHttpAdapter } from "./riot-adapter";
 
 /**
  * HTTP clients are intentionally isolated by responsibility.
@@ -8,6 +9,7 @@ import axios from "axios";
  */
 export const riotHttpClient = axios.create({
   timeout: 10_000,
+  adapter: getRiotHttpAdapter(),
 });
 
 export const publicHttpClient = axios.create({

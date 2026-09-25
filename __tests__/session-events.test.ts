@@ -1,3 +1,4 @@
+import { AxiosError } from "axios";
 import {
   getHttpStatus,
   getRequestUrl,
@@ -34,6 +35,24 @@ describe("session event classification", () => {
       "https://fallback.example"
     );
     expect(getRequestUrl(undefined)).toBe("");
+  });
+
+  test("classifies a proxied Axios failure by its preserved Riot config", () => {
+    const error = new AxiosError(
+      "Request failed with status code 401",
+      "ERR_BAD_REQUEST",
+      { url: "https://auth.riotgames.com/userinfo", headers: {} } as never,
+      undefined,
+      {
+        status: 401,
+        statusText: "Unauthorized",
+        headers: {},
+        config: { url: "https://auth.riotgames.com/userinfo", headers: {} } as never,
+        data: {},
+      },
+    );
+    expect(isRiotAuthenticationError(error)).toBe(true);
+    expect(getRequestUrl(error)).toBe("https://auth.riotgames.com/userinfo");
   });
 
   test.each([
