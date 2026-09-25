@@ -17,6 +17,10 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 
 ## Plan hiện tại
 
+- [`2026-09-25-desktop-pentest-companion-design.md`](2026-09-25-desktop-pentest-companion-design.md) —
+  draft spec cho Expo Web local pentest: browser auth broker, Riot API gateway
+  loopback, Axios web adapter và read-only policy mặc định; chờ user review
+  trước khi viết implementation plan.
 - [`2026-09-24-ui-performance-startup-update-recovery-design.md`](2026-09-24-ui-performance-startup-update-recovery-design.md) —
   spec đã duyệt cho primary-tab/Profile performance, update recovery trước
   authenticated tree và local native release signing.
