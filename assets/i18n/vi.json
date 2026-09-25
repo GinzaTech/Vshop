@@ -864,7 +864,8 @@
     "desktop_eyebrow": "Pentest trên máy tính",
     "desktop_title": "Đăng nhập Riot trong cửa sổ trình duyệt riêng",
     "desktop_description": "VShop mở một cửa sổ thuộc Riot được cô lập và không đưa thông tin đăng nhập vào tab Expo. Companion local chỉ hoạt động trong phiên kiểm thử phát triển được ủy quyền.",
-    "desktop_open": "Mở đăng nhập Riot",
+    "desktop_open": "Mở đăng nhập Riot trong trình duyệt thường",
+    "desktop_automatic": "Dùng callback tự động (thử nghiệm)",
     "desktop_cancel": "Hủy đăng nhập",
     "desktop_retry": "Thử lại companion",
     "desktop_checking": "Đang kiểm tra pentest companion local…",
@@ -875,6 +876,13 @@
     "desktop_completing": "Đang xác minh callback Riot và tải tài khoản…",
     "desktop_cancelled": "Đã hủy đăng nhập. Bạn có thể bắt đầu một lượt mới.",
     "desktop_timeout": "Đăng nhập Riot đã hết thời gian. Hãy bắt đầu một lượt mới.",
-    "desktop_unavailable": "Pentest companion local chưa chạy. Hãy khởi động VShop bằng pnpm run web:pentest."
+    "desktop_unavailable": "Pentest companion local chưa chạy. Hãy khởi động VShop bằng pnpm run web:pentest.",
+    "desktop_manual_waiting": "Đăng nhập trong trình duyệt thường, sau đó copy URL callback playvalorant.com cuối cùng về đây.",
+    "desktop_manual_instructions": "Sau khi Riot chuyển tới playvalorant.com/opt_in, copy toàn bộ URL trên thanh địa chỉ và dán vào ô bên dưới. Chỉ dán vào ô localhost này, không gửi vào chat hoặc báo cáo.",
+    "desktop_callback_label": "URL callback Riot",
+    "desktop_callback_placeholder": "Dán toàn bộ URL callback playvalorant.com",
+    "desktop_submit_callback": "Xác minh callback",
+    "desktop_callback_notice": "Giá trị chỉ nằm trong bộ nhớ, được xóa trước khi xác minh và không bao giờ được log hoặc lưu lâu dài.",
+    "desktop_popup_blocked": "Trình duyệt đã chặn tab mới. Hãy cho phép trang localhost này mở tab rồi thử lại."
   }
 }

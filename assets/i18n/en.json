@@ -587,7 +587,8 @@
     "desktop_eyebrow": "Desktop pentest",
     "desktop_title": "Sign in with Riot in a separate browser",
     "desktop_description": "VShop opens an isolated Riot-owned browser window and keeps credentials out of the Expo tab. The local companion is available only during authorized development testing.",
-    "desktop_open": "Open Riot sign-in",
+    "desktop_open": "Open Riot sign-in in normal browser",
+    "desktop_automatic": "Use automatic callback (experimental)",
     "desktop_cancel": "Cancel sign-in",
     "desktop_retry": "Retry companion",
     "desktop_checking": "Checking the local pentest companion…",
@@ -598,7 +599,14 @@
     "desktop_completing": "Validating the Riot callback and loading your account…",
     "desktop_cancelled": "Sign-in was cancelled. You can start a fresh attempt.",
     "desktop_timeout": "Riot sign-in timed out. Start a fresh attempt.",
-    "desktop_unavailable": "The local pentest companion is unavailable. Start VShop with pnpm run web:pentest."
+    "desktop_unavailable": "The local pentest companion is unavailable. Start VShop with pnpm run web:pentest.",
+    "desktop_manual_waiting": "Sign in in the normal browser, then copy the final playvalorant.com callback URL back here.",
+    "desktop_manual_instructions": "After Riot redirects to playvalorant.com/opt_in, copy the complete address-bar URL and paste it below. Paste it only into this localhost field, never into chat or a report.",
+    "desktop_callback_label": "Riot callback URL",
+    "desktop_callback_placeholder": "Paste the complete playvalorant.com callback URL",
+    "desktop_submit_callback": "Validate callback",
+    "desktop_callback_notice": "The value is held in memory, cleared before validation, and is never logged or persisted.",
+    "desktop_popup_blocked": "The normal browser tab was blocked. Allow this localhost page to open a tab and try again."
   },
   "update_popup": {
     "checking_title": "Checking for updates",

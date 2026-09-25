@@ -9,6 +9,8 @@ import { useRiotWebAuthBroker } from "~/hooks/useRiotWebAuthBroker";
 const mockStart = jest.fn(async () => undefined);
 const mockCancel = jest.fn(async () => undefined);
 const mockRetry = jest.fn(async () => undefined);
+const mockCompleteCallback = jest.fn(async () => undefined);
+const mockWindowOpen = jest.fn(() => ({} as Window));
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -25,12 +27,17 @@ const mockBroker = jest.mocked(useRiotWebAuthBroker);
 
 describe("LoginWebView.web", () => {
   beforeEach(() => {
+    Object.defineProperty(window, "open", {
+      configurable: true,
+      value: mockWindowOpen,
+      writable: true,
+    });
     mockInteractive.mockReturnValue({
       authReady: true,
       loginUrl: "https://auth.riotgames.com/authorize?safe=1",
       loading: null,
       completionIssue: null,
-      completeCallback: jest.fn(async () => undefined),
+      completeCallback: mockCompleteCallback,
     });
     mockBroker.mockReturnValue({
       state: { kind: "ready", mutationMode: false },
@@ -44,7 +51,7 @@ describe("LoginWebView.web", () => {
     jest.clearAllMocks();
   });
 
-  it("renders an accessible direct login action", async () => {
+  it("opens normal browser login without starting controlled auth", async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => { renderer = TestRenderer.create(<LoginWebView />); });
     const button = renderer.root.findByProps({ testID: "riot-web-login-open" });
@@ -52,7 +59,35 @@ describe("LoginWebView.web", () => {
     expect(button.props.accessibilityState).toEqual({ disabled: false, busy: false });
     expect(mockStart).not.toHaveBeenCalled();
     await act(async () => button.props.onPress());
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      "https://auth.riotgames.com/authorize?safe=1",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    expect(mockStart).not.toHaveBeenCalled();
+    await act(async () => renderer.root.findByProps({
+      testID: "riot-web-login-automatic",
+    }).props.onPress());
     expect(mockStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("submits a manual callback once and clears it before completion", async () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<LoginWebView />); });
+    await act(async () => renderer.root.findByProps({
+      testID: "riot-web-login-open",
+    }).props.onPress());
+    const callback = "https://playvalorant.com/opt_in#access_token=secret&id_token=secret";
+    const input = renderer.root.findByProps({ testID: "riot-web-callback-input" });
+    expect(input.props.secureTextEntry).toBe(true);
+    await act(async () => input.props.onChangeText(callback));
+    await act(async () => renderer.root.findByProps({
+      testID: "riot-web-callback-submit",
+    }).props.onPress());
+    expect(mockCompleteCallback).toHaveBeenCalledWith(callback);
+    expect(renderer.root.findByProps({ testID: "riot-web-callback-input" }).props.value)
+      .toBe("");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("access_token");
   });
 
   it("disables login while checking and exposes a polite live status", async () => {
@@ -105,6 +140,7 @@ describe("LoginWebView.web", () => {
     );
     expect(source).not.toMatch(/react-native-webview/);
     expect(source).not.toMatch(/access_token|id_token/);
+    expect(source).not.toMatch(/clipboard|localStorage|sessionStorage|console\./i);
   });
 
   it("announces mutation mode and timeout with localized keys", async () => {

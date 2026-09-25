@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -46,6 +48,10 @@ export default function LoginWebView({
 }: LoginWebViewProps) {
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
+  const [manualOpened, setManualOpened] = useState(false);
+  const [manualCallback, setManualCallback] = useState("");
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+  const [manualIssue, setManualIssue] = useState<string | null>(null);
   const interactive = useRiotInteractiveLogin({ expectedAccountId });
   const broker = useRiotWebAuthBroker({
     loginUrl: interactive.loginUrl,
@@ -59,7 +65,39 @@ export default function LoginWebView({
   const canCancel = broker.state.kind === "opening" || broker.state.kind === "waiting";
   const canRetry = broker.state.kind === "error" || broker.state.kind === "cancelled";
   const issue = interactive.completionIssue;
-  const status = interactive.loading || t(statusKey(broker.state));
+  const status = interactive.loading || (
+    manualOpened && broker.state.kind === "ready"
+      ? t("login_web_view.desktop_manual_waiting")
+      : t(statusKey(broker.state))
+  );
+  const canSubmitCallback = manualCallback.trim().length > 0 && !manualSubmitting;
+
+  const openNormalBrowser = () => {
+    if (!interactive.loginUrl) return;
+    const opened = window.open(
+      interactive.loginUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    if (!opened) {
+      setManualIssue("login_web_view.desktop_popup_blocked");
+      return;
+    }
+    setManualIssue(null);
+    setManualOpened(true);
+  };
+
+  const submitManualCallback = async () => {
+    const callbackUrl = manualCallback.trim();
+    if (!callbackUrl || manualSubmitting) return;
+    setManualSubmitting(true);
+    setManualCallback("");
+    try {
+      await interactive.completeCallback(callbackUrl);
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
 
   return (
     <View style={[styles.container, { minHeight: resolvedMinHeight }, style]}>
@@ -77,7 +115,7 @@ export default function LoginWebView({
           accessibilityRole="button"
           accessibilityState={{ disabled: !canStart, busy }}
           disabled={!canStart}
-          onPress={() => { void broker.start(); }}
+          onPress={openNormalBrowser}
           style={({ pressed }) => [
             styles.primaryButton,
             !canStart && styles.buttonDisabled,
@@ -88,6 +126,19 @@ export default function LoginWebView({
             {t("login_web_view.desktop_open")}
           </Text>
         </Pressable>
+
+        {canStart ? (
+          <Pressable
+            testID="riot-web-login-automatic"
+            accessibilityRole="button"
+            onPress={() => { void broker.start(); }}
+            style={styles.secondaryButton}
+          >
+            <Text style={styles.secondaryButtonText}>
+              {t("login_web_view.desktop_automatic")}
+            </Text>
+          </Pressable>
+        ) : null}
 
         {canCancel ? (
           <Pressable
@@ -116,6 +167,49 @@ export default function LoginWebView({
         ) : null}
       </View>
 
+      {manualOpened ? (
+        <View style={styles.manualPanel}>
+          <Text style={styles.manualInstructions}>
+            {t("login_web_view.desktop_manual_instructions")}
+          </Text>
+          <TextInput
+            testID="riot-web-callback-input"
+            accessibilityLabel={t("login_web_view.desktop_callback_label")}
+            value={manualCallback}
+            onChangeText={setManualCallback}
+            placeholder={t("login_web_view.desktop_callback_placeholder")}
+            placeholderTextColor={COLORS.TEXT_TERTIARY}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            maxLength={32_768}
+            style={styles.callbackInput}
+          />
+          <Pressable
+            testID="riot-web-callback-submit"
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: !canSubmitCallback,
+              busy: manualSubmitting,
+            }}
+            disabled={!canSubmitCallback}
+            onPress={() => { void submitManualCallback(); }}
+            style={[
+              styles.primaryButton,
+              !canSubmitCallback && styles.buttonDisabled,
+            ]}
+          >
+            <Text style={styles.primaryButtonText}>
+              {t("login_web_view.desktop_submit_callback")}
+            </Text>
+          </Pressable>
+          <Text style={styles.callbackNotice}>
+            {t("login_web_view.desktop_callback_notice")}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.statusPanel}>
         <Text
           testID="riot-web-login-status"
@@ -124,9 +218,13 @@ export default function LoginWebView({
         >
           {status}
         </Text>
-        {issue || broker.state.kind === "error" ? (
+        {issue || manualIssue || broker.state.kind === "error" ? (
           <Text accessibilityRole="alert" style={styles.issueText}>
-            {issue ? t(issue) : t(statusKey(broker.state))}
+            {issue
+              ? t(issue)
+              : manualIssue
+                ? t(manualIssue)
+                : t(statusKey(broker.state))}
           </Text>
         ) : null}
       </View>
@@ -170,6 +268,33 @@ const styles = StyleSheet.create({
   actions: {
     alignItems: "flex-start",
     gap: SPACING.sm,
+  },
+  manualPanel: {
+    gap: SPACING.sm,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_STRONG,
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  manualInstructions: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: TYPOGRAPHY.bodySmall,
+    lineHeight: 20,
+  },
+  callbackInput: {
+    minHeight: LAYOUT.minTouchTarget,
+    paddingHorizontal: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER_STRONG,
+    borderRadius: RADIUS.button,
+    color: COLORS.TEXT_PRIMARY,
+    backgroundColor: COLORS.SURFACE,
+  },
+  callbackNotice: {
+    color: COLORS.TEXT_TERTIARY,
+    fontSize: TYPOGRAPHY.caption,
+    lineHeight: 18,
   },
   primaryButton: {
     minWidth: 220,

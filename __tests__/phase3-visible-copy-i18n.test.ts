@@ -145,7 +145,7 @@ describe("Phase 3 visible copy localization", () => {
         "profile_page.stats.combat": "Combat",
         "profile_page.stats.overview": "Overview",
         "profile_page.stats.details": "Details",
-        "login_web_view.desktop_open": "Open Riot sign-in",
+        "login_web_view.desktop_open": "Open Riot sign-in in normal browser",
         "login_web_view.desktop_unavailable":
           "The local pentest companion is unavailable. Start VShop with pnpm run web:pentest.",
       },
@@ -166,7 +166,7 @@ describe("Phase 3 visible copy localization", () => {
         "profile_page.stats.combat": "Giao tranh",
         "profile_page.stats.overview": "Tổng quan",
         "profile_page.stats.details": "Chi tiết",
-        "login_web_view.desktop_open": "Mở đăng nhập Riot",
+        "login_web_view.desktop_open": "Mở đăng nhập Riot trong trình duyệt thường",
         "login_web_view.desktop_unavailable":
           "Pentest companion local chưa chạy. Hãy khởi động VShop bằng pnpm run web:pentest.",
       },
