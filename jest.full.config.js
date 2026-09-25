@@ -31,6 +31,7 @@ const remediatedFiles = [
   "hooks/useContractsScreenData.ts",
   "hooks/useLeaderboardData.ts",
   "hooks/useMatchDetailsData.ts",
+  "hooks/useRiotInteractiveLogin.ts",
   "components/LoginWebView.tsx",
   "components/profile/player-stats-data.ts",
   "features/matches/**/*.ts",
