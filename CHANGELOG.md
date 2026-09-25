@@ -15,6 +15,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   The gateway is read-only by default, rejects arbitrary targets/headers and is
   excluded from production/native bundles; XMPP and native cookie restoration
   remain unsupported on web.
+- Make normal-browser login the recommended desktop fallback when Riot rejects
+  a controlled browser. The user copies the final PlayValorant callback URL
+  into a masked localhost-only field; VShop clears the field before strict
+  state/nonce validation and never reads clipboard, logs or persists the value.
+  The automatic callback browser remains available as an explicitly labelled
+  experimental secondary action.
 - Advance the local native release candidate to `4.1.10` (Android `91`, iOS
   `43`). Android primary scenes remain attached after preload, secondary scenes
   freeze while inactive, Profile dashboard warmup waits for focus/transition/
@@ -68,7 +74,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Validation
 
 - Desktop companion source gates pass strict TypeScript, zero-warning ESLint,
-  102 Jest suites / 1,180 tests and the production audit policy. The fake
+  102 Jest suites / 1,181 tests and the production audit policy. The fake
   vertical integration verifies one-time callback consumption, an authenticated
   read, mutation blocking and secret-canary redaction. Expo Web export passes
   45 routes with a 5.4 MiB bundle and contains no Node server, `playwright-core`,
@@ -80,6 +86,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   left no startup process or 8081 listener after Ctrl+C. Real Riot login and
   live data reads remain **NOT VERIFIED** until the account owner completes
   login/MFA.
+- Normal-browser callback handoff passes targeted security/UI coverage and a
+  fresh 45-route static web export. The masked callback field is present while
+  Node server, `playwright-core`, mutation flag and unsupported-WebView fallback
+  remain absent from the bundle.
 - The 4.1.10 full gate passes strict TypeScript, zero-warning ESLint, 91 Jest
   suites / 961 tests, production audit policy and Android export budgets:
   10.18/12 MiB total, 7.71/8 MiB Hermes, 1.25/1.50 MiB largest asset.
