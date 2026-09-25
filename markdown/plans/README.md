@@ -17,6 +17,12 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 
 ## Plan hiện tại
 
+- [`2026-09-25-phone-session-handoff-design.md`](2026-09-25-phone-session-handoff-design.md) —
+  approved design cho one-time USB Riot session handoff từ production-signed
+  Android pentest build sang Expo Web.
+- [`2026-09-25-phone-session-handoff.md`](2026-09-25-phone-session-handoff.md) —
+  active TDD plan: companion protocol, fixed-argument ADB bridge, guarded phone
+  route, desktop activation và signer-preserving install/runtime evidence.
 - [`2026-09-25-desktop-pentest-companion-design.md`](2026-09-25-desktop-pentest-companion-design.md) —
   spec đã duyệt cho Expo Web local pentest: browser auth broker, Riot API
   gateway loopback, Axios web adapter và read-only policy mặc định.
