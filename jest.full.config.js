@@ -7,6 +7,9 @@ const remediatedFiles = [
   "services/accounts/session.ts",
   "services/accounts/session-cache.ts",
   "services/accounts/interactive-auth.ts",
+  "services/pentest-companion/types.ts",
+  "services/pentest-companion/client.ts",
+  "services/pentest-companion/client.web.ts",
   "services/riot/request-scope.ts",
   "services/riot/client-config-cache.ts",
   "services/riot/mmr-cache.ts",
@@ -58,6 +61,7 @@ module.exports = {
     "!**/*.styles.ts",
     "!**/*.native.ts",
     "!**/*.web.ts",
+    "services/pentest-companion/client.web.ts",
     "!**/index.ts",
   ],
   coverageThreshold: {
