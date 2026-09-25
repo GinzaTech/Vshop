@@ -14,6 +14,12 @@ A third-party companion app for **Valorant** — browse the daily store, check m
 
 Navigation motion uses shared timing tokens, transition-aware tab preloading and live OS Reduce Motion preferences. Primary scenes hide outgoing content during the subtle incoming fade to avoid double images; indicator animations do not restart on route confirmation. See [the motion system](BUILD_DESIGN_SYSTEM.md#4-motion-system) for implementation rules; device FPS validation is separate from source tests and exports.
 
+Authorized local desktop testing can use the fail-closed
+[`pnpm run web:pentest` workflow](markdown/DESKTOP_PENTEST_COMPANION.md): Riot
+credentials stay in a separate Riot-owned browser window, authenticated HTTP
+reads use a capability-bound loopback gateway, and account mutations are
+blocked by default. This development companion is not a production RSO backend.
+
 ---
 
 ## Table of Contents
@@ -202,9 +208,9 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation d
 | **Icons** | typed `AppIcon` semantics → exact-version Lucide ESM `IconNode` data → Morphicons → `react-native-svg`; custom local pistol path, no icon-font fallback |
 | **UI** | react-native-paper, custom glassmorphism design system |
 | **i18n** | react-i18next (18 languages) |
-| **Network** | axios with gzip, keep-alive, request dedup |
+| **Network** | axios with gzip, keep-alive and request dedup; capability-bound loopback gateway for local Expo Web pentesting |
 | **Images** | expo-image (memory-disk cache) |
-| **Auth** | Riot RSO OAuth2 (WebView) |
+| **Auth** | Riot RSO OAuth2 (native WebView; isolated local browser broker for Expo Web pentesting) |
 | **Chat** | XMPP over TCP socket (react-native-tcp-socket) |
 | **Analytics** | Plausible, Sentry (native) |
 | **OTA Updates** | expo-updates |

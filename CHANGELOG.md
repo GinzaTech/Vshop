@@ -8,6 +8,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Add a DEV-only desktop pentest companion for Expo Web. Riot login opens in an
+  isolated Edge/Chrome context, callback completion reuses the existing
+  state/nonce/session guards, and authenticated Riot HTTP reads use a
+  capability-bound `127.0.0.1` gateway instead of browser-direct CORS requests.
+  The gateway is read-only by default, rejects arbitrary targets/headers and is
+  excluded from production/native bundles; XMPP and native cookie restoration
+  remain unsupported on web.
 - Advance the local native release candidate to `4.1.10` (Android `91`, iOS
   `43`). Android primary scenes remain attached after preload, secondary scenes
   freeze while inactive, Profile dashboard warmup waits for focus/transition/
@@ -60,6 +67,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Validation
 
+- Desktop companion source gates pass strict TypeScript, zero-warning ESLint,
+  102 Jest suites / 1,180 tests and the production audit policy. The fake
+  vertical integration verifies one-time callback consumption, an authenticated
+  read, mutation blocking and secret-canary redaction. Expo Web export passes
+  45 routes with a 5.4 MiB bundle and contains no Node server, `playwright-core`,
+  mutation flag or unsupported-WebView fallback. Optimized Android export stays
+  within the existing budget at 10.18/12 MiB total, 7.71/8 MiB Hermes and
+  1.25/1.50 MiB largest asset. Edge `about:blank` preflight passes. A local
+  `pnpm run web:pentest` session served `/setup`, rendered an enabled desktop
+  login action with read-only status, produced no browser console errors and
+  left no startup process or 8081 listener after Ctrl+C. Real Riot login and
+  live data reads remain **NOT VERIFIED** until the account owner completes
+  login/MFA.
 - The 4.1.10 full gate passes strict TypeScript, zero-warning ESLint, 91 Jest
   suites / 961 tests, production audit policy and Android export budgets:
   10.18/12 MiB total, 7.71/8 MiB Hermes, 1.25/1.50 MiB largest asset.
