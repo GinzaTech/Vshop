@@ -86,8 +86,18 @@ let agentsInfo: ValorantAgents = {
 };
 
 // Đường dẫn file cache assets và agents
-const FILE_LOCATION = FileSystem.cacheDirectory + "/valorant_assets.json";
-const AGENT_LOCATION = FileSystem.cacheDirectory + "/valorant_agent.json";
+// FIX (web): trên web `FileSystem.cacheDirectory` là null — mọi call
+// getInfoAsync/writeAsStringAsync sẽ fail (path thành "null/...") khiến toàn
+// bộ loadAssets/loadAgent reject dù fetch thành công → không có asset nào
+// hiển thị trên bản web. HAS_FILE_CACHE phân nhánh: web chạy memory-only,
+// native giữ nguyên file cache như cũ.
+const HAS_FILE_CACHE = Boolean(FileSystem.cacheDirectory);
+const FILE_LOCATION = HAS_FILE_CACHE
+  ? `${FileSystem.cacheDirectory}/valorant_assets.json`
+  : "";
+const AGENT_LOCATION = HAS_FILE_CACHE
+  ? `${FileSystem.cacheDirectory}/valorant_agent.json`
+  : "";
 // Thời gian sống (TTL) của cache: 24 giờ (tính bằng milliseconds)
 const ASSET_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -210,8 +220,10 @@ export function getAssetLookups() {
 // Kiểm tra cache > kiểm tra version > fetch từ API nếu cần > lưu cache
 // Không nhận tham số, không trả về (async void)
 async function loadAssetsInternal() {
-  // Đọc cache từ file
-  const info = await FileSystem.getInfoAsync(FILE_LOCATION);
+  // Đọc cache từ file (skip hoàn toàn trên web — không có file cache)
+  const info = HAS_FILE_CACHE
+    ? await FileSystem.getInfoAsync(FILE_LOCATION)
+    : ({ exists: false, modificationTime: undefined });
   const cachedAssets = info.exists
     ? await readCacheFile<StoredAssets>(FILE_LOCATION)
     : null;
@@ -300,12 +312,21 @@ async function loadAssetsInternal() {
       competitiveTiers: competitiveTiers as CompetitiveTierSet[],
     };
 
-    // Ghi cache ra file
-    await FileSystem.writeAsStringAsync(
-      FILE_LOCATION,
-      JSON.stringify(nextAssets)
-    );
+    // Gán in-memory TRƯỚC khi ghi cache: nếu ghi fail (vd disk đầy) dữ liệu
+    // vừa fetch vẫn được dùng, không vứt công sức fetch.
     assets = nextAssets;
+    if (HAS_FILE_CACHE) {
+      try {
+        await FileSystem.writeAsStringAsync(
+          FILE_LOCATION,
+          JSON.stringify(nextAssets)
+        );
+      } catch (cacheError) {
+        if (__DEV__) {
+          console.warn("[assets] cache write failed", cacheError);
+        }
+      }
+    }
   } catch (error) {
     // Nếu có lỗi nhưng có thể dùng cache cũ thì giữ lại
     if (!canUseStoredAssets) throw error;
@@ -336,7 +357,9 @@ export async function loadAssets() {
 
 // Hàm nội bộ: load thông tin agent từ cache hoặc từ API
 async function loadAgentInternal() {
-  const info = await FileSystem.getInfoAsync(AGENT_LOCATION);
+  const info = HAS_FILE_CACHE
+    ? await FileSystem.getInfoAsync(AGENT_LOCATION)
+    : ({ exists: false, modificationTime: undefined });
   const storedAgent = info.exists
     ? await readCacheFile<ValorantAgents>(AGENT_LOCATION)
     : null;
@@ -367,11 +390,20 @@ async function loadAgentInternal() {
       language,
       agents: await fetchAgent(language),
     };
-    await FileSystem.writeAsStringAsync(
-      AGENT_LOCATION,
-      JSON.stringify(nextAgents)
-    );
+    // Gán in-memory trước, ghi cache best-effort (web không có file cache)
     agentsInfo = nextAgents;
+    if (HAS_FILE_CACHE) {
+      try {
+        await FileSystem.writeAsStringAsync(
+          AGENT_LOCATION,
+          JSON.stringify(nextAgents)
+        );
+      } catch (cacheError) {
+        if (__DEV__) {
+          console.warn("[assets] agent cache write failed", cacheError);
+        }
+      }
+    }
   } catch (error) {
     if (!canUseStoredAgents) throw error;
     if (__DEV__) {
