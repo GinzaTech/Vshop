@@ -1,3 +1,5 @@
+// Import Platform/NativeModules để gate chat trên web (thiếu TcpSockets)
+import { NativeModules, Platform } from "react-native";
 // Import XMPPClient để giao tiếp qua giao thức XMPP
 import { XMPPClient } from "./xmpp-client";
 // Import chat store (zustand) để quản lý trạng thái chat
@@ -237,6 +239,20 @@ export async function initChatService(
   region?: string,
   userId?: string
 ) {
+  // FIX (web): chat XMPP cần raw TLS socket (react-native-tcp-socket) —
+  // không khả dụng trên web. Fail nhanh KHÔNG schedule reconnect, nếu không
+  // mọi screen vô tình chạm chat (friends/combat) sẽ gây vòng retry
+  // "Initialization failed" vô nghĩa trong log web.
+  if (
+    Platform.OS === "web" ||
+    !(NativeModules as { TcpSockets?: unknown }).TcpSockets
+  ) {
+    useChatStore.getState().setStatus("disconnected");
+    const error = new Error("CHAT_UNSUPPORTED_PLATFORM");
+    (error as { code?: string }).code = "CHAT_UNSUPPORTED_PLATFORM";
+    throw error;
+  }
+
   // Key xác định duy nhất một kết nối
   const connectionKey = `${accessToken}:${entitlementsToken}:${region || ""}`;
   const connectionChanged = activeConnectionKey !== connectionKey;
