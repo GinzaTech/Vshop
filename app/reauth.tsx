@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Paragraph, Title } from "react-native-paper";
@@ -19,6 +18,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import LoginWebView from "~/components/LoginWebView";
 import { COLORS } from "~/constants/DesignSystem";
 import AppIcon from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import GlassCard from "~/components/ui/GlassCard";
 import { restoreCurrentAccountAuthCookies } from "~/services/accounts/session";
 
@@ -41,7 +41,7 @@ function ReAuth() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string; accountId?: string }>();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight } = useAppWindowDimensions();
   const insets = useSafeAreaInsets();
   const mode = params.mode === "add" || params.mode === "switch"
     ? params.mode

@@ -6,7 +6,6 @@ import {
   Easing, ReduceMotion,
 } from "react-native-reanimated";
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
-import { runWhenIdle, type IdleTask } from "~/utils/idle-task";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { TabKey } from "~/components/GalleryProfile";
 import { COLORS } from "~/constants/DesignSystem";
@@ -154,10 +153,6 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   const dashboardProgress = useSharedValue(0);
   const statsExpandedRef = React.useRef(true);
   const lastRegionTapRef = React.useRef(0);
-  const dashboardPreloadTaskRef = React.useRef<IdleTask | null>(null);
-  const dashboardPreloadTimerRef = React.useRef<
-      ReturnType<typeof setTimeout> | null
-  >(null);
   const pendingModeTransitionRef = React.useRef<boolean | null>(null);
   const mountStatsDashboard = React.useCallback(() => {
     statsDashboardMountedRef.current = true;
@@ -292,16 +287,12 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
 
     const nextMode = !isPlayerInfoModeRef.current;
     if (nextMode && !statsDashboardMountedRef.current && !reduceMotionEnabled) {
-      dashboardPreloadTaskRef.current?.cancel();
-      dashboardPreloadTaskRef.current = null;
       pendingModeTransitionRef.current = nextMode;
       mountStatsDashboard();
       return;
     }
 
     if (nextMode && !statsDashboardMountedRef.current) {
-      dashboardPreloadTaskRef.current?.cancel();
-      dashboardPreloadTaskRef.current = null;
       mountStatsDashboard();
     }
     startProfileModeTransition(nextMode);
@@ -330,31 +321,6 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
   // Focus effect: đồng bộ tone status bar/navigation theo mode, trả giá trị cũ khi rời màn.
   useFocusEffect(
       React.useCallback(() => {
-        const scheduleDashboardPreload = () => {
-          if (
-            statsDashboardMountedRef.current ||
-            dashboardPreloadTaskRef.current
-          ) {
-            return;
-          }
-
-          const preloadTask = runWhenIdle(() => {
-            if (dashboardPreloadTaskRef.current !== preloadTask) return;
-            dashboardPreloadTaskRef.current = null;
-            mountStatsDashboard();
-          });
-          dashboardPreloadTaskRef.current = preloadTask;
-        };
-
-        if (reduceMotionEnabled) {
-          scheduleDashboardPreload();
-        } else {
-          dashboardPreloadTimerRef.current = setTimeout(
-            scheduleDashboardPreload,
-            PROFILE_MODE_MORPH_DURATION_MS,
-          );
-        }
-
         const chromeTone = getProfileChromeTone(
           isPlayerInfoMode ? "player-info" : "profile"
         );
@@ -363,12 +329,6 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
 
         return () => {
           pendingModeTransitionRef.current = null;
-          if (dashboardPreloadTimerRef.current) {
-            clearTimeout(dashboardPreloadTimerRef.current);
-            dashboardPreloadTimerRef.current = null;
-          }
-          dashboardPreloadTaskRef.current?.cancel();
-          dashboardPreloadTaskRef.current = null;
           if (!isPlayerInfoModeRef.current) {
             statsDashboardMountedRef.current = false;
             setStatsDashboardMounted(false);
@@ -378,8 +338,6 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
         };
       }, [
         isPlayerInfoMode,
-        mountStatsDashboard,
-        reduceMotionEnabled,
         setPrimaryNavigationTone,
         setTopInsetTone,
       ])
@@ -416,7 +374,7 @@ export function useProfileMotion({ viewportWidth, hasAuth, fetchMatches, user }:
     profileModeInteractionLockedRef, profileModeInteractionTimerRef, rankSplitContentMode,
     heroModeProgress, rankSplitProgress, statsVisibilityProgress, pageModeProgress,
     statsTabProgress,
-    profileExpandedHeroHeight, dashboardPreloadTaskRef, legacyContentAnimatedStyle,
+    profileExpandedHeroHeight, legacyContentAnimatedStyle,
     statsDashboardLayerAnimatedStyle, profileSegmentPositionAnimatedStyle,
     profileHeaderTitleAnimatedStyle,
     profileBalancePillAnimatedStyle, handleRegionPress,

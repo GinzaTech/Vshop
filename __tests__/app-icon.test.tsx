@@ -1,19 +1,30 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import AppIcon from "~/components/ui/AppIcon";
+import AppIcon, { type AppIconHandle } from "~/components/ui/AppIcon";
 
 const mockMorphProps: Record<string, unknown>[] = [];
+const mockMorphSet = jest.fn();
 
-jest.mock("morphicons/react-native", () => ({
-  MorphIcon: (props: Record<string, unknown>) => {
-    mockMorphProps.push(props);
-    return null;
-  },
-}));
+jest.mock("morphicons/react-native", () => {
+  const ReactModule = require("react") as typeof import("react");
+  return {
+    MorphIcon: ReactModule.forwardRef(
+      (props: Record<string, unknown>, ref: React.ForwardedRef<unknown>) => {
+        mockMorphProps.push(props);
+        ReactModule.useImperativeHandle(ref, () => ({
+          morphTo: jest.fn(),
+          set: mockMorphSet,
+        }));
+        return null;
+      },
+    ),
+  };
+});
 
 describe("AppIcon", () => {
   beforeEach(() => {
     mockMorphProps.splice(0);
+    mockMorphSet.mockClear();
   });
 
   it("always honors system Reduce Motion and ignores caller overrides", () => {
@@ -95,6 +106,26 @@ describe("AppIcon", () => {
     expect(mockMorphProps.every((props) => props.reducedMotion === "user")).toBe(
       true
     );
+  });
+
+  it("supports a visible spring and settles the current glyph imperatively", () => {
+    const ref = React.createRef<AppIconHandle>();
+    act(() => {
+      TestRenderer.create(
+        <AppIcon
+          ref={ref}
+          name="search"
+          size={20}
+          color="#fff"
+          spring="bouncy"
+        />,
+      );
+    });
+
+    act(() => ref.current?.settle());
+
+    expect(mockMorphProps.at(-1)?.spring).toBe("bouncy");
+    expect(mockMorphSet).toHaveBeenCalledWith(mockMorphProps.at(-1)?.icon);
   });
 
   it("fills the same Heart glyph when the selected state changes", () => {

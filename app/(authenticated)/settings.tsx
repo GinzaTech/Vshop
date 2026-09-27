@@ -45,6 +45,7 @@ import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { fullBackgroundSync } from "~/utils/app-sync";
 import { hasReusableAccessToken } from "~/utils/auth-session";
 import { prepareInteractiveAuthentication, signOutRiotAccount, switchSavedAccount } from "~/services/accounts/session";
+import MobileAccountMirrorPanel from "~/components/MobileAccountMirrorPanel";
 import {
   normalizeAccountId,
   toSavedAccount,
@@ -482,6 +483,8 @@ function Settings() {
               ),
           })}
         </GlassCard>
+
+        <MobileAccountMirrorPanel mode="accounts" />
 
         {/* Saved account list: current account first, then recent accounts */}
         <View style={styles.sectionHeading}>

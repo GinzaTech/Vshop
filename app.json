@@ -41,6 +41,7 @@
     "plugins": [
       "expo-router",
       "./plugins/withAndroidReleaseSigning.cjs",
+      "./plugins/withDesktopHandoff.cjs",
       "expo-localization",
       "expo-updates",
       [

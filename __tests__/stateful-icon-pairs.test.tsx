@@ -84,7 +84,7 @@ function MockAppIcon(props: Record<string, unknown>) {
 
   return React.createElement(
     ActualAppIcon,
-    props as React.ComponentProps<typeof ActualAppIcon>,
+    props as unknown as React.ComponentProps<typeof ActualAppIcon>,
   );
 }
 

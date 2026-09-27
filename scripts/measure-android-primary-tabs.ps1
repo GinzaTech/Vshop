@@ -39,12 +39,24 @@ if ($wakefulness -notmatch "mWakefulness=Awake") {
 }
 
 $sizeOutput = Invoke-PinnedAdb shell wm size
-$sizeMatch = [regex]::Match($sizeOutput, "(?:Override|Physical) size:\s*(\d+)x(\d+)")
-if (-not $sizeMatch.Success) {
+$overrideSizeMatch = [regex]::Match(
+  $sizeOutput,
+  "Override size:\s*(\d+)x(\d+)"
+)
+$physicalSizeMatch = [regex]::Match(
+  $sizeOutput,
+  "Physical size:\s*(\d+)x(\d+)"
+)
+$resolvedSizeMatch = if ($overrideSizeMatch.Success) {
+  $overrideSizeMatch
+} else {
+  $physicalSizeMatch
+}
+if (-not $resolvedSizeMatch.Success) {
   throw "Unable to resolve Android display size."
 }
-$width = [int]$sizeMatch.Groups[1].Value
-$height = [int]$sizeMatch.Groups[2].Value
+$width = [int]$resolvedSizeMatch.Groups[1].Value
+$height = [int]$resolvedSizeMatch.Groups[2].Value
 $tabY = [int][Math]::Round($height * 0.94)
 
 $tabs = @(
@@ -55,9 +67,11 @@ $tabs = @(
   [pscustomobject]@{ Name = "settings"; X = [int][Math]::Round($width * 0.82) }
 )
 
-Invoke-PinnedAdb shell am start -W -n "$Package/.MainActivity" | Out-Null
+$startArguments = @("shell", "am", "start", "-W", "-n", "$Package/.MainActivity")
+Invoke-PinnedAdb @startArguments | Out-Null
 Start-Sleep -Milliseconds 1200
-$pidValue = (Invoke-PinnedAdb shell pidof -s $Package).Trim()
+$pidArguments = @("shell", "pidof", "-s", $Package)
+$pidValue = (Invoke-PinnedAdb @pidArguments).Trim()
 if (-not $pidValue) { throw "Package $Package has no running PID." }
 
 function Read-Memory {
@@ -87,12 +101,15 @@ function Measure-Transition {
     p95Ms = [int](Read-FirstMatch $gfx "95th percentile:\s*(\d+)ms")
     p99Ms = [int](Read-FirstMatch $gfx "99th percentile:\s*(\d+)ms")
   }
-  Write-Output ("{0}->{1} run {2}: {3}% jank, P95 {4}ms" -f `
+  if ($result.totalFrames -le 0) {
+    throw "No frames were rendered for $($Source.Name)->$($Destination.Name)."
+  }
+  Write-Host ("{0}->{1} run {2}: {3}% jank, P95 {4}ms" -f `
     $Source.Name, $Destination.Name, $Run, $result.jankyPercent, $result.p95Ms)
   return $result
 }
 
-$beforeMemory = Read-Memory
+$preMeasurementMemory = Read-Memory
 $measurements = [Collections.Generic.List[object]]::new()
 foreach ($source in $tabs) {
   foreach ($destination in $tabs) {
@@ -103,14 +120,25 @@ foreach ($source in $tabs) {
   }
 }
 
+$postMeasurementMemory = Read-Memory
+$memoryCycles = [Collections.Generic.List[object]]::new()
 for ($cycle = 0; $cycle -lt 10; $cycle += 1) {
   foreach ($tab in $tabs) {
     Invoke-PinnedAdb shell input tap $tab.X $tabY | Out-Null
     Start-Sleep -Milliseconds 250
   }
+  Start-Sleep -Milliseconds 300
+  $cycleMemory = Read-Memory
+  $memoryCycles.Add([pscustomobject]@{
+    cycle = $cycle + 1
+    pssKb = $cycleMemory.pssKb
+    rssKb = $cycleMemory.rssKb
+  })
 }
-$afterMemory = Read-Memory
-$logcat = Invoke-PinnedAdb logcat -d --pid=$pidValue -v brief
+$beforeMemory = $memoryCycles[0]
+$afterMemory = $memoryCycles[$memoryCycles.Count - 1]
+$logcatArguments = @("logcat", "-d", "--pid=$pidValue", "-v", "brief")
+$logcat = Invoke-PinnedAdb @logcatArguments
 $fatalLines = @($logcat -split "`n" | Where-Object {
   $_ -match "TypeError|FATAL EXCEPTION|ANR in|SIGSEGV|isComponentError"
 })
@@ -131,6 +159,9 @@ $report = [pscustomobject]@{
   runsPerDirection = $Runs
   measurements = $measurements
   memory = [pscustomobject]@{
+        preMeasurement = $preMeasurementMemory
+        postMeasurement = $postMeasurementMemory
+        cycles = $memoryCycles
     before = $beforeMemory
     after = $afterMemory
     pssDeltaKb = $afterMemory.pssKb - $beforeMemory.pssKb

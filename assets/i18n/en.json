@@ -578,6 +578,39 @@
   "reauth": {
     "riot_account": "Riot Games account"
   },
+  "mobile_handoff": {
+    "eyebrow": "Authorized desktop pentest",
+    "title": "Send all saved accounts to desktop",
+    "description": "VShop will transfer the saved Riot sessions and a safe app-data snapshot through USB into the localhost companion's memory.",
+    "account_count": "Saved accounts",
+    "active_account": "Active account",
+    "destination": "Destination",
+    "unknown_account": "Unknown account",
+    "warning": "The desktop companion can use these sessions until its temporary vault expires. No passwords are transferred. Stop the companion to destroy the vault.",
+    "send": "Send all accounts to desktop",
+    "sending": "Sending securely…",
+    "sent": "All saved accounts were sent to the desktop companion.",
+    "error": "The transfer could not be completed. Return to the desktop tab and start a new handoff.",
+    "unavailable": "This route is available only in the signed local desktop-handoff build."
+  },
+  "mobile_mirror": {
+    "eyebrow": "USB account mirror",
+    "title": "Import real data from your phone",
+    "description": "Open the signed VShop handoff screen on the connected phone, review the account count, then confirm the transfer. Secrets stay in the local companion's memory.",
+    "start": "Import all phone accounts",
+    "cancel": "Cancel",
+    "waiting": "Waiting for confirmation on the connected phone…",
+    "working": "Importing and validating account data…",
+    "unavailable": "Start VShop with pnpm run web:pentest to enable USB account mirroring.",
+    "error": "The phone account import could not be completed. Start a new handoff and try again.",
+    "accounts_title": "Phone accounts",
+    "accounts_description": "These account names come from the temporary phone vault. Only the selected session is exposed to this browser tab.",
+    "account_count": "{{count}} accounts",
+    "ready": "Ready",
+    "needs_reauth": "Sign-in required",
+    "current": "Current",
+    "switch": "Switch"
+  },
   "login_web_view": {
     "completion_error": "Unable to finish signing in",
     "retry_hint": "Check your connection and retry. Your Riot cookies have been kept.",

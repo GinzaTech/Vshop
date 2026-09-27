@@ -32,6 +32,7 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   AppState,
+  Platform,
   StatusBar,
   View,
   type GestureResponderEvent,
@@ -65,6 +66,7 @@ import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import LoadingScreen from "~/components/LoadingScreen";
+import AppViewport from "~/components/ui/AppViewport";
 import { syncAllData } from "~/utils/data-sync";
 import {
   getScreenOrientationForPathname,
@@ -85,6 +87,7 @@ import {
   captureRootBootstrapRoute,
   type RootBootstrapRouteSnapshot,
 } from "~/utils/root-bootstrap-route";
+import { isMobileHandoffRouteAllowed } from "~/services/mobile-handoff/policy";
 
 type CustomHeaderProps = {
   options: { title?: string };
@@ -217,6 +220,11 @@ function RootLayout() {
   }
   const bootstrapPathname = bootstrapRouteRef.current?.pathname ?? pathname;
   const allowDemoRoute = bootstrapRouteRef.current?.allowDemoRoute ?? false;
+  const allowMobileHandoffRoute = isMobileHandoffRouteAllowed({
+    pathname,
+    platform: Platform.OS,
+    publicFlag: process.env.EXPO_PUBLIC_VSHOP_DESKTOP_HANDOFF,
+  });
   const requiredScreenOrientation = getScreenOrientationForPathname(pathname);
 
   /**
@@ -347,10 +355,14 @@ function RootLayout() {
 
     bootstrappedRef.current = true;
 
-    if (allowDemoRoute) {
+    if (allowDemoRoute || allowMobileHandoffRoute) {
       setIsPreloading(false);
       markAppInteractive(
-        bootstrapPathname === "/profile" ? "profile-demo" : "match-demo"
+        allowMobileHandoffRoute
+          ? "mobile-session-handoff"
+          : bootstrapPathname === "/profile"
+            ? "profile-demo"
+            : "match-demo"
       );
       void SplashScreen.hideAsync();
       return;
@@ -518,6 +530,7 @@ function RootLayout() {
   }, [
     accountsHydrated,
     allowDemoRoute,
+    allowMobileHandoffRoute,
     bootstrapPathname,
     hydrated,
     router,
@@ -559,8 +572,9 @@ function RootLayout() {
   };
 
   return (
-    <ErrorBoundary>
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppViewport orientation={requiredScreenOrientation}>
+      <ErrorBoundary>
       <View
         style={{ flex: 1 }}
         onStartShouldSetResponderCapture={handleGlobalTouchStart}
@@ -600,6 +614,7 @@ function RootLayout() {
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="reauth" options={{ headerShown: false }} />
                 <Stack.Screen name="setup" options={{ headerShown: false }} />
+                <Stack.Screen name="session_handoff" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="language"
                   options={{ presentation: "modal", title: t("language") }}
@@ -642,8 +657,9 @@ function RootLayout() {
           </View>
         ) : null}
       </View>
+      </ErrorBoundary>
+      </AppViewport>
     </GestureHandlerRootView>
-    </ErrorBoundary>
   );
 }
 

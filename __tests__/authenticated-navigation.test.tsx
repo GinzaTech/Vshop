@@ -20,6 +20,7 @@ let mockNightMarket: object[] = [];
 let mockSceneFocused = true;
 let mockMediaPopupOpen = false;
 let latestTabsProps: Record<string, unknown> | null = null;
+const mockMorphSet = jest.fn();
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
   function MockMaterialCommunityIcon() {
@@ -27,9 +28,20 @@ jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
   },
 );
 
-jest.mock("morphicons/react-native", () => ({
-  MorphIcon: () => null,
-}));
+jest.mock("morphicons/react-native", () => {
+  const ReactModule = require("react") as typeof import("react");
+  return {
+    MorphIcon: ReactModule.forwardRef(
+      (_props: Record<string, unknown>, ref: React.ForwardedRef<unknown>) => {
+        ReactModule.useImperativeHandle(ref, () => ({
+          morphTo: jest.fn(),
+          set: mockMorphSet,
+        }));
+        return null;
+      },
+    ),
+  };
+});
 
 jest.mock("expo-router", () => {
   const MockTabs = (props: { children: React.ReactNode } & Record<string, unknown>) => {
@@ -348,7 +360,8 @@ describe("FloatingTabBar", () => {
     expect(shopTab.props.accessibilityState).toEqual({ selected: false });
   });
 
-  it("keeps one mounted active icon while changing semantic tab names", () => {
+  it("keeps the active glyph mounted through morph then settles its native shape", () => {
+    jest.useFakeTimers();
     const { navigation, renderer } = renderTabBar();
     const getActiveIcon = () =>
       renderer.root
@@ -371,6 +384,17 @@ describe("FloatingTabBar", () => {
     const nextActiveIcon = getActiveIcon();
     expect(nextActiveIcon).toBe(activeIcon);
     expect(nextActiveIcon?.props.name).toBe("navShop");
+    expect(nextActiveIcon?.props.spring).toBe("bouncy");
+
+    act(() => jest.advanceTimersByTime(499));
+    expect(getActiveIcon()).toBe(activeIcon);
+    expect(mockMorphSet).not.toHaveBeenCalled();
+
+    act(() => jest.advanceTimersByTime(1));
+    expect(getActiveIcon()).toBe(activeIcon);
+    expect(getActiveIcon()?.props.name).toBe("navShop");
+    expect(mockMorphSet).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 
   it("shows the accepted destination icon immediately on press", () => {

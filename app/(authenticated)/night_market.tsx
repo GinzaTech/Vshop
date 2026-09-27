@@ -8,11 +8,11 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import AppIcon from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import Countdown from "~/components/Countdown";
 import NightMarketItem from "~/components/NightMarketItem";
 import { useUserStore } from "~/hooks/useUserStore";
@@ -34,7 +34,7 @@ const GRID_GAP = 12;
 function NightMarket() {
   const { t } = useTranslation();
   // Kích thước màn hình để tính số cột và chiều rộng card
-  const { width } = useWindowDimensions();
+  const { width } = useAppWindowDimensions();
   // Thông tin user từ store
   const user = useUserStore(({ user }) => user);
   // refreshShop: pull-to-refresh làm mới night market + balances (force = true)

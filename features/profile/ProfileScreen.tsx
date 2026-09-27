@@ -82,7 +82,7 @@ function Profile() {
     profileModeInteractionLockedRef, profileModeInteractionTimerRef, rankSplitContentMode,
     heroModeProgress, rankSplitProgress, statsVisibilityProgress, pageModeProgress,
     statsTabProgress,
-    profileExpandedHeroHeight, dashboardPreloadTaskRef, legacyContentAnimatedStyle,
+    profileExpandedHeroHeight, legacyContentAnimatedStyle,
     statsDashboardLayerAnimatedStyle, profileSegmentPositionAnimatedStyle,
     profileHeaderTitleAnimatedStyle,
     profileBalancePillAnimatedStyle, handleRegionPress,
@@ -170,15 +170,13 @@ function Profile() {
           clearTimeout(initialFetchTimeoutRef.current);
           initialFetchTimeoutRef.current = null;
         }
-        dashboardPreloadTaskRef.current?.cancel();
-        dashboardPreloadTaskRef.current = null;
         if (profileModeInteractionTimerRef.current) {
           clearTimeout(profileModeInteractionTimerRef.current);
           profileModeInteractionTimerRef.current = null;
         }
         profileModeInteractionLockedRef.current = false;
       },
-      [dashboardPreloadTaskRef, initialFetchTaskRef, initialFetchTimeoutRef, pickerTaskRef, profileModeInteractionLockedRef, profileModeInteractionTimerRef]
+      [initialFetchTaskRef, initialFetchTimeoutRef, pickerTaskRef, profileModeInteractionLockedRef, profileModeInteractionTimerRef]
   );
   // renderIdentitySection: bọc ProfileIdentitySection cho row 'identity'.
   const renderIdentitySection = () => (

@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -17,6 +16,7 @@ import Animated, {
 import { useTranslation } from "react-i18next";
 
 import { MatchImage } from "~/components/matches/MatchImage";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import {
   MATCH_COLORS,
   MATCH_RADIUS,
@@ -100,7 +100,7 @@ const formatRrChange = (value: number | undefined) => {
  */
 function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width } = useAppWindowDimensions();
   const compact = width <= 380;
   const isWin = match.result === "win";
   const isDraw = match.result === "draw";

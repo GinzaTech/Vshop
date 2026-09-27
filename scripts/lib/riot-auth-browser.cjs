@@ -3,6 +3,11 @@
 "use strict";
 
 const ALLOWED_CHANNELS = new Set(["msedge", "chrome"]);
+const ALLOWED_SAME_SITE = new Map([
+  ["lax", "Lax"],
+  ["strict", "Strict"],
+  ["none", "None"],
+]);
 
 class BrowserAuthError extends Error {
   constructor(code) {
@@ -39,6 +44,65 @@ const closeQuietly = async (value) => {
   }
 };
 
+const normalizeDomain = (value) => String(value || "")
+  .trim()
+  .replace(/^\./, "")
+  .toLowerCase();
+
+const isRiotDomain = (value) => {
+  const domain = normalizeDomain(value);
+  return ["riotgames.com", "playvalorant.com"].some(
+    (allowed) => domain === allowed || domain.endsWith(`.${allowed}`),
+  );
+};
+
+const normalizeSeedCookies = (value) => {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 128) {
+    throw new BrowserAuthError("COOKIE_REJECTED");
+  }
+  return value.map((cookie) => {
+    if (!cookie || typeof cookie !== "object" || Array.isArray(cookie) ||
+        typeof cookie.name !== "string" || !cookie.name || cookie.name.length > 256 ||
+        typeof cookie.value !== "string" || !cookie.value || cookie.value.length > 16 * 1024 ||
+        !isRiotDomain(cookie.domain) ||
+        (cookie.path !== undefined && typeof cookie.path !== "string") ||
+        (cookie.secure !== undefined && typeof cookie.secure !== "boolean") ||
+        (cookie.httpOnly !== undefined && typeof cookie.httpOnly !== "boolean") ||
+        (cookie.sameSite !== undefined && !ALLOWED_SAME_SITE.has(cookie.sameSite))) {
+      throw new BrowserAuthError("COOKIE_REJECTED");
+    }
+    const expiresAt = cookie.expires ? Date.parse(cookie.expires) : NaN;
+    return {
+      name: cookie.name,
+      value: cookie.value,
+      domain: cookie.domain,
+      path: cookie.path || "/",
+      secure: cookie.secure !== false,
+      httpOnly: Boolean(cookie.httpOnly),
+      ...(cookie.sameSite ? { sameSite: ALLOWED_SAME_SITE.get(cookie.sameSite) } : {}),
+      ...(Number.isFinite(expiresAt) ? { expires: Math.floor(expiresAt / 1000) } : {}),
+    };
+  });
+};
+
+const captureRiotCookies = (cookies) => cookies
+  .filter((cookie) => isRiotDomain(cookie.domain))
+  .map((cookie) => ({
+    name: cookie.name,
+    value: cookie.value,
+    domain: cookie.domain,
+    path: cookie.path || "/",
+    secure: Boolean(cookie.secure),
+    httpOnly: Boolean(cookie.httpOnly),
+    ...(typeof cookie.sameSite === "string" && cookie.sameSite
+      ? { sameSite: cookie.sameSite.toLowerCase() }
+      : {}),
+    ...(typeof cookie.expires === "number" && cookie.expires > 0
+      ? { expires: new Date(cookie.expires * 1000).toISOString() }
+      : {}),
+  }));
+
 function createRiotAuthBrowser({
   chromium,
   channelOrder = ["msedge", "chrome"],
@@ -62,7 +126,15 @@ function createRiotAuthBrowser({
     throw new BrowserAuthError("BROWSER_UNAVAILABLE");
   };
 
-  const open = async ({ authorizationUrl, signal, onCallback, onClosed }) => {
+  const open = async ({
+    authorizationUrl,
+    signal,
+    seedCookies,
+    onCookies,
+    onCallback,
+    onClosed,
+  }) => {
+    const normalizedCookies = normalizeSeedCookies(seedCookies);
     let browser;
     let context;
     let page;
@@ -97,6 +169,7 @@ function createRiotAuthBrowser({
         acceptDownloads: false,
         serviceWorkers: "block",
       });
+      if (normalizedCookies.length) await context.addCookies(normalizedCookies);
       page = await context.newPage();
       page.on("framenavigated", handleNavigation);
       page.on("close", handleClose);
@@ -112,6 +185,13 @@ function createRiotAuthBrowser({
       signal?.removeEventListener("abort", handleAbort);
       page?.off?.("framenavigated", handleNavigation);
       page?.off?.("close", handleClose);
+      if (context && typeof onCookies === "function") {
+        try {
+          onCookies(captureRiotCookies(await context.cookies()));
+        } catch {
+          // Cookie capture is best effort; auth callback validation remains authoritative.
+        }
+      }
       await closeQuietly(context);
       await closeQuietly(browser);
     }

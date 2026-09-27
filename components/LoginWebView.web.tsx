@@ -5,11 +5,11 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
 
 import type { LoginWebViewProps } from "./LoginWebView.types";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import {
   COLORS,
   LAYOUT,
@@ -22,6 +22,7 @@ import {
   useRiotWebAuthBroker,
   type RiotWebAuthState,
 } from "~/hooks/useRiotWebAuthBroker";
+import MobileAccountMirrorPanel from "~/components/MobileAccountMirrorPanel";
 
 export type { LoginWebViewProps } from "./LoginWebView.types";
 
@@ -47,7 +48,7 @@ export default function LoginWebView({
   expectedAccountId,
 }: LoginWebViewProps) {
   const { t } = useTranslation();
-  const { height } = useWindowDimensions();
+  const { height } = useAppWindowDimensions();
   const [manualOpened, setManualOpened] = useState(false);
   const [manualCallback, setManualCallback] = useState("");
   const [manualSubmitting, setManualSubmitting] = useState(false);
@@ -108,6 +109,8 @@ export default function LoginWebView({
           {t("login_web_view.desktop_description")}
         </Text>
       </View>
+
+      <MobileAccountMirrorPanel mode="import" />
 
       <View style={styles.actions}>
         <Pressable

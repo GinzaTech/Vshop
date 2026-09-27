@@ -8,12 +8,12 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { MatchImage } from "~/components/matches/MatchImage";
 import AppIcon from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import {
   MATCH_COLORS,
   MATCH_LAYOUT,
@@ -220,7 +220,7 @@ export const ScoreboardTable = React.memo(function ScoreboardTable({
   onSelectPlayer,
 }: ScoreboardTableProps) {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width } = useAppWindowDimensions();
   // playerColumnWidth: độ rộng cột người chơi, thu hẹp trên màn hình nhỏ
   const playerColumnWidth = width <= 380 ? 150 : 172;
   // sort: trạng thái sắp xếp hiện tại { column, direction }

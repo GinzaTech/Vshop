@@ -22,6 +22,30 @@ const createClient = (): jest.Mocked<PentestCompanionClient> => ({
   })),
   consumeAuth: jest.fn(async (_authSessionId: string) => ({ callbackUrl })),
   cancelAuth: jest.fn(async (_authSessionId: string) => undefined),
+  startMobileVault: jest.fn(async () => ({
+    vaultId: "d".repeat(64),
+    status: "waiting_for_phone" as const,
+    expiresAt: Date.now() + 60_000,
+  })),
+  getMobileVaultStatus: jest.fn(async (_vaultId: string) => ({ status: "ready" as const })),
+  consumeMobileVault: jest.fn(async (_vaultId: string) => ({
+    expiresAt: Date.now() + 60_000,
+    manifest: {
+      schemaVersion: 2 as const,
+      capturedAt: Date.now(),
+      activeHandle: "1".repeat(64),
+      accounts: [],
+      snapshotManifest: {
+        hasMatchCache: false,
+        profileCacheCount: 0,
+        wishlistCount: 0,
+      },
+    },
+  })),
+  activateMobileVaultAccount: jest.fn(async (_handle: string) => {
+    throw new PentestCompanionError("MOBILE_ACCOUNT_REJECTED");
+  }),
+  cancelMobileVault: jest.fn(async () => undefined),
   proxy: jest.fn(async (_request: RiotProxyRequest, _signal?: AbortSignal) => ({
     status: 200,
     statusText: "OK",

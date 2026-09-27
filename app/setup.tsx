@@ -6,7 +6,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Button,
   Paragraph,
@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUserStore } from "~/hooks/useUserStore";
 import LoginWebView from "~/components/LoginWebView";
 import GlassCard from "~/components/ui/GlassCard";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { COLORS } from "~/constants/DesignSystem";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -51,7 +52,7 @@ function Setup() {
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
   const { colors } = useTheme();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useAppWindowDimensions();
   const insets = useSafeAreaInsets();
 
   // Chiều cao mỗi slide, đảm bảo tối thiểu 560px

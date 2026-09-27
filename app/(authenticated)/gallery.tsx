@@ -1,9 +1,10 @@
 // ===== Import thư viện =====
 import React from "react";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import AppIcon from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import GalleryWeapon from "~/components/GalleryWeapon";
 import { getAssets } from "~/utils/valorant-assets";
@@ -53,7 +54,7 @@ function useDebounceValue(value: string, delay: number) {
  */
 function Gallery() {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width } = useAppWindowDimensions();
   const columnCount = width >= 700 ? 3 : 2;
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filter, setFilter] = React.useState<"all" | "wishlist">("all");

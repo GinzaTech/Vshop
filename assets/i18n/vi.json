@@ -855,6 +855,39 @@
   "reauth": {
     "riot_account": "Riot Games account"
   },
+  "mobile_handoff": {
+    "eyebrow": "Pentest desktop được ủy quyền",
+    "title": "Gửi tất cả tài khoản đã lưu sang desktop",
+    "description": "VShop sẽ chuyển các phiên Riot đã lưu và snapshot dữ liệu ứng dụng an toàn qua USB vào bộ nhớ của companion localhost.",
+    "account_count": "Tài khoản đã lưu",
+    "active_account": "Tài khoản đang dùng",
+    "destination": "Đích đến",
+    "unknown_account": "Không xác định",
+    "warning": "Companion desktop có thể dùng các phiên này cho tới khi vault tạm hết hạn. Không có mật khẩu nào được truyền. Dừng companion để hủy vault.",
+    "send": "Gửi tất cả tài khoản sang desktop",
+    "sending": "Đang gửi an toàn…",
+    "sent": "Đã gửi toàn bộ tài khoản đã lưu sang companion desktop.",
+    "error": "Không thể hoàn tất chuyển dữ liệu. Hãy quay lại tab desktop và bắt đầu lượt handoff mới.",
+    "unavailable": "Route này chỉ hoạt động trong bản local desktop-handoff đã ký."
+  },
+  "mobile_mirror": {
+    "eyebrow": "Mirror tài khoản qua USB",
+    "title": "Nhập dữ liệu thật từ điện thoại",
+    "description": "Mở màn handoff VShop đã ký trên điện thoại đang kết nối, kiểm tra số tài khoản rồi xác nhận chuyển. Secrets chỉ nằm trong RAM của companion local.",
+    "start": "Nhập tất cả tài khoản trên điện thoại",
+    "cancel": "Hủy",
+    "waiting": "Đang chờ xác nhận trên điện thoại được kết nối…",
+    "working": "Đang nhập và xác minh dữ liệu tài khoản…",
+    "unavailable": "Hãy khởi động VShop bằng pnpm run web:pentest để bật mirror tài khoản qua USB.",
+    "error": "Không thể hoàn tất nhập tài khoản từ điện thoại. Hãy bắt đầu lượt handoff mới và thử lại.",
+    "accounts_title": "Tài khoản từ điện thoại",
+    "accounts_description": "Tên tài khoản lấy từ vault điện thoại tạm thời. Chỉ session đang chọn được đưa vào tab browser này.",
+    "account_count": "{{count}} tài khoản",
+    "ready": "Sẵn sàng",
+    "needs_reauth": "Cần đăng nhập lại",
+    "current": "Đang dùng",
+    "switch": "Chuyển"
+  },
   "login_web_view": {
     "completion_error": "Chưa thể hoàn tất đăng nhập",
     "retry_hint": "Kiểm tra kết nối rồi thử lại. Phiên đăng nhập Riot của bạn vẫn được giữ.",

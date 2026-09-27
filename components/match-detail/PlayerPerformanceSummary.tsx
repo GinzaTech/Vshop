@@ -2,10 +2,11 @@
 // Khối tóm tắt hiệu suất người chơi đang chọn trong tab Performance:
 // ảnh full portrait agent, tên, rank và lưới chỉ số (điểm TB, K/D/A, K/D, ADR).
 import React from "react";
-import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { MatchImage } from "~/components/matches/MatchImage";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import {
   MATCH_COLORS,
   MATCH_RADIUS,
@@ -35,7 +36,7 @@ type PlayerPerformanceSummaryProps = {
 export const PlayerPerformanceSummary = React.memo(
   function PlayerPerformanceSummary({ summary }: PlayerPerformanceSummaryProps) {
     const { t } = useTranslation();
-    const { width } = useWindowDimensions();
+    const { width } = useAppWindowDimensions();
     // compact: chế độ hẹp cho màn hình nhỏ
     const compact = width <= 380;
     // metrics: các cặp [nhãn, giá trị đã format] hiển thị trong lưới

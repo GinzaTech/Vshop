@@ -1,6 +1,5 @@
 import React from "react";
 import { useLocalSearchParams } from "expo-router";
-import { useWindowDimensions } from "react-native";
 import { useTheme } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +12,7 @@ import {
   PROFILE_DEMO_USER,
 } from "~/mocks/profile-ui";
 import { isDevelopmentDemoRoute } from "~/utils/demo-mode";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 
 
 
@@ -21,7 +21,7 @@ export function useProfileSession() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const { width: viewportWidth } = useWindowDimensions();
+  const { width: viewportWidth } = useAppWindowDimensions();
   const { demo, recording } = useLocalSearchParams<{
     demo?: string | string[];
     recording?: string | string[];

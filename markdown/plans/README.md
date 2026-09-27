@@ -17,9 +17,17 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 
 ## Plan hiện tại
 
+- [`2026-09-25-multi-account-phone-mirror-design.md`](2026-09-25-multi-account-phone-mirror-design.md) —
+  approved and agent-self-reviewed: transfer toàn bộ saved
+  Riot accounts và app snapshot từ Android qua USB vào companion RAM vault;
+  browser chỉ nhận session account đang active và refresh dữ liệu read-only.
+- [`2026-09-25-multi-account-phone-mirror.md`](2026-09-25-multi-account-phone-mirror.md) —
+  active inline TDD plan cho validator, companion vault, web client, Android
+  sender, desktop activation/UI và same-signer runtime parity.
 - [`2026-09-25-phone-session-handoff-design.md`](2026-09-25-phone-session-handoff-design.md) —
   approved design cho one-time USB Riot session handoff từ production-signed
-  Android pentest build sang Expo Web.
+  Android pentest build sang Expo Web; superseded về credential/data scope bởi
+  multi-account mirror design phía trên.
 - [`2026-09-25-phone-session-handoff.md`](2026-09-25-phone-session-handoff.md) —
   active TDD plan: companion protocol, fixed-argument ADB bridge, guarded phone
   route, desktop activation và signer-preserving install/runtime evidence.

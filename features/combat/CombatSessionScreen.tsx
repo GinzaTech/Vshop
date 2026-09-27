@@ -15,7 +15,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,6 +32,7 @@ import { formatSessionQueueLabel } from "~/utils/valorant-session";
 import { lockScreenOrientation } from "~/utils/screen-orientation";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import AppIcon from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { useRiotScreenSession } from "~/hooks/useRiotScreenSession";
 import { useCombatScreenActivity } from "~/features/combat/useCombatScreenActivity";
@@ -67,7 +67,7 @@ type PregameSessionPlayer = {
 export default function CombatSessionScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
+  const { width, height } = useAppWindowDimensions();
   // Màn hình "chật" (điện thoại ngang nhỏ) → dùng layout compact.
   const isTight = width < 800 || height < 380;
   const user = useUserStore((state) => state.user);

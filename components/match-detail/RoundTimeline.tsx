@@ -8,11 +8,11 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import AppIcon from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import type { AppIconName } from "~/components/ui/app-icon-registry";
 import {
   MATCH_COLORS,
@@ -76,7 +76,7 @@ export const RoundTimeline = React.memo(function RoundTimeline({
   onSelectRound,
 }: RoundTimelineProps) {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width } = useAppWindowDimensions();
   // scrollRef: điều khiển cuộn ngang để căn giữa ô vòng được chọn
   const scrollRef = React.useRef<ScrollView>(null);
 

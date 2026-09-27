@@ -4,13 +4,13 @@ import {
   Linking,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import WebView from "react-native-webview";
 
 import type { LoginWebViewProps } from "./LoginWebView.types";
 import Loading from "./Loading";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { COLORS } from "~/constants/DesignSystem";
 import { useRiotInteractiveLogin } from "~/hooks/useRiotInteractiveLogin";
 import {
@@ -28,7 +28,7 @@ export default function LoginWebView({
   expectedAccountId,
 }: LoginWebViewProps) {
   const { t } = useTranslation();
-  const { height } = useWindowDimensions();
+  const { height } = useAppWindowDimensions();
   const [webIssue, setWebIssue] = useState<string | null>(null);
   const {
     authReady,

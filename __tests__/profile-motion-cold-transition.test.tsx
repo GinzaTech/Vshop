@@ -122,13 +122,20 @@ describe("Profile cold mode transition", () => {
 
   it("starts a warm dashboard morph without adding an extra frame", () => {
     act(() => {
-      focusCallback?.();
-      jest.advanceTimersByTime(220);
+      motion.toggleHeroMode();
     });
     act(() => {
-      idleCallbacks.shift()?.();
+      animationFrames.shift()?.(16);
+      jest.advanceTimersByTime(300);
     });
     expect(motion.statsDashboardMounted).toBe(true);
+    expect(motion.isPlayerInfoMode).toBe(true);
+
+    act(() => {
+      motion.toggleHeroMode();
+      jest.advanceTimersByTime(300);
+    });
+    expect(motion.isPlayerInfoMode).toBe(false);
 
     act(() => {
       motion.toggleHeroMode();
@@ -140,41 +147,32 @@ describe("Profile cold mode transition", () => {
     expect(motion.pageModeProgress.value).toBe(1);
   });
 
-  it("waits for Profile focus and the tab transition before idle preload", () => {
+  it("does not preload the hidden dashboard after Profile settles", () => {
     expect(idleCallbacks).toHaveLength(0);
 
     act(() => {
       focusCallback?.();
-      jest.advanceTimersByTime(219);
+      jest.runAllTimers();
     });
     expect(idleCallbacks).toHaveLength(0);
-
-    act(() => {
-      jest.advanceTimersByTime(1);
-    });
-    expect(idleCallbacks).toHaveLength(1);
     expect(motion.statsDashboardMounted).toBe(false);
-
-    act(() => {
-      idleCallbacks.shift()?.();
-    });
-    expect(motion.statsDashboardMounted).toBe(true);
   });
 
-  it("cancels queued dashboard work when Profile blurs", () => {
+  it("does not enqueue hidden dashboard work across focus cycles", () => {
     let cleanup: void | (() => void);
     act(() => {
       cleanup = focusCallback?.();
-      jest.advanceTimersByTime(220);
+      jest.runAllTimers();
     });
-    expect(idleCallbacks).toHaveLength(1);
 
     act(() => {
       cleanup?.();
-      idleCallbacks.shift()?.();
+      focusCallback?.();
+      jest.runAllTimers();
     });
 
-    expect(idleCancels.at(-1)).toHaveBeenCalledTimes(1);
+    expect(idleCallbacks).toHaveLength(0);
+    expect(idleCancels).toHaveLength(0);
     expect(motion.statsDashboardMounted).toBe(false);
   });
 

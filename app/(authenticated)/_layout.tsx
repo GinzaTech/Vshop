@@ -15,7 +15,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,7 +28,8 @@ import Reanimated, {
 
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup, { useMediaPopupStore } from "~/components/popups/MediaPopup";
-import AppIcon from "~/components/ui/AppIcon";
+import AppIcon, { type AppIconHandle } from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import type { AppIconName } from "~/components/ui/app-icon-registry";
 import PressFeedback from "~/components/ui/PressFeedback";
 import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
@@ -40,7 +40,7 @@ import { useUserStore } from "~/hooks/useUserStore";
 import { flowTracer } from "~/utils/flow-tracer";
 import { usePrimaryTabPreload, type TabTransitionNavigation } from "~/hooks/usePrimaryTabPreload";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
-import { MOTION_TIMING } from "~/constants/Motion";
+import { MOTION_DURATION, MOTION_TIMING } from "~/constants/Motion";
 
 import {
   createPrimaryTabScreenOptions,
@@ -105,6 +105,8 @@ const TAB_FRAME_BORDER_WIDTH = 1;
 const INDICATOR_SIZE = 44;
 const COLLAPSED_BAR_SIZE = 62;
 const EXPANDED_BAR_HEIGHT = 68;
+const ACTIVE_ICON_REPAIR_DELAY_MS =
+  MOTION_DURATION.emphasized + MOTION_DURATION.fast;
 
 /**
  * FloatingTabBar — Thanh tab nổi (floating) tùy chỉnh.
@@ -113,7 +115,7 @@ const EXPANDED_BAR_HEIGHT = 68;
  *
  * State:
  * - insets (từ useSafeAreaInsets): Safe area bottom để padding.
- * - viewportWidth (từ useWindowDimensions): Chiều rộng màn hình để tính width thanh tab.
+ * - viewportWidth (từ useAppWindowDimensions): Chiều rộng app để tính width thanh tab.
  * - hasNightMarketItems (từ useUserStore): Có items trong night market?
  * - collapsed (state, boolean): Thanh tab đang thu gọn (chỉ hiện nút tròn)?
  * - collapseProgress (SharedValue<number>): Giá trị Reanimated animation mở/thu gọn (1 = mở, 0 = thu).
@@ -142,7 +144,7 @@ export function FloatingTabBar({
   navigation,
 }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { width: viewportWidth } = useWindowDimensions();
+  const { width: viewportWidth } = useAppWindowDimensions();
   const reduceMotionEnabled = useMotionPreference();
   const primaryNavigationTone = useSystemChromeStore(
     (chrome) => chrome.primaryNavigationTone,
@@ -161,6 +163,7 @@ export function FloatingTabBar({
   const moreLongPressHandledRef = useRef(false);
   const lastIndicatorTarget = useRef<number | null>(null);
   const pendingTabNameRef = useRef<string | null>(null);
+  const activeIndicatorIconRef = useRef<AppIconHandle>(null);
   const activeRoute = state.routes[state.index];
 
   // Effect: Reset cờ pendingTabNameRef khi route key đổi — điều hướng đã
@@ -247,6 +250,21 @@ export function FloatingTabBar({
     pendingIndicatorRoute && pendingIndicatorRoute in PRIMARY_ROUTES
       ? pendingIndicatorRoute
       : activeRoute.name;
+  const previousIndicatorRouteRef = useRef(indicatorRouteName);
+  useEffect(() => {
+    if (previousIndicatorRouteRef.current === indicatorRouteName) return;
+    previousIndicatorRouteRef.current = indicatorRouteName;
+
+    if (reduceMotionEnabled) {
+      activeIndicatorIconRef.current?.settle();
+      return;
+    }
+
+    const repairTimer = setTimeout(() => {
+      activeIndicatorIconRef.current?.settle();
+    }, ACTIVE_ICON_REPAIR_DELAY_MS);
+    return () => clearTimeout(repairTimer);
+  }, [indicatorRouteName, reduceMotionEnabled]);
   // Cleanup: hủy animation indicator + collapse khi unmount để tránh leak
   // shared value animation (rule cleanup của AGENTS.md).
   useEffect(() => () => {
@@ -378,6 +396,7 @@ export function FloatingTabBar({
               ]}
             >
               <AppIcon
+                ref={activeIndicatorIconRef}
                 name={PRIMARY_ROUTES[indicatorRouteName].icon}
                 size={22}
                 color={
@@ -386,6 +405,7 @@ export function FloatingTabBar({
                     : COLORS.PURE_BLACK
                 }
                 decorative
+                spring="bouncy"
                 testID="primary-tab-active-icon"
               />
             </Reanimated.View>
@@ -575,7 +595,7 @@ function Layout() {
   const { t } = useTranslation();
   const reduceMotionEnabled = useMotionPreference();
   const mediaPopupOpen = useMediaPopupStore((state) => state.entries.length > 0);
-  const { width: viewportWidth } = useWindowDimensions();
+  const { width: viewportWidth } = useAppWindowDimensions();
   const navigatorPolicy = getPrimaryTabNavigatorPolicy(Platform.OS);
   const primaryTabScreenOptions = useMemo(
     () =>

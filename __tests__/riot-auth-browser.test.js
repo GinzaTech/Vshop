@@ -21,6 +21,17 @@ const createFakeChromium = (launchOutcomes = []) => {
     mainFrame: jest.fn(() => mainFrame),
   };
   const context = {
+    addCookies: jest.fn(async () => undefined),
+    cookies: jest.fn(async () => [{
+      name: "ssid",
+      value: "updated-cookie",
+      domain: ".auth.riotgames.com",
+      path: "/",
+      secure: true,
+      httpOnly: true,
+      sameSite: "None",
+      expires: -1,
+    }]),
     newPage: jest.fn(async () => page),
     close: jest.fn(async () => undefined),
   };
@@ -154,6 +165,68 @@ describe("Riot auth browser broker", () => {
     await running;
     expect(fake.context.close).toHaveBeenCalledTimes(1);
     expect(fake.browser.close).toHaveBeenCalledTimes(1);
+  });
+
+  test("seeds only Riot cookies and returns an updated isolated snapshot", async () => {
+    const fake = createFakeChromium();
+    const broker = createRiotAuthBrowser({ chromium: fake.chromium });
+    const onCookies = jest.fn();
+    const running = broker.open({
+      authorizationUrl: AUTHORIZATION_URL,
+      signal: new AbortController().signal,
+      seedCookies: [{
+        name: "ssid",
+        value: "seed-cookie-canary",
+        domain: ".auth.riotgames.com",
+        path: "/",
+        secure: true,
+        httpOnly: true,
+        sameSite: "none",
+      }],
+      onCookies,
+      onCallback: jest.fn(),
+      onClosed: jest.fn(),
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    fake.emitClose();
+    await running;
+
+    expect(fake.context.addCookies).toHaveBeenCalledWith([
+      expect.objectContaining({
+        name: "ssid",
+        value: "seed-cookie-canary",
+        domain: ".auth.riotgames.com",
+        sameSite: "None",
+      }),
+    ]);
+    expect(onCookies).toHaveBeenCalledWith([
+      expect.objectContaining({
+        name: "ssid",
+        value: "updated-cookie",
+        domain: ".auth.riotgames.com",
+        sameSite: "none",
+      }),
+    ]);
+  });
+
+  test("rejects non-Riot seed cookies before browser launch", async () => {
+    const fake = createFakeChromium();
+    const broker = createRiotAuthBrowser({ chromium: fake.chromium });
+
+    await expect(broker.open({
+      authorizationUrl: AUTHORIZATION_URL,
+      signal: new AbortController().signal,
+      seedCookies: [{
+        name: "ssid",
+        value: "attacker-cookie",
+        domain: "attacker.test",
+        path: "/",
+      }],
+      onCookies: jest.fn(),
+      onCallback: jest.fn(),
+      onClosed: jest.fn(),
+    })).rejects.toMatchObject({ code: "COOKIE_REJECTED" });
+    expect(fake.chromium.launch).not.toHaveBeenCalled();
   });
 
   test("maps navigation failure without returning the raw browser message", async () => {

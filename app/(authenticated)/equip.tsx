@@ -1,10 +1,11 @@
 // ===== Import thư viện =====
 import React from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Searchbar } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 
 import GalleryEquip from "~/components/GalleryEquip";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { EQUIPMENT_SECTIONS, getCollectionBySection, sortEquipItems, buildEquipDisplayList, sanitizeQuery, type EquipmentSectionKey } from "~/components/popups/equipHelpers";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
@@ -35,7 +36,7 @@ type EquipmentDisplayItem = ReturnType<typeof buildEquipDisplayList>[number];
  */
 const Equip = () => {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width } = useAppWindowDimensions();
   const columnCount = width >= 700 ? 3 : 2;
   const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
 

@@ -10,7 +10,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +23,7 @@ import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import AppIcon from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { refreshShopAndBalances } from "~/utils/app-sync";
 import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
@@ -38,7 +38,7 @@ const GRID_GAP = 12;
  */
 function Shop() {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width } = useAppWindowDimensions();
   const insets = useSafeAreaInsets();
   const user = useUserStore((state) => state.user);
   const [mode, setMode] = React.useState<"all" | "wishlist">("all");
