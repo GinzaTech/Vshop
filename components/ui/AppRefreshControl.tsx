@@ -49,3 +49,13 @@ export default function AppRefreshControl({
     </RefreshControl>
   );
 }
+
+/**
+ * useWebRefreshActivity – Stub native (luôn false): hook này chỉ có bản
+ * thật trong AppRefreshControl.web.tsx, nơi AppViewport đọc để hiển thị
+ * thanh tiến trình refresh phía trên frame (web không có pull-to-refresh).
+ * @returns Luôn false trên native.
+ */
+export function useWebRefreshActivity(): boolean {
+  return false;
+}

@@ -2,7 +2,13 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const SOURCE_ROOTS = ["app", "components", "features", "hooks"] as const;
-const APP_ICON_BOUNDARY = "components/ui/AppIcon.tsx";
+// Cả hai biến thể platform của AppIcon đều thuộc boundary family: bản web
+// remount SVG thay vì morph (setNativeProps no-op trên react-native-web)
+// nhưng vẫn cần import MorphIcon trực tiếp.
+const APP_ICON_BOUNDARIES = [
+  "components/ui/AppIcon.tsx",
+  "components/ui/AppIcon.web.tsx",
+];
 const APP_ICON_DATA_BOUNDARY = "components/ui/app-icon-lucide.ts";
 const MATERIAL_COMMUNITY_MODULE =
   "@expo/vector-icons/MaterialCommunityIcons";
@@ -53,7 +59,7 @@ describe("AppIcon source boundary", () => {
       moduleImportPattern(MORPHICONS_MODULE),
     );
 
-    expect(directMorphIconImports).toEqual([APP_ICON_BOUNDARY]);
+    expect(directMorphIconImports).toEqual(APP_ICON_BOUNDARIES);
   });
 
   it("keeps runtime Lucide imports tree-shakeable and isolated", () => {
