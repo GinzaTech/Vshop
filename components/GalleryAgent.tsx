@@ -2,23 +2,13 @@
 // Component thư viện (gallery) hiển thị danh sách các Agent trong Valorant.
 // Bao gồm: bộ lọc theo role, lưới agent, và modal chi tiết agent.
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList, ImageSourcePropType } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList } from "react-native";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 import { getAgent } from "~/utils/valorant-assets";
 import { COLORS } from "~/constants/DesignSystem";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
-
-// Interface Role: định nghĩa một role (vai trò) của agent
-// icon: đường dẫn ảnh icon role
-// id: định danh role
-// name: tên hiển thị của role
-interface Role {
-    icon: ImageSourcePropType;
-    id: string;
-    name: string;
-}
 
 // Interface AgentGridProps: props cho component AgentGrid
 // agents: danh sách agent cần hiển thị
@@ -33,16 +23,6 @@ interface AgentGridProps {
     selectedAgentId?: string | null;
     refreshing?: boolean;
     onRefresh?: () => void;
-}
-
-// Interface RoleSelectorProps: props cho component RoleSelector
-// roles: danh sách role có sẵn
-// selectedRole: role đang được chọn (null nếu không lọc)
-// onRoleSelect: callback khi chọn một role
-interface RoleSelectorProps {
-    roles: Role[];
-    selectedRole: string | null;
-    onRoleSelect: (roleId: string) => void;
 }
 
 // Interface AgentModalProps: props cho component AgentModal (modal chi tiết agent)
@@ -167,32 +147,6 @@ const GalleryAgent = () => {
         showDescription,     // Flag hiển thị description
     };
 };
-
-/**
- * RoleSelector – Component hiển thị danh sách các nút role để lọc
- * Props: roles (danh sách role), selectedRole (role đang chọn), onRoleSelect (callback)
- * Được memo hóa (React.memo) để tránh re-render không cần thiết
- * Layout: flex row, các nút role có icon + text, nút được chọn có gạch dưới
- *
- * @param roles – Danh sách role khả dụng.
- * @param selectedRole – Id role đang được chọn (null nếu không lọc).
- * @param onRoleSelect – Callback khi chọn một role (nhận roleId).
- * @returns View hàng ngang các nút role.
- */
-export const RoleSelector: React.FC<RoleSelectorProps> = React.memo(({ roles, selectedRole, onRoleSelect }) => (
-    <View style={styles.roleContainer}>
-        {roles.map((role) => (
-            <TouchableOpacity
-                key={role.id}
-                style={[styles.roleButton, selectedRole === role.id && styles.selectedRoleButton]}
-                onPress={() => onRoleSelect(role.id)}
-            >
-                <Image source={role.icon} style={styles.roleIcon} contentFit="contain" />
-                <Text style={styles.roleText}>{role.name}</Text>
-            </TouchableOpacity>
-        ))}
-    </View>
-));
 
 /**
  * AgentItem – Component hiển thị một agent trong lưới (box)
@@ -344,37 +298,12 @@ export const AgentModal: React.FC<AgentModalProps> = React.memo(({ agent, onClos
 });
 
 // Gán displayName cho các component để dễ debug trong React DevTools
-RoleSelector.displayName = "RoleSelector";
 AgentItem.displayName = "AgentItem";
 AgentGrid.displayName = "AgentGrid";
 AgentModal.displayName = "AgentModal";
 
-// StyleSheet: Định nghĩa các style cho GalleryAgent (RoleSelector, AgentGrid, AgentModal)
+// StyleSheet: Định nghĩa các style cho GalleryAgent (AgentGrid, AgentModal)
 const styles = StyleSheet.create({
-    roleContainer: {
-        flexDirection: "row",          // Xếp ngang hàng
-        justifyContent: "space-around", // Dàn đều các role button
-        marginBottom: 20,
-        width: "100%",
-    },
-    roleButton: {
-        alignItems: "center",          // Căn giữa icon + text
-        marginHorizontal: 10,
-        paddingBottom: 6,
-    },
-    selectedRoleButton: {
-        borderBottomWidth: 2,          // Gạch dưới khi được chọn
-        borderBottomColor: COLORS.PURE_BLACK,
-    },
-    roleIcon: {
-        width: 40,
-        height: 40,
-    },
-    roleText: {
-        color: COLORS.TEXT_PRIMARY,
-        fontSize: 12,
-        marginTop: 5,
-    },
     listContainer: {
         justifyContent: "center",
         width: "100%",
