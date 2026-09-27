@@ -23,10 +23,13 @@ test("prepares reverse and fixed deep link for the only authorized device", () =
     ["-s", "45218ba", "reverse", "tcp:49331", "tcp:43127"],
   ]);
   expect(spawnSync.mock.calls[2]?.[1]).toEqual([
-    "-s", "45218ba", "shell", "am", "start", "-W",
-    "-a", "android.intent.action.VIEW",
-    "-d", `vshop://session_handoff?id=${"a".repeat(64)}&code=${"b".repeat(64)}`,
-    "com.android.vshop",
+    "-s",
+    "45218ba",
+    "shell",
+    // The remote command must be a single argument with the URI single-quoted:
+    // adb shell joins argv and the device sh would otherwise treat the "&" in
+    // the URI as a background operator, truncating the link (exit 127).
+    `am start -W -a android.intent.action.VIEW -d 'vshop://session_handoff?id=${"a".repeat(64)}&code=${"b".repeat(64)}' com.android.vshop`,
   ]);
   expect(spawnSync.mock.calls.every((call) => call[2]?.shell === false)).toBe(true);
 });

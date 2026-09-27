@@ -71,12 +71,22 @@ function createAndroidSessionHandoffBridge({
     );
     const deepLink = `vshop://session_handoff?id=${handoffId}&code=${pairingCode}`;
     try {
-      run([
-        "-s", device.serial, "shell", "am", "start", "-W",
-        "-a", "android.intent.action.VIEW",
-        "-d", deepLink,
-        PACKAGE_NAME,
-      ], "DEVICE_LAUNCH_FAILED");
+      // `adb shell` joins argv with spaces and hands the WHOLE line to the
+      // device's sh. The `&` inside the deep-link URI would otherwise be
+      // parsed as a shell background operator, truncating the URI at `?id=`
+      // and turning `code=...` + the package name into separate commands
+      // (exit 127 → DEVICE_LAUNCH_FAILED). Quote the URI for the device
+      // shell and pass the remote command as a single argument. The URI is
+      // scheme + 64-hex params only, so single quotes are always safe.
+      run(
+        [
+          "-s",
+          device.serial,
+          "shell",
+          `am start -W -a android.intent.action.VIEW -d '${deepLink}' ${PACKAGE_NAME}`,
+        ],
+        "DEVICE_LAUNCH_FAILED",
+      );
     } catch (error) {
       try {
         run(
