@@ -39,12 +39,9 @@ describe("GPU-friendly profile motion policy", () => {
 
   it("draws chart lines through the shared GPU canvas instead of rotated views", () => {
     const economy = readSource("components/match-detail/EconomyChart.tsx");
-    const activity = readSource("components/profile/PlayerStatsActivity.tsx");
 
     expect(economy).toContain("GpuLineChartCanvas");
     expect(economy).not.toContain("lineStyle(");
-    expect(activity).toContain("GpuLineChartCanvas");
-    expect(activity).not.toContain("lineStyle(");
   });
 
   it("updates swap text once and leaves the visual transition on the UI thread", () => {

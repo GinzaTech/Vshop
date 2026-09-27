@@ -1,17 +1,8 @@
-import { aggregateMatches } from "~/components/profile/PlayerStatsDashboard";
-import { buildActivityWeeks } from "~/components/profile/player-stats-data";
-import { RecentCompetitiveCard } from "~/components/profile/PlayerStatsSections";
+// Pure-data tests for the profile dashboard aggregation helpers.
+// The legacy dashboard component was removed (replaced by PlayerInfoView);
+// these cases now import directly from the shared data module.
+import { aggregateMatches, buildActivityWeeks } from "~/components/profile/player-stats-data";
 import type { MatchHistoryRecord, MatchHistoryStats } from "~/types/match-ui";
-import React from "react";
-import TestRenderer, { act } from "react-test-renderer";
-import { Text } from "react-native";
-
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => () => null);
-jest.mock("~/components/CachedImage", () => ({ CachedImage: () => null }));
-jest.mock("~/constants/Motion", () => ({ MOTION_DURATION: { standard: 250 } }));
-jest.mock("react-native-reanimated", () => ({
-  __esModule: true, default: { View: "View" },
-}));
 
 const record = (stats: Partial<MatchHistoryStats>): MatchHistoryRecord => ({
   MatchID: "match", GameStartTime: 1, QueueID: "competitive",
@@ -94,20 +85,5 @@ describe("profile match aggregation", () => {
     } finally {
       jest.useRealTimers();
     }
-  });
-
-  it.each([
-    ["win", "W"], ["loss", "L"], ["draw", "D"], ["cancelled", "C"], ["unknown", "--"],
-  ] as const)("renders the %s result without assuming W/L", (result, label) => {
-    let renderer: TestRenderer.ReactTestRenderer;
-    act(() => {
-      renderer = TestRenderer.create(React.createElement(RecentCompetitiveCard, {
-        matches: [record({ result, won: true })],
-      }));
-    });
-    const texts = renderer!.root.findAllByType(Text).map((node) =>
-      React.Children.toArray(node.props.children).join(""));
-    expect(texts).toContain(`${label} 13-10`);
-    act(() => renderer!.unmount());
   });
 });

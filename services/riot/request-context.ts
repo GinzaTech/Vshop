@@ -1,21 +1,14 @@
 import { getAssets } from "~/utils/valorant-assets";
 
-// Import các hàm log cho axios request/response/error
-
-// Thiết lập timeout mặc định cho axios: 10 giây (giảm từ 15s để fail-fast trên 4G)
-
-// Khởi tạo API logger (async, không await để tránh chặn)
+// Ghi chú tách lớp: timeout axios (10s) nằm ở services/http/clients.ts;
+// interceptor log + phát hiện session hết hạn nằm ở services/riot/client.ts.
+// File này chỉ giữ: cấu hình debug logging, header/context phiên Riot
+// (client version + platform) và helper che giấu secret khi log.
 
 // Large Riot request/response logs can block the JS thread in Expo dev.
 // Keep them opt-in so normal development stays responsive.
 export const API_DEBUG_LOGGING =
   __DEV__ && process.env.EXPO_PUBLIC_API_DEBUG_LOGGING === "1";
-
-// Interceptor cho request: log URL, ghi lại thời gian bắt đầu
-
-// Interceptor cho response: log response/error và báo cho lifecycle manager
-// khi Riot xác nhận session không còn hợp lệ. Cả nhánh fulfilled lẫn rejected
-// đều được kiểm tra vì một số API dùng validateStatus để tự xử lý status code.
 
 // Hàm che giấu thông tin bí mật (token, secret) khi log
 // Chỉ hiện 8 ký tự đầu và 6 ký tự cuối nếu chuỗi dài > 16, nếu không thì hiện "***"
