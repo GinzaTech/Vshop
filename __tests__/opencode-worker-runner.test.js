@@ -75,9 +75,34 @@ const createExecutionDeps = (overrides = {}) => {
 };
 
 describe("OpenCode runner model and status handling", () => {
-  test("resolves platform-specific CLI commands", () => {
-    expect(resolveOpenCodeCommand("win32")).toBe("opencode.cmd");
-    expect(resolveOpenCodeCommand("linux")).toBe("opencode");
+  test("resolves the real Windows executable behind the bounded pnpm shim", () => {
+    const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-cli-test-"));
+    const pnpmHome = path.join(temporaryRoot, "pnpm");
+    const shimDir = path.join(pnpmHome, "bin");
+    const executable = path.join(pnpmHome, "global", "v11", "hash", "node_modules", "opencode-ai", "bin", "opencode.exe");
+    fs.mkdirSync(path.dirname(executable), { recursive: true });
+    fs.mkdirSync(shimDir, { recursive: true });
+    fs.writeFileSync(executable, "binary", "utf8");
+    fs.writeFileSync(
+      path.join(shimDir, "opencode.cmd"),
+      '@SETLOCAL\r\n@"%~dp0\\..\\global\\v11\\hash\\node_modules\\opencode-ai\\bin\\opencode.exe" %*\r\n',
+      "utf8",
+    );
+    expect(resolveOpenCodeCommand({
+      platform: "win32",
+      env: { PNPM_HOME: pnpmHome },
+    })).toBe(path.resolve(executable));
+    fs.rmSync(temporaryRoot, { recursive: true, force: true });
+  });
+
+  test("uses PATH resolution on non-Windows and rejects an unbounded Windows shim", () => {
+    expect(resolveOpenCodeCommand({ platform: "linux", env: {} })).toBe("opencode");
+    expect(() => resolveOpenCodeCommand({
+      platform: "win32",
+      env: { PNPM_HOME: "C:\\pnpm" },
+      existsImpl: () => true,
+      readFileImpl: () => '@"C:\\outside\\opencode.exe" %*',
+    })).toThrow("OPENCODE_BINARY_REJECTED");
   });
 
   test("rejects malformed argument arrays", () => {

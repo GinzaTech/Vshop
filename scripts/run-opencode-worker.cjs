@@ -61,8 +61,44 @@ function loadTaskFile(taskFile) {
   }
 }
 
-const resolveOpenCodeCommand = (platform = process.platform) =>
-  platform === "win32" ? "opencode.cmd" : "opencode";
+function resolveOpenCodeCommand({
+  platform = process.platform,
+  env = process.env,
+  existsImpl = fs.existsSync,
+  readFileImpl = fs.readFileSync,
+} = {}) {
+  if (platform !== "win32") {
+    return "opencode";
+  }
+  if (!env.PNPM_HOME || !path.isAbsolute(env.PNPM_HOME)) {
+    throw new RunnerError("OPENCODE_BINARY_REJECTED");
+  }
+  const pnpmHome = path.resolve(env.PNPM_HOME);
+  const shimPath = path.join(pnpmHome, "bin", "opencode.cmd");
+  if (!existsImpl(shimPath)) {
+    throw new RunnerError("OPENCODE_BINARY_REJECTED");
+  }
+  const shim = String(readFileImpl(shimPath, "utf8"));
+  if (shim.length > 4_096) {
+    throw new RunnerError("OPENCODE_BINARY_REJECTED");
+  }
+  const targetMatch = /^@"%~dp0\\([^"\r\n]+\\opencode\.exe)"\s+%\*\s*$/mi.exec(shim);
+  if (!targetMatch) {
+    throw new RunnerError("OPENCODE_BINARY_REJECTED");
+  }
+  const executable = path.resolve(path.dirname(shimPath), targetMatch[1]);
+  const relative = path.relative(pnpmHome, executable);
+  if (
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative) ||
+    path.extname(executable).toLowerCase() !== ".exe" ||
+    !existsImpl(executable)
+  ) {
+    throw new RunnerError("OPENCODE_BINARY_REJECTED");
+  }
+  return executable;
+}
 
 function probeOpenCode({ command, execFileSyncImpl = execFileSync }) {
   const options = {
