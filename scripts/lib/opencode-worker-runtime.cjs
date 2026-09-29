@@ -130,6 +130,21 @@ function listChangedPaths(workspace, { execFileSyncImpl = execFileSync } = {}) {
     parseNulPaths(runGit(workspace, args, execFileSyncImpl))))].sort();
 }
 
+function resolvePrimaryWorktree(workspace, { execFileSyncImpl = execFileSync } = {}) {
+  const output = String(execFileSyncImpl(
+    "git",
+    ["-C", workspace, "worktree", "list", "--porcelain"],
+    { encoding: "utf8", windowsHide: true },
+  ));
+  const firstWorktree = output
+    .split(/\r?\n/)
+    .find((line) => line.startsWith("worktree "));
+  if (!firstWorktree) {
+    throw new Error("PRIMARY_WORKTREE_NOT_FOUND");
+  }
+  return path.resolve(firstWorktree.slice("worktree ".length));
+}
+
 async function fingerprintWorkspace(workspace, {
   listChangedPathsImpl = listChangedPaths,
   existsImpl = fs.existsSync,
@@ -318,6 +333,7 @@ module.exports = {
   fingerprintWorkspace,
   inspectWorktree,
   listChangedPaths,
+  resolvePrimaryWorktree,
   runGitDiffCheck,
   runProcess,
   terminateProcessTree,

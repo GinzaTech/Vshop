@@ -117,6 +117,42 @@ describe("OpenCode worker task packet", () => {
   });
 
   test.each([
+    ["schemaVersion", 2, "SCHEMA_VERSION_REJECTED"],
+    ["workspace", "relative/worktree", "WORKSPACE_REJECTED"],
+    ["allowedPaths", [], "ALLOWED_PATHS_REQUIRED"],
+    ["protectedPaths", null, "PROTECTED_PATHS_REJECTED"],
+    ["acceptanceCriteria", [], "ACCEPTANCE_REJECTED"],
+    ["targetedCommands", null, "COMMAND_REJECTED"],
+    ["taskId", "Bad Task", "TASK_ID_REJECTED"],
+    ["planPath", "markdown/plans/**", "PLAN_PATH_REJECTED"],
+    ["title", " ", "TITLE_REJECTED"],
+  ])("rejects invalid %s", (field, value, code) => {
+    const invalidPacket = createPacket();
+    invalidPacket[field] = value;
+    expect(capturePolicyError(() => validateTaskPacket(invalidPacket, { mainCheckout })))
+      .toMatchObject({ code });
+  });
+
+  test("rejects a non-absolute or absent main checkout", () => {
+    expect(capturePolicyError(() => validateTaskPacket(createPacket(), {
+      mainCheckout: "relative",
+    }))).toMatchObject({ code: "MAIN_CHECKOUT_REJECTED" });
+    expect(capturePolicyError(() => validateTaskPacket(createPacket())))
+      .toMatchObject({ code: "MAIN_CHECKOUT_REJECTED" });
+  });
+
+  test.each([
+    { executable: "pnpm", args: ["run", "check"] },
+    { executable: "pnpm", args: ["exec", "eslint", "scripts/file.cjs", "--max-warnings=0"] },
+    { executable: "pnpm", args: ["exec", "tsc", "--noEmit"] },
+  ])("accepts safe command %#", (command) => {
+    const safePacket = createPacket();
+    safePacket.targetedCommands = [command];
+    expect(validateTaskPacket(safePacket, { mainCheckout }).targetedCommands[0])
+      .toEqual(command);
+  });
+
+  test.each([
     [0, 2, "TIMEOUT_REJECTED"],
     [121, 2, "TIMEOUT_REJECTED"],
     [45, -1, "REPAIR_ROUNDS_REJECTED"],
@@ -197,5 +233,21 @@ describe("OpenCode worker permissions and evidence", () => {
     const error = capturePolicyError(() => validateTaskPacket(null, { mainCheckout }));
     expect(error).toBeInstanceOf(WorkerPolicyError);
     expect(error.code).toBe("TASK_PACKET_REJECTED");
+  });
+
+  test("rejects non-array changed paths and classifies malformed entries", () => {
+    const task = validateTaskPacket(createPacket(), { mainCheckout });
+    expect(capturePolicyError(() => classifyChangedPaths(null, task)))
+      .toMatchObject({ code: "CHANGED_PATHS_REJECTED" });
+    expect(classifyChangedPaths(["services/profile/**", "../escape.ts"], task))
+      .toEqual({
+        allowed: [],
+        violations: ["../escape.ts", "services/profile/**"],
+      });
+  });
+
+  test("redacts unserializable and empty evidence safely", () => {
+    expect(redactEvidence({ value: 1n })).toBe("<unserializable-evidence>");
+    expect(redactEvidence(undefined)).toBe("");
   });
 });

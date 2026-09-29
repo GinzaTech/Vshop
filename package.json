@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:opencode-worker": "jest --config jest.opencode-worker.config.js --ci --runInBand --coverage",
     "test:ci": "jest --config jest.full.config.js --ci --runInBand --coverage",
     "test:critical": "jest --ci --runInBand --coverage",
     "test:api": "node scripts/smoke-api.mjs",
@@ -21,7 +22,8 @@
     "check:export-budget": "node scripts/check-export-budget.mjs",
     "check:source": "pnpm run typecheck && pnpm run lint && pnpm run test:ci && pnpm run audit:prod",
     "check:android": "node scripts/check-android-export.mjs",
-    "check": "pnpm run check:source && pnpm run check:android"
+    "check": "pnpm run check:source && pnpm run check:android",
+    "worker:opencode": "node scripts/run-opencode-worker.cjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",

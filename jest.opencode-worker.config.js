@@ -4,8 +4,8 @@ const base = require("./jest.config");
 
 module.exports = {
   ...base,
-  roots: ["<rootDir>"],
-  testMatch: ["<rootDir>/__tests__/opencode-worker-*.test.js"],
+  roots: ["<rootDir>/__tests__"],
+  testMatch: ["**/opencode-worker-*.test.js"],
   collectCoverageFrom: [
     "scripts/lib/opencode-worker-policy.cjs",
     "scripts/lib/opencode-worker-runtime.cjs",

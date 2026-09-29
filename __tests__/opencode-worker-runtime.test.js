@@ -12,6 +12,7 @@ const {
   inspectWorktree,
   listChangedPaths,
   runProcess,
+  resolvePrimaryWorktree,
   terminateProcessTree,
   waitForStableWrite,
 } = require("../scripts/lib/opencode-worker-runtime.cjs");
@@ -36,6 +37,16 @@ const linkedWorktreeGit = ({ root = "C:/worktrees/task", status = "" } = {}) =>
   });
 
 describe("OpenCode worker Git and path runtime", () => {
+  test.each([
+    ["relative", "C:/repo", "WORKTREE_PATH_REJECTED"],
+    ["C:/worktrees/task", "relative", "MAIN_CHECKOUT_REJECTED"],
+  ])("rejects invalid workspace inputs", (workspace, mainCheckout, code) => {
+    expect(() => inspectWorktree(workspace, {
+      mainCheckout,
+      execFileSyncImpl: jest.fn(),
+    })).toThrow(code);
+  });
+
   test("accepts only a clean linked worktree", () => {
     const result = inspectWorktree("C:/worktrees/task", {
       mainCheckout: "C:/repo",
@@ -90,6 +101,32 @@ describe("OpenCode worker Git and path runtime", () => {
     ]);
   });
 
+  test("resolves the primary checkout from Git worktree porcelain output", () => {
+    const execFileSyncImpl = jest.fn(() => [
+      "worktree C:/repo",
+      "HEAD abc123",
+      "branch refs/heads/main",
+      "",
+      "worktree C:/repo-worktrees/task",
+      "HEAD def456",
+      "detached",
+      "",
+    ].join("\n"));
+    expect(resolvePrimaryWorktree("C:/repo-worktrees/task", { execFileSyncImpl }))
+      .toBe(path.resolve("C:/repo"));
+    expect(execFileSyncImpl).toHaveBeenCalledWith(
+      "git",
+      ["-C", "C:/repo-worktrees/task", "worktree", "list", "--porcelain"],
+      { encoding: "utf8", windowsHide: true },
+    );
+  });
+
+  test("rejects worktree output without a primary path", () => {
+    expect(() => resolvePrimaryWorktree("C:/worktree", {
+      execFileSyncImpl: () => "HEAD abc\n",
+    })).toThrow("PRIMARY_WORKTREE_NOT_FOUND");
+  });
+
   test("rejects a linked scope whose nearest existing parent escapes the worktree", () => {
     expect(() => assertScopesInsideWorktree(
       "C:\\worktree",
@@ -112,6 +149,20 @@ describe("OpenCode worker Git and path runtime", () => {
         realpathImpl: (value) => value,
       },
     )).not.toThrow();
+  });
+
+  test("rejects malformed scopes and a missing worktree root", () => {
+    expect(() => assertScopesInsideWorktree("C:\\worktree", null, {
+      realpathImpl: (value) => value,
+    })).toThrow("SCOPE_REALPATH_REJECTED");
+    expect(() => assertScopesInsideWorktree("C:\\worktree", [null], {
+      realpathImpl: (value) => value,
+    })).toThrow("SCOPE_REALPATH_REJECTED");
+    expect(() => assertScopesInsideWorktree(
+      "C:\\worktree",
+      [{ base: "src/new.ts", directory: false }],
+      { existsImpl: () => false, realpathImpl: (value) => value },
+    )).toThrow("SCOPE_REALPATH_REJECTED");
   });
 
   test("fingerprints file contents and deletion markers deterministically", async () => {
@@ -223,6 +274,25 @@ describe("OpenCode worker stability and process runtime", () => {
     );
   });
 
+  test("ignores a process object without a valid PID", async () => {
+    const execFileAsyncImpl = jest.fn();
+    await terminateProcessTree({ pid: 0 }, { platform: "win32", execFileAsyncImpl });
+    expect(execFileAsyncImpl).not.toHaveBeenCalled();
+  });
+
+  test("uses the POSIX process group and falls back to the child", async () => {
+    const killSpy = jest.spyOn(process, "kill").mockImplementationOnce(() => undefined);
+    const child = { pid: 43127, kill: jest.fn() };
+    await terminateProcessTree(child, { platform: "linux" });
+    expect(killSpy).toHaveBeenCalledWith(-43127, "SIGTERM");
+    expect(child.kill).not.toHaveBeenCalled();
+
+    killSpy.mockImplementationOnce(() => { throw new Error("NO_GROUP"); });
+    await terminateProcessTree(child, { platform: "linux" });
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    killSpy.mockRestore();
+  });
+
   test("rejects spawn errors", async () => {
     const child = createChild();
     const pending = runProcess({
@@ -277,4 +347,14 @@ describe("OpenCode worker evidence store", () => {
       })).toThrow("EVIDENCE_ID_REJECTED");
     },
   );
+
+  test("rejects unsafe evidence filenames", () => {
+    const store = createEvidenceStore({
+      env: { LOCALAPPDATA: temporaryRoot },
+      taskId: "safe-task",
+      runId: "run",
+    });
+    expect(() => store.writeJson("../result.json", {})).toThrow("EVIDENCE_FILE_REJECTED");
+    expect(() => store.writeJson("result.txt", {})).toThrow("EVIDENCE_FILE_REJECTED");
+  });
 });
