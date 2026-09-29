@@ -2,7 +2,7 @@
 
 **Ngày:** 2026-09-29
 
-**Trạng thái:** draft — kiến trúc trong chat đã được duyệt bằng `oke`; chờ người dùng review bản spec này
+**Trạng thái:** approved — người dùng duyệt bản spec bằng tin nhắn `duyệt`
 
 **Workspace chính:** `C:\Users\kona\Desktop\Project\Vshop`
 
@@ -124,7 +124,10 @@ hai lớp bổ sung, không thay thế isolation.
 | `.opencode/agents/codex-worker.md` | Prompt và permission baseline của implementation worker | Không tự lập lại scope; không commit/push/release |
 | `scripts/run-opencode-worker.cjs` | Validate input, gọi CLI, timeout, capture evidence, stable-write và scope audit | Không tạo/merge/delete worktree; không auto-revert |
 | `scripts/lib/opencode-worker-policy.cjs` | Pure validation cho task packet, path, command và result classification | Không spawn process hoặc ghi Git state |
-| `__tests__/opencode-worker-policy.test.ts` | Unit/contract tests cho policy và hostile inputs | Không gọi model/provider thật |
+| `scripts/lib/opencode-worker-runtime.cjs` | Git/worktree inspection, child-process lifecycle, stable-write fingerprint và evidence store | Mọi side effect phải inject được trong test |
+| `__tests__/opencode-worker-policy.test.js` | Unit/contract tests cho policy và hostile inputs | Không gọi model/provider thật |
+| `__tests__/opencode-worker-runtime.test.js` | Unit tests cho Git/process/stable-write/evidence lifecycle | Dùng dependency injection, không gọi model thật |
+| `__tests__/opencode-worker-runner.test.js` | Orchestration tests cho preflight, worker result và scope failure | Dùng fake CLI/runtime |
 | `package.json` | Script nội bộ để gọi runner bằng pnpm | Không thêm OpenCode vào dependency của app |
 | `%LOCALAPPDATA%\CodexOpenCode\Vshop\runs\<run-id>` | Sanitized transcript, metadata, pre/post status, review evidence | Nằm ngoài Git; không chứa API key/auth file |
 
@@ -181,7 +184,12 @@ Runner nhận một JSON file do Codex tạo ở thư mục tạm ngoài reposit
   "allowedPaths": ["services/example/**", "__tests__/example.test.ts"],
   "protectedPaths": [],
   "acceptanceCriteria": ["Observable criterion"],
-  "targetedCommands": ["pnpm exec jest __tests__/example.test.ts --runInBand"],
+  "targetedCommands": [
+    {
+      "executable": "pnpm",
+      "args": ["exec", "jest", "__tests__/example.test.ts", "--runInBand"]
+    }
+  ],
   "timeoutMinutes": 45,
   "maxRepairRounds": 2
 }
@@ -195,7 +203,8 @@ Validation fail-closed:
 - `allowedPaths`, `protectedPaths` và `planPath` phải là relative path chuẩn hóa;
   cấm absolute path, `..`, drive prefix, UNC và path thoát root.
 - Allowed và protected path không được overlap.
-- `targetedCommands` chỉ nhận command khớp command policy; không nhận shell
+- `targetedCommands` chỉ nhận object `{ executable, args }`; executable và từng
+  argument phải khớp command policy. Không nhận raw shell string, shell
   separator, redirection, encoded PowerShell hoặc executable tùy ý.
 - Timeout mặc định 45 phút, hard cap 120 phút.
 - Repair round hard cap 2; vượt cap phải trả quyền xử lý về Codex.
@@ -292,11 +301,15 @@ PERMISSION_DENIED
 TIMEOUT
 WRITE_WINDOW_UNSTABLE
 SCOPE_VIOLATION
+NO_CHANGES
 WORKER_FAILED
 ```
 
 `PASS_TO_REVIEW` chỉ có nghĩa patch sẵn sàng cho Codex review, không có nghĩa
 implementation đúng hoặc task hoàn tất.
+
+`NO_CHANGES` được dùng khi worker exit thành công nhưng không tạo diff/untracked
+artifact trong allowlist; trạng thái này không được nâng thành `PASS_TO_REVIEW`.
 
 ## 11. Codex review và repair loop
 
