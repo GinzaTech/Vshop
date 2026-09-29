@@ -88,6 +88,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Validation
 
+- The white Bundle detail card passes 32 targeted tests and the full gate at
+  119 suites / 1,397 tests, production audit policy and Android export budgets
+  of 10.22/12 MiB total, 7.74/8 MiB Hermes and 1.25/1.50 MiB largest asset. On
+  device `45218ba`, the Champions card matches the approved white adaptation of
+  the reference hierarchy; horizontal item swipe, vertical bundle scrolling
+  and ARTEMIS accessibility parity pass with zero negative/off-screen bounds.
 - The guarded OpenCode worker passes 108 focused tests with 95.02% statements,
   84.57% branches, 92.04% functions and 96.06% lines. A live
   `zai-coding-plan/glm-5.3` run in a disposable worktree changed exactly one

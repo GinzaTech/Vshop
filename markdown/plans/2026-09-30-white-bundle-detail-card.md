@@ -10,7 +10,7 @@
 
 **Spec:** User-approved bounded design derived from `C:\Users\kona\Downloads\champions-2026-ui-spec.md` and `IMG_3552.png`. The direct user requirement overrides the reference document: screen/card/item backgrounds stay white or light gray; no black UI background is allowed.
 
-**Trạng thái:** active — source/build PASS; device visual/interaction evidence trên `45218ba` đang chờ merge vào main.
+**Trạng thái:** done — source/build/device PASS ngày 2026-09-30; layout khớp ảnh tham chiếu theo biến thể nền trắng đã duyệt.
 
 ## Global Constraints
 
@@ -190,7 +190,7 @@ Use `useWindowDimensions()` only to derive a stable card width clamped to the co
 
   Observed (2026-09-30): targeted jest 4-file PASS sau review fix (32/32); `pnpm run check` PASS — typecheck, zero-warning lint, 119/119 suites, 1.397/1.397 tests, production audit và Android export/budget 10,22/12 MiB total, 7,74/8 MiB Hermes, 1,25/1,50 MiB largest asset; `git diff --check` sạch. Review fix giữ canvas `COLORS.SURFACE`, dùng `useAppWindowDimensions`, ổn định expiry qua parent re-render, localized ended label, radius lớn và nested carousel; storefront parser còn 349 dòng, không tăng architecture budget.
 
-- [ ] **Step 5: Verify on device `45218ba`**
+- [x] **Step 5: Verify on device `45218ba`**
 
 With Metro already running, reload the dev client, open Bundles, capture after screenshot, and verify:
 
@@ -205,6 +205,15 @@ With Metro already running, reload the dev client, open Bundles, capture after s
 
 Record source/build/device outcomes separately and mark any unobserved interaction `NOT VERIFIED`.
 
+Observed (2026-09-30):
+
+- Main foreground: `com.android.vshop/.MainActivity` trên `45218ba`, Metro dev client port `8081` qua ADB reverse.
+- Initial visual: `C:\Users\kona\AppData\Local\Temp\vshop-bundle-after-20260930.png` — canvas/pill/content/item đều trắng hoặc xám sáng; hero giữ artwork gốc; title/old-current price/meta/estimate/carousel đúng hierarchy ảnh tham chiếu.
+- Horizontal swipe: `C:\Users\kona\AppData\Local\Temp\vshop-bundle-horizontal-after-20260930.png` — carousel đổi từ melee/weapon sang player-card items, card kế tiếp vẫn lộ một phần và toàn page không overflow ngang.
+- Vertical swipe: `C:\Users\kona\AppData\Local\Temp\vshop-bundle-vertical-after-20260930.png` — trang cuộn sang bundle `Ra Mắt Warden` trong khi carousel giữ trạng thái.
+- ARTEMIS helper parity: `ok=true`, 0 negative/offscreen bounds; UIAutomator package `com.android.vshop`; item summaries xuất hiện một node/item, ví dụ `Phantom Champions 2026, 1.766 VP`, `Thẻ Champions 2026: Rồng, 263 VP`.
+- So sánh ảnh: khớp toàn bộ cấu trúc mục tiêu theo override nền trắng; owned check không render vì API không cung cấp ownership và design đã cấm giả dữ liệu.
+
 ## Completion Audit
 
 - [x] Direct white-background instruction overrides every dark-background statement in the external reference. (Bundles route + card dùng `COLORS.BACKGROUND`/`COLORS.SURFACE`/`COLORS.SURFACE_MUTED`; boundary test chặn `VALORANT_DARK_BLUE`/`PURE_BLACK`/`rgba(`.)
@@ -212,5 +221,5 @@ Record source/build/device outcomes separately and mark any unobserved interacti
 - [x] Bundle/item/card backgrounds contain no black/dark UI color. (`bundle-card.test.tsx` assert card = `COLORS.SURFACE`; item card = `COLORS.BACKGROUND`; hero frame = `COLORS.SURFACE_MUTED`.)
 - [x] Carousel is horizontal, non-wrapping and contained within the card. (test: `horizontal === true`, không có `numColumns`, card `overflow: "hidden"`, `getItemLayout` cố định.)
 - [x] Targeted tests and `pnpm run check` PASS. (Targeted 32/32; full 119/119 suites và 1.397/1.397 tests; audit/export budget PASS.)
-- [ ] Device screenshot and horizontal/vertical interaction evidence captured on `45218ba`. `NOT VERIFIED` — không chạy device/Metro trong phiên này.
+- [x] Device screenshot, horizontal/vertical interaction và accessibility hierarchy evidence captured on `45218ba`.
 - [x] Existing unrelated dirty files remain untouched and unstaged. (Worktree khởi đầu sạch; `components/ui/AppRefreshControl.web.tsx` và `components/ui/AppViewport.tsx` không đổi theo `git status`.)
