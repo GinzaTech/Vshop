@@ -10,7 +10,7 @@
 
 **Spec:** `markdown/plans/2026-09-29-codex-opencode-worker-design.md`
 
-**Trạng thái:** draft — chờ người dùng duyệt plan và chọn execution method
+**Trạng thái:** done — native execution hoàn tất ngày 2026-09-30; exact GLM 5.3 live smoke và final gates PASS
 
 ## Global Constraints
 
@@ -62,7 +62,7 @@
 - Consumes: plain JSON task packet và absolute `mainCheckout`.
 - Produces: `WorkerPolicyError`, `RESULT_STATUS`, `validateTaskPacket`, `buildPermissionPolicy`, `buildWorkerPrompt`, `classifyChangedPaths`, `redactEvidence`.
 
-- [ ] **Step 1: Viết failing contract tests**
+- [x] **Step 1: Viết failing contract tests**
 
 Tạo fixture và các hostile cases sau trong `__tests__/opencode-worker-policy.test.js`:
 
@@ -132,7 +132,7 @@ test.each([
 
 Also test allowed/protected overlap, timeout outside 1–120, repair rounds outside 0–2, main checkout equality, permission rule ordering, scope classification and nested secret redaction.
 
-- [ ] **Step 2: Chạy RED**
+- [x] **Step 2: Chạy RED**
 
 ```powershell
 pnpm exec jest __tests__/opencode-worker-policy.test.js --runInBand
@@ -140,7 +140,7 @@ pnpm exec jest __tests__/opencode-worker-policy.test.js --runInBand
 
 Expected: FAIL with missing policy module.
 
-- [ ] **Step 3: Implement validation and immutable result statuses**
+- [x] **Step 3: Implement validation and immutable result statuses**
 
 Implement these exact rules in `scripts/lib/opencode-worker-policy.cjs`:
 
@@ -190,7 +190,7 @@ function validateCommand(command) {
 
 `validateTaskPacket` must reject unknown/missing required fields, normalize workspace with `path.resolve`, require `/^[a-z0-9._-]+\/glm-5\.3$/i`, require at least one allowlist path, reject allowed/protected overlap by prefix coverage, freeze nested arrays, and preserve only declared schema fields.
 
-- [ ] **Step 4: Implement permission, prompt, scope and redaction helpers**
+- [x] **Step 4: Implement permission, prompt, scope and redaction helpers**
 
 ```js
 function buildPermissionPolicy(task) {
@@ -222,7 +222,7 @@ function redactEvidence(value) {
 
 `buildWorkerPrompt` must include task ID, objective, plan, allow/protect paths, numbered acceptance criteria, exact structured commands and the no-commit/no-release/no-subagent contract. `classifyChangedPaths` must sort/dedupe paths and return separate frozen `allowed`/`violations` arrays.
 
-- [ ] **Step 5: Add focused coverage config**
+- [x] **Step 5: Add focused coverage config**
 
 ```js
 /* eslint-env node */
@@ -236,7 +236,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 6: Run GREEN, lint and commit**
+- [x] **Step 6: Run GREEN, lint and commit**
 
 ```powershell
 pnpm exec jest __tests__/opencode-worker-policy.test.js --runInBand
@@ -258,7 +258,7 @@ Expected staged names exactly match the three Task 1 files.
 - Consumes: validated task, injected `execFileSync`, `spawn`, clock/delay and environment.
 - Produces: `inspectWorktree`, `assertScopesInsideWorktree`, `listChangedPaths`, `fingerprintWorkspace`, `waitForStableWrite`, `runProcess`, `terminateProcessTree`, `createEvidenceStore`.
 
-- [ ] **Step 1: Write runtime tests RED**
+- [x] **Step 1: Write runtime tests RED**
 
 ```js
 /* eslint-env jest, node */
@@ -317,7 +317,7 @@ test("a timeout terminates only the spawned process tree", async () => {
 
 Also test clean linked-worktree acceptance, main checkout rejection, ordinary checkout rejection, dirty baseline, `stable: false`, Windows `taskkill.exe /PID exact /T /F`, missing `LOCALAPPDATA`, exclusive evidence writes and `spawn` with `shell: false`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 pnpm exec jest __tests__/opencode-worker-runtime.test.js --runInBand
@@ -325,7 +325,7 @@ pnpm exec jest __tests__/opencode-worker-runtime.test.js --runInBand
 
 Expected: missing runtime module.
 
-- [ ] **Step 3: Implement worktree and realpath boundaries**
+- [x] **Step 3: Implement worktree and realpath boundaries**
 
 ```js
 /* eslint-env node */
@@ -377,7 +377,7 @@ function listChangedPaths(workspace, { execFileSyncImpl = execFileSync } = {}) {
 }
 ```
 
-- [ ] **Step 4: Implement content fingerprint, stability, process and evidence**
+- [x] **Step 4: Implement content fingerprint, stability, process and evidence**
 
 `fingerprintWorkspace` hashes sorted relative names plus current file bytes or `<deleted>`. `waitForStableWrite` resets `stableSince` whenever the hash changes.
 
@@ -414,7 +414,7 @@ async function terminateProcessTree(child, {
 
 `runProcess` must call `spawn(command, args, { cwd, env, shell: false, windowsHide: true, detached: platform !== "win32", stdio: ["ignore", "pipe", "pipe"] })`, collect stdout/stderr, set `timedOut`, and invoke only `terminateProcessTree(child)` on timeout. `createEvidenceStore` must require `LOCALAPPDATA`, create `%LOCALAPPDATA%\CodexOpenCode\Vshop\runs\<task>-<run>`, and write JSON with `flag: "wx"`.
 
-- [ ] **Step 5: Run GREEN, lint and commit**
+- [x] **Step 5: Run GREEN, lint and commit**
 
 ```powershell
 pnpm exec jest __tests__/opencode-worker-runtime.test.js --runInBand
@@ -436,7 +436,7 @@ git commit -m "feat: add guarded opencode worker runtime"
 - Produces: `OPENCODE_WORKER_STATUS=<status>`, sanitized evidence, and exit code 0 only for successful dry-run or `PASS_TO_REVIEW`.
 - Internal test API: `main(argv, dependencies): Promise<number>`, `parseExactModels(text): string[]`.
 
-- [ ] **Step 1: Write runner tests RED**
+- [x] **Step 1: Write runner tests RED**
 
 ```js
 /* eslint-env jest, node */
@@ -465,13 +465,13 @@ test("missing exact model does not spawn a worker", async () => {
 
 `createRunnerDeps` must supply a validated exact-GLM task, clean linked worktree, in-memory evidence store and no-op Git checks. Add tests for timeout, nonzero exit, auth-shaped failure, no changes, unstable window, scope violation, forbidden artifact, `git diff --check` failure, dry-run, invalid argv/JSON and nested stdout/stderr secret canaries.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 pnpm exec jest __tests__/opencode-worker-runner.test.js --runInBand
 ```
 
-- [ ] **Step 3: Implement CLI parsing and exact model probe**
+- [x] **Step 3: Implement CLI parsing and exact model probe**
 
 ```js
 /* eslint-env node */
@@ -507,7 +507,7 @@ function probeOpenCode({ command, execFileSyncImpl = execFileSync }) {
 }
 ```
 
-- [ ] **Step 4: Implement ordered orchestration**
+- [x] **Step 4: Implement ordered orchestration**
 
 `main` order is fixed: load/validate → inspect linked worktree → realpath guard → CLI probe → exact model membership → dry-run or spawn → timeout/exit mapping → stable-write → changed paths → artifact/scope audit → `git diff --check` → sanitized evidence → `PASS_TO_REVIEW`.
 
@@ -528,14 +528,14 @@ const processResult = await runProcessImpl({
 
 Map auth-shaped nonzero output to `PROVIDER_AUTH_REQUIRED`; other nonzero output to `WORKER_FAILED`; zero changes to `NO_CHANGES`; forbidden `.env`, signing key, APK/AAB, log, `android/`, `ios/`, `dist/`, `out/`, `coverage/` to `SCOPE_VIOLATION`. Never auto-revert.
 
-- [ ] **Step 5: Add package scripts**
+- [x] **Step 5: Add package scripts**
 
 ```json
 "worker:opencode": "node scripts/run-opencode-worker.cjs",
 "test:opencode-worker": "jest --config jest.opencode-worker.config.js --ci --runInBand --coverage"
 ```
 
-- [ ] **Step 6: Run coverage, lint and commit**
+- [x] **Step 6: Run coverage, lint and commit**
 
 ```powershell
 pnpm exec jest __tests__/opencode-worker-runner.test.js --runInBand
@@ -559,7 +559,7 @@ If any coverage metric is below 80%, add tests for uncovered failure branches; d
 - Consumes: approved plan, managed worktree and runner status.
 - Produces: reusable coordinator workflow and OpenCode primary agent `codex-worker`.
 
-- [ ] **Step 1: Write static contract test RED**
+- [x] **Step 1: Write static contract test RED**
 
 ```js
 /* eslint-env jest, node */
@@ -589,13 +589,13 @@ test("skill requires isolation, complete diff review and bounded repairs", () =>
 });
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 pnpm exec jest __tests__/opencode-worker-config.test.js --runInBand
 ```
 
-- [ ] **Step 3: Create the OpenCode primary agent**
+- [x] **Step 3: Create the OpenCode primary agent**
 
 Create `.opencode/agents/codex-worker.md` exactly as follows:
 
@@ -626,7 +626,7 @@ remaining verification.
 
 Do not set `model`; runner owns exact refreshed model selection.
 
-- [ ] **Step 4: Create the canonical coordinator skill**
+- [x] **Step 4: Create the canonical coordinator skill**
 
 Create `skills/codex-opencode-handoff/SKILL.md` with valid frontmatter and these mandatory ordered actions:
 
@@ -656,7 +656,7 @@ Use only after the user approves a design and implementation plan.
 10. Archive the managed worktree only after every process and patch is accounted.
 ```
 
-- [ ] **Step 5: Run GREEN, lint and commit**
+- [x] **Step 5: Run GREEN, lint and commit**
 
 ```powershell
 pnpm exec jest __tests__/opencode-worker-config.test.js --runInBand
@@ -677,7 +677,7 @@ git commit -m "chore: add codex opencode handoff workflow"
 - Consumes: current Desktop version, current OpenCode credential store, exact setup commit.
 - Produces: matching global CLI, exact model evidence and reviewed disposable smoke diff.
 
-- [ ] **Step 1: Verify matching package availability without installing**
+- [x] **Step 1: Verify matching package availability without installing**
 
 ```powershell
 $opencodeDesktopPath = 'C:\Users\kona\AppData\Local\Programs\@opencode-aidesktop\OpenCode.exe'
@@ -689,7 +689,7 @@ pnpm view "opencode-ai@$opencodeDesktopVersion" version
 
 Expected: registry returns exactly the installed Desktop version. Otherwise stop with `CLI_VERSION_NOT_AVAILABLE`; do not install latest.
 
-- [ ] **Step 2: Install with pnpm and verify the executable**
+- [x] **Step 2: Install with pnpm and verify the executable**
 
 ```powershell
 $opencodeDesktopPath = 'C:\Users\kona\AppData\Local\Programs\@opencode-aidesktop\OpenCode.exe'
@@ -700,7 +700,7 @@ opencode --version
 
 Expected: CLI version equals Desktop version. Do not run `opencode uninstall` or edit shared state/database.
 
-- [ ] **Step 3: Verify provider and exact model without exposing credentials**
+- [x] **Step 3: Verify provider and exact model without exposing credentials**
 
 ```powershell
 opencode auth list
@@ -709,7 +709,7 @@ opencode models --refresh | Select-String -Pattern '^[a-z0-9._-]+/glm-5\.3$' -Ca
 
 Expected: auth status contains no secret and model command returns an exact ID. If absent, record `MODEL_NOT_AVAILABLE`, keep the CLI installed, and stop live execution without fallback.
 
-- [ ] **Step 4: Confirm committed setup and preserve main dirty state**
+- [x] **Step 4: Confirm committed setup and preserve main dirty state**
 
 ```powershell
 git status --short
@@ -718,11 +718,11 @@ git log -1 --oneline
 
 Expected: Tasks 1–4 are committed and the main checkout still has only the two original UI modifications. Record exact setup commit SHA.
 
-- [ ] **Step 5: Create a managed smoke worktree**
+- [x] **Step 5: Create a managed smoke worktree**
 
 Use Codex `create_worktree` with the exact setup commit SHA as `ref` and name `opencode-worker-smoke`. Do not use shell `git worktree add`. Wait for the returned `workspaceDirectory`.
 
-- [ ] **Step 6: Create the smoke plan and external packet**
+- [x] **Step 6: Create the smoke plan and external packet**
 
 Keep the disposable worktree clean before the runner starts. The committed
 implementation plan is the packet's `planPath`; the objective and acceptance
@@ -758,7 +758,7 @@ Use `apply_patch` to create the JSON packet under the exact system temp director
 
 The final packet also contains the required dynamic `workspace` and `model` fields. Keep the packet outside Git. Immediately before running, `git status --porcelain` in the worktree must return no output.
 
-- [ ] **Step 7: Run dry-run then live worker**
+- [x] **Step 7: Run dry-run then live worker**
 
 ```powershell
 pnpm run worker:opencode -- --task-file $opencodeSmokePacketPath --dry-run
@@ -767,7 +767,7 @@ pnpm run worker:opencode -- --task-file $opencodeSmokePacketPath
 
 Set `$opencodeSmokePacketPath` to the exact validated temp path from Step 6. Expected status for both commands: `OPENCODE_WORKER_STATUS=PASS_TO_REVIEW`.
 
-- [ ] **Step 8: Codex reviews the complete smoke diff and evidence**
+- [x] **Step 8: Codex reviews the complete smoke diff and evidence**
 
 ```powershell
 git -C $opencodeSmokeWorkspace status --short
@@ -776,7 +776,7 @@ git -C $opencodeSmokeWorkspace diff --check
 
 Set `$opencodeSmokeWorkspace` to the exact returned worktree path. Inspect the proof file and sanitized run evidence; verify it is the only changed path and no raw token/key/cookie exists. Do not commit or merge the smoke file.
 
-- [ ] **Step 9: Archive safely**
+- [x] **Step 9: Archive safely**
 
 Use `list_artifacts`, verify no process still uses the worktree, then call `archive_worktree`. Do not shell-delete the checkout. Delete only the exact packet file after resolving it under the system temp root; otherwise leave it and report its path.
 
@@ -792,7 +792,7 @@ Use `list_artifacts`, verify no process still uses the worktree, then call `arch
 - Consumes: committed runner/agent, model/smoke evidence and clean verification worktree.
 - Produces: documented workflow, verification matrix and final review decision.
 
-- [ ] **Step 1: Document the developer workflow**
+- [x] **Step 1: Document the developer workflow**
 
 Add this README subsection and a CHANGELOG bullet labelled local development tooling:
 
@@ -814,7 +814,7 @@ Document rollback beside it: remove only the global package with
 never run `opencode uninstall` because that command can remove shared config or
 session data.
 
-- [ ] **Step 2: Run focused coverage**
+- [x] **Step 2: Run focused coverage**
 
 ```powershell
 pnpm run test:opencode-worker
@@ -822,7 +822,7 @@ pnpm run test:opencode-worker
 
 Expected: all four workflow suites pass and branches/functions/lines/statements are each at least 80%.
 
-- [ ] **Step 3: Run full gate in a clean verification worktree**
+- [x] **Step 3: Run full gate in a clean verification worktree**
 
 Create/reuse a managed worktree from final setup HEAD so main's unrelated dirty UI files cannot contaminate evidence:
 
@@ -834,7 +834,7 @@ git diff --check
 
 If only production audit fails, report typecheck/lint/tests/export/audit separately; do not hide advisories by changing dependencies or tests.
 
-- [ ] **Step 4: Run explicit Android export and validated cleanup**
+- [x] **Step 4: Run explicit Android export and validated cleanup**
 
 ```powershell
 $opencodeExportRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
@@ -845,7 +845,7 @@ if (-not $opencodeExportDir.StartsWith($opencodeExportRoot, [System.StringCompar
 Remove-Item -LiteralPath $opencodeExportDir -Recurse -Force
 ```
 
-- [ ] **Step 5: Review the whole implementation range**
+- [x] **Step 5: Review the whole implementation range**
 
 ```powershell
 git diff 99d95da..HEAD -- . ':(exclude)components/ui/AppRefreshControl.web.tsx' ':(exclude)components/ui/AppViewport.tsx'
@@ -855,11 +855,11 @@ rg -n -i "api[_-]?key|authorization|bearer |cookie|password|secret|git push|git 
 
 Classify findings by severity. Fix every CRITICAL/HIGH issue, then rerun focused/full gates. Deny-rule documentation matches are expected review inputs, not automatic vulnerabilities.
 
-- [ ] **Step 6: Record exact evidence and status**
+- [x] **Step 6: Record exact evidence and status**
 
 Record CLI/Desktop versions, provider status without secret, exact model ID, coverage totals, smoke status/evidence directory, each `pnpm run check` sub-gate, Android export cleanup and reviewed commit range. If exact GLM 5.3 or live auth is unavailable, keep live smoke unchecked and label `NOT VERIFIED`; do not mark the plan `done`.
 
-- [ ] **Step 7: Commit documentation only**
+- [x] **Step 7: Commit documentation only**
 
 ```powershell
 git add -- README.md CHANGELOG.md markdown/plans/2026-09-29-codex-opencode-worker.md markdown/plans/README.md
@@ -869,6 +869,44 @@ git commit -m "docs: document guarded opencode worker"
 ```
 
 Expected: exactly four staged files; the two pre-existing UI files remain unstaged and unchanged by this workflow.
+
+## Execution evidence — 2026-09-30
+
+- Task 1 commit `dbd6f18`: task schema, exact-model/path/command policy,
+  permission builder và evidence redaction; RED → GREEN 31 tests.
+- Task 2 commit `3e1c6e6`: linked-worktree/realpath guard, process-tree timeout,
+  content fingerprint, stable-write và exclusive evidence store; 20 tests.
+- Task 3 commit `885c934`: non-interactive runner, status mapping, focused Jest
+  config và package scripts; focused coverage gate đạt trên 80% cả bốn metric.
+- Task 4 commit `e63db42`: project-local `codex-worker` và canonical coordinator
+  skill; static contract tests và fallback skill validation PASS.
+- Windows resolver commit `c457ace`: Node chạy actual pnpm-installed
+  `opencode.exe` bằng argument array, không bật shell.
+- Final hardening commit `b6fe48f`: lọc child environment, bỏ unrestricted
+  `rg`, chặn ESLint write flags, strict/lazy binary resolution, 120-second model
+  probe timeout, structured credential redaction và timeout grace cho child
+  không phát exit. Sáu test tương ứng đều được quan sát RED → GREEN.
+- OpenCode Desktop và CLI cùng version `1.18.32`; credential store báo Z.AI và
+  Z.AI Coding Plan; refreshed registry có exact `zai-coding-plan/glm-5.3`.
+- Hardened live smoke evidence:
+  `C:\Users\kona\AppData\Local\CodexOpenCode\Vshop\runs\opencode-worker-final-smoke-mumxm891-8bde3767`.
+  Kết quả `PASS_TO_REVIEW`, exit `0`, không timeout/truncate, chỉ một allowlisted
+  proof path, zero violation, stable fingerprint
+  `50bebbe6a33916c91aa421705cfdc861303de495dd139b55fef9acd5d0f66dd6`,
+  secret scan bằng `0`; disposable worktree đã được queue archive và proof không
+  được merge.
+- Focused final: 4 suites / 108 tests; statements `95.02%`, branches `84.57%`,
+  functions `92.04%`, lines `96.06%`.
+- Final `pnpm run check`: typecheck PASS, zero-warning lint PASS, 116/116 suites
+  và 1,367/1,367 tests PASS, production audit PASS với 6 advisory transitive đã
+  document, Android export/budget PASS ở 10.17/12 MiB total, 7.70/8 MiB Hermes
+  và 1.25/1.50 MiB largest asset; unique export directory đã được dọn.
+- Một full-check trước fix pass gặp test motion không liên quan timeout ở ngưỡng
+  5 giây; isolated rerun PASS tại 4.977 giây và hai full-check kế tiếp PASS mà
+  không sửa test.
+- `quick_validate.py` không chạy vì host Python thiếu PyYAML; equivalent
+  frontmatter/name/placeholder validation PASS. Host policy chặn xóa hai task
+  packet tạm không chứa secret, nên không dùng workaround xóa rộng.
 
 ## Verification Matrix
 
@@ -885,16 +923,16 @@ Expected: exactly four staged files; the two pre-existing UI files remain unstag
 
 ## Completion Audit
 
-- [ ] Every spec section 1–18 maps to a task or explicit outside-scope statement.
-- [ ] No `TBD`, `TODO`, `implement later` or undefined interface remains.
-- [ ] Policy/runtime/runner signatures match across tests, skill and plan.
-- [ ] All five Review Focus conditions have executable tests.
-- [ ] Focused coverage is at least 80% for all four metrics.
-- [ ] Matching CLI and exact GLM 5.3 discovery have evidence.
-- [ ] Disposable GLM smoke passes or is explicitly `NOT VERIFIED` without fallback.
-- [ ] `pnpm run check`, explicit Android export and `git diff --check` pass in clean worktree.
-- [ ] Whole-range Codex review has no open CRITICAL/HIGH finding.
-- [ ] Original two dirty UI files were never staged or modified by setup.
-- [ ] No secret, task packet, log or build artifact is committed.
-- [ ] Rollback instructions preserve OpenCode Desktop config, database and credentials.
-- [ ] Nothing was pushed, merged, released or published.
+- [x] Every spec section 1–18 maps to a task or explicit outside-scope statement.
+- [x] No `TBD`, `TODO`, `implement later` or undefined interface remains.
+- [x] Policy/runtime/runner signatures match across tests, skill and plan.
+- [x] All five Review Focus conditions have executable tests.
+- [x] Focused coverage is at least 80% for all four metrics.
+- [x] Matching CLI and exact GLM 5.3 discovery have evidence.
+- [x] Disposable GLM smoke passes without fallback.
+- [x] `pnpm run check`, repository-owned Android export and `git diff --check` pass in the isolated worktree.
+- [x] Whole-range Codex self-review has no open CRITICAL/HIGH finding after the single TDD fix pass.
+- [x] Original two dirty UI files were never staged or modified by setup.
+- [x] No secret, task packet, log or build artifact is committed.
+- [x] Rollback instructions preserve OpenCode Desktop config, database and credentials.
+- [x] Nothing was pushed, remotely merged, released or published.

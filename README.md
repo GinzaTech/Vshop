@@ -466,6 +466,24 @@ removed, and legacy API log files are cleared. Do not enable diagnostics for
 normal use or share unreviewed logs. Source/component tests do not prove
 real-device UI behavior; see [the current audit](LOGIC_AUDIT.md).
 
+### Guarded OpenCode worker
+
+Codex may delegate an approved implementation plan to the project-local
+`codex-worker` only inside a clean managed worktree. Create the task packet
+outside the repository, then run:
+
+```powershell
+pnpm run worker:opencode -- --task-file <absolute-json-path>
+```
+
+The runner requires an exact refreshed GLM 5.3 model, finite edit paths,
+structured pnpm test commands and a stable post-exit write window. It never
+commits, pushes or releases, and `PASS_TO_REVIEW` still requires Codex to read
+the complete diff and rerun every applicable project gate. To roll back the
+machine CLI, use `pnpm remove --global opencode-ai`; never use
+`opencode uninstall`, because that can remove shared OpenCode configuration or
+session data.
+
 ### Demo Mode (Match UI)
 
 Match History and Match Details can be previewed with mock data in dev builds:
@@ -931,6 +949,23 @@ lại Metro. Giá trị storage/credential bị loại hoặc che, định danh 
 bị xoá và log API cũ được dọn. Không bật thường xuyên hoặc chia sẻ log chưa
 kiểm tra. Test source/component không thay thế kiểm thử UI trên thiết bị;
 kết quả hiện tại nằm trong [LOGIC_AUDIT.md](LOGIC_AUDIT.md).
+
+### OpenCode worker có guardrail
+
+Codex chỉ được giao một implementation plan đã duyệt cho `codex-worker` cục bộ
+khi worker chạy trong managed worktree sạch. Task packet phải nằm ngoài
+repository, sau đó chạy:
+
+```powershell
+pnpm run worker:opencode -- --task-file <duong-dan-json-tuyet-doi>
+```
+
+Runner yêu cầu exact GLM 5.3 đã refresh, danh sách path hữu hạn, lệnh test pnpm
+có cấu trúc và write window ổn định sau khi process thoát. Worker không commit,
+push hoặc release; `PASS_TO_REVIEW` vẫn bắt buộc Codex đọc toàn bộ diff và chạy
+lại mọi project gate phù hợp. Khi rollback CLI trên máy, dùng
+`pnpm remove --global opencode-ai`; không dùng `opencode uninstall` vì lệnh đó
+có thể xóa config hoặc session OpenCode dùng chung.
 
 ### Chế độ Demo (UI Lịch sử đấu)
 

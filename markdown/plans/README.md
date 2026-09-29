@@ -18,8 +18,9 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 ## Plan hiện tại
 
 - [`2026-09-29-codex-opencode-worker.md`](2026-09-29-codex-opencode-worker.md) —
-  draft implementation plan cho policy/runtime/runner TDD, custom worker/skill,
-  matching CLI install, exact GLM 5.3 smoke trong worktree và final Codex review.
+  done: policy/runtime/runner TDD, custom worker/skill, matching CLI `1.18.32`,
+  exact `zai-coding-plan/glm-5.3` live smoke, final hardening review và full
+  source/Android gates đều PASS.
 - [`2026-09-29-codex-opencode-worker-design.md`](2026-09-29-codex-opencode-worker-design.md) —
   approved: Codex lập plan/review, OpenCode CLI chạy exact GLM 5.3 trong
   worktree riêng với path/command guards, stable-write audit và tối đa hai

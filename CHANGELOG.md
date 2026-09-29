@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Add a local, guarded Codex-to-OpenCode implementation workflow. A
+  project-local `codex-worker` receives approved task packets only in clean
+  managed worktrees; the Node runner enforces exact GLM 5.3 selection,
+  path/command permissions, stable-write and scope audits, sanitized evidence,
+  and a final Codex review boundary. The workflow is developer tooling only and
+  is not included in the VShop runtime or release bundle.
 - Add a DEV-only desktop pentest companion for Expo Web. Riot login opens in an
   isolated Edge/Chrome context, callback completion reuses the existing
   state/nonce/session guards, and authenticated Riot HTTP reads use a
@@ -73,6 +79,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Validation
 
+- The guarded OpenCode worker passes 108 focused tests with 95.02% statements,
+  84.57% branches, 92.04% functions and 96.06% lines. A live
+  `zai-coding-plan/glm-5.3` run in a disposable worktree changed exactly one
+  allowlisted proof file, reached a stable post-exit fingerprint, produced no
+  scope violation or secret-scan finding, and was archived without merging the
+  proof. The final repository gate passes strict TypeScript, zero-warning
+  ESLint, 116 suites / 1,367 tests, production audit policy and Android export
+  budgets at 10.17/12 MiB total, 7.70/8 MiB Hermes and 1.25/1.50 MiB largest
+  asset.
 - Desktop companion source gates pass strict TypeScript, zero-warning ESLint,
   102 Jest suites / 1,181 tests and the production audit policy. The fake
   vertical integration verifies one-time callback consumption, an authenticated
