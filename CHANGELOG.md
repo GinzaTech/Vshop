@@ -8,6 +8,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Reshape the Bundles screen into a white, reference-aligned bundle detail
+  card. Each bundle renders its hero artwork, title, real Riot base and
+  discounted VP totals (the struck old price only appears when the base price
+  is higher), a full countdown with item count, estimate copy and a
+  horizontal, non-wrapping item preview that peeks at the next card. The dark
+  blur/modal bundle-detail flow is removed because all items are now inline,
+  the page canvas and balance pill use light design tokens, and the storefront
+  parser retains both original and discounted bundle/item prices without
+  inventing ownership. UI-only change; no version or native release bump.
 - Add a local, guarded Codex-to-OpenCode implementation workflow. A
   project-local `codex-worker` receives approved task packets only in clean
   managed worktrees; the Node runner enforces exact GLM 5.3 selection,

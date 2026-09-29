@@ -189,7 +189,10 @@
     "hero_eyebrow": "Collection drop",
     "view_items": "Xem skin trong bộ",
     "toggle_show": "Hiện skin trong bộ",
-    "toggle_hide": "Ẩn skin trong bộ"
+    "toggle_hide": "Ẩn skin trong bộ",
+    "ends_in": "Kết thúc sau",
+    "estimate": "Ước tính — Riot tính toàn bộ giá bundle.",
+    "ended": "Đã kết thúc"
   },
   "night_market_page": {
     "title": "Chợ Đêm",

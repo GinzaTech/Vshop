@@ -1,279 +1,314 @@
-// 📦 BundleImage.tsx – Component hiển thị một bundle (gói skin) trong cửa hàng
-// Gồm ảnh hero, badge "BUNDLE", đếm ngược, tên, số lượng item, giá VP,
-// và nút xem chi tiết
+// 📦 BundleImage.tsx – Bundle detail card nền trắng theo layout tham chiếu Champions:
+// hero artwork → title + giá thật (base bị gạch khi giảm) → timer + số item →
+// estimate copy → carousel item compact cuộn ngang. Không còn onPress/modal;
+// toàn bộ item hiển thị inline nên card tự chứa toàn bộ thông tin bundle.
 
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { CachedImage as Image } from "~/components/CachedImage";
-import AppIcon from "~/components/ui/AppIcon";
 import { useTranslation } from "react-i18next";
 
-import CurrencyIcon from "./CurrencyIcon";
 import Countdown from "./Countdown";
+import BundleItem from "./BundleItem";
+import CurrencyIcon from "./CurrencyIcon";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
+import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
+import {
+  formatVp,
+  getBundleItemWidth,
+  hasBundleDiscount,
+} from "~/utils/bundle-display";
 
 interface BundleImageProps {
   bundle: BundleShopItem;
   remainingSecs: number;
-  onPress: () => void;
+}
+
+/** Khoảng cách ngang giữa các item cell trong carousel (dp). */
+const CAROUSEL_GAP = 10;
+
+/** Separator cố định giữa các cell — tham chiếu module-level để FlatList không tạo lại. */
+function CarouselSeparator() {
+  return <View style={{ width: CAROUSEL_GAP }} />;
 }
 
 /**
- * BundleImage – Component card hiển thị thông tin một bundle
- * @param bundle – Đối tượng BundleShopItem (displayName, displayIcon, items, price, ...)
- * @param remainingSecs – Số giây còn lại trước khi bundle hết hạn
- * @param onPress – Callback khi bấm vào bundle
+ * BundleImage – Card chi tiết bundle inline (nền trắng/sáng).
+ * @param bundle – Đối tượng BundleShopItem (displayName, displayIcon, items, price, originalPrice…).
+ * @param remainingSecs – Số giây còn lại trước khi bundle hết hạn.
  */
-export default function BundleImage({
-  bundle,
-  remainingSecs,
-  onPress,
-}: BundleImageProps) {
+function BundleImage({ bundle, remainingSecs }: BundleImageProps) {
   const { t } = useTranslation();
-  // Timestamp hết hạn bundle
-  const timestamp = new Date().getTime() + remainingSecs * 1000;
-  const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
+  const { width: windowWidth } = useAppWindowDimensions();
+  const screenshotModeEnabled = useFeatureStore(
+    (state) => state.screenshotModeEnabled
+  );
+
+  // Giữ mốc hết hạn tuyệt đối ổn định khi parent re-render vì balance/store đổi.
+  const timestamp = React.useMemo(
+    () => Date.now() + remainingSecs * 1000,
+    [remainingSecs]
+  );
+  const discounted = hasBundleDiscount(bundle.originalPrice, bundle.price);
+
+  /** Chiều rộng item cell ổn định, clamp theo compact/tablet. */
+  const itemWidth = getBundleItemWidth(windowWidth);
+
   /**
-   * heroSource – Nguồn ảnh hero cho bundle
-   * Dùng displayIcon, displayIcon2 hoặc verticalPromoImage.
-   * Nếu screenshotModeEnabled thì dùng ảnh fallback (noimage)
+   * heroSource – Ảnh hero của bundle: displayIcon → displayIcon2 → verticalPromoImage.
+   * Chế độ screenshot hoặc thiếu ảnh → dùng asset fallback noimage.
    */
   const heroSource = React.useMemo(() => {
-    const uri = bundle.displayIcon || bundle.displayIcon2 || bundle.verticalPromoImage;
+    const uri =
+      bundle.displayIcon || bundle.displayIcon2 || bundle.verticalPromoImage;
 
     if (uri && !screenshotModeEnabled) {
       return { uri };
     }
 
     return require("~/assets/images/noimage.png");
-  }, [bundle.displayIcon, bundle.displayIcon2, bundle.verticalPromoImage, screenshotModeEnabled]);
+  }, [
+    bundle.displayIcon,
+    bundle.displayIcon2,
+    bundle.verticalPromoImage,
+    screenshotModeEnabled,
+  ]);
+
+  /** renderItem ổn định theo itemWidth — tránh re-mount cell khi countdown tick. */
+  const renderItem = React.useCallback(
+    ({ item }: { item: SkinShopItem | AccessoryShopItem }) => (
+      <BundleItem item={item} width={itemWidth} />
+    ),
+    [itemWidth]
+  );
+
+  const keyExtractor = React.useCallback(
+    (item: SkinShopItem | AccessoryShopItem) => item.uuid,
+    []
+  );
+
+  /** getItemLayout cho cell độ rộng cố định + gap để scroll ngang mượt. */
+  const getItemLayout = React.useCallback(
+    (_data: ArrayLike<SkinShopItem | AccessoryShopItem> | null | undefined, index: number) => ({
+      length: itemWidth + CAROUSEL_GAP,
+      offset: (itemWidth + CAROUSEL_GAP) * index,
+      index,
+    }),
+    [itemWidth]
+  );
 
   return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      accessibilityLabel={bundle.displayName}
-      activeOpacity={0.86}
-      onPress={onPress}
-      style={styles.touchable}
-    >
-      <View style={styles.card}>
-        {/* Khung ảnh hero */}
-        <View style={styles.imageFrame}>
-          {/* Badge "BUNDLE" phía trên bên trái */}
-          <View style={styles.topBadge}>
-            <AppIcon
-              name="bundle"
-              size={12}
-              color={COLORS.PURE_WHITE}
-              decorative
-            />
-            <Text style={styles.topBadgeText} numberOfLines={1}>
-              {t("bundles_page.hero_badge")}
-            </Text>
-          </View>
+    <View testID="bundle-card" style={styles.card}>
+      {/* Hero artwork: khung cố định, artwork upstream tự tối — nền khung vẫn sáng */}
+      <View
+        style={styles.imageFrame}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Image
+          cacheId={`bundle:${bundle.uuid}:hero`}
+          source={heroSource}
+          style={styles.heroImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          priority="high"
+          transition={140}
+          recyclingKey={bundle.uuid}
+        />
+      </View>
 
-          {/* Badge đếm ngược phía trên bên phải */}
-          <View style={styles.timerBadge}>
-            <Countdown
-              timestamp={timestamp}
-              color={COLORS.PURE_WHITE}
-              compact
-              showIcon={false}
-              textStyle={styles.timerText}
-            />
-          </View>
-
-          {/* Ảnh hero bundle */}
-          <Image
-            cacheId={`bundle:${bundle.uuid}:hero`}
-            source={heroSource}
-            style={styles.heroImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            priority="high"
-            transition={140}
-            recyclingKey={bundle.uuid}
-          />
-        </View>
-
-        {/* Nội dung phía dưới */}
-        <View style={styles.content}>
-          {/* Số lượng item trong bundle */}
-          <Text style={styles.eyebrow} numberOfLines={1}>
-            {t("bundles_page.items_count", { count: bundle.items.length })}
-          </Text>
-          {/* Tên bundle */}
+      <View style={styles.content}>
+        {/* Title + cột giá cố định bên phải */}
+        <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={2}>
             {bundle.displayName}
           </Text>
-
-          {/* Footer: giá + nút xem chi tiết */}
-          <View style={styles.footerRow}>
-            <View style={styles.priceBadge}>
-              <CurrencyIcon icon="vp" style={styles.currency} />
-              <Text style={styles.priceText}>{bundle.price}</Text>
-            </View>
-
-            <View style={styles.action}>
-              <AppIcon
-                name="imageGrid"
-                size={16}
-                color={COLORS.TEXT_PRIMARY}
-                decorative
-              />
-              <Text style={styles.actionText} numberOfLines={1}>
-                {t("bundles_page.view_items", {
-                  defaultValue: "Xem skin trong bộ",
-                })}
+          <View style={styles.priceBlock}>
+            {discounted && bundle.originalPrice !== undefined ? (
+              <Text style={styles.oldPrice} numberOfLines={1}>
+                {formatVp(bundle.originalPrice)}
               </Text>
-              <AppIcon
-                name="chevronRight"
-                size={18}
-                color={COLORS.TEXT_PRIMARY}
-                decorative
-              />
+            ) : null}
+            <View
+              style={styles.priceValue}
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={`${formatVp(bundle.price)} VP`}
+            >
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <CurrencyIcon icon="vp" style={styles.currencyIcon} />
+              </View>
+              <Text style={styles.priceText} numberOfLines={1}>
+                {formatVp(bundle.price)}
+              </Text>
             </View>
           </View>
         </View>
+
+        {/* Timer đầy đủ + số item */}
+        <View style={styles.metaRow}>
+          {remainingSecs > 0 ? (
+            <Text style={styles.metaText}>{t("bundles_page.ends_in")}</Text>
+          ) : null}
+          <Countdown
+            timestamp={timestamp}
+            format="bundle"
+            endedLabel={t("bundles_page.ended")}
+            color={COLORS.TEXT_SECONDARY}
+            showIcon
+            iconSize={13}
+            textStyle={styles.metaText}
+          />
+          <Text style={styles.metaDivider}>·</Text>
+          <Text style={styles.metaText}>
+            {t("bundles_page.items_count", { count: bundle.items.length })}
+          </Text>
+        </View>
+
+        {/* Estimate copy */}
+        <Text style={styles.estimate}>{t("bundles_page.estimate")}</Text>
       </View>
-    </TouchableOpacity>
+
+      {/* Carousel item ngang, không wrap, không nút mũi tên */}
+      <FlatList
+        testID="bundle-item-carousel"
+        accessible={false}
+        horizontal
+        data={bundle.items}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        getItemLayout={getItemLayout}
+        ItemSeparatorComponent={CarouselSeparator}
+        showsHorizontalScrollIndicator={false}
+        nestedScrollEnabled
+        contentContainerStyle={styles.carouselContent}
+        style={styles.carousel}
+      />
+    </View>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// StyleSheet – Định nghĩa styles cho BundleImage
+// StyleSheet – toàn bộ dùng token sáng (SURFACE/BACKGROUND/SURFACE_MUTED)
 // ═══════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
-  // touchable – TouchableOpacity wrapper có margin bottom
-  touchable: {
-    marginBottom: 20,
-  },
-  // card – Card chính của bundle
+  // card – card chính: nền trắng, viền mờ, bo góc lớn, overflow giữ carousel trong card
   card: {
     backgroundColor: COLORS.SURFACE,
     borderColor: COLORS.BORDER,
-    borderRadius: 8,
+    borderRadius: RADIUS.screen,
     borderWidth: 1,
+    marginBottom: SPACING.lg,
     overflow: "hidden",
   },
-  // imageFrame – Khung ảnh hero (tỉ lệ 1.65:1)
+  // imageFrame – khung hero (tỉ lệ 1.65:1), nền xám nhạt giữ chỗ khi thiếu ảnh
   imageFrame: {
     aspectRatio: 1.65,
-    backgroundColor: COLORS.WARNING_SURFACE,
+    backgroundColor: COLORS.SURFACE_MUTED,
     borderBottomColor: COLORS.BORDER,
     borderBottomWidth: 1,
-    overflow: "hidden",
-    position: "relative",
   },
-  // heroImage – Ảnh hero full khung
+  // heroImage – ảnh hero full khung
   heroImage: {
     width: "100%",
     height: "100%",
   },
-  // content – Vùng nội dung phía dưới ảnh
+  // content – vùng thông tin dưới hero
   content: {
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingHorizontal: SPACING.sm,
+    paddingTop: SPACING.sm,
   },
-  // topBadge – Badge "BUNDLE" góc trên bên trái
-  topBadge: {
+  // titleRow – tên bundle + cột giá
+  titleRow: {
     flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.PURE_BLACK,
-    borderRadius: 4,
-    left: 8,
-    maxWidth: "58%",
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    position: "absolute",
-    top: 8,
-    zIndex: 1,
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: SPACING.sm,
   },
-  // topBadgeText – Text trong badge
-  topBadgeText: {
-    marginLeft: 5,
-    color: COLORS.PURE_WHITE,
-    fontWeight: "900",
-    fontSize: 9,
-  },
-  // timerBadge – Badge đếm ngược góc trên bên phải
-  timerBadge: {
-    backgroundColor: COLORS.PURE_BLACK,
-    borderRadius: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    position: "absolute",
-    right: 8,
-    top: 8,
-    zIndex: 1,
-  },
-  // timerText – Text đếm ngược
-  timerText: {
-    color: COLORS.PURE_WHITE,
-    fontSize: 10,
-    fontWeight: "900",
-  },
-  // eyebrow – "X items" phía trên tên bundle
-  eyebrow: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 10,
-    fontWeight: "600",
-    marginBottom: 3,
-  },
-  // title – Tên bundle
+  // title – tên bundle, co lại khi dài để không đè cột giá
   title: {
     color: COLORS.TEXT_PRIMARY,
-    fontWeight: "800",
-    fontSize: 18,
-    lineHeight: 23,
-    marginBottom: 12,
-  },
-  // footerRow – Hàng footer (giá + nút xem)
-  footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  // priceBadge – Badge hiển thị giá VP
-  priceBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.WARNING_SURFACE,
-    borderColor: COLORS.WARNING_BORDER,
-    borderWidth: 1,
-    borderRadius: RADIUS.chip,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  // action – Nút "Xem skin trong bộ"
-  action: {
     flexShrink: 1,
+    fontSize: 17,
+    fontWeight: "800",
+    lineHeight: 22,
+  },
+  // priceBlock – cột giá bên phải: giá gốc bị gạch (nếu giảm) trên giá hiện tại
+  priceBlock: {
+    alignItems: "flex-end",
+  },
+  // oldPrice – giá base bị gạch ngang, chỉ render khi > giá hiện tại
+  oldPrice: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 11,
+    fontWeight: "600",
+    lineHeight: 14,
+    marginBottom: 2,
+    textDecorationLine: "line-through",
+  },
+  // priceValue – chip giá hiện tại
+  priceValue: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 4,
   },
-  // priceText – Giá VP
-  priceText: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 14,
-    fontWeight: "900",
-  },
-  // actionText – Text "Xem skin trong bộ"
-  actionText: {
-    flexShrink: 1,
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  // currency – Icon VP
-  currency: {
+  currencyIcon: {
     width: 13,
     height: 13,
     marginRight: 4,
     tintColor: COLORS.TEXT_PRIMARY,
   },
+  // priceText – giá VP hiện tại
+  priceText: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  // metaRow – timer + số item
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 8,
+  },
+  // metaText – chữ meta phụ
+  metaText: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  // metaDivider – dấu phân cách meta
+  metaDivider: {
+    color: COLORS.TEXT_TERTIARY,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  // estimate – dòng mô tả giá ước tính
+  estimate: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 6,
+  },
+  // carousel – danh sách item ngang full-bleed trong card
+  carousel: {
+    flexGrow: 0,
+  },
+  // carouselContent – padding ngang để card cuối không dính mép
+  carouselContent: {
+    paddingHorizontal: SPACING.sm,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.sm,
+  },
 });
+
+export default BundleImage;

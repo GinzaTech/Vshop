@@ -182,7 +182,10 @@
     "hero_eyebrow": "Collection drop",
     "view_items": "View included skins",
     "toggle_show": "Show included skins",
-    "toggle_hide": "Hide included skins"
+    "toggle_hide": "Hide included skins",
+    "ends_in": "Ends in",
+    "estimate": "Estimate — Riot charges the full bundle price.",
+    "ended": "Ended"
   },
   "night_market_page": {
     "title": "Night market",

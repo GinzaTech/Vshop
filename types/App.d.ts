@@ -4,9 +4,11 @@
  * SkinShopItem – Một skin trong cửa hàng (kế thừa ValorantSkin + giá tiền).
  * @extends ValorantSkin – Kế thừa toàn bộ thuộc tính của ValorantSkin (tên, icon, tier…).
  * @param price – Giá skin trong cửa hàng (VP).
+ * @param originalPrice – (tuỳ chọn) Giá base trước giảm từ Riot; chỉ có trong bundle offer.
  */
 interface SkinShopItem extends ValorantSkin {
   price: number;
+  originalPrice?: number;
 }
 
 /**
@@ -14,13 +16,15 @@ interface SkinShopItem extends ValorantSkin {
  * @param uuid          – UUID định danh duy nhất.
  * @param displayName   – Tên hiển thị của phụ kiện.
  * @param displayIcon   – (tuỳ chọn) Đường dẫn icon.
- * @param price         – Giá phụ kiện (VP).
+ * @param price         – Giá phụ kiện (VP trong bundle, KC trong accessory shop).
+ * @param originalPrice – (tuỳ chọn) Giá base trước giảm từ Riot; chỉ có trong bundle offer.
  */
 interface AccessoryShopItem {
   uuid: string;
   displayName: string;
   displayIcon?: string;
   price: number;
+  originalPrice?: number;
 }
 
 /**
@@ -46,11 +50,14 @@ interface NightMarketItem extends SkinShopItem {
 /**
  * BundleShopItem – Một bundle (gói) trong cửa hàng.
  * @extends ValorantBundle – Kế thừa ValorantBundle (tên, icon…).
- * @param price – Tổng giá của bundle.
+ * @param price – Tổng giá sau giảm của bundle (TotalDiscountedCost từ Riot).
+ * @param originalPrice – (tuỳ chọn) Tổng giá base trước giảm (TotalBaseCost);
+ *                        chỉ render khi lớn hơn price.
  * @param items – Mảng các item trong bundle, mỗi item có thể là SkinShopItem hoặc AccessoryShopItem.
  */
 interface BundleShopItem extends ValorantBundle {
   price: number;
+  originalPrice?: number;
   items: (SkinShopItem | AccessoryShopItem)[];
 }
 

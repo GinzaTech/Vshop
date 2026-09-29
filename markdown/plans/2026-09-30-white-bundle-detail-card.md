@@ -10,7 +10,7 @@
 
 **Spec:** User-approved bounded design derived from `C:\Users\kona\Downloads\champions-2026-ui-spec.md` and `IMG_3552.png`. The direct user requirement overrides the reference document: screen/card/item backgrounds stay white or light gray; no black UI background is allowed.
 
-**Trạng thái:** active — người dùng duyệt bằng tin nhắn `triển khai đi`
+**Trạng thái:** active — source/build PASS; device visual/interaction evidence trên `45218ba` đang chờ merge vào main.
 
 ## Global Constraints
 
@@ -50,7 +50,7 @@
 - Produces `formatVp(value: number): string` and `formatBundleCountdown(timestamp: number, now?: number): string`.
 - `Countdown` accepts `format="bundle"` without changing existing default/compact output.
 
-- [ ] **Step 1: Write RED pricing/formatter tests**
+- [x] **Step 1: Write RED pricing/formatter tests**
 
 ```ts
 expect(formatVp(6640)).toBe("6.640");
@@ -62,13 +62,15 @@ expect(formatBundleCountdown(now - 1, now)).toBe("Ended");
 
 Extend the storefront fixture with one bundle whose `TotalBaseCost` is `6640`, `TotalDiscountedCost` is `5310`, item `BasePrice` is `2675`, and item `DiscountedPrice` is `1766`. Assert the parsed bundle and item retain both values.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
-Run: `pnpm exec jest __tests__/bundle-display.test.ts __tests__/storefront-parser.test.ts --runInBand`
+  Run: `pnpm exec jest __tests__/bundle-display.test.ts __tests__/storefront-parser.test.ts --runInBand`
 
-Expected: formatter module/fields are missing.
+  Expected: formatter module/fields are missing.
 
-- [ ] **Step 3: Implement the minimal immutable data mapping**
+  Observed (2026-09-30): RED — `~/utils/bundle-display` không resolve, `originalPrice` undefined ở cả bundle và item.
+
+- [x] **Step 3: Implement the minimal immutable data mapping**
 
 ```ts
 export function formatVp(value: number) {
@@ -78,13 +80,15 @@ export function formatVp(value: number) {
 
 Map `BasePrice` to `originalPrice`, `DiscountedPrice` to `price`, `TotalBaseCost[VP]` to bundle `originalPrice`, and `TotalDiscountedCost[VP]` to bundle `price`; retain current fallbacks when total maps are absent.
 
-- [ ] **Step 4: Run GREEN and targeted lint**
+- [x] **Step 4: Run GREEN and targeted lint**
 
-Run:
-- `pnpm exec jest __tests__/bundle-display.test.ts __tests__/storefront-parser.test.ts --runInBand`
-- `pnpm exec eslint types/App.d.ts services/riot/storefront-parser.ts components/Countdown.tsx utils/bundle-display.ts __tests__/bundle-display.test.ts __tests__/storefront-parser.test.ts --max-warnings=0`
+  Run:
+  - `pnpm exec jest __tests__/bundle-display.test.ts __tests__/storefront-parser.test.ts --runInBand`
+  - `pnpm exec eslint types/App.d.ts services/riot/storefront-parser.ts components/Countdown.tsx utils/bundle-display.ts __tests__/bundle-display.test.ts __tests__/storefront-parser.test.ts --max-warnings=0`
 
-Expected: PASS.
+  Expected: PASS.
+
+  Observed (2026-09-30): GREEN qua lệnh jest 4-file được phép (`bundle-display` + `storefront-parser` PASS); targeted eslint riêng lẻ không nằm trong danh sách lệnh được phép — chỉ `pnpm run lint` toàn repo được chạy và PASS (`--max-warnings=0`).
 
 ### Task 2: Build the white bundle card and horizontal item preview
 
@@ -97,7 +101,7 @@ Expected: PASS.
 - `BundleImage` consumes `{ bundle, remainingSecs }`; it no longer requires `onPress`.
 - `BundleItem` consumes `{ item, width }` and renders a compact non-interactive list item summary.
 
-- [ ] **Step 1: Write RED component tests**
+- [x] **Step 1: Write RED component tests**
 
 Render a Champions bundle and assert:
 
@@ -113,13 +117,15 @@ expect(StyleSheet.flatten(screen.getByTestId("bundle-card").props.style).backgro
 
 Add cases for no discount, long names, missing image fallback, one item and item accessibility label.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
-Run: `pnpm exec jest __tests__/bundle-card.test.tsx --runInBand`
+  Run: `pnpm exec jest __tests__/bundle-card.test.tsx --runInBand`
 
-Expected: the carousel/test IDs/new prop contract do not exist.
+  Expected: the carousel/test IDs/new prop contract do not exist.
 
-- [ ] **Step 3: Implement reference hierarchy with light tokens**
+  Observed (2026-09-30): RED qua lệnh jest 4-file được phép — thiếu testID `bundle-item-carousel`/`bundle-card`, giá chưa format "5.310"/"6.640", không có `flexShrink`/fallback SURFACE_MUTED.
+
+- [x] **Step 3: Implement reference hierarchy with light tokens**
 
 Render:
 
@@ -133,13 +139,15 @@ horizontal FlatList of compact item cards
 
 Use `useWindowDimensions()` only to derive a stable card width clamped to the compact/tablet range. Keep `renderItem`, `keyExtractor` and `getItemLayout` stable; set `accessible={false}` on the `FlatList` so list-item summaries remain individually reachable.
 
-- [ ] **Step 4: Run GREEN and targeted lint**
+- [x] **Step 4: Run GREEN and targeted lint**
 
-Run:
-- `pnpm exec jest __tests__/bundle-card.test.tsx --runInBand`
-- `pnpm exec eslint components/BundleImage.tsx components/BundleItem.tsx __tests__/bundle-card.test.tsx --max-warnings=0`
+  Run:
+  - `pnpm exec jest __tests__/bundle-card.test.tsx --runInBand`
+  - `pnpm exec eslint components/BundleImage.tsx components/BundleItem.tsx __tests__/bundle-card.test.tsx --max-warnings=0`
 
-Expected: PASS.
+  Expected: PASS.
+
+  Observed (2026-09-30): GREEN qua lệnh jest 4-file được phép (`bundle-card` PASS); targeted eslint riêng lẻ không nằm trong danh sách lệnh được phép — `pnpm run lint` toàn repo PASS (`--max-warnings=0`).
 
 ### Task 3: Integrate the inline card, translations and device verification
 
@@ -155,28 +163,32 @@ Expected: PASS.
 **Interfaces:**
 - Bundles route maps store bundles directly to `BundleImage` and contains no `Modal`, `BlurView`, `Portal`, `TwoColumnGrid` or selected-bundle state.
 
-- [ ] **Step 1: Write RED screen-boundary tests**
+- [x] **Step 1: Write RED screen-boundary tests**
 
-Read the route source and assert the dark modal imports/state are absent, `BundleImage` receives `bundle` and `remainingSecs`, screen/balance surfaces use the light design tokens, and the two new translation keys exist in English/Vietnamese.
+  Read the route source and assert the dark modal imports/state are absent, `BundleImage` receives `bundle` and `remainingSecs`, screen/balance surfaces use the light design tokens, and the two new translation keys exist in English/Vietnamese.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
-Run: `pnpm exec jest __tests__/bundle-screen-boundary.test.ts --runInBand`
+  Run: `pnpm exec jest __tests__/bundle-screen-boundary.test.ts --runInBand`
 
-Expected: the route still contains the modal flow and translations are missing.
+  Expected: the route still contains the modal flow and translations are missing.
 
-- [ ] **Step 3: Remove the modal path and finish light-screen integration**
+  Observed (2026-09-30): RED qua lệnh jest 4-file được phép — route vẫn chứa `Modal`/`Portal`/`BlurView`/`TwoColumnGrid`/`selectedBundle`/`VALORANT_DARK_BLUE`/`rgba(`, thiếu key `ends_in`/`estimate` ở en/vi.
 
-Add `bundles_page.ends_in` and `bundles_page.estimate` in English/Vietnamese. Preserve all existing empty/refresh behavior. Update changelog as a UI-only Bundle change; no version/native release change.
+- [x] **Step 3: Remove the modal path and finish light-screen integration**
 
-- [ ] **Step 4: Run targeted tests and full gates**
+  Add `bundles_page.ends_in` and `bundles_page.estimate` in English/Vietnamese. Preserve all existing empty/refresh behavior. Update changelog as a UI-only Bundle change; no version/native release change.
 
-Run:
-- `pnpm exec jest __tests__/bundle-display.test.ts __tests__/storefront-parser.test.ts __tests__/bundle-card.test.tsx __tests__/bundle-screen-boundary.test.ts --runInBand`
-- `pnpm run check`
-- `git diff --check`
+- [x] **Step 4: Run targeted tests and full gates**
 
-Expected: PASS.
+  Run:
+  - `pnpm exec jest __tests__/bundle-display.test.ts __tests__/storefront-parser.test.ts __tests__/bundle-card.test.tsx __tests__/bundle-screen-boundary.test.ts --runInBand`
+  - `pnpm run check`
+  - `git diff --check`
+
+  Expected: PASS.
+
+  Observed (2026-09-30): targeted jest 4-file PASS sau review fix (32/32); `pnpm run check` PASS — typecheck, zero-warning lint, 119/119 suites, 1.397/1.397 tests, production audit và Android export/budget 10,22/12 MiB total, 7,74/8 MiB Hermes, 1,25/1,50 MiB largest asset; `git diff --check` sạch. Review fix giữ canvas `COLORS.SURFACE`, dùng `useAppWindowDimensions`, ổn định expiry qua parent re-render, localized ended label, radius lớn và nested carousel; storefront parser còn 349 dòng, không tăng architecture budget.
 
 - [ ] **Step 5: Verify on device `45218ba`**
 
@@ -195,10 +207,10 @@ Record source/build/device outcomes separately and mark any unobserved interacti
 
 ## Completion Audit
 
-- [ ] Direct white-background instruction overrides every dark-background statement in the external reference.
-- [ ] Parser uses real base/discounted prices and never fabricates ownership.
-- [ ] Bundle/item/card backgrounds contain no black/dark UI color.
-- [ ] Carousel is horizontal, non-wrapping and contained within the card.
-- [ ] Targeted tests and `pnpm run check` PASS.
-- [ ] Device screenshot and horizontal/vertical interaction evidence captured on `45218ba`.
-- [ ] Existing unrelated dirty files remain untouched and unstaged.
+- [x] Direct white-background instruction overrides every dark-background statement in the external reference. (Bundles route + card dùng `COLORS.BACKGROUND`/`COLORS.SURFACE`/`COLORS.SURFACE_MUTED`; boundary test chặn `VALORANT_DARK_BLUE`/`PURE_BLACK`/`rgba(`.)
+- [x] Parser uses real base/discounted prices and never fabricates ownership. (`storefront-parser.test.ts` assert `price`/`originalPrice` từ `TotalDiscountedCost`/`TotalBaseCost`/`DiscountedPrice`/`BasePrice` và không có field `owned`/`isOwned`.)
+- [x] Bundle/item/card backgrounds contain no black/dark UI color. (`bundle-card.test.tsx` assert card = `COLORS.SURFACE`; item card = `COLORS.BACKGROUND`; hero frame = `COLORS.SURFACE_MUTED`.)
+- [x] Carousel is horizontal, non-wrapping and contained within the card. (test: `horizontal === true`, không có `numColumns`, card `overflow: "hidden"`, `getItemLayout` cố định.)
+- [x] Targeted tests and `pnpm run check` PASS. (Targeted 32/32; full 119/119 suites và 1.397/1.397 tests; audit/export budget PASS.)
+- [ ] Device screenshot and horizontal/vertical interaction evidence captured on `45218ba`. `NOT VERIFIED` — không chạy device/Metro trong phiên này.
+- [x] Existing unrelated dirty files remain untouched and unstaged. (Worktree khởi đầu sạch; `components/ui/AppRefreshControl.web.tsx` và `components/ui/AppViewport.tsx` không đổi theo `git status`.)

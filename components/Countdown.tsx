@@ -4,11 +4,14 @@ import { StyleProp, Text, TextStyle, View, ViewStyle } from "react-native";
 import { useEffect, useState } from "react";
 import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";
+import { formatBundleCountdown } from "~/utils/bundle-display";
 
 // Interface định nghĩa props cho Countdown component
 // timestamp: mốc thời gian đích (ms) để đếm ngược đến
 // color: màu chữ, mặc định COLORS.TEXT_PRIMARY
 // compact: chế độ hiển thị rút gọn (chỉ ngày + giờ) nếu true
+// format: "default" | "compact" | "bundle" — "bundle" dùng formatBundleCountdown
+//         ("21d 06:04:27" / "Ended") cho bundle detail card
 // showIcon: có hiển thị icon đồng hồ hay không, mặc định true
 // iconSize: kích thước icon, mặc định 15
 // containerStyle: style tùy chỉnh cho container
@@ -17,6 +20,8 @@ interface props {
   timestamp: number;
   color?: string;
   compact?: boolean;
+  format?: "default" | "compact" | "bundle";
+  endedLabel?: string;
   showIcon?: boolean;
   iconSize?: number;
   containerStyle?: StyleProp<ViewStyle>;
@@ -79,6 +84,9 @@ export function formatCountdown(
  * @param timestamp – Mốc thời gian đích (ms).
  * @param color – Màu chữ/icon, mặc định COLORS.TEXT_PRIMARY.
  * @param compact – Chế độ rút gọn (font nhỏ hơn + format ngắn).
+ * @param format – "default" | "compact" | "bundle"; "bundle" hiển thị
+ *                 "Xd HH:MM:SS"/"Ended" cho bundle detail card.
+ * @param endedLabel – Nhãn localized khi bundle đã hết hạn.
  * @param showIcon – Hiển thị icon đồng hồ, mặc định true.
  * @param iconSize – Kích thước icon, mặc định 15.
  * @param containerStyle – Style ghi đè container.
@@ -92,6 +100,8 @@ export default function Countdown({
   timestamp,
   color = COLORS.TEXT_PRIMARY,
   compact = false,
+  format = "default",
+  endedLabel,
   showIcon = true,
   iconSize = 15,
   containerStyle,
@@ -145,7 +155,11 @@ export default function Countdown({
           textStyle,
         ]}
       >
-        {formatCountdown(new Date().getTime() + diff, new Date().getTime(), compact)}
+        {format === "bundle"
+          ? (diff <= 0 && endedLabel
+            ? endedLabel
+            : formatBundleCountdown(new Date().getTime() + diff))
+          : formatCountdown(new Date().getTime() + diff, new Date().getTime(), compact)}
       </Text>
     </View>
   );

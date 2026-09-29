@@ -136,7 +136,6 @@ export async function parseShop(
   const cachedBundleById = new Map(
     cachedBundles.map((bundle) => [bundle.uuid, bundle])
   );
-
   // Luôn thử API trước. Cache persisted chỉ là fallback để metadata tạm thời
   // vẫn có thể được thay thế ngay khi valorant-api.com cập nhật patch mới.
   const bundleResults = await Promise.all(
@@ -153,19 +152,18 @@ export async function parseShop(
   for (let bundleIndex = 0; bundleIndex < bundleResults.length; bundleIndex++) {
     const { bundle, bundleAsset } = bundleResults[bundleIndex];
     const allItems: (SkinShopItem | AccessoryShopItem)[] = [];
-
     for (let itemIndex = 0; itemIndex < bundle.Items.length; itemIndex++) {
       const item = bundle.Items[itemIndex];
       const uuid = item.Item.ItemID;
       const typeId = item.Item.ItemTypeID;
-      const price = item.BasePrice;
+      const price = item.DiscountedPrice;
+      const originalPrice = item.BasePrice;
       const fallbackItemName = getFallbackBundleItemName(uuid, typeId, itemIndex);
-
       // Skin level hoặc chroma
       if (typeId === VItemTypes.SkinLevel || typeId === VItemTypes.SkinChroma) {
         const skin = skinByAnyId.get(uuid);
         if (skin) {
-          allItems.push({ ...skin, price } as SkinShopItem);
+          allItems.push({ ...skin, price, originalPrice } as SkinShopItem);
         } else {
           allItems.push({
             uuid,
@@ -175,6 +173,7 @@ export async function parseShop(
             chromas: [],
             levels: [],
             price,
+            originalPrice,
           } as SkinShopItem);
         }
       // Spray
@@ -186,9 +185,10 @@ export async function parseShop(
             displayName: spray.displayName,
             displayIcon: spray.displayIcon || spray.fullTransparentIcon,
             price,
+            originalPrice,
           });
         } else {
-          allItems.push({ uuid, displayName: fallbackItemName, price });
+          allItems.push({ uuid, displayName: fallbackItemName, price, originalPrice });
         }
       // Flex
       } else if (typeId === VItemTypes.Flex) {
@@ -198,6 +198,7 @@ export async function parseShop(
           displayName: flex?.displayName || "Flex",
           displayIcon: flex?.displayIcon,
           price,
+          originalPrice,
         });
       // Player card
       } else if (typeId === VItemTypes.PlayerCard) {
@@ -208,9 +209,10 @@ export async function parseShop(
             displayName: card.displayName,
             displayIcon: card.displayIcon || card.largeArt,
             price,
+            originalPrice,
           });
         } else {
-          allItems.push({ uuid, displayName: fallbackItemName, price });
+          allItems.push({ uuid, displayName: fallbackItemName, price, originalPrice });
         }
       // Player title
       } else if (typeId === VItemTypes.PlayerTitle) {
@@ -220,9 +222,10 @@ export async function parseShop(
             uuid: title.uuid,
             displayName: title.displayName,
             price,
+            originalPrice,
           });
         } else {
-          allItems.push({ uuid, displayName: fallbackItemName, price });
+          allItems.push({ uuid, displayName: fallbackItemName, price, originalPrice });
         }
       // Buddy
       } else if (typeId === VItemTypes.Buddy) {
@@ -233,30 +236,30 @@ export async function parseShop(
             displayName: buddy.displayName,
             displayIcon: buddy.levels?.[0]?.displayIcon || buddy.displayIcon,
             price,
+            originalPrice,
           });
         } else {
-          allItems.push({ uuid, displayName: fallbackItemName, price });
+          allItems.push({ uuid, displayName: fallbackItemName, price, originalPrice });
         }
       } else {
-        allItems.push({ uuid, displayName: fallbackItemName, price });
+        allItems.push({ uuid, displayName: fallbackItemName, price, originalPrice });
       }
     }
-
     const resolvedBundleAsset =
       bundleAsset ||
       createFallbackBundleAsset(bundle, allItems, bundleIndex);
-    const discountedPrice =
-      bundle.TotalDiscountedCost?.[VCurrencies.VP] ??
+    const discountedPrice = bundle.TotalDiscountedCost?.[VCurrencies.VP] ??
       bundle.Items.reduce((total, item) => total + item.DiscountedPrice, 0);
-
+    const basePrice = bundle.TotalBaseCost?.[VCurrencies.VP] ??
+      bundle.Items.reduce((total, item) => total + item.BasePrice, 0);
     // Ưu tiên tổng giá chính thức từ Storefront, fallback sang tổng từng item.
     bundles.push({
       ...resolvedBundleAsset,
       price: discountedPrice,
+      originalPrice: basePrice,
       items: allItems,
     });
   }
-
   /* NIGHT MARKET (CHỢ ĐÊM) */
   let nightMarket: NightMarketItem[] = [];
   if (shop.BonusStore) {
