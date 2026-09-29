@@ -17,6 +17,9 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 
 ## Plan hiện tại
 
+- [`2026-09-30-white-bundle-detail-card.md`](2026-09-30-white-bundle-detail-card.md) —
+  active: chuyển Bundle sang detail card nền trắng theo ảnh tham chiếu, giữ giá
+  Riot thật, item carousel ngang và device evidence trên `45218ba`.
 - [`2026-09-29-codex-opencode-worker.md`](2026-09-29-codex-opencode-worker.md) —
   done: policy/runtime/runner TDD, custom worker/skill, matching CLI `1.18.32`,
   exact `zai-coding-plan/glm-5.3` live smoke, final hardening review và full
