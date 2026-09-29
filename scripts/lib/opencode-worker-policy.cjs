@@ -117,6 +117,9 @@ function validateTargetedCommand(value) {
   if (args.some((argument) => /\s/.test(argument) || SHELL_META.test(argument))) {
     fail("COMMAND_REJECTED");
   }
+  if (args[1] === "eslint" && args.some((argument) => /^--fix(?:$|[-=])/.test(argument))) {
+    fail("COMMAND_REJECTED");
+  }
 
   const safeRun = args[0] === "run" &&
     args.length === 2 &&
@@ -270,7 +273,6 @@ function buildPermissionPolicy(task) {
     "git log*": "allow",
     "git show*": "allow",
     "git rev-parse*": "allow",
-    "rg *": "allow",
   };
   for (const command of task.targetedCommands) {
     bash[commandResource(command)] = "allow";
@@ -329,17 +331,43 @@ function buildWorkerPrompt(task) {
   ].join("\n");
 }
 
-function redactEvidence(value) {
-  let text;
-  try {
-    text = typeof value === "string" ? value : JSON.stringify(value);
-  } catch {
-    text = "<unserializable-evidence>";
-  }
-  return String(text ?? "")
+const SENSITIVE_EVIDENCE_KEY = /^(?:api[_-]?key|authorization|cookie|token|secret|password)$/i;
+
+const redactEvidenceText = (value) => String(value ?? "")
     .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+/gi, "Bearer <redacted>")
     .replace(/("(?:api[_-]?key|authorization|cookie|token|secret|password)"\s*:\s*)"[^"]*"/gi, "$1\"<redacted>\"")
+    .replace(/\b(?:cookie|set-cookie|authorization|x-riot-entitlements-jwt|api[_-]?key|token|secret|password)\s*[:=]\s*(?!<redacted>)[^\r\n,;]+/gi, (match) => {
+      const separatorIndex = match.search(/[:=]/);
+      return `${match.slice(0, separatorIndex).trim()}: <redacted>`;
+    })
     .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "<redacted-jwt>");
+
+const sanitizeEvidenceValue = (value) => {
+  if (typeof value === "string") {
+    return redactEvidenceText(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeEvidenceValue);
+  }
+  if (isPlainObject(value)) {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
+      key,
+      SENSITIVE_EVIDENCE_KEY.test(key) ? "<redacted>" : sanitizeEvidenceValue(entry),
+    ]));
+  }
+  return value;
+};
+
+function redactEvidence(value) {
+  if (typeof value === "string" || value === undefined || value === null) {
+    return redactEvidenceText(value);
+  }
+  try {
+    JSON.stringify(value);
+    return JSON.stringify(sanitizeEvidenceValue(value));
+  } catch {
+    return "<unserializable-evidence>";
+  }
 }
 
 module.exports = {

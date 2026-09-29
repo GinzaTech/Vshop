@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const policy = require("../scripts/lib/opencode-worker-policy.cjs");
 const {
+  buildWorkerEnvironment,
   executeValidatedTask,
   loadTaskFile,
   main,
@@ -105,6 +106,15 @@ describe("OpenCode runner model and status handling", () => {
     })).toThrow("OPENCODE_BINARY_REJECTED");
   });
 
+  test("rejects a pnpm shim that targets the wrong package inside PNPM_HOME", () => {
+    expect(() => resolveOpenCodeCommand({
+      platform: "win32",
+      env: { PNPM_HOME: "C:\\pnpm" },
+      existsImpl: () => true,
+      readFileImpl: () => '@"%~dp0\\..\\global\\v11\\hash\\other\\opencode.exe" %*',
+    })).toThrow("OPENCODE_BINARY_REJECTED");
+  });
+
   test("rejects malformed argument arrays", () => {
     expect(() => parseArgs(null)).toThrow("INVALID_TASK_PACKET");
     expect(() => parseArgs(["--task-file", "C:\\task.json", "--dry-run", "--dry-run"]))
@@ -123,6 +133,9 @@ describe("OpenCode runner model and status handling", () => {
       models: ["zai-coding-plan/glm-5.3"],
     });
     expect(execFileSyncImpl).toHaveBeenCalledTimes(3);
+    for (const call of execFileSyncImpl.mock.calls) {
+      expect(call[2]).toEqual(expect.objectContaining({ timeout: 120_000, shell: false }));
+    }
   });
 
   test("strips ANSI but preserves distinct model IDs", () => {
@@ -201,7 +214,15 @@ describe("OpenCode runner model and status handling", () => {
   });
 
   test("passes an argument array and inline permissions without a shell", async () => {
-    const deps = createExecutionDeps();
+    const deps = createExecutionDeps({
+      env: {
+        Path: "C:\\safe-bin",
+        PNPM_HOME: "C:\\pnpm",
+        USERPROFILE: "C:\\Users\\kona",
+        RIOT_TOKEN: "riot-secret",
+        OPENAI_API_KEY: "openai-secret",
+      },
+    });
     await executeValidatedTask(createTask(), deps);
     expect(deps.runProcessImpl).toHaveBeenCalledWith(expect.objectContaining({
       command: "opencode.cmd",
@@ -215,6 +236,32 @@ describe("OpenCode runner model and status handling", () => {
       ]),
       env: expect.objectContaining({ OPENCODE_PERMISSION: expect.any(String) }),
     }));
+    const childEnv = deps.runProcessImpl.mock.calls[0][0].env;
+    expect(childEnv).toMatchObject({
+      Path: "C:\\safe-bin",
+      PNPM_HOME: "C:\\pnpm",
+      USERPROFILE: "C:\\Users\\kona",
+    });
+    expect(childEnv).not.toHaveProperty("RIOT_TOKEN");
+    expect(childEnv).not.toHaveProperty("OPENAI_API_KEY");
+  });
+
+  test("resolves the CLI lazily only when no explicit executable is supplied", async () => {
+    const lazyResolver = jest.fn(() => "C:\\pnpm\\opencode.exe");
+    const explicitDeps = createExecutionDeps({
+      openCodeCommand: "C:\\explicit\\opencode.exe",
+      resolveOpenCodeCommandImpl: lazyResolver,
+    });
+    await executeValidatedTask(createTask(), explicitDeps);
+    expect(lazyResolver).not.toHaveBeenCalled();
+
+    const lazyDeps = createExecutionDeps({
+      openCodeCommand: undefined,
+      resolveOpenCodeCommandImpl: lazyResolver,
+    });
+    await executeValidatedTask(createTask(), lazyDeps);
+    expect(lazyResolver).toHaveBeenCalledWith(expect.objectContaining({ env: lazyDeps.env }));
+    expect(lazyDeps.runProcessImpl.mock.calls[0][0].command).toBe("C:\\pnpm\\opencode.exe");
   });
 
   test("dry-run validates preflight without spawning or claiming live execution", async () => {
@@ -232,6 +279,24 @@ describe("OpenCode runner model and status handling", () => {
 });
 
 describe("OpenCode runner evidence and CLI", () => {
+  test("forwards only required system environment keys", () => {
+    const result = buildWorkerEnvironment({
+      Path: "C:\\bin",
+      SystemRoot: "C:\\Windows",
+      USERPROFILE: "C:\\Users\\kona",
+      LOCALAPPDATA: "C:\\Users\\kona\\AppData\\Local",
+      ZAI_API_KEY: "provider-secret",
+      RIOT_TOKEN: "riot-secret",
+      NODE_OPTIONS: "--require malicious.js",
+    }, { edit: { "*": "deny" } });
+    expect(result).toEqual({
+      Path: "C:\\bin",
+      SystemRoot: "C:\\Windows",
+      USERPROFILE: "C:\\Users\\kona",
+      LOCALAPPDATA: "C:\\Users\\kona\\AppData\\Local",
+      OPENCODE_PERMISSION: JSON.stringify({ edit: { "*": "deny" } }),
+    });
+  });
   test("sanitizes auth and process canaries before evidence writes", async () => {
     const deps = createExecutionDeps({
       probeOpenCodeImpl: () => ({

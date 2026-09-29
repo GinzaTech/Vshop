@@ -171,6 +171,8 @@ describe("OpenCode worker task packet", () => {
     { executable: "pnpm", args: ["exec", "jest", "x.test.ts;git", "push"] },
     { executable: "pnpm", args: ["exec", "expo", "publish"] },
     { executable: "pnpm", args: ["run", "check", "extra"] },
+    { executable: "pnpm", args: ["exec", "eslint", ".", "--fix"] },
+    { executable: "pnpm", args: ["exec", "eslint", ".", "--fix-dry-run"] },
   ])("rejects unsafe command %#", (command) => {
     const packet = createPacket();
     packet.targetedCommands = [command];
@@ -186,6 +188,7 @@ describe("OpenCode worker permissions and evidence", () => {
     expect(Object.entries(permission.edit)[0]).toEqual(["*", "deny"]);
     expect(permission.edit["services/profile/cache.ts"]).toBe("allow");
     expect(permission.bash["git push*"]).toBe("deny");
+    expect(permission.bash["rg *"]).toBeUndefined();
     expect(permission.bash[
       "pnpm exec jest __tests__/profile-cache.test.ts --runInBand"
     ]).toBe("allow");
@@ -249,5 +252,16 @@ describe("OpenCode worker permissions and evidence", () => {
   test("redacts unserializable and empty evidence safely", () => {
     expect(redactEvidence({ value: 1n })).toBe("<unserializable-evidence>");
     expect(redactEvidence(undefined)).toBe("");
+  });
+
+  test("redacts raw credential headers and assignments", () => {
+    const evidence = redactEvidence([
+      "Cookie: cookie-secret",
+      "X-Riot-Entitlements-JWT: entitlement-secret",
+      "api_key=api-secret",
+      "password: password-secret",
+    ].join("\n"));
+    expect(evidence).not.toMatch(/cookie-secret|entitlement-secret|api-secret|password-secret/);
+    expect(evidence.match(/<redacted>/g)).toHaveLength(4);
   });
 });

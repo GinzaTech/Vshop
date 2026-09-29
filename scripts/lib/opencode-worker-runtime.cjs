@@ -244,6 +244,7 @@ function runProcess({
   cwd,
   env,
   timeoutMs,
+  terminationGraceMs = 5_000,
   maxOutputBytes = 10 * 1024 * 1024,
   platform = process.platform,
   spawnImpl = spawn,
@@ -262,25 +263,16 @@ function runProcess({
     const stderr = createBoundedCollector(maxOutputBytes);
     let settled = false;
     let timedOut = false;
+    let terminationTimer;
 
     child.stdout.on("data", (chunk) => stdout.append(chunk));
     child.stderr.on("data", (chunk) => stderr.append(chunk));
 
-    const timer = setTimeout(() => {
-      timedOut = true;
-      void Promise.resolve(terminateImpl(child)).catch(() => undefined);
-    }, timeoutMs);
-
-    child.once("error", (error) => {
+    const finish = (code, signal) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      reject(error);
-    });
-    child.once("exit", (code, signal) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
+      clearTimeout(terminationTimer);
       resolve(Object.freeze({
         code: Number.isInteger(code) ? code : 1,
         signal,
@@ -289,6 +281,32 @@ function runProcess({
         stderr: stderr.text(),
         outputTruncated: stdout.truncated() || stderr.truncated(),
       }));
+    };
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      void Promise.resolve(terminateImpl(child)).catch(() => undefined);
+      terminationTimer = setTimeout(() => {
+        child.stdout.destroy?.();
+        child.stderr.destroy?.();
+        child.unref?.();
+        finish(1, "TERMINATION_UNCONFIRMED");
+      }, terminationGraceMs);
+    }, timeoutMs);
+
+    child.once("error", (error) => {
+      if (settled) return;
+      if (timedOut) {
+        finish(1, "TERMINATION_ERROR");
+      } else {
+        settled = true;
+        clearTimeout(timer);
+        clearTimeout(terminationTimer);
+        reject(error);
+      }
+    });
+    child.once("exit", (code, signal) => {
+      finish(code, signal);
     });
   });
 }

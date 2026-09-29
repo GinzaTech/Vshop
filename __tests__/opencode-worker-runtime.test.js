@@ -261,6 +261,31 @@ describe("OpenCode worker stability and process runtime", () => {
     expect(terminateImpl).toHaveBeenCalledWith(child);
   });
 
+  test("returns a timeout result when the child never emits exit", async () => {
+    const child = createChild();
+    child.stdout.destroy = jest.fn();
+    child.stderr.destroy = jest.fn();
+    child.unref = jest.fn();
+    const pending = runProcess({
+      command: "opencode.exe",
+      args: ["run"],
+      cwd: "C:/worktree",
+      env: {},
+      timeoutMs: 1,
+      terminationGraceMs: 1,
+      spawnImpl: () => child,
+      terminateImpl: jest.fn(async () => undefined),
+    });
+    await expect(pending).resolves.toMatchObject({
+      timedOut: true,
+      code: 1,
+      signal: "TERMINATION_UNCONFIRMED",
+    });
+    expect(child.stdout.destroy).toHaveBeenCalledTimes(1);
+    expect(child.stderr.destroy).toHaveBeenCalledTimes(1);
+    expect(child.unref).toHaveBeenCalledTimes(1);
+  });
+
   test("Windows termination targets only the exact child PID", async () => {
     const execFileAsyncImpl = jest.fn(async () => ({ stdout: "", stderr: "" }));
     await terminateProcessTree({ pid: 43127 }, {

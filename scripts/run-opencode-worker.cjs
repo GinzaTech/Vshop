@@ -13,6 +13,38 @@ const runtime = require("./lib/opencode-worker-runtime.cjs");
 const MAX_TASK_PACKET_BYTES = 1024 * 1024;
 const FORBIDDEN_ARTIFACT = /(?:^|\/)(?:android|ios|dist|out|coverage)(?:\/|$)|(?:^|\/)\.env(?:\..*)?$|\.(?:apk|aab|log|jks|keystore|p8|p12|key|mobileprovision)$/i;
 const AUTH_FAILURE = /api key|credential|unauthorized|authentication|not authenticated/i;
+const SAFE_ENVIRONMENT_KEYS = new Set([
+  "APPDATA",
+  "CI",
+  "COLORTERM",
+  "COMSPEC",
+  "FORCE_COLOR",
+  "HOME",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "LANG",
+  "LC_ALL",
+  "LOCALAPPDATA",
+  "NO_COLOR",
+  "NUMBER_OF_PROCESSORS",
+  "PATH",
+  "PATHEXT",
+  "PNPM_HOME",
+  "PROCESSOR_ARCHITECTURE",
+  "PROGRAMDATA",
+  "PROGRAMFILES",
+  "PROGRAMFILES(X86)",
+  "PROGRAMW6432",
+  "SYSTEMROOT",
+  "TEMP",
+  "TERM",
+  "TMP",
+  "USERPROFILE",
+  "WINDIR",
+  "XDG_CACHE_HOME",
+  "XDG_CONFIG_HOME",
+  "XDG_DATA_HOME",
+]);
 
 class RunnerError extends Error {
   constructor(code) {
@@ -88,10 +120,21 @@ function resolveOpenCodeCommand({
   }
   const executable = path.resolve(path.dirname(shimPath), targetMatch[1]);
   const relative = path.relative(pnpmHome, executable);
+  const requiredSuffix = path.join(
+    "node_modules",
+    "opencode-ai",
+    "bin",
+    "opencode.exe",
+  ).toLowerCase();
+  const globalRelative = path.relative(path.join(pnpmHome, "global"), executable);
   if (
     relative === ".." ||
     relative.startsWith(`..${path.sep}`) ||
     path.isAbsolute(relative) ||
+    globalRelative === ".." ||
+    globalRelative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(globalRelative) ||
+    !executable.toLowerCase().endsWith(requiredSuffix) ||
     path.extname(executable).toLowerCase() !== ".exe" ||
     !existsImpl(executable)
   ) {
@@ -105,6 +148,8 @@ function probeOpenCode({ command, execFileSyncImpl = execFileSync }) {
     encoding: "utf8",
     windowsHide: true,
     maxBuffer: 4 * 1024 * 1024,
+    shell: false,
+    timeout: 120_000,
   };
   return Object.freeze({
     version: String(execFileSyncImpl(command, ["--version"], options)).trim(),
@@ -118,6 +163,17 @@ function probeOpenCode({ command, execFileSyncImpl = execFileSync }) {
 }
 
 const createRunId = () => `${Date.now().toString(36)}-${crypto.randomBytes(4).toString("hex")}`;
+
+function buildWorkerEnvironment(baseEnv, permission) {
+  const workerEnv = {};
+  for (const [key, value] of Object.entries(baseEnv || {})) {
+    if (SAFE_ENVIRONMENT_KEYS.has(key.toUpperCase()) && typeof value === "string") {
+      workerEnv[key] = value;
+    }
+  }
+  workerEnv.OPENCODE_PERMISSION = JSON.stringify(permission);
+  return workerEnv;
+}
 
 const sanitizeObject = (value) => {
   try {
@@ -143,7 +199,7 @@ async function executeValidatedTask(task, dependencies = {}) {
     projectRoot: path.resolve(__dirname, ".."),
     env: process.env,
     dryRun: false,
-    openCodeCommand: resolveOpenCodeCommand(),
+    resolveOpenCodeCommandImpl: resolveOpenCodeCommand,
     resolvePrimaryWorktreeImpl: runtime.resolvePrimaryWorktree,
     inspectWorktreeImpl: runtime.inspectWorktree,
     assertScopesInsideWorktreeImpl: runtime.assertScopesInsideWorktree,
@@ -157,6 +213,10 @@ async function executeValidatedTask(task, dependencies = {}) {
     runIdImpl: createRunId,
     ...dependencies,
   };
+
+  const openCodeCommand = deps.openCodeCommand || deps.resolveOpenCodeCommandImpl({
+    env: deps.env,
+  });
 
   const mainCheckout = deps.resolvePrimaryWorktreeImpl(deps.projectRoot);
   const worktree = deps.inspectWorktreeImpl(task.workspace, { mainCheckout });
@@ -175,7 +235,7 @@ async function executeValidatedTask(task, dependencies = {}) {
     taskId: task.taskId,
     runId: deps.runIdImpl(),
   });
-  const probe = deps.probeOpenCodeImpl({ command: deps.openCodeCommand });
+  const probe = deps.probeOpenCodeImpl({ command: openCodeCommand });
 
   const finish = (status, details = {}) => {
     const safeResult = sanitizeObject({
@@ -214,19 +274,16 @@ async function executeValidatedTask(task, dependencies = {}) {
   if (deps.dryRun) {
     return finish(policy.RESULT_STATUS.PASS_TO_REVIEW, {
       dryRun: true,
-      command: deps.openCodeCommand,
+      command: openCodeCommand,
       args: workerArgs,
     });
   }
 
   const processResult = await deps.runProcessImpl({
-    command: deps.openCodeCommand,
+    command: openCodeCommand,
     args: workerArgs,
     cwd: worktree.root,
-    env: {
-      ...deps.env,
-      OPENCODE_PERMISSION: JSON.stringify(policy.buildPermissionPolicy(task)),
-    },
+    env: buildWorkerEnvironment(deps.env, policy.buildPermissionPolicy(task)),
     timeoutMs: task.timeoutMinutes * 60_000,
   });
   const safeProcess = sanitizeProcessResult(processResult);
@@ -332,6 +389,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  buildWorkerEnvironment,
   RunnerError,
   executeValidatedTask,
   loadTaskFile,
