@@ -7,6 +7,7 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import PlayerInfoView from "~/components/profile/PlayerInfoView";
 import { CollectionCheckerExport, CollectionCheckerExportProvider } from "~/components/profile/CollectionCheckerExport";
 import AppIcon from "~/components/ui/AppIcon";
+import { PaperClearIcon, PaperSearchIcon } from "~/components/ui/PaperIcon";
 import { TabKey, EquippedWeapon, OwnedWeaponCollectionItem } from "~/components/GalleryProfile";
 import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";
@@ -328,6 +329,8 @@ function Profile() {
               ]}
               inputStyle={{ color: palette.textPrimary }}
               iconColor={palette.textSecondary}
+              icon={PaperSearchIcon}
+              clearIcon={PaperClearIcon}
           />
           <CollectionCheckerExport />
         </View>

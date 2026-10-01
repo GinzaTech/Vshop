@@ -6,6 +6,7 @@
 import React from "react";
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
 import { Modal, Portal, Searchbar } from "react-native-paper";
+import { PaperClearIcon, PaperSearchIcon } from "~/components/ui/PaperIcon";
 import { useTranslation } from "react-i18next";
 
 import { CachedImage as Image } from "~/components/CachedImage";
@@ -228,6 +229,8 @@ export function ProfilePickerModal({
                       ]}
                       inputStyle={{ color: palette.textPrimary }}
                       iconColor={palette.textSecondary}
+                      icon={PaperSearchIcon}
+                      clearIcon={PaperClearIcon}
                       autoCorrect={false}
                   />
               ) : null}

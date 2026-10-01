@@ -44,6 +44,19 @@ export default function PaperIcon({ name, color = COLORS.TEXT_PRIMARY, size, tes
   );
 }
 
+// Searchbar NHÚNG MaterialCommunityIcon trực tiếp cho icon mặc định
+// (bypass settings.icon) nên bắt buộc truyền icon/clearIcon tường minh.
+
+/** Renderer cho prop `icon` của Searchbar (kính lúp). */
+export function PaperSearchIcon({ color, size }: { color: string; size: number }) {
+  return <AppIcon name="search" size={size} color={color ?? COLORS.TEXT_PRIMARY} decorative />;
+}
+
+/** Renderer cho prop `clearIcon` của Searchbar (dấu X xoá text). */
+export function PaperClearIcon({ color, size }: { color: string; size: number }) {
+  return <AppIcon name="close" size={size} color={color ?? COLORS.TEXT_PRIMARY} decorative />;
+}
+
 const styles = StyleSheet.create({
   // Paper đo icon theo size; bọc View để nhận style paper mà AppIcon không hỗ trợ.
   icon: { alignItems: "center", justifyContent: "center" },

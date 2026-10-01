@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import GalleryEquip from "~/components/GalleryEquip";
 import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
+import { PaperClearIcon, PaperSearchIcon } from "~/components/ui/PaperIcon";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { EQUIPMENT_SECTIONS, getCollectionBySection, sortEquipItems, buildEquipDisplayList, sanitizeQuery, type EquipmentSectionKey } from "~/components/popups/equipHelpers";
@@ -108,7 +109,7 @@ const Equip = () => {
     <View style={styles.container}>
       {/* Searchbar: tìm kiếm trang bị */}
       <Searchbar testID="equipment-search-input" placeholder={t("equipment_page.search_placeholder")} value={searchQuery}
-        onChangeText={setSearchQuery} style={styles.searchBar} inputStyle={styles.searchInput}
+        onChangeText={setSearchQuery} icon={PaperSearchIcon} clearIcon={PaperClearIcon} style={styles.searchBar} inputStyle={styles.searchInput}
         iconColor={COLORS.TEXT_SECONDARY} accessibilityLabel={t("equipment_page.search_placeholder")} />
 
       {/* Tab group: các section (melee, sidearm, smg, ...) */}
