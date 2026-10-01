@@ -1,16 +1,17 @@
 // ===== AppRefreshControl.web.tsx =====
-// Bản web của AppRefreshControl: react-native-web bỏ qua hoàn toàn prop
-// `refreshControl` của ScrollView/FlatList — pull-to-refresh vừa không có
-// gesture, vừa không có bất kỳ phản hồi thị giác nào khi refresh chạy ngầm.
+// Bản web của AppRefreshControl: pull-to-refresh gesture không tồn tại trên
+// trình duyệt, và react-native-web không vẽ spinner của RefreshControl.
 //
-// Giải pháp: component này (được truyền qua prop refreshControl) tự đăng ký
-// trạng thái refreshing vào một external store dùng chung, và trả về null
-// (dù sao cũng không được render). AppViewport đọc store qua
+// QUAN TRỌNG (hợp đồng wrapper): RNW render phần tử truyền qua prop
+// `refreshControl` thành **wrapper bao ngoài** ScrollView (cloneElement với
+// children = ScrollView). Vì vậy component này BẮT BUỘC render `children`
+// nguyên ven — trả về null sẽ làm trắng toàn màn hình.
+//
+// Phản hồi refresh trên web: component đăng ký trạng thái refreshing vào
+// một external store dùng chung; AppViewport đọc qua
 // `useWebRefreshActivity()` để vẽ thanh tiến trình mỏng phía trên frame —
-// nhờ đó MỌI màn hình có pull-to-refresh đều có phản hồi trên web mà không
-// cần sửa từng screen.
-import { useEffect, useSyncExternalStore } from "react";
-import { type PropsWithChildren } from "react";
+// mọi màn hình có pull-to-refresh đều có phản hồi mà không cần sửa từng screen.
+import { useEffect, useSyncExternalStore, type PropsWithChildren } from "react";
 
 type AppRefreshControlProps = PropsWithChildren<{
   refreshing: boolean;
@@ -52,12 +53,15 @@ export function useWebRefreshActivity(): boolean {
 
 /**
  * AppRefreshControl – Bản web: đăng ký trạng thái refreshing vào store dùng
- * chung rồi trả về null (react-native-web sẽ bỏ qua node này nếu có render).
+ * chung và render children nguyên ven (bắt buộc — xem ghi chú wrapper ở đầu
+ * file; RNW cloneElement refreshControl với children = ScrollView).
  *
  * @param refreshing – Trạng thái đang refresh.
+ * @param children – ScrollView/FlatList được bọc ngoài.
  */
 export default function AppRefreshControl({
   refreshing,
+  children,
 }: AppRefreshControlProps) {
   useEffect(() => {
     if (!refreshing) return undefined;
@@ -69,5 +73,5 @@ export default function AppRefreshControl({
     };
   }, [refreshing]);
 
-  return null;
+  return <>{children}</>;
 }

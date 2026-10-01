@@ -11,7 +11,7 @@ import {
   type ScaledSize,
   useWindowDimensions,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaFrameContext, SafeAreaInsetsContext } from "react-native-safe-area-context";
 
 import { COLORS } from "~/constants/DesignSystem";
 import { useWebRefreshActivity } from "~/components/ui/AppRefreshControl";
@@ -109,27 +109,28 @@ export default function AppViewport({
     </AppViewportDimensionsContext.Provider>
   );
 
-  // Web-only: bọc SafeAreaProvider với insets tổng hợp — native giữ provider
-  // thật của expo-router (insets vật lý), nếu override trên native sẽ phá
-  // safe area thật của thiết bị.
+  // Web-only: cung cấp safe-area tổng hợp qua CONTEXT TRỰC TIẾP (không dùng
+  // SafeAreaProvider initialMetrics — provider của thư viện sẽ đo lại bằng
+  // probe div trên trình duyệt (env() = 0) và ghi đè giá trị sau 1 frame,
+  // khiến nội dung dính lại sát mép). Native giữ provider thật của
+  // expo-router (insets vật lý từ thiết bị).
   if (platform !== "web") {
     return frameContent;
   }
 
   return (
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: {
-          x: 0,
-          y: 0,
-          width: appDimensions.width,
-          height: appDimensions.height,
-        },
-        insets: WEB_SYNTHETIC_INSETS,
+    <SafeAreaFrameContext.Provider
+      value={{
+        x: 0,
+        y: 0,
+        width: appDimensions.width,
+        height: appDimensions.height,
       }}
     >
-      {frameContent}
-    </SafeAreaProvider>
+      <SafeAreaInsetsContext.Provider value={WEB_SYNTHETIC_INSETS}>
+        {frameContent}
+      </SafeAreaInsetsContext.Provider>
+    </SafeAreaFrameContext.Provider>
   );
 }
 
