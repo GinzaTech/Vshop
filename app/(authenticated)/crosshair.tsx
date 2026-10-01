@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import AppIcon from "~/components/ui/AppIcon";
 import GlassCard from "~/components/ui/GlassCard";
+import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { CROSSHAIR_DB, type CrosshairData } from "~/constants/CrosshairData";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
@@ -155,7 +156,7 @@ export default function CrosshairDatabase() {
                 accessibilityRole="tab"
                 accessibilityLabel={category.label}
                 accessibilityState={{ selected: activeCategory === category.value }}
-                style={[styles.tab, activeCategory === category.value && styles.tabActive]}>
+                style={[styles.tab, LIQUID_GLASS_CHIP_STYLE, activeCategory === category.value && styles.tabActive]}>
                 <Text style={[styles.tabText, activeCategory === category.value && styles.tabTextActive]}>{category.label}</Text>
               </TouchableOpacity>
             ))}
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
   input: { marginLeft: 10, color: COLORS.TEXT_PRIMARY, flex: 1, fontSize: 14 },
   // Hàng tabs category
   tabs: { flexDirection: "row", gap: 10 },
-  tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: RADIUS.chip, backgroundColor: COLORS.SURFACE, borderWidth: 1, borderColor: COLORS.BORDER },
+  tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: RADIUS.chip },
   tabActive: { backgroundColor: COLORS.PURE_BLACK, borderColor: COLORS.PURE_BLACK },
   tabText: { color: COLORS.TEXT_SECONDARY, fontSize: 12, fontWeight: "600" },
   tabTextActive: { color: COLORS.PURE_WHITE },

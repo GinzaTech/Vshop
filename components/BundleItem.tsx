@@ -11,9 +11,8 @@ import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 
 import AppIcon from "~/components/ui/AppIcon";
-import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
 import CurrencyIcon from "./CurrencyIcon";
-import { BUNDLE_SURFACE_BORDER, COLORS, GLASS_MATERIAL, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
 import { formatVp, hasBundleDiscount } from "~/utils/bundle-display";
 
 // Interface định nghĩa props cho BundleItem
@@ -50,9 +49,8 @@ const BundleItem = React.memo(function BundleItem({
       accessible
       accessibilityRole="text"
       accessibilityLabel={accessibilitySummary}
-      style={[styles.card, styles.glassCard, SHADOWS.xs, { width }]}
+      style={[styles.card, SHADOWS.xs, { width }]}
     >
-      <LiquidGlassDecoration radius={RADIUS.md} density="dense" tone="light" />
       {/* Vùng artwork + tên: overlay "đã sở hữu" phủ đến đây, không chạm giá */}
       <View style={styles.topBlock}>
         <View style={styles.visualFrame}>
@@ -128,12 +126,8 @@ const BundleItem = React.memo(function BundleItem({
 
 // StyleSheet: định nghĩa các style cho BundleItem (chỉ token sáng, unified)
 const styles = StyleSheet.create({
-  glassCard: {
-    backgroundColor: GLASS_MATERIAL.surface,
-    borderColor: BUNDLE_SURFACE_BORDER.color,
-    borderWidth: BUNDLE_SURFACE_BORDER.width,
-  },
-  // card – tile item nền trắng thống nhất, viền mờ, bo góc RADIUS.md
+  // card – tile item nền trắng đục thống nhất, viền mờ, bo góc RADIUS.md.
+  // Không dùng lớp kính mờ phủ: artwork phải sắc nét, hết cảm giác "milk wash".
   card: {
     backgroundColor: COLORS.SURFACE,
     borderColor: COLORS.BORDER,
@@ -143,10 +137,10 @@ const styles = StyleSheet.create({
   },
   // topBlock – vùng artwork + tên; overlay ownership phủ trọn vùng này
   topBlock: {},
-  // visualFrame – artwork band contain, cùng nền SURFACE (không divider)
+  // visualFrame – artwork band contain, trong suốt để join nền tile
   visualFrame: {
     aspectRatio: BUNDLE_ITEM_ART_ASPECT_RATIO,
-    backgroundColor: GLASS_MATERIAL.clear,
+    backgroundColor: "transparent",
     padding: SPACING.xxs,
   },
   // image – ảnh contain (vũ khí/melee lẫn phụ kiện) chiếm toàn band

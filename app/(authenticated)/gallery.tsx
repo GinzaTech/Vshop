@@ -4,6 +4,7 @@ import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "r
 import { useTranslation } from "react-i18next";
 
 import AppIcon from "~/components/ui/AppIcon";
+import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import GalleryWeapon from "~/components/GalleryWeapon";
@@ -130,7 +131,7 @@ function Gallery() {
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               onPress={() => setFilter(item.key as "all" | "wishlist")}
-              activeOpacity={0.85} style={[styles.chip, active && styles.chipActive]}>
+              activeOpacity={0.85} style={[styles.chip, LIQUID_GLASS_CHIP_STYLE, active && styles.chipActive]}>
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: COLORS.TEXT_PRIMARY },
   // Hàng chips filter
   chips: { flexDirection: "row", gap: 10, paddingHorizontal: 20, marginTop: 14, marginBottom: 10 },
-  chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: RADIUS.chip, backgroundColor: COLORS.SURFACE, borderWidth: 1, borderColor: COLORS.BORDER },
+  chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: RADIUS.chip },
   chipActive: { backgroundColor: COLORS.PURE_BLACK, borderColor: COLORS.PURE_BLACK },
   chipLabel: { color: COLORS.TEXT_SECONDARY, fontWeight: "600" },
   chipLabelActive: { color: COLORS.PURE_WHITE },

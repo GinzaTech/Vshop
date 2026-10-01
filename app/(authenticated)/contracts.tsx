@@ -10,6 +10,7 @@ import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { useContractsScreenData } from "~/hooks/useContractsScreenData";
 import { getAgent } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
+import { LIQUID_GLASS_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: 6, fontSize: 15, lineHeight: 22, color: COLORS.TEXT_SECONDARY },
   // Hàng thống kê: 2 card
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
-  statCard: { flex: 1, minHeight: 84, borderRadius: 18, borderWidth: 1, borderColor: COLORS.BORDER, backgroundColor: COLORS.SURFACE, padding: 12, justifyContent: "center" },
+  statCard: { ...LIQUID_GLASS_CARD_STYLE, flex: 1, minHeight: 84, borderRadius: 18, padding: 12, justifyContent: "center" },
   statValue: { marginTop: 7, color: COLORS.TEXT_PRIMARY, fontSize: 20, fontWeight: "900" },
   statLabel: { marginTop: 2, color: COLORS.TEXT_SECONDARY, fontSize: 11, fontWeight: "700" },
   // Tiêu đề section

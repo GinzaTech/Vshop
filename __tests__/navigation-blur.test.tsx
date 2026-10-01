@@ -30,7 +30,7 @@ describe("static navigation backdrop blur", () => {
     expect(blur.props.experimentalBlurMethod).toBeUndefined();
     expect(StyleSheet.flatten(blur.props.style)).toEqual(StyleSheet.absoluteFill);
     const veil = renderer.root.findByProps({ testID: "primary-tab-glass-veil" });
-    expect(StyleSheet.flatten(veil.props.style).backgroundColor).toBe(GLASS_MATERIAL.surface);
+    expect(StyleSheet.flatten(veil.props.style).backgroundColor).toBe(GLASS_MATERIAL.navVeil);
     expect(veil.props.accessibilityElementsHidden).toBe(true);
     act(() => renderer.update(<NavigationBarBackdrop blurTarget={target} />));
     expect(renderer.root.findByType(BlurView)).toBe(blur);

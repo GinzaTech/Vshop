@@ -19,6 +19,7 @@ import AppIcon from "~/components/ui/AppIcon";
 import { useUserStore } from "~/hooks/useUserStore";
 import { fetchCompetitiveTiers, getAssets } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
+import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import {
   COMPETITIVE_TIER_IDS,
@@ -224,6 +225,7 @@ export default function LeaderboardScreen() {
                 accessibilityState={{ selected: selectedSeason === s.id }}
                 style={[
                   styles.seasonChip,
+                  LIQUID_GLASS_CHIP_STYLE,
                   selectedSeason === s.id && styles.seasonChipActive,
                 ]}
                 onPress={() => handleSeasonChange(s.id)}
@@ -349,14 +351,11 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     paddingRight: 20,
   },
-  // seasonChip – Chip chọn mùa (mặc định)
+  // seasonChip – Chip chọn mùa (mặc định, glass)
   seasonChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
   },
   // seasonChipActive – Chip mùa đang được chọn (màu accent)
   seasonChipActive: {

@@ -7,7 +7,7 @@ import TestRenderer, {
 
 import BundleImage from "~/components/BundleImage";
 import CurrencyIcon from "~/components/CurrencyIcon";
-import { COLORS, GLASS_MATERIAL, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
 import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
 import LiquidGlassBackdrop from "~/components/ui/LiquidGlassBackdrop";
 import { createBundleOwnershipLookup } from "~/utils/bundle-ownership";
@@ -202,7 +202,8 @@ describe("BundleImage white detail card", () => {
         ...SHADOWS.xs,
       });
       const decorations = root.findAllByType(LiquidGlassDecoration);
-      expect(decorations).toHaveLength(3);
+      // Chỉ card bundle giữ lớp kính; tile item phải sạch (artwork sắc nét).
+      expect(decorations).toHaveLength(1);
       decorations.forEach((decoration) => {
         const layer = decoration.findAllByType(View)[0];
         expect(layer.props).toMatchObject({ pointerEvents: "none", accessible: false, accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" });
@@ -212,13 +213,12 @@ describe("BundleImage white detail card", () => {
       const cells = findAllByTestId(root, "bundle-item-cell");
       cells.forEach((cell) => {
         expect(StyleSheet.flatten(cell.props.style)).toMatchObject({
-          backgroundColor: GLASS_MATERIAL.surface,
-          borderColor: COLORS.BORDER_STRONG,
-          borderWidth: 1.5,
+          backgroundColor: COLORS.SURFACE,
+          borderColor: COLORS.BORDER,
+          borderWidth: 1,
           ...SHADOWS.xs,
         });
-        expect(cell.findByType(LiquidGlassDecoration).props).toMatchObject({ radius: RADIUS.md, density: "dense" });
-        expect(cell.props.children[0].type).toBe(LiquidGlassDecoration);
+        expect(cell.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
       });
       expect(card.props.children[0].type).toBe(LiquidGlassDecoration);
       expect(root.findByProps({ testID: "bundle-item-carousel" }).props.data).toEqual(makeBundle().items);
@@ -588,7 +588,7 @@ describe("BundleImage white detail card", () => {
       const cell = cells[0];
 
       const cellStyle = StyleSheet.flatten(cell.props.style);
-      expect(cellStyle.backgroundColor).toBe(GLASS_MATERIAL.surface);
+      expect(cellStyle.backgroundColor).toBe(COLORS.SURFACE);
       expect(cellStyle.borderRadius).toBe(RADIUS.md);
 
       // Artwork band: landscape, contain, không divider/viền ngăn cách.

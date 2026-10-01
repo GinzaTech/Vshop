@@ -19,7 +19,7 @@ export function NavigationBarBackdrop({ blurTarget }: { blurTarget?: NavigationB
       importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill} /> : null}
     <View testID="primary-tab-glass-veil" pointerEvents="none" accessible={false} aria-hidden
       accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
-      style={[StyleSheet.absoluteFill, { backgroundColor: blur ? GLASS_MATERIAL.surface : GLASS_MATERIAL.fallback }]} />
+      style={[StyleSheet.absoluteFill, { backgroundColor: blur ? GLASS_MATERIAL.navVeil : GLASS_MATERIAL.fallback }]} />
     <View pointerEvents="none" accessible={false} aria-hidden accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants" style={styles.rim} />
     <View testID="primary-tab-inner-separator" pointerEvents="none" accessible={false} aria-hidden

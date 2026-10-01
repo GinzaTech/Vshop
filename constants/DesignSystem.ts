@@ -67,6 +67,8 @@ export const COLORS = {
 export const GLASS_MATERIAL = {
   surface: "rgba(255, 255, 255, 0.88)",
   denseSurface: "rgba(255, 255, 255, 0.94)",
+  chipSurface: "rgba(255, 255, 255, 0.66)",
+  navVeil: "rgba(255, 255, 255, 0.58)",
   fallback: COLORS.SURFACE,
   frost: "rgba(236, 238, 240, 0.72)",
   lens: "rgba(235, 235, 235, 0.78)",

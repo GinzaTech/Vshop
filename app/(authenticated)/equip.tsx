@@ -5,6 +5,7 @@ import { Searchbar } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 
 import GalleryEquip from "~/components/GalleryEquip";
+import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { EQUIPMENT_SECTIONS, getCollectionBySection, sortEquipItems, buildEquipDisplayList, sanitizeQuery, type EquipmentSectionKey } from "~/components/popups/equipHelpers";
@@ -119,7 +120,7 @@ const Equip = () => {
               testID={`equipment-tab-${section.key}`}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
-              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              style={[styles.tabButton, LIQUID_GLASS_CHIP_STYLE, isActive && styles.tabButtonActive]}
               onPress={() => handleSectionPress(section.key)} activeOpacity={0.85}>
               <Text
                 numberOfLines={2}
@@ -172,7 +173,8 @@ const styles = StyleSheet.create({
   searchInput: { fontSize: 16, color: COLORS.TEXT_PRIMARY },
   // Hàng tabs section
   tabGroup: { minHeight: 60, marginTop: 12, paddingHorizontal: 20, paddingBottom: 8, gap: 8, alignItems: "stretch", flexDirection: "row" },
-  tabButton: { flex: 1, minHeight: 40, paddingHorizontal: 6, borderRadius: RADIUS.chip, borderWidth: 1, borderColor: COLORS.BORDER, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.SURFACE },
+  // tabButton: glass chip (nền trắng xuyên nhẹ + viền rim), layout giữ nguyên
+  tabButton: { flex: 1, minHeight: 40, paddingHorizontal: 6, borderRadius: RADIUS.chip, alignItems: "center", justifyContent: "center" },
   tabButtonActive: { backgroundColor: COLORS.PURE_BLACK, borderColor: COLORS.PURE_BLACK },
   tabLabel: { fontSize: 13, fontWeight: "600", color: COLORS.TEXT_SECONDARY },
   tabLabelCompact: { fontSize: 11, lineHeight: 14 },

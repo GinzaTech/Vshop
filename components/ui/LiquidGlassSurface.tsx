@@ -52,6 +52,15 @@ export const LIQUID_GLASS_CARD_STYLE: ViewStyle = {
   ...SHADOWS.xs,
 };
 
+/** Lightweight glass for chips/segment tabs: translucent white + inner rim.
+ * Không gắn SVG decoration từng chip (danh sách dài) — nền xuyên nhẹ qua
+ * màu page để đọc là kính, state active vẫn ghi đè bằng style sau trong mảng. */
+export const LIQUID_GLASS_CHIP_STYLE: ViewStyle = {
+  backgroundColor: GLASS_MATERIAL.chipSurface,
+  borderColor: GLASS_MATERIAL.innerBorder,
+  borderWidth: 1,
+};
+
 export interface LiquidGlassSurfaceProps extends ViewProps, LiquidGlassMaterialProps {
   contentStyle?: StyleProp<ViewStyle>;
 }
