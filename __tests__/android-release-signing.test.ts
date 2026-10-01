@@ -5,9 +5,9 @@ const appJson = require("../app.json");
 
 describe("local Android release signing", () => {
   it("bumps the local native release metadata", () => {
-    expect(packageJson.version).toBe("4.1.10");
-    expect(appJson.expo.version).toBe("4.1.10");
-    expect(appJson.expo.android.versionCode).toBe(91);
+    expect(packageJson.version).toBe("4.2.0");
+    expect(appJson.expo.version).toBe("4.2.0");
+    expect(appJson.expo.android.versionCode).toBe(92);
     expect(appJson.expo.ios.buildNumber).toBe("43");
   });
 

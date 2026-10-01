@@ -6,6 +6,49 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-10-01
+
+### Security
+
+- Replace the pentest spawn environment denylist with a conservative
+  allowlist: only known system variables and `EXPO_PUBLIC_*` values reach the
+  Expo/Metro process, so `*_KEY`/`*_PASSWD`-style secrets can no longer leak
+  into the served web bundle.
+- Validate the mobile-vault `stateSnapshot` shape and size on the desktop side
+  (shops/balances/progress objects, match and season maps, profile-cache count,
+  wishlist cap) before applying a transfer; malformed envelopes now reject with
+  `TRANSFERRED_SNAPSHOT_REJECTED` instead of crashing stores on first persist.
+- Harden the pentest companion: reserve the vault claim synchronously before
+  reading the body (double-claim TOCTOU fixed), strip the `Authorization`
+  header when a redirect crosses upstream host kinds, and cap global client
+  sessions (16), live auth browsers (4) and pending vaults (8) with explicit
+  429 error codes.
+- Pick explicit Riot cookie fields when building handoff envelopes instead of
+  spreading unknown cookie properties.
+- Map mobile-mirror failures to distinct localized messages (needs re-auth,
+  expired, superseded, generic) instead of one generic error string.
+
+### Fixed
+
+- Restore the saved-account list when a phone-vault import fails after
+  `clearSavedAccounts`, run transfer activation inside the shared session
+  operation queue/mutex so it cannot interleave with account switches, keep a
+  cancel during "activating" from resurrecting a ready state, and invalidate
+  resource caches/startup markers on transfer start and rollback.
+- Chat init failures no longer clobber a newer connection's state (orphan
+  sockets are disconnected) and token renewals keep roster revision state so
+  friends refreshes survive reconnects.
+- Gate the Android liquid-glass refraction lens on Reduce Transparency (capture
+  and refraction fall back to the static tint) and document the lens rules
+  (no opacity on active glass ancestors, no glass-on-glass, lens needs dynamic
+  content behind it).
+- Consolidate duplicated helpers: `mapWithConcurrency` into `utils/network`,
+  `getCompetitiveQueueSkill` into `utils/profile-rank`, single
+  `API_DEBUG_LOGGING` flag, renamed the rank title-case helper; guard the last
+  unguarded dev console warnings and drop two weak `@ts-ignore`s.
+- Remove the unused `@expo/vector-icons` dependency and the iOS-only
+  `@callstack/liquid-glass` package (peer requires an unshipped RN patch).
+
 ### Fixed
 
 - Repair the Android handoff deep link: `adb shell` joined argv into the

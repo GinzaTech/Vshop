@@ -273,6 +273,17 @@ Sau khi build:
 4. kiểm tra login, shop, profile, refresh, match history, TLS chat và update channel;
 5. phát hành GitHub Release nếu smoke test đạt.
 
+### Trạng thái source candidate 4.2.0
+
+- Metadata: app/runtime `4.2.0`, Android `versionCode 92`, iOS `buildNumber 43`
+  (không build iOS trong đợt này).
+- Native refraction lens đã wire vào primary navigation qua
+  `NativeRefraction.android.tsx`; gate: API 33+, `apiVersion 1`, foreground,
+  tag hợp lệ, không Reduce Transparency; Reduce Motion chỉ tắt animation.
+- Full gate PASS: 166 suite / 2367 test, audit, export 9,01/12 MiB tổng,
+  7,79/8 MiB Hermes và asset 0,92/1,50 MiB. FPS/frame metrics trên máy thật
+  chưa đo trong đợt này.
+
 ### Trạng thái source candidate 4.1.10
 
 - Metadata: app/runtime `4.1.10`, Android `versionCode 91`, iOS `buildNumber 43`.

@@ -69,10 +69,28 @@ Nguyên tắc áp dụng từ skill liquid-glass (phiên bản RN/Android của 
 
 ## Acceptance criteria (mục nào xong phải có bằng chứng tương ứng)
 
-- [ ] AC1: Test transferred-session chứng minh account list được restore sau rollback khi `syncAllData` fail.
-- [ ] AC2: Test chứng minh activation và switch không chạy song song (queue/mutex).
-- [ ] AC3: Test env-filter chặn biến chứa `KEY`/`PASSWD`.
-- [ ] AC4: Test snapshot validation reject envelope sai shape/size.
-- [ ] AC5: `pnpm run check` xanh; export android đạt budget; thư mục tạm đã xoá.
-- [ ] AC6: Lens xuất hiện trên ≥1 chrome surface (tab bar hoặc modal) có fallback đầy đủ; ảnh chụp thiết bị + frame metrics ghi trong plan này khi hoàn tất.
-- [ ] AC7: CHANGELOG + version bump + push thành công; EAS build android production lên dây.
+- [x] AC1: Test transferred-session chứng minh account list được restore sau rollback khi `syncAllData` fail. *(commit f29ae12 — `__tests__/transferred-session.test.ts`)*
+- [x] AC2: Test chứng minh activation và switch không chạy song song (queue/mutex). *(commit f29ae12 — mutex `beginTransferredActivation` + test queue)*
+- [x] AC3: Test env-filter chặn biến chứa `KEY`/`PASSWD`. *(commit 2b32abf — `__tests__/pentest-env-filter.test.js` 6/6 pass)*
+- [x] AC4: Test snapshot validation reject envelope sai shape/size. *(commit 2b32abf — 6 case mới trong `transferred-session.test.ts`, 10/10 pass)*
+- [x] AC5: `pnpm run check` xanh; export android đạt budget; thư mục tạm đã xoá. *(166 suite/2367 test, audit pass, export 9,01/12 MB — JS 7,79/8 MB, asset 0,92/1,5 MB; `.codex-tmp/android-check-*` đã xoá)*
+- [x] AC6 (mức source): Lens xuất hiện trên chrome tab bar (`LiquidNavigationShell` + `FloatingTabBar`) với fallback đầy đủ; reduce-transparency gate có test. **Ảnh chụp thiết bị + frame metrics chưa đo** — không có thiết bị đính kèm trong đợt này; cần `scripts/measure-android-primary-tabs.ps1` trên máy thật sau khi cài APK 4.2.0.
+- [ ] AC7: CHANGELOG + version bump + push thành công; EAS build android production lên dây. *(CHANGELOG 4.2.0 + versionCode 92 đã commit; push + EAS build đang chạy)*
+
+## Kết quả thực thi (2026-10-01)
+
+- WS-A → commit `f29ae12` (28 files, logic: rollback accounts, queue/mutex,
+  cancel guard, chat races, consolidation, polish, bỏ 2 deps).
+- WS-B → commit `2b32abf` (12 files, security: env allowlist, snapshot
+  validation, TOCTOU/redirect/caps, cookie picking, mirror i18n + test mới).
+- WS-C → commit `50b2e1d` (reduce-transparency gate cho RefractionTarget/Lens
+  + checklist lens trong BUILD_DESIGN_SYSTEM.md). Ghi chú phát hiện: wrapper
+  JS + shell chrome (`NativeRefraction.android.tsx`, `LiquidNavigationShell`,
+  `FloatingTabBar` RefractionLens) đã có sẵn từ commit `0bd5737` và đang active
+  trong `app/(authenticated)/_layout.tsx` — plan C1/C3 hoàn thành bằng wiring
+  hiện có thay vì tạo `components/ui/LiquidGlassLens.tsx` mới; material
+  regular/clear không thêm API generic vì chỉ có một consumer (tab bar lens
+  dùng tint/magnification/edgeDp từ GLASS_MATERIAL + GLASS_NAV_OPTICS).
+- WS-D → commit `522068d` (coverage floor theo rename `client.native.ts`);
+  full check PASS.
+- WS-E → CHANGELOG [4.2.0] + package/app.json 4.2.0/92 + signing test update.
