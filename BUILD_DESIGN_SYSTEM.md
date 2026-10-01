@@ -105,6 +105,23 @@ lần trên output opaque; icon/label và ánh sáng nằm trên shader. Target 
 cleanup khi ẩn/background/detach, Reduce Motion và APK cũ giữ fallback. Cần build
 native mới; compile/JVM/JS tests không chứng minh chất lượng hay FPS trên máy thật.
 
+Module này đã được wire vào primary navigation: `LiquidNavigationShell` bọc các
+scene chính trong `RefractionTarget`, `FloatingTabBar` render `RefractionLens`
+trong chỉ-indicator di động qua bridge `NativeRefraction.android.tsx`. Gate bắt
+buộc của lens: Android API 33+, module `apiVersion === 1`, tag target hợp lệ,
+app foreground, không Reduce Transparency (Reduce Motion chỉ tắt animation, lens
+tĩnh vẫn cho phép). Checklist khi thêm lens mới:
+
+- Cấm đặt `opacity < 1` lên ancestor của lens đang hoạt động — khúc xạ sụp
+  im lặng; animation thu gọn đang fade cả lens lẫn fallback là giới hạn chấp
+  nhận được, không lồng glass mới vào trạng thái đó.
+- Cấm glass trên glass: chỉ một lớp khúc xạ thật cho mỗi vùng; specular/rim
+  SVG là lớp trang trí, không phải glass thứ hai.
+- Lens cần nội dung động phía sau; nền phẳng một màu biến lens thành hình
+  chữ nhật màu — dùng `LiquidGlassDecoration` thay thế.
+- Card lặp/danh sách dày giữ decoration tĩnh; lens thật giới hạn cho chrome
+  và card nổi bật.
+
 Profile loadout hiển thị lựa chọn tức thời nhưng chỉ gửi một full-payload PUT cho
 mỗi owner. Các intent chưa gửi được gộp theo field và dựng lại từ ACK Version mới.
 Cache chỉ chứa dữ liệu server đã xác nhận. Force GET bị invalidation trả `null`,

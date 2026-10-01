@@ -128,6 +128,14 @@ Vshop/
   cache theo loại dữ liệu; credential không xuất hiện trong key persist.
 - `hooks/useMatchStore.ts` là facade cho `features/matches/`: history, detail,
   season, hydration, request lifetime và snapshot dữ liệu.
+- `features/navigation/` tách shell và optics của liquid glass navigation:
+  `LiquidNavigationShell.tsx` giữ host scene (giữ nguyên TabRouter) và bọc trang
+  trong `RefractionTarget`; `FloatingTabBar.tsx` dựng lens di động trên capsule;
+  `NativeRefraction.android.tsx` là bridge duy nhất sang module
+  `modules/vshop-liquid-glass` (Android API 33+, foreground, tag hợp lệ,
+  Reduce Transparency → fallback tĩnh); `NativeRefraction.tsx` là no-op cho
+  iOS/web/test. Optics (viền, fringe, shine) nằm trong
+  `NavigationLensMaterial.tsx` + `navigation-optics.ts`.
 - `services/matches/` giữ archive match đã quan sát theo account + Act. Native
   dùng SQLite/WAL và primary key kép; web/test dùng `appStorage`. Repository
   tuần tự hoá write, validate payload, chống trùng Match ID và giữ tối đa 1.000

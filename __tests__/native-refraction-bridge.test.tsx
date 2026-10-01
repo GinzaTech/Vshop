@@ -7,6 +7,10 @@ import { RefractionLens, RefractionTarget } from "~/features/navigation/NativeRe
 import { RefractionLens as FallbackLens, RefractionTarget as FallbackTarget } from "~/features/navigation/NativeRefraction";
 
 let mockApiVersion: number | undefined = 1;
+let mockPreferences = { reduceTransparency: false, reduceMotion: false };
+jest.mock("~/components/ui/liquid-glass-native-policy", () => ({
+  useNativeGlassPreferences: () => mockPreferences,
+}));
 jest.mock("expo-modules-core", () => ({
   ...jest.requireActual("expo-modules-core"),
   requireOptionalNativeModule: () => mockApiVersion == null ? null : { apiVersion: mockApiVersion },
@@ -21,6 +25,7 @@ describe("optional native backdrop bridge", () => {
   const remove = jest.fn();
   beforeEach(() => {
     mockApiVersion = 1;
+    mockPreferences = { reduceTransparency: false, reduceMotion: false };
     Object.defineProperty(Platform, "OS", { configurable: true, value: "android" });
     Object.defineProperty(Platform, "Version", { configurable: true, value: 35 });
     AppState.currentState = "active";
@@ -66,6 +71,16 @@ describe("optional native backdrop bridge", () => {
     act(() => { renderer = TestRenderer.create(<><RefractionTarget enabled onTargetReady={ready}><View testID="page" /></RefractionTarget><RefractionLens targetTag={17} enabled /></>); });
     expect(renderer.root.findAllByProps({ testID: "page" }).length).toBeGreaterThan(0);
     expect(renderer.root.findAllByProps({ testID: "navigation-native-refraction" })).toHaveLength(0);
+  });
+  it("reduce transparency keeps the fallback tint and skips capture/refraction", () => {
+    mockPreferences = { reduceTransparency: true, reduceMotion: false };
+    const ready = jest.fn();
+    act(() => { renderer = TestRenderer.create(<><RefractionTarget enabled onTargetReady={ready}><View testID="page" /></RefractionTarget><RefractionLens targetTag={17} enabled /></>); });
+    expect(renderer.root.findByProps({ testID: "navigation-refraction-target" }).props.enabled).toBe(false);
+    expect(renderer.root.findAllByProps({ testID: "navigation-native-refraction" })).toHaveLength(0);
+    mockPreferences = { reduceTransparency: false, reduceMotion: false };
+    act(() => renderer.update(<RefractionLens targetTag={17} enabled />));
+    expect(renderer.root.findByProps({ testID: "navigation-native-refraction" })).toBeDefined();
   });
   it("publishes only valid target tags and disables capture while backgrounded", () => {
     const ready = jest.fn();
