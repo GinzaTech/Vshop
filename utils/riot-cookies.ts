@@ -211,7 +211,9 @@ export const clearAllCookies = async (useWebKit = true) => {
     }
     return clearedAll;
   } catch (error) {
-    console.warn("[cookies] Failed to clear cookies.", sanitizeErrorForLog(error));
+    if (__DEV__) {
+      console.warn("[cookies] Failed to clear cookies.", sanitizeErrorForLog(error));
+    }
     return false;
   }
 };

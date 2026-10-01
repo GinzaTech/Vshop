@@ -6,6 +6,7 @@ import {
   logAxiosError,
   logAxiosRequest,
   logAxiosResponse,
+  API_DEBUG_LOGGING,
 } from "~/utils/api-logger";
 import {
   getRequestUrl,
@@ -17,10 +18,6 @@ import {
 type TimedRequestConfig = InternalAxiosRequestConfig & {
   metadata?: { startTime: number };
 };
-
-// Bật log chi tiết request/response chỉ khi dev + biến môi trường EXPO_PUBLIC_API_DEBUG_LOGGING=1.
-const API_DEBUG_LOGGING =
-  __DEV__ && process.env.EXPO_PUBLIC_API_DEBUG_LOGGING === "1";
 
 // Cờ chống cài interceptor trùng (module có thể được import nhiều lần / HMR).
 let interceptorsInstalled = false;

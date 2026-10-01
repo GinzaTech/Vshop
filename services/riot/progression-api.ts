@@ -1,6 +1,7 @@
 import { riotApiClient as axios } from "~/services/riot/client";
 import { buildRiotApiUrl } from "~/services/riot/endpoints";
-import { API_DEBUG_LOGGING, extraHeaders, logValorantApiDebug, logValorantApiResponse } from "~/services/riot/request-context";
+import { API_DEBUG_LOGGING } from "~/utils/api-logger";
+import { extraHeaders, logValorantApiDebug, logValorantApiResponse } from "~/services/riot/request-context";
 
 export { getRiotClientConfig, clearRiotClientConfigCache } from "~/services/riot/client-config-cache";
 

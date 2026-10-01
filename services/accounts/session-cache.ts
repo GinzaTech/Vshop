@@ -13,7 +13,14 @@ export const captureAccountData = () => ({
   profiles: useProfileCacheStore.getState().cacheByAuth,
 });
 
-const invalidateResourceCaches = () => {
+/**
+ * invalidateResourceCaches — Vô hiệu hóa toàn bộ cache tài nguyên gắn với
+ * credential cũ (combat session, warm cache, player cache, client config,
+ * sync tracking) để account mới không tái sử dụng dữ liệu của account cũ.
+ * Dùng chung cho cả đường switch thường và đường kích hoạt tài khoản
+ * chuyển giao từ điện thoại (transferred-session).
+ */
+export const invalidateResourceCaches = () => {
   useCombatStore.getState().resetSession();
   clearProfileWarmupCache();
   clearRiotPlayerCaches();

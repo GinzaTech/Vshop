@@ -9,11 +9,23 @@ import { disconnectChatService } from "~/utils/chat-service";
 import { syncAllData } from "~/utils/data-sync";
 import { buildAuthenticatedUser } from "~/utils/auth-session";
 import {
+  beginTransferredActivation,
+  endTransferredActivation,
+} from "./session";
+import { invalidateResourceCaches } from "./session-cache";
+import {
   getSessionGeneration,
   invalidateSessionOperations,
+  runSessionOperation,
 } from "~/utils/session-operations";
 import type { TransferredSessionDependencies } from "./transferred-session";
 import type { ProfileWarmCache } from "~/utils/profile-cache";
+import type { SavedAccount } from "~/utils/saved-accounts";
+
+type AccountListSnapshot = {
+  accounts: SavedAccount[];
+  activeAccountId: string | null;
+};
 
 export function createTransferredSessionDependencies(): TransferredSessionDependencies {
   return {
@@ -23,6 +35,17 @@ export function createTransferredSessionDependencies(): TransferredSessionDepend
     activateUser: (user) => useUserStore.getState().activateUser(user),
     buildAuthenticatedUser,
     clearSavedAccounts: () => useAccountStore.getState().clearAccounts(),
+    getAccounts: () => {
+      const state = useAccountStore.getState();
+      return { accounts: state.accounts, activeAccountId: state.activeAccountId };
+    },
+    setAccounts: (snapshot) => {
+      const value = snapshot as AccountListSnapshot;
+      useAccountStore.setState({
+        accounts: value.accounts,
+        activeAccountId: value.activeAccountId,
+      });
+    },
     captureMatchCache,
     restoreMatchCache: (snapshot) => restoreMatchCache(snapshot as MatchCacheSnapshot),
     getProfileCaches: () => useProfileCacheStore.getState().cacheByAuth,
@@ -45,6 +68,10 @@ export function createTransferredSessionDependencies(): TransferredSessionDepend
     },
     getScreenshotMode: () => useFeatureStore.getState().screenshotModeEnabled,
     setScreenshotMode: (value) => useFeatureStore.setState({ screenshotModeEnabled: value }),
+    invalidateResourceCaches,
+    beginActivation: beginTransferredActivation,
+    endActivation: endTransferredActivation,
+    runInSessionQueue: runSessionOperation,
     syncAllData,
     disconnectChat: disconnectChatService,
   };

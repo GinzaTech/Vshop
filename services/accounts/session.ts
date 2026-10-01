@@ -46,13 +46,31 @@ export type SwitchAccountResult =
 
 // Cờ module-level: chỉ cho phép MỘT luồng switch chạy trong cùng thời điểm.
 let switchInProgress = false;
+// Cờ riêng cho luồng kích hoạt tài khoản chuyển giao (mobile mirror): dùng
+// chung ràng buộc "một luồng biến đổi phiên tại một thời điểm" với switch.
+let transferredActivationInProgress = false;
 
 /** Đang có luồng chuyển tài khoản chạy hay không (UI dùng để khóa nút). */
 export const isAccountSwitchInProgress = () => switchInProgress;
-/** Phục hồi phiên (renew nền) có bị tạm dừng hay không — đúng khi đang switch
- *  hoặc đang trong luồng đăng nhập tương tác (WebView login/sign-out). */
+/**
+ * Cố gắng giữ quyền kích hoạt tài khoản chuyển giao. Trả false khi đang có
+ * switch/đăng nhập tương tác/activation khác chạy — caller phải bỏ lượt thay
+ * vì chạy song song gây nhiễm chéo dữ liệu giữa hai phiên.
+ */
+export function beginTransferredActivation(): boolean {
+  if (isSessionRecoveryPaused()) return false;
+  transferredActivationInProgress = true;
+  return true;
+}
+/** Nhả quyền kích hoạt tài khoản chuyển giao (luôn gọi trong finally). */
+export const endTransferredActivation = () => {
+  transferredActivationInProgress = false;
+};
+/** Phục hồi phiên (renew nền) có bị tạm dừng hay không — đúng khi đang switch,
+ *  đang kích hoạt tài khoản chuyển giao, hoặc đang trong luồng đăng nhập
+ *  tương tác (WebView login/sign-out). */
 export const isSessionRecoveryPaused = () =>
-  switchInProgress || isInteractiveAuthentication();
+  switchInProgress || transferredActivationInProgress || isInteractiveAuthentication();
 
 // Dedup renew phiên: key = generation|sessionKey|token cũ → promise chung.
 // Nhiều request nền cùng thấy token hết hạn chỉ tạo MỘT luồng renew thật.

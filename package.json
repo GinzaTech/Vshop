@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",
-    "@expo/vector-icons": "^15.1.1",
     "@preeternal/react-native-cookie-manager": "^6.4.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@sentry/react": "^10.47.0",
@@ -60,8 +59,8 @@
     "expo-router": "~57.0.21",
     "expo-screen-orientation": "~57.0.2",
     "expo-secure-store": "~57.0.4",
-    "expo-sqlite": "~57.0.3",
     "expo-splash-screen": "~57.0.9",
+    "expo-sqlite": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
     "expo-updates": "~57.0.22",

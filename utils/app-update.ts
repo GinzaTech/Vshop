@@ -98,7 +98,9 @@ export const getUpdatesModule = (): UpdatesModule | null => {
   try {
     return require("expo-updates") as UpdatesModule;
   } catch (error) {
-    console.warn("[updates] expo-updates is unavailable.", error);
+    if (__DEV__) {
+      console.warn("[updates] expo-updates is unavailable.", error);
+    }
     return null;
   }
 };
@@ -250,7 +252,9 @@ export const checkForAppUpdate = async (): Promise<AppUpdateCheckResult> => {
     latestVersion = release.version;
     releaseUrl = release.url;
   } catch (error) {
-    console.warn("[updates] Failed to fetch latest release.", error);
+    if (__DEV__) {
+      console.warn("[updates] Failed to fetch latest release.", error);
+    }
   }
 
   // Nếu có thể OTA và module updates khả dụng

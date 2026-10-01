@@ -3,7 +3,8 @@ import { createRequestScope } from "~/services/riot/request-scope";
 import { cacheUpdatedLoadout, clearCachedLoadout, getCachedPlayerLoadout, observeLoadoutSession, invalidateLoadoutReads } from "~/services/riot/loadout-cache";
 import { buildRiotApiUrl } from "~/services/riot/endpoints";
 import type { OwnedItemsResponse, PlayerLoadoutExpression, PlayerLoadoutResponse } from "~/services/riot/api-types";
-import { API_DEBUG_LOGGING, extraHeaders, getPlayerResourceKey } from "~/services/riot/request-context";
+import { API_DEBUG_LOGGING } from "~/utils/api-logger";
+import { extraHeaders, getPlayerResourceKey } from "~/services/riot/request-context";
 import { isLoadoutResponse, validateLoadoutReceipt } from "./loadout-response";
 import { SessionChangedError } from "~/utils/session-operations";
 

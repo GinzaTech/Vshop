@@ -93,9 +93,6 @@ function MockMorphIcon(props: Record<string, unknown>) {
 }
 
 jest.mock("morphicons/react-native", () => ({ MorphIcon: MockMorphIcon }));
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
-  "MaterialCommunityIcons"
-);
 jest.mock("~/components/ui/AppIcon", () => ({
   __esModule: true,
   default: MockAppIcon,

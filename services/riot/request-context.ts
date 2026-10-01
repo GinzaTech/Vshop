@@ -1,4 +1,5 @@
 import { getAssets } from "~/utils/valorant-assets";
+import { API_DEBUG_LOGGING } from "~/utils/api-logger";
 
 // Ghi chú tách lớp: timeout axios (10s) nằm ở services/http/clients.ts;
 // interceptor log + phát hiện session hết hạn nằm ở services/riot/client.ts.
@@ -7,8 +8,7 @@ import { getAssets } from "~/utils/valorant-assets";
 
 // Large Riot request/response logs can block the JS thread in Expo dev.
 // Keep them opt-in so normal development stays responsive.
-export const API_DEBUG_LOGGING =
-  __DEV__ && process.env.EXPO_PUBLIC_API_DEBUG_LOGGING === "1";
+
 
 // Hàm che giấu thông tin bí mật (token, secret) khi log
 // Chỉ hiện 8 ký tự đầu và 6 ký tự cuối nếu chuỗi dài > 16, nếu không thì hiện "***"

@@ -35,12 +35,6 @@ jest.mock("expo-blur", () => {
   return { BlurView: "BlurView", BlurTargetView: ReactModule.forwardRef<View, React.ComponentProps<typeof View>>((props, ref) => ReactModule.createElement(Native.View, { ...props, ref })) };
 });
 
-jest.mock("@expo/vector-icons/MaterialCommunityIcons", () =>
-  function MockMaterialCommunityIcon() {
-    return null;
-  },
-);
-
 jest.mock("morphicons/react-native", () => {
   const ReactModule = require("react") as typeof import("react");
   return {

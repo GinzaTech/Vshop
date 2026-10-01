@@ -268,36 +268,12 @@ export const buildPlayerIntel = (
 };
 
 /**
- * mapWithConcurrency – Chạy worker song song giới hạn trên values, giữ thứ tự kết quả.
- * @param {readonly T[]} values - Dữ liệu đầu vào.
- * @param {number} concurrency - Số task chạy đồng thời tối đa (≥ 1).
- * @param {(value: T) => Promise<R>} worker - Xử lý một phần tử.
- * @returns {Promise<R[]>} Kết quả theo đúng thứ tự của values.
+ * mapWithConcurrency – dùng bản chuẩn trong utils/network (index-aware, có
+ * guard rỗng). Import để dùng nội bộ, đồng thời re-export để consumer cũ của
+ * session-insights không phải đổi import và test hiện có tiếp tục chạy đúng.
  */
-export const mapWithConcurrency = async <T, R>(
-  values: readonly T[],
-  concurrency: number,
-  worker: (value: T) => Promise<R>
-) => {
-  const results = new Array<R>(values.length);
-  let cursor = 0;
-
-  const runWorker = async () => {
-    while (cursor < values.length) {
-      const index = cursor;
-      cursor += 1;
-      results[index] = await worker(values[index]);
-    }
-  };
-
-  await Promise.all(
-    Array.from(
-      { length: Math.min(Math.max(1, concurrency), values.length) },
-      runWorker
-    )
-  );
-  return results;
-};
+import { mapWithConcurrency } from "~/utils/network";
+export { mapWithConcurrency };
 
 /**
  * getCachedMatchDetails – Fetch match details dedup "region|matchId": request

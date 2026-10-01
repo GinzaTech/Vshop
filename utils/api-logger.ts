@@ -21,6 +21,14 @@ let initialized = false;
 let disabledCleanup: Promise<void> | null = null;
 
 const isEnabled = () => __DEV__ && process.env.EXPO_PUBLIC_API_LOGGING === "1" && Platform.OS !== "web";
+/**
+ * API_DEBUG_LOGGING — Cờ bật console.log gọn (method + url) cho từng request
+ * Riot khi dev. Nguồn duy nhất: client.ts và request-context.ts cùng import
+ * từ đây (tránh khai báo trùng, và giữ client.ts nhẹ ở môi trường test vì
+ * suite mock chính module này).
+ */
+export const API_DEBUG_LOGGING =
+  __DEV__ && process.env.EXPO_PUBLIC_API_DEBUG_LOGGING === "1";
 const finite = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
 const clearBuffer = () => {
   epoch += 1;

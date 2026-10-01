@@ -2,7 +2,8 @@ import { riotApiClient as axios } from "~/services/riot/client";
 import { nullableCombatResponse } from "~/services/riot/combat-response";
 import { buildRiotApiUrl } from "~/services/riot/endpoints";
 import type { CurrentGameMatchResponse, PartyResponse } from "~/services/riot/api-types";
-import { API_DEBUG_LOGGING, extraHeaders } from "~/services/riot/request-context";
+import { API_DEBUG_LOGGING } from "~/utils/api-logger";
+import { extraHeaders } from "~/services/riot/request-context";
 
 /** Lấy MatchID trận pregame hiện tại (GET pregame/v1/players/:userId).
  *  Được lockAgent/selectAgent/quit tái dùng để biết trận đang chờ.

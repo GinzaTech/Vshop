@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -47,6 +47,14 @@ function ConnectedMobileAccountMirrorPanel({
   const mirror = useMobileAccountMirror({ client, dependencies });
   const busy = ["checking", "waiting_for_phone", "importing", "activating"]
     .includes(mirror.status);
+  // Activation là nguyên tử (session mutex + rollback all-or-nothing): không
+  // thể hủy an toàn giữa chừng nên ẩn nút Cancel, chỉ cho hủy khi còn đang chờ.
+  const cancellable = ["checking", "waiting_for_phone", "importing"]
+    .includes(mirror.status);
+
+  // Rời màn hình (đóng login/popup) phải dừng vòng chờ điện thoại để không
+  // tự consume + tự switch account khi không còn UI nào hiển thị kết quả.
+  useEffect(() => () => mirror.abortWait(), [mirror]);
 
   if (mode === "accounts") {
     if (!mirror.manifest) return null;
@@ -76,7 +84,7 @@ function ConnectedMobileAccountMirrorPanel({
               }}
               disabled={disabled}
               key={account.handle}
-              onPress={() => { void mirror.activate(account.handle); }}
+              onPress={() => { void mirror.activate(account.handle).catch(() => undefined); }}
               style={[styles.accountRow, selected && styles.accountSelected]}
               testID={`mobile-mirror-account-${account.handle}`}
             >
@@ -142,7 +150,7 @@ function ConnectedMobileAccountMirrorPanel({
         >
           <Text style={styles.primaryText}>{t("mobile_mirror.start")}</Text>
         </Pressable>
-        {busy ? (
+        {cancellable ? (
           <Pressable
             accessibilityRole="button"
             onPress={() => { void mirror.cancel(); }}

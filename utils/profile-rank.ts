@@ -1,5 +1,11 @@
-import type { CompetitiveMMRResponse } from "~/services/riot/api-types";
-import { getAssets } from "./valorant-assets";
+import type {
+  CompetitiveMMRResponse,
+  CompetitiveQueueSkill,
+} from "~/services/riot/api-types";
+// LƯU Ý: KHÔNG import getAssets ở top-level — valorant-assets kéo theo chuỗi
+// storage/AsyncStorage khiến các suite test nhẹ (import profile-rank gián tiếp
+// qua season-mmr-summary) crash trong môi trường jest node. getAssets được
+// require lười bên trong getTierLookup thay thế.
 
 /**
  * CompetitiveRankSummary - Kiểu dữ liệu tóm tắt thứ hạng cạnh tranh
@@ -57,26 +63,10 @@ const FALLBACK_COMPETITIVE_TIER_NAMES: Record<number, string> = {
   27: "Radiant",
 };
 
-// Thông tin xếp hạng của một mùa giải (season) trong payload MMR.
-// Trường là unknown vì Riot trả nhiều shape tùy phiên bản API.
-type CompetitiveSeasonInfo = {
-  Rank?: unknown;
-  CompetitiveTier?: unknown;
-  SeasonHighestCompetitiveTier?: unknown;
-  NumberOfWins?: unknown;
-  NumberOfWinsWithPlacements?: unknown;
-  NumberOfGames?: unknown;
-  NumberOfLosses?: unknown;
-  NumberOfDraws?: unknown;
-  WinsByTier?: Record<string, number> | null;
-};
-
-// Dữ liệu kỹ năng của một queue (thường "competitive") trong payload MMR.
-type CompetitiveQueueSkill = {
-  CompetitiveTier?: unknown;
-  HighestCompetitiveTier?: unknown;
-  SeasonalInfoBySeasonID?: Record<string, CompetitiveSeasonInfo>;
-};
+// Lưu ý: kiểu CompetitiveQueueSkill lấy từ services/riot/api-types (một
+// nguồn duy nhất). Bản khai báo local kiểu "unknown" cũ đã bị xóa khi gộp
+// getCompetitiveQueueSkill thành export dùng chung với season-mmr-summary —
+// các bước kiểm tra typeof tại chỗ (runtime guard) vẫn được giữ nguyên.
 
 /**
  * formatCompetitiveTierName - Format tên thứ hạng theo dạng Title Case
@@ -111,11 +101,14 @@ const formatCompetitiveTierName = (
 };
 
 /**
- * toTitleCase - Chuyển chuỗi thành dạng Title Case
+ * toRankTitleCase - Chuyển chuỗi thành Title Case (unicode-aware vi-VN).
+ * Tên riêng `toRankTitleCase` để phân biệt với `toTitleCase` trong
+ * features/combat/session-insights (phiên bản en-US, xử lý gạch dưới) —
+ * hai hàm cố ý KHÔNG gộp vì hành vi khác nhau.
  * @param {string | null | undefined} value - Chuỗi cần chuyển
  * @returns {string} Chuỗi đã chuyển sang Title Case
  */
-const toTitleCase = (value?: string | null) =>
+const toRankTitleCase = (value?: string | null) =>
   (value || "")
     .trim()
     .toLocaleLowerCase("vi-VN")
@@ -151,7 +144,7 @@ const resolveTierName = (
  * @param {CompetitiveMMRResponse} mmrResult - Kết quả MMR từ API
  * @returns Dữ liệu competitive queue, hoặc null nếu không có
  */
-const getCompetitiveQueueSkill = (
+export const getCompetitiveQueueSkill = (
   mmrResult: CompetitiveMMRResponse,
 ): CompetitiveQueueSkill | null => {
   const queueSkills = mmrResult?.QueueSkills;
@@ -204,6 +197,9 @@ const toRankTier = (value: unknown) => {
  * @returns {Map<number, { name: string; icon: string | null }>} Map với key là số thứ hạng, value là tên và icon
  */
 const getTierLookup = () => {
+  // Require lười (xem ghi chú đầu file): chỉ nạp valorant-assets khi thật sự
+  // cần lookup tên/icon thứ hạng, giữ module này nhẹ cho môi trường test.
+  const { getAssets } = require("./valorant-assets") as typeof import("./valorant-assets");
   const tierLookup = new Map<number, { name: string; icon: string | null }>();
   const competitiveTierSeasons = Array.isArray(getAssets().competitiveTiers)
     ? getAssets().competitiveTiers
@@ -219,7 +215,7 @@ const getTierLookup = () => {
       }
 
       tierLookup.set(numberTier, {
-        name: toTitleCase(tier?.tierName) || `Tier ${numberTier}`,
+        name: toRankTitleCase(tier?.tierName) || `Tier ${numberTier}`,
         icon:
           tier?.smallIcon ||
           tier?.largeIcon ||

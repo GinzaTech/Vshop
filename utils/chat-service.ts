@@ -294,6 +294,11 @@ export async function initChatService(
     activeConnectionKey = connectionKey;
     previousClient?.disconnect();
 
+    // Tham chiếu giữ riêng để catch có thể dọn socket mồ côi khi task này
+    // đã bị một connection mới hơn thay thế quyền sở hữu (client được tạo
+    // bên trong try nên catch không nhìn thấy biến `client`).
+    let createdClient: XMPPClient | null = null;
+
     try {
       useChatStore.getState().setStatus("connecting");
       const pasToken = await getPASToken(accessToken);
@@ -317,6 +322,7 @@ export async function initChatService(
         host,
         xmppRegion,
       });
+      createdClient = client;
       xmppClientInstance = client;
     // Hàm kiểm tra client hiện tại còn là active không
     const isActiveClient = () =>
@@ -459,7 +465,16 @@ export async function initChatService(
       // stale credentials shortly afterwards. Avoid an intrusive LogBox error
       // for this recoverable state while keeping the failure visible in logs.
       if (__DEV__) console.log("[XMPP] Initialization failed; retry scheduled", sanitizeErrorForLog(error));
-      activeConnectionKey = connectionKey;
+      // FIX (F3): task init cũ thất bại KHÔNG được clobber trạng thái của
+      // connection mới hơn — trước đây nó ghi đè activeConnectionKey, ép
+      // status "error" và lên lịch reconnect bằng credential cũ, khiến task
+      // mới (đang kết nối tốt) tự hủy ở guard post-await. Giờ đây: chỉ đụng
+      // global/status khi key này vẫn đang giữ quyền; ngược lại chỉ ngắt
+      // socket mồ côi do task này tạo ra (nếu có).
+      if (activeConnectionKey !== connectionKey) {
+        createdClient?.disconnect();
+        return;
+      }
       useChatStore.getState().setStatus("error");
       scheduleReconnect(
         connectionKey,
@@ -857,10 +872,18 @@ export function disconnectChatService(options?: {
   activeConnectionKey = null;
   rosterNameResolveKey = null;
   rosterRefreshPromise = null;
-  rosterRevision = 0;
   partyJoinRequests.clear();
   currentUserId = null;
-  if (!options?.keepSessionData) {
+  // FIX (F4): khi giữ dữ liệu phiên (renew token cùng account), rosterRevision
+  // phải giữ đơn điệu — reset về 0 khiến một refreshFriendsRoster đang chờ
+  // (previousRevision = N > 0) không bao giờ thấy revision mới lớn hơn, chờ
+  // đủ 10s rồi báo lỗi timeout dù connection đã hồi phục.
+  if (options?.keepSessionData) {
+    // Báo "disconnected" để waiter fail-fast vào documented re-init path
+    // thay vì nhìn status "authenticated" với socket đã chết.
+    useChatStore.getState().setStatus("disconnected");
+  } else {
+    rosterRevision = 0;
     useChatStore.getState().resetChatSession();
   }
 }

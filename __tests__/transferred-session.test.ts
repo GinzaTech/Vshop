@@ -74,10 +74,12 @@ const transferred = (accountId = ACCOUNT_A): TransferredAccountSession => ({
 function createHarness(selected = transferred()) {
   let generation = 0;
   let user = { ...defaultUser, id: "previous", region: "ap", accessToken: "previous-token" };
+  let accounts: unknown = { accounts: [{ id: "previous" }], activeAccountId: "previous" };
   let matchCache: unknown = { owner: "previous" };
   let profileCaches: unknown = { previous: true };
   let wishlist: unknown = { skinIds: ["previous"], notificationEnabled: false };
   let screenshotModeEnabled = false;
+  let activationLockTaken = false;
   const client = {
     activateMobileVaultAccount: jest.fn(async () => selected),
   } as unknown as jest.Mocked<PentestCompanionClient>;
@@ -98,6 +100,8 @@ function createHarness(selected = transferred()) {
       entitlementsToken: "fresh-entitlements",
     })),
     clearSavedAccounts: jest.fn(),
+    getAccounts: () => accounts,
+    setAccounts: (next) => { accounts = next; },
     captureMatchCache: () => matchCache,
     restoreMatchCache: (next) => { matchCache = next; },
     getProfileCaches: () => profileCaches,
@@ -106,6 +110,14 @@ function createHarness(selected = transferred()) {
     setWishlist: (next) => { wishlist = next; },
     getScreenshotMode: () => screenshotModeEnabled,
     setScreenshotMode: (next) => { screenshotModeEnabled = next; },
+    invalidateResourceCaches: jest.fn(),
+    beginActivation: jest.fn(() => {
+      if (activationLockTaken) return false;
+      activationLockTaken = true;
+      return true;
+    }),
+    endActivation: () => { activationLockTaken = false; },
+    runInSessionQueue: async (operation) => operation(),
     syncAllData: jest.fn(async () => undefined),
     disconnectChat: jest.fn(),
   };
@@ -113,7 +125,7 @@ function createHarness(selected = transferred()) {
     client,
     dependencies,
     advanceGeneration: () => { generation += 1; },
-    state: () => ({ user, matchCache, profileCaches, wishlist, screenshotModeEnabled }),
+    state: () => ({ user, matchCache, profileCaches, wishlist, screenshotModeEnabled, accounts }),
   };
 }
 
@@ -187,7 +199,82 @@ describe("activateTransferredAccount", () => {
       user: { id: "previous" },
       matchCache: { owner: "previous" },
       wishlist: { skinIds: ["previous"] },
+      accounts: { accounts: [{ id: "previous" }], activeAccountId: "previous" },
     });
+    expect(harness.dependencies.clearSavedAccounts).not.toHaveBeenCalled();
+  });
+
+  it("rolls back the saved-account list when syncAllData fails after a successful login", async () => {
+    const harness = createHarness();
+    jest.mocked(harness.dependencies.syncAllData)
+      .mockRejectedValueOnce(new Error("profile warm cache is unavailable"));
+
+    await expect(activateTransferredAccount({
+      client: harness.client,
+      handle: manifest.activeHandle,
+      manifest,
+      dependencies: harness.dependencies,
+    })).rejects.toMatchObject({ code: "TRANSFERRED_ACCOUNT_ACTIVATION_FAILED" });
+    expect(harness.state().user.id).toBe("previous");
+    expect(harness.state().accounts).toEqual({
+      accounts: [{ id: "previous" }],
+      activeAccountId: "previous",
+    });
+    expect(harness.dependencies.clearSavedAccounts).not.toHaveBeenCalled();
+  });
+
+  it("only clears browser saved accounts after sync succeeds", async () => {
+    const harness = createHarness();
+    const order: string[] = [];
+    jest.mocked(harness.dependencies.syncAllData).mockImplementationOnce(async () => {
+      order.push("sync");
+      return undefined;
+    });
+    (harness.dependencies.clearSavedAccounts as jest.Mock).mockImplementationOnce(() => {
+      order.push("clear");
+    });
+
+    await activateTransferredAccount({
+      client: harness.client,
+      handle: manifest.activeHandle,
+      manifest,
+      dependencies: harness.dependencies,
+    });
+    expect(order).toEqual(["sync", "clear"]);
+  });
+
+  it("refuses activation while another session mutation is in progress without consuming the vault", async () => {
+    const harness = createHarness();
+    jest.mocked(harness.dependencies.beginActivation).mockReturnValueOnce(false);
+
+    await expect(activateTransferredAccount({
+      client: harness.client,
+      handle: manifest.activeHandle,
+      manifest,
+      dependencies: harness.dependencies,
+    })).rejects.toMatchObject({ code: "SESSION_BUSY" });
+    expect(harness.client.activateMobileVaultAccount).not.toHaveBeenCalled();
+  });
+
+  it("releases the activation lock after success and after failure", async () => {
+    const harness = createHarness();
+    await activateTransferredAccount({
+      client: harness.client,
+      handle: manifest.activeHandle,
+      manifest,
+      dependencies: harness.dependencies,
+    });
+    expect(harness.dependencies.beginActivation()).toBe(true);
+
+    const failing = createHarness();
+    jest.mocked(failing.dependencies.buildAuthenticatedUser).mockRejectedValueOnce(new Error("x"));
+    await expect(activateTransferredAccount({
+      client: failing.client,
+      handle: manifest.activeHandle,
+      manifest,
+      dependencies: failing.dependencies,
+    })).rejects.toBeInstanceOf(TransferredSessionError);
+    expect(failing.dependencies.beginActivation()).toBe(true);
   });
 
   it("does not roll an older failure over a newer account switch", async () => {

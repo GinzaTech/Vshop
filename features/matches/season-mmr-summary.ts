@@ -1,8 +1,8 @@
 import type {
   CompetitiveMMRResponse,
-  CompetitiveQueueSkill,
   CompetitiveSeasonInfo,
 } from "~/services/riot/api-types";
+import { getCompetitiveQueueSkill } from "~/utils/profile-rank";
 import type { SeasonPerformanceStats } from "~/types/match-ui";
 import { SEASON_STATS_CALCULATION_VERSION } from "./cache-policy";
 import type { CompetitiveSeason } from "./season-summary";
@@ -13,25 +13,8 @@ const toNonNegativeNumber = (value: unknown): number | null => {
   return Number.isFinite(numericValue) ? Math.max(0, numericValue) : null;
 };
 
-const getCompetitiveQueueSkill = (
-  result: CompetitiveMMRResponse
-): CompetitiveQueueSkill | null => {
-  const queueSkills = result.QueueSkills;
-  if (!queueSkills || typeof queueSkills !== "object") return null;
-  if (queueSkills.competitive) return queueSkills.competitive;
-
-  return (
-    Object.entries(queueSkills).find(
-      ([queueName, queueData]) =>
-        queueName.toLocaleLowerCase("en-US").includes("competitive") &&
-        queueData
-    )?.[1] ??
-    Object.values(queueSkills).find(
-      (queueData) => queueData?.SeasonalInfoBySeasonID
-    ) ??
-    null
-  );
-};
+// getCompetitiveQueueSkill dùng bản chuẩn trong utils/profile-rank (bản bộ
+// cục bộ cũ thiếu guard typeof === "object" — đã gộp về một implementation).
 
 const getSeasonInfo = (
   result: CompetitiveMMRResponse,

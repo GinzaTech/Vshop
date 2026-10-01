@@ -32,11 +32,17 @@ export function createMobileAccountMirrorController({
   wait = defaultWait,
 }: ControllerOptions) {
   let attempt = 0;
+  // Đúng MỘT activation chạy tại một thời điểm: trong lúc đó cancel không được
+  // phép "hồi sinh" UI hay nuốt kết quả thật của phiên (activation là nguyên tử
+  // và được bảo vệ bởi session mutex — không hủy giữa chừng được).
+  let activationInFlight = false;
 
   const activate = async (handle: string) => {
     const state = useMobileMirrorStore.getState();
     if (!state.manifest) throw new Error("MOBILE_VAULT_UNAVAILABLE");
     const previousHandle = state.activeHandle;
+    const activationAttempt = ++attempt;
+    activationInFlight = true;
     useMobileMirrorStore.setState({ status: "activating", errorCode: null });
     try {
       const user = await activateTransferredAccount({
@@ -45,6 +51,8 @@ export function createMobileAccountMirrorController({
         manifest: state.manifest,
         dependencies,
       });
+      // Cancel/start mới trong lúc activation chạy phải thắng việc publish.
+      if (attempt !== activationAttempt) return user;
       useMobileMirrorStore.setState({
         status: "ready",
         activeHandle: handle,
@@ -52,13 +60,17 @@ export function createMobileAccountMirrorController({
       });
       return user;
     } catch (error) {
-      const code = safeErrorCode(error);
-      useMobileMirrorStore.setState({
-        status: "error",
-        activeHandle: previousHandle,
-        errorCode: code,
-      });
-      throw new Error(code);
+      if (attempt === activationAttempt) {
+        const code = safeErrorCode(error);
+        useMobileMirrorStore.setState({
+          status: "error",
+          activeHandle: previousHandle,
+          errorCode: code,
+        });
+      }
+      throw new Error(safeErrorCode(error));
+    } finally {
+      activationInFlight = false;
     }
   };
 
@@ -111,12 +123,21 @@ export function createMobileAccountMirrorController({
     attempt += 1;
     try {
       await client.cancelMobileVault();
+    } catch {
+      // Vault có thể đã bị consume/hết hạn phía server — việc reset store
+      // về idle quan trọng hơn lỗi hủy; mã lỗi không đáng để đẩy lên UI.
     } finally {
       useMobileMirrorStore.setState({ ...initialMobileMirrorState });
     }
   };
 
-  return Object.freeze({ start, activate, cancel });
+  /** Dừng vòng chờ điện thoại khi panel unmount (không reset store, không
+   *  chạm vault, không nuốt kết quả activation đang chạy thật). */
+  const abortWait = () => {
+    if (!activationInFlight) attempt += 1;
+  };
+
+  return Object.freeze({ start, activate, cancel, abortWait });
 }
 
 export function useMobileAccountMirror(options: ControllerOptions) {

@@ -20,7 +20,6 @@ interface WishlistState {
   toggleSkin: (uuid: string) => void;
 }
 
-// @ts-ignore
 // --- Tạo Zustand store với persist (lưu xuống storage dưới key "wishlist") ---
 // Persist toàn bộ state (2 trường dữ liệu đều cần thiết khi khởi động lại app).
 export const useWishlistStore = create<WishlistState>()(
