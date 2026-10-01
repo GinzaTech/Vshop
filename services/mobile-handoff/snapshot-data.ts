@@ -35,6 +35,29 @@ const MATCH_CACHE_KEYS = [
   "seasonStatsById", "seasonMatchesById", "seasonOptions",
 ] as const;
 
+/**
+ * Chỉ giữ các field cookie Riot đã biết (RiotAuthCookie) — không spread toàn
+ * bộ object cookie vì native cookie có thể mang field lạ (B5) mà phía desktop
+ * không validate được.
+ */
+const pickRiotCookie = (
+  cookie: MobileVaultSnapshotInput["accounts"][number]["authCookies"] extends
+    | readonly (infer C)[]
+    | undefined
+    ? C
+    : never,
+) => ({
+  name: cookie.name,
+  value: cookie.value,
+  ...(cookie.path === undefined ? {} : { path: cookie.path }),
+  ...(cookie.domain === undefined ? {} : { domain: cookie.domain }),
+  ...(cookie.version === undefined ? {} : { version: cookie.version }),
+  ...(cookie.expires === undefined ? {} : { expires: cookie.expires }),
+  ...(cookie.secure === undefined ? {} : { secure: cookie.secure }),
+  ...(cookie.httpOnly === undefined ? {} : { httpOnly: cookie.httpOnly }),
+  ...(cookie.sameSite === undefined ? {} : { sameSite: cookie.sameSite }),
+});
+
 export function createMobileAccountVaultEnvelope(
   input: MobileVaultSnapshotInput,
 ): MobileAccountVaultEnvelope {
@@ -46,7 +69,7 @@ export function createMobileAccountVaultEnvelope(
     accessToken: account.accessToken,
     idToken: account.idToken,
     entitlementsToken: account.entitlementsToken,
-    authCookies: account.authCookies?.map((cookie) => ({ ...cookie })) ?? [],
+    authCookies: account.authCookies?.map(pickRiotCookie) ?? [],
     lastUsedAt: account.lastUsedAt,
   }));
   const activeId = normalizeAccountId(input.activeAccountId);

@@ -58,6 +58,55 @@ export type TransferredSessionDependencies = Readonly<{
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
+// Cap kích thước stateSnapshot phía desktop — đối xứng với giới hạn manifest
+// mà companion build phía điện thoại (profileCacheCount ≤ 3, wishlistCount
+// ≤ 2000) và cap persist của match store (MAX_PERSISTED_MATCHES = 200).
+// Envelope đi qua mạng local nên PHẢI được validate lại client-side (B2):
+// bất kỳ ai chạm được claim endpoint với pairing code đều kiểm soát JSON này.
+const MAX_TRANSFERRED_MATCHES = 200;
+const MAX_TRANSFERRED_PROFILE_CACHES = 3;
+const MAX_TRANSFERRED_WISHLIST_ITEMS = 2_000;
+
+/**
+ * validateTransferredSnapshotShape — Kiểm tra shape + size cap của
+ * stateSnapshot trong envelope trước khi áp vào store. Sai kiểu hoặc vượt
+ * cap → TRANSFERRED_SNAPSHOT_REJECTED (không truncate im lặng — dữ liệu cắt
+ * cụt sẽ trông giống dữ liệu thật).
+ */
+const validateTransferredSnapshotShape = (snapshot: Record<string, unknown>) => {
+  const activeUser = snapshot.activeUser as Record<string, unknown>;
+  // activeUser đã được kiểm id/region ở caller; đây là shape các field dữ liệu.
+  for (const key of ["shops", "balances", "progress"] as const) {
+    if (activeUser[key] !== undefined && !isRecord(activeUser[key])) {
+      throw new TransferredSessionError("TRANSFERRED_SNAPSHOT_REJECTED");
+    }
+  }
+
+  if (snapshot.matchCache !== null && snapshot.matchCache !== undefined) {
+    const matchCache = snapshot.matchCache as Record<string, unknown>;
+    if (!Array.isArray(matchCache.matches) ||
+        matchCache.matches.length > MAX_TRANSFERRED_MATCHES ||
+        !isRecord(matchCache.seasonStatsById) ||
+        !isRecord(matchCache.seasonMatchesById) ||
+        !Array.isArray(matchCache.seasonOptions)) {
+      throw new TransferredSessionError("TRANSFERRED_SNAPSHOT_REJECTED");
+    }
+  }
+
+  const profileCaches = isRecord(snapshot.profileCaches) ? snapshot.profileCaches : {};
+  const cacheEntries = Object.values(profileCaches);
+  if (cacheEntries.length > MAX_TRANSFERRED_PROFILE_CACHES ||
+      cacheEntries.some((cache) => !isRecord(cache))) {
+    throw new TransferredSessionError("TRANSFERRED_SNAPSHOT_REJECTED");
+  }
+
+  const wishlist = snapshot.wishlist as { skinIds: unknown[] };
+  if (wishlist.skinIds.length > MAX_TRANSFERRED_WISHLIST_ITEMS ||
+      wishlist.skinIds.some((skinId) => typeof skinId !== "string" || !skinId)) {
+    throw new TransferredSessionError("TRANSFERRED_SNAPSHOT_REJECTED");
+  }
+};
+
 const tokenSubject = (value: string) => {
   try {
     const payload = jwtDecode<{ sub?: unknown }>(value);
@@ -115,6 +164,8 @@ const snapshotForSelectedAccount = (
       typeof snapshot.preferences.screenshotModeEnabled !== "boolean") {
     throw new TransferredSessionError("TRANSFERRED_SNAPSHOT_REJECTED");
   }
+  // B2: shape + size cap đầy đủ trước khi tin nội dung envelope.
+  validateTransferredSnapshotShape(snapshot as unknown as Record<string, unknown>);
   return {
     activeUser,
     matchCache: matchCache === null

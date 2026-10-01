@@ -184,6 +184,59 @@ describe("activateTransferredAccount", () => {
     })).rejects.toMatchObject({ code: "TRANSFERRED_SNAPSHOT_REJECTED" });
   });
 
+  const expectSnapshotRejected = async (mutate: (snapshot: Record<string, unknown>) => Record<string, unknown>) => {
+    const selected = transferred();
+    const snapshot = selected.stateSnapshot as Record<string, unknown>;
+    const harness = createHarness({ ...selected, stateSnapshot: mutate(snapshot) });
+    await expect(activateTransferredAccount({
+      client: harness.client,
+      handle: manifest.activeHandle,
+      manifest,
+      dependencies: harness.dependencies,
+    })).rejects.toMatchObject({ code: "TRANSFERRED_SNAPSHOT_REJECTED" });
+    expect(harness.client.activateMobileVaultAccount).toHaveBeenCalledTimes(1);
+  };
+
+  it("rejects snapshots violating size/shape caps without publishing state", async () => {
+    const base = transferred().stateSnapshot as Record<string, unknown>;
+    const oversizedMatches = {
+      ...base,
+      matchCache: {
+        ...(base.matchCache as Record<string, unknown>),
+        matches: Array.from({ length: 201 }, () => ({ MatchID: "x" })),
+      },
+    };
+    const badShops = {
+      ...base,
+      activeUser: { ...(base.activeUser as Record<string, unknown>), shops: "not-a-record" },
+    };
+    const oversizedProfiles = {
+      ...base,
+      profileCaches: Object.fromEntries(
+        Array.from({ length: 4 }, (_, index) => [`k${index}`, { loadoutSnapshot: {} }]),
+      ),
+    };
+    const oversizedWishlist = {
+      ...base,
+      wishlist: { skinIds: Array.from({ length: 2001 }, () => "skin"), notificationEnabled: true },
+    };
+    const nonStringWishlist = {
+      ...base,
+      wishlist: { skinIds: [42], notificationEnabled: true },
+    };
+    const badSeasonMaps = {
+      ...base,
+      matchCache: { ...(base.matchCache as Record<string, unknown>), seasonStatsById: [] },
+    };
+
+    await expectSnapshotRejected(() => oversizedMatches);
+    await expectSnapshotRejected(() => badShops);
+    await expectSnapshotRejected(() => oversizedProfiles);
+    await expectSnapshotRejected(() => oversizedWishlist);
+    await expectSnapshotRejected(() => nonStringWishlist);
+    await expectSnapshotRejected(() => badSeasonMaps);
+  });
+
   it("rolls back when authentication fails and no newer switch started", async () => {
     const harness = createHarness();
     jest.mocked(harness.dependencies.buildAuthenticatedUser)

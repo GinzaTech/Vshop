@@ -10,6 +10,26 @@ import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "~/constants/DesignSystem";
 
 type Props = Readonly<{ mode: "import" | "accounts" }>;
 
+/**
+ * Map mã lỗi nội bộ → i18n key (B4): các nhóm lỗi có cách xử lý khác nhau
+ * (re-auth trên điện thoại / hết hạn → bắt đầu lại / bị thay thế / dữ liệu
+ * bị từ chối) thay vì một câu chung chung. Mã lạ → key generic.
+ */
+const MIRROR_ERROR_KEYS: Readonly<Record<string, string>> = {
+  MOBILE_ACCOUNT_NEEDS_REAUTH: "mobile_mirror.errorNeedsReauth",
+  MOBILE_VAULT_EXPIRED: "mobile_mirror.errorExpired",
+  MOBILE_HANDOFF_EXPIRED: "mobile_mirror.errorExpired",
+  MOBILE_HANDOFF_REPLAYED: "mobile_mirror.errorExpired",
+  SESSION_CHANGED: "mobile_mirror.errorSuperseded",
+  SESSION_BUSY: "mobile_mirror.errorSuperseded",
+  TRANSFERRED_SNAPSHOT_REJECTED: "mobile_mirror.errorRejected",
+  TRANSFERRED_ACCOUNT_REJECTED: "mobile_mirror.errorRejected",
+  TRANSFERRED_ACCOUNT_ACTIVATION_FAILED: "mobile_mirror.errorRejected",
+};
+
+const mirrorErrorKey = (errorCode: string | null) =>
+  (errorCode && MIRROR_ERROR_KEYS[errorCode]) || "mobile_mirror.error";
+
 export default function MobileAccountMirrorPanel({ mode }: Props) {
   const { t } = useTranslation();
   const runtime = useMemo(() => {
@@ -104,7 +124,7 @@ function ConnectedMobileAccountMirrorPanel({
         })}
         {mirror.status === "error" ? (
           <Text accessibilityRole="alert" style={styles.error}>
-            {t("mobile_mirror.error")}
+            {t(mirrorErrorKey(mirror.errorCode))}
           </Text>
         ) : null}
       </View>
@@ -136,7 +156,7 @@ function ConnectedMobileAccountMirrorPanel({
       ) : null}
       {mirror.status === "error" ? (
         <Text accessibilityRole="alert" style={styles.error}>
-          {t("mobile_mirror.error")}
+          {t(mirrorErrorKey(mirror.errorCode))}
         </Text>
       ) : null}
       <View style={styles.actions}>

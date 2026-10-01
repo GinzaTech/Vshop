@@ -4,6 +4,10 @@ import {
   getCompetitiveUpdates,
   matchDetails,
 } from "~/utils/valorant-api";
+import { mapWithConcurrency } from "~/utils/network";
+
+// Re-export để consumer cũ của session-insights không phải đổi import.
+export { mapWithConcurrency };
 
 /** MAX_TEAM_SIZE – Một team hiển thị tối đa 5 người (đúng chuẩn Valorant). */
 export const MAX_TEAM_SIZE = 5;
@@ -266,14 +270,6 @@ export const buildPlayerIntel = (
     peakSeason: formatPeakSeason(peakSeasonId, seasons),
   };
 };
-
-/**
- * mapWithConcurrency – dùng bản chuẩn trong utils/network (index-aware, có
- * guard rỗng). Import để dùng nội bộ, đồng thời re-export để consumer cũ của
- * session-insights không phải đổi import và test hiện có tiếp tục chạy đúng.
- */
-import { mapWithConcurrency } from "~/utils/network";
-export { mapWithConcurrency };
 
 /**
  * getCachedMatchDetails – Fetch match details dedup "region|matchId": request
