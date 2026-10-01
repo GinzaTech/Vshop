@@ -67,6 +67,7 @@ import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import LoadingScreen from "~/components/LoadingScreen";
 import AppViewport from "~/components/ui/AppViewport";
+import PaperIcon from "~/components/ui/PaperIcon";
 import { syncAllData } from "~/utils/data-sync";
 import {
   getScreenOrientationForPathname,
@@ -596,7 +597,7 @@ function RootLayout() {
             edges={["top"]}
             style={topInsetAnimatedStyle}
           />
-          <PaperProvider theme={CombinedAppTheme}>
+          <PaperProvider theme={CombinedAppTheme} settings={{ icon: PaperIcon }}>
             <ThemeProvider value={CombinedAppTheme}>
               <Stack
                 screenOptions={{
