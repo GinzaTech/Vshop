@@ -6,7 +6,7 @@ const read = (relativePath: string) =>
 
 describe("core journey automation and accessibility contracts", () => {
   it.each([
-    ["app/(authenticated)/_layout.tsx", "primary-tab-${route.name}"],
+    ["features/navigation/FloatingTabBar.tsx", "primary-tab-${route.name}"],
     ["app/(authenticated)/friends.tsx", 'testID="friends-search-input"'],
     ["app/(authenticated)/equip.tsx", "equipment-tab-${section.key}"],
     ["app/(authenticated)/gallery.tsx", 'testID="gallery-search-input"'],
@@ -71,12 +71,10 @@ describe("core journey automation and accessibility contracts", () => {
       "accessibilityState={{ busy: loading, disabled: loading }}",
     );
 
-    const combat = read("app/(authenticated)/combat.tsx");
-    expect(combat).toContain('t("combat_page.actions.unready")');
-    expect(combat).toContain('t("combat_page.actions.ready")');
-    expect(combat).toContain(
-      "accessibilityState={{ busy: partyReadyLoading, disabled: partyReadyLoading }}",
-    );
+    const member = read("features/party/PartyMemberCard.tsx");
+    expect(member).toContain('accessibilityRole="switch"');
+    expect(member).toContain('accessibilityLabel={t("party_page.ready",');
+    expect(member).toContain("accessibilityState={{ checked: member.ready, disabled, busy }}");
 
     const chat = read("app/chat/[friendId].tsx");
     expect(chat).toContain('accessibilityLabel={t("chat_page.send")}');
@@ -89,7 +87,7 @@ describe("core journey automation and accessibility contracts", () => {
 
   it.each([
     "features/combat/CombatSessionScreen.tsx",
-    "app/(authenticated)/combat.tsx",
+    "features/party/PartyScreen.tsx",
     "app/(authenticated)/friends.tsx",
     "app/(authenticated)/settings.tsx",
     "app/chat/[friendId].tsx",

@@ -20,6 +20,10 @@ config.resolver.extraNodeModules = {
 // stubs in production so release bundles do not ship test-only match payloads.
 const productionMockStubs = new Map([
   [
+    "~/mocks/ui-qa",
+    path.join(__dirname, "mocks", "ui-qa.production.js"),
+  ],
+  [
     "~/mocks/match-ui",
     path.join(__dirname, "mocks", "disabled.production.js"),
   ],

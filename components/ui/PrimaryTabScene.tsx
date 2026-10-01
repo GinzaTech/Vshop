@@ -1,41 +1,45 @@
-// ===== PrimaryTabScene.tsx =====
-// Host ổn định cho từng scene trong tab chính. Khi tab mất focus, nội dung
-// bị ẩn bằng opacity (thay vì unmount) và bị loại khỏi vùng tiếp nhận touch
-// + accessibility, tránh fade nhầm nội dung trang cũ vào trang mới.
-import type { ReactNode } from "react";
+// Stable scene content: opacity belongs to the retained navigation host;
+// focus only gates touch/accessibility, never hides an outgoing fade early.
+import { useContext, type ReactNode } from "react";
 import { useIsFocused } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { COLORS } from "~/constants/DesignSystem";
+import { NavigationSceneContext } from "~/features/navigation/NavigationSceneContext";
+import { PRIMARY_ROUTE_ORDER, type PrimaryRouteName } from "~/features/navigation/navigation-model";
 
 /**
  * PrimaryTabScene – Container giữ nguyên nội dung khi chuyển tab.
- * - focused = true  : nhận touch, hiển thị bình thường cho screen reader.
- * - focused = false : opacity 0, pointerEvents "none", ẩn khỏi accessibility.
+ * - focused = true: touch and accessibility belong to the latest route.
+ * - focused = false: retained content can fade out but cannot receive input.
  *
  * @param children – React node nội dung của tab scene.
  * @returns View full màn hình (nền BACKGROUND) bọc nội dung tab.
  */
-export default function PrimaryTabScene({ children }: { children: ReactNode }) {
+export default function PrimaryTabScene({ children, routeName }: { children: ReactNode; routeName?: PrimaryRouteName }) {
   // focused: tab hiện tại có đang hiển thị không (expo-router useIsFocused)
   const focused = useIsFocused();
+  const transition = useContext(NavigationSceneContext);
+  const index = routeName ? PRIMARY_ROUTE_ORDER.indexOf(routeName) : -1;
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: transition && index >= 0 ? transition.weights.value[index] : focused ? 1 : 0,
+  }));
   return (
-    <View
+    <Animated.View
       // collapsable=false: đảm bảo View không bị native flatten để style luôn áp dụng
       collapsable={false}
       pointerEvents={focused ? "auto" : "none"}
       accessibilityElementsHidden={!focused}
       importantForAccessibility={focused ? "auto" : "no-hide-descendants"}
-      style={[styles.scene, !focused && styles.hidden]}
+      style={[styles.scene, animatedStyle]}
     >
       {children}
-    </View>
+    </Animated.View>
   );
 }
 
 // styles:
 //   scene  – flex 1, nền BACKGROUND đồng bộ với app
-//   hidden – opacity 0 khi tab không focus (vẫn giữ layout)
 const styles = StyleSheet.create({
   scene: { flex: 1, backgroundColor: COLORS.BACKGROUND },
-  hidden: { opacity: 0 },
 });

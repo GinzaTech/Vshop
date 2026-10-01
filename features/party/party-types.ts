@@ -1,0 +1,80 @@
+import type { ReactNode } from "react";
+
+export type PartyAction = "start" | "cancel" | "leave" | "ready" | "queue" | "privacy" | "invite" | "code" | "join" | "share";
+export type PartyQueueOption = { id: string; label: string; enabled: boolean };
+export type PartyMemberView = {
+  id: string;
+  name: string;
+  tag?: string;
+  avatarUrl?: string;
+  level?: number;
+  pingMs?: number;
+  rankIconUrl?: string;
+  rankName?: string;
+  rr?: number;
+  ready: boolean;
+  isSelf: boolean;
+  isLeader: boolean;
+};
+export type PartyFriendView = {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  presence: "available" | "busy" | "away";
+  activityLabel: string;
+  canInvite: boolean;
+};
+export type PartyViewModel = {
+  partyId: string | null;
+  queueId: string | null;
+  queueLabel: string;
+  queueOptions: readonly PartyQueueOption[];
+  privacy: "OPEN" | "CLOSED" | null;
+  code: string | null;
+  partyState: string;
+  members: readonly PartyMemberView[];
+  friends: readonly PartyFriendView[];
+  friendConnectionStatus: string;
+  isLeader: boolean;
+  isQueueing: boolean;
+  canStartQueue: boolean;
+  canManage: boolean;
+  canReady: boolean;
+  canJoinParty: boolean;
+};
+export type PartyActions = {
+  onRefresh: () => void | Promise<unknown>;
+  onClose: () => void;
+  onStartQueue: () => void | Promise<unknown>;
+  onCancelQueue: () => void | Promise<unknown>;
+  onLeave: () => void | Promise<unknown>;
+  onReady: (ready: boolean) => void | Promise<unknown>;
+  onQueueChange: (queueId: string) => void | Promise<unknown>;
+  onPrivacyChange: (privacy: "OPEN" | "CLOSED") => void | Promise<unknown>;
+  onGenerateCode: () => void | Promise<unknown>;
+  onCopyCode: () => void | Promise<unknown>;
+  onShareCode: () => Promise<unknown>;
+  onJoinCode: (code: string) => void | Promise<unknown>;
+  onInviteByName: (riotId: string) => void | Promise<unknown>;
+  onInvite: (friendId: string) => void | Promise<unknown>;
+  onAllFriends: () => void;
+};
+export type PartyScreenProps = {
+  model: PartyViewModel;
+  refreshing: boolean;
+  busyAction: PartyAction | null;
+  errorMessage: string | null;
+  actions: PartyActions;
+  chat?: ReactNode;
+};
+export type AgentSelectModalProps = {
+  visible: boolean;
+  agents: readonly ValorantAgent[];
+  selectedAgentId: string | null;
+  unavailableAgentIds?: readonly string[];
+  locking: boolean;
+  errorMessage: string | null;
+  onSelect: (agentId: string) => void;
+  onLock: () => void | Promise<unknown>;
+  onClose: () => void;
+};

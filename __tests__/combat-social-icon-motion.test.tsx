@@ -3,13 +3,13 @@ import {
   AppState,
   TextInput,
   TouchableOpacity,
+  Switch,
   type AppStateStatus,
 } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
-import CombatScreen, {
-  PartyChatPanel,
-} from "~/app/(authenticated)/combat";
+import { PartyChatPanel } from "~/features/party/PartyChatPanel";
+import PartyMemberCard from "~/features/party/PartyMemberCard";
 import FriendsScreen from "~/app/(authenticated)/friends";
 import SettingsScreen from "~/app/(authenticated)/settings";
 import ChatScreen from "~/app/chat/[friendId]";
@@ -520,33 +520,24 @@ describe("Combat semantic icon motion", () => {
     act(() => renderer.unmount());
   });
 
-  it("changes party ready to cancelReady without invoking the party mutation", async () => {
+  it("updates the controlled Ready switch without invoking a mutation during rerender", async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
+    const member = { id: "self", name: "Self", ready: false, isSelf: true, isLeader: true };
     await act(async () => {
-      renderer = TestRenderer.create(<CombatScreen />);
+      renderer = TestRenderer.create(<PartyMemberCard member={member} disabled={false} busy={false} onReady={mockTogglePartyReadyState} />);
       await Promise.resolve();
     });
 
-    const readyControl = renderer.root.findByProps({
-      accessibilityLabel: "combat_page.actions.ready",
-    });
-    expect(readyControl.props).toMatchObject({
-      accessibilityRole: "button",
-      accessibilityState: { busy: false, disabled: false },
-    });
-    const readyIcon = expectDecorativeIcon(readyControl, "ready");
+    const readyControl = renderer.root.findByType(Switch);
+    expect(readyControl.props.value).toBe(false);
 
-    mockCombatHookState = createCombatHookState(true);
     await act(async () => {
-      renderer.update(<CombatScreen />);
+      renderer.update(<PartyMemberCard member={{ ...member, ready: true }} disabled={false} busy={false} onReady={mockTogglePartyReadyState} />);
     });
 
-    const cancelControl = renderer.root.findByProps({
-      accessibilityLabel: "combat_page.actions.unready",
-    });
-    const cancelIcon = expectDecorativeIcon(cancelControl, "cancelReady");
-    expect(cancelControl).toBe(readyControl);
-    expect(cancelIcon).toBe(readyIcon);
+    const changedControl = renderer.root.findByType(Switch);
+    expect(changedControl).toBe(readyControl);
+    expect(changedControl.props.value).toBe(true);
     expect(mockTogglePartyReadyState).not.toHaveBeenCalled();
 
     act(() => renderer.unmount());
@@ -554,6 +545,15 @@ describe("Combat semantic icon motion", () => {
 });
 
 describe("Friends semantic icon motion", () => {
+  it("labels an explicit online presence as connected", async () => {
+    mockChatState = createChatState("online");
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<FriendsScreen />); });
+    const row = renderer.root.findByProps({ accessibilityLabel: "Friend#NA1, friends_page.online" });
+    expectDecorativeIcon(row, "connected");
+    act(() => renderer.unmount());
+  });
+
   beforeEach(() => {
     mockChatState = createChatState("chat");
     mockNavigationOptions = {};
@@ -601,7 +601,7 @@ describe("Friends semantic icon motion", () => {
     });
   });
 
-  it("keeps a friend state icon mounted from connected to disconnected", async () => {
+  it("removes a friend row when that friend becomes offline", async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = TestRenderer.create(<FriendsScreen />);
@@ -611,22 +611,15 @@ describe("Friends semantic icon motion", () => {
     const connectedRow = renderer.root.findByProps({
       accessibilityLabel: "Friend#NA1, friends_page.in_menu",
     });
-    const connectedIcon = expectDecorativeIcon(connectedRow, "connected");
+    expectDecorativeIcon(connectedRow, "connected");
 
     mockChatState = createChatState("offline");
     await act(async () => {
       renderer.update(<FriendsScreen />);
     });
 
-    const disconnectedRow = renderer.root.findByProps({
-      accessibilityLabel: "Friend#NA1, friends_page.offline",
-    });
-    const disconnectedIcon = expectDecorativeIcon(
-      disconnectedRow,
-      "disconnected",
-    );
-    expect(disconnectedRow).toBe(connectedRow);
-    expect(disconnectedIcon).toBe(connectedIcon);
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Friend#NA1, friends_page.offline" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Friend#NA1, friends_page.in_menu" })).toHaveLength(0);
 
     act(() => renderer.unmount());
   });

@@ -1,9 +1,16 @@
 import { riotApiClient as axios } from "~/services/riot/client";
 import { createRequestScope } from "~/services/riot/request-scope";
-import { cacheUpdatedLoadout, clearCachedLoadout, getCachedPlayerLoadout, observeLoadoutSession } from "~/services/riot/loadout-cache";
+import { cacheUpdatedLoadout, clearCachedLoadout, getCachedPlayerLoadout, observeLoadoutSession, invalidateLoadoutReads } from "~/services/riot/loadout-cache";
 import { buildRiotApiUrl } from "~/services/riot/endpoints";
 import type { OwnedItemsResponse, PlayerLoadoutExpression, PlayerLoadoutResponse } from "~/services/riot/api-types";
 import { API_DEBUG_LOGGING, extraHeaders, getPlayerResourceKey } from "~/services/riot/request-context";
+import { isLoadoutResponse, validateLoadoutReceipt } from "./loadout-response";
+import { SessionChangedError } from "~/utils/session-operations";
+
+type LoadoutWriteOptions = { isCurrent?: () => boolean };
+const assertWriteCurrent = (options: LoadoutWriteOptions) => {
+  if (options.isCurrent && !options.isCurrent()) throw new SessionChangedError();
+};
 
 // PlayerLoadoutV3Response: loadout v3 KHÔNG có Sprays — thay bằng
 // ActiveExpressions (banner player card) và DynamicOptions (hỗ trợ game mode).
@@ -15,6 +22,7 @@ type PlayerLoadoutV3Response = Omit<PlayerLoadoutResponse, "Sprays"> & {
 /** Options cho các API per-player: force = bỏ qua cache, đọc lại từ server. */
 export type RiotPlayerRequestOptions = {
   force?: boolean;
+  isCurrent?: () => boolean;
 };
 
 const ownershipScope = createRequestScope();
@@ -40,6 +48,7 @@ const isUsablePlayerLoadoutV3 = (
     typeof loadout.Version === "number" &&
     Array.isArray(loadout.Guns) &&
     Array.isArray(loadout.ActiveExpressions) &&
+    loadout.DynamicOptions !== null && typeof loadout.DynamicOptions === "object" && !Array.isArray(loadout.DynamicOptions) &&
     Boolean(loadout.Identity)
   );
 };
@@ -98,7 +107,7 @@ async function requestPlayerLoadout(
   // v3 OK + dữ liệu hợp lệ → chuẩn hóa về hình dạng v2 rồi trả ngay.
   if (
     currentResponse?.status === 200 &&
-    isUsablePlayerLoadoutV3(currentResponse.data)
+    isUsablePlayerLoadoutV3(currentResponse.data) && isLoadoutResponse(currentResponse.data, userId)
   ) {
     if (API_DEBUG_LOGGING) {
       console.log("Player Loadout status:", {
@@ -136,7 +145,7 @@ async function requestPlayerLoadout(
     });
   }
 
-  if (!legacy) {
+  if (!legacy || !isLoadoutResponse(legacy, userId) || !Array.isArray(legacy.Sprays)) {
     return null;    // Cả v3 lẫn v2 thất bại → caller hiển thị trạng thái lỗi.
   }
 
@@ -160,9 +169,12 @@ export async function updatePlayerLoadout(
   entitlementsToken: string,
   region: string,
   userId: string,
-  loadout: PlayerLoadoutResponse
+  loadout: PlayerLoadoutResponse,
+  options: LoadoutWriteOptions = {},
 ): Promise<PlayerLoadoutResponse> {
+  assertWriteCurrent(options);
   const scope = observeLoadoutSession(region, userId, accessToken, entitlementsToken);
+  invalidateLoadoutReads(region, userId);
   const res = await axios.request<PlayerLoadoutResponse>({
     url: buildRiotApiUrl({ name: "player", region, userId }),
     method: "PUT",
@@ -178,16 +190,11 @@ export async function updatePlayerLoadout(
       Identity: loadout.Identity,
       Incognito: loadout.Incognito,
     },
-  });
+  }).finally(() => invalidateLoadoutReads(region, userId));
 
   scope.assertCurrent();
-  const updatedLoadout: PlayerLoadoutResponse = {
-    ...loadout,
-    ...res.data,
-    SourceApiVersion: "v2",
-    ActiveExpressions: loadout.ActiveExpressions ?? [],
-    DynamicOptions: loadout.DynamicOptions ?? {},
-  };
+  assertWriteCurrent(options);
+  const updatedLoadout = validateLoadoutReceipt(res.data, userId, loadout.Version, "v2");
 
   cacheUpdatedLoadout(region, userId, updatedLoadout);
   return updatedLoadout;
@@ -202,9 +209,12 @@ export async function updatePlayerLoadoutV3(
   entitlementsToken: string,
   region: string,
   userId: string,
-  loadout: PlayerLoadoutResponse
+  loadout: PlayerLoadoutResponse,
+  options: LoadoutWriteOptions = {},
 ): Promise<PlayerLoadoutResponse> {
+  assertWriteCurrent(options);
   const scope = observeLoadoutSession(region, userId, accessToken, entitlementsToken);
+  invalidateLoadoutReads(region, userId);
   const res = await axios.request<PlayerLoadoutV3Response>({
     url: buildRiotApiUrl({ name: "player-v3", region, userId }),
     method: "PUT",
@@ -224,22 +234,15 @@ export async function updatePlayerLoadoutV3(
       Identity: loadout.Identity,
       Incognito: loadout.Incognito,
     },
-  });
+  }).finally(() => invalidateLoadoutReads(region, userId));
 
   scope.assertCurrent();
+  assertWriteCurrent(options);
   if (res.status !== 200) {
     throw new Error(`Player loadout v3 update failed with ${res.status}`);
   }
 
-  const updatedLoadout = {
-    ...loadout,
-    ...res.data,
-    SourceApiVersion: "v3",
-    Sprays: loadout.Sprays,
-    ActiveExpressions:
-      res.data.ActiveExpressions ?? loadout.ActiveExpressions ?? [],
-    DynamicOptions: res.data.DynamicOptions ?? loadout.DynamicOptions ?? {},
-  } as PlayerLoadoutResponse;
+  const updatedLoadout = validateLoadoutReceipt(res.data, userId, loadout.Version, "v3");
 
   cacheUpdatedLoadout(region, userId, updatedLoadout);
   return updatedLoadout;
@@ -254,7 +257,8 @@ export async function updatePlayerLoadoutV3First(
   entitlementsToken: string,
   region: string,
   userId: string,
-  loadout: PlayerLoadoutResponse
+  loadout: PlayerLoadoutResponse,
+  options: LoadoutWriteOptions = {},
 ): Promise<PlayerLoadoutResponse> {
   if (loadout.SourceApiVersion === "v2") {
     return updatePlayerLoadout(
@@ -262,7 +266,8 @@ export async function updatePlayerLoadoutV3First(
       entitlementsToken,
       region,
       userId,
-      loadout
+      loadout,
+      options,
     );
   }
 
@@ -271,7 +276,8 @@ export async function updatePlayerLoadoutV3First(
     entitlementsToken,
     region,
     userId,
-    loadout
+    loadout,
+    options,
   );
 }
 

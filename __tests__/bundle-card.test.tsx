@@ -1,12 +1,24 @@
 import React from "react";
-import { Dimensions, StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import TestRenderer, {
   act,
   type ReactTestInstance,
 } from "react-test-renderer";
 
 import BundleImage from "~/components/BundleImage";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import CurrencyIcon from "~/components/CurrencyIcon";
+import { COLORS, GLASS_MATERIAL, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
+import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
+import LiquidGlassBackdrop from "~/components/ui/LiquidGlassBackdrop";
+import { createBundleOwnershipLookup } from "~/utils/bundle-ownership";
+import { VItemTypes } from "~/utils/misc";
+import {
+  BUNDLE_CAROUSEL_CONTENT_PADDING,
+  BUNDLE_CAROUSEL_GAP,
+  BUNDLE_CARD_GUTTER,
+  getBundleItemMaxPriceTextLength,
+  getBundleItemWidth,
+} from "~/utils/bundle-display";
 
 // i18n: trả key gốc, riêng items_count nội suy count để kiểm tra meta row.
 jest.mock("react-i18next", () => ({
@@ -24,6 +36,24 @@ jest.mock("react-i18next", () => ({
 jest.mock("~/components/CachedImage", () => ({
   CachedImage: () => null,
 }));
+
+jest.mock("~/components/ui/AppIcon", () => ({
+  __esModule: true,
+  default: "AppIcon",
+}));
+
+// BundleImage lấy viewport qua useAppWindowDimensions (AppViewport): mock
+// hook để kiểm geometry theo viewport/font scale mà không cần provider.
+jest.mock("~/components/ui/AppViewport", () => ({
+  useAppWindowDimensions: () => mockWindowDimensions,
+}));
+
+const mockWindowDimensions = {
+  width: 320,
+  height: 640,
+  scale: 2,
+  fontScale: 1,
+};
 
 const FIXED_NOW = new Date("2026-09-30T00:00:00.000Z").getTime();
 // 21d 06:04:27 — full countdown của bundle Champions 2026.
@@ -67,11 +97,19 @@ function makeBundle(
   };
 }
 
-function renderCard(bundle: BundleShopItem, remainingSecs = REMAINING_SECS) {
+function renderCard(
+  bundle: BundleShopItem,
+  remainingSecs = REMAINING_SECS,
+  isOwned?: (item: SkinShopItem | AccessoryShopItem) => boolean
+) {
   let renderer!: TestRenderer.ReactTestRenderer;
   act(() => {
     renderer = TestRenderer.create(
-      <BundleImage bundle={bundle} remainingSecs={remainingSecs} />
+      <BundleImage
+        bundle={bundle}
+        remainingSecs={remainingSecs}
+        isOwned={isOwned}
+      />
     );
   });
   return renderer;
@@ -114,9 +152,18 @@ function findStruckTexts(root: TestRoot) {
   );
 }
 
+/** Vị trí (document order) của host text đầu tiên khớp chuỗi. */
+function hostTextIndex(root: TestRoot, text: string): number {
+  return root
+    .findAll((node) => typeof node.type === "string")
+    .findIndex((node) => node.props.children === text);
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(FIXED_NOW);
+  mockWindowDimensions.width = 320;
+  mockWindowDimensions.fontScale = 1;
 });
 
 afterEach(() => {
@@ -127,6 +174,124 @@ afterEach(() => {
 });
 
 describe("BundleImage white detail card", () => {
+  it.each([VItemTypes.PlayerCard, VItemTypes.PlayerTitle, VItemTypes.Spray, VItemTypes.Flex, VItemTypes.Buddy])(
+    "uses real type-specific ownership for accessory overlay/check (%s)", (itemTypeId) => {
+      const owned = makeItem({ uuid: "display-root", displayName: "Owned accessory", itemTypeId, entitlementItemIds: ["owned-grant"] });
+      const unowned = makeItem({ uuid: "unowned-root", displayName: "Unowned accessory", itemTypeId, entitlementItemIds: ["unowned-grant"] });
+      const matcher = createBundleOwnershipLookup([], { [itemTypeId]: ["owned-grant"] });
+      const renderer = renderCard(makeBundle({ items: [owned, unowned] }), REMAINING_SECS, matcher);
+      try {
+        const cells = findAllByTestId(renderer.root, "bundle-item-cell");
+        expect(findAllByTestId(cells[0], "bundle-item-owned-overlay")).toHaveLength(1);
+        expect(findAllByTestId(cells[0], "bundle-item-owned-check")).toHaveLength(1);
+        expect(cells[0].props.accessibilityLabel).toContain("bundles_page.purchased");
+        expect(findAllByTestId(cells[1], "bundle-item-owned-overlay")).toHaveLength(0);
+        expect(findAllByTestId(cells[1], "bundle-item-owned-check")).toHaveLength(0);
+      } finally { act(() => renderer.unmount()); }
+    },
+  );
+  it("keeps subtle glass decoration on a white card without adding a carousel layout wrapper", () => {
+    const renderer = renderCard(makeBundle());
+    try {
+      const root = renderer.root;
+      const card = findAllByTestId(root, "bundle-card")[0];
+      expect(StyleSheet.flatten(card.props.style)).toMatchObject({
+        backgroundColor: COLORS.SURFACE,
+        borderColor: COLORS.BORDER_STRONG,
+        borderWidth: 1.5,
+        ...SHADOWS.xs,
+      });
+      const decorations = root.findAllByType(LiquidGlassDecoration);
+      expect(decorations).toHaveLength(3);
+      decorations.forEach((decoration) => {
+        const layer = decoration.findAllByType(View)[0];
+        expect(layer.props).toMatchObject({ pointerEvents: "none", accessible: false, accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" });
+        expect(StyleSheet.flatten(layer.props.style).position).toBe("absolute");
+      });
+      expect(decorations[0].props).toMatchObject({ radius: RADIUS.card, tone: "light" });
+      const cells = findAllByTestId(root, "bundle-item-cell");
+      cells.forEach((cell) => {
+        expect(StyleSheet.flatten(cell.props.style)).toMatchObject({
+          backgroundColor: GLASS_MATERIAL.surface,
+          borderColor: COLORS.BORDER_STRONG,
+          borderWidth: 1.5,
+          ...SHADOWS.xs,
+        });
+        expect(cell.findByType(LiquidGlassDecoration).props).toMatchObject({ radius: RADIUS.md, density: "dense" });
+        expect(cell.props.children[0].type).toBe(LiquidGlassDecoration);
+      });
+      expect(card.props.children[0].type).toBe(LiquidGlassDecoration);
+      expect(root.findByProps({ testID: "bundle-item-carousel" }).props.data).toEqual(makeBundle().items);
+    } finally {
+      act(() => renderer.unmount());
+    }
+  });
+
+  it("renders clear hero artwork without a duplicated artwork blur backdrop", () => {
+    const bundle = makeBundle({ displayIcon2: "https://example.com/hero2.png" });
+    const renderer = renderCard(bundle);
+    try {
+      expect(renderer.root.findAllByType(LiquidGlassBackdrop)).toHaveLength(0);
+      expect(renderer.root.findByProps({ priority: "high" }).props).toMatchObject({
+        source: { uri: bundle.displayIcon2 },
+        cacheId: "bundle:champions-2026:hero:displayIcon2",
+        contentFit: "cover",
+      });
+    } finally {
+      act(() => renderer.unmount());
+    }
+  });
+
+  it("uses opaque white tokens for the information body and title row", () => {
+    const renderer = renderCard(makeBundle());
+    try {
+      const views = renderer.root.findAllByType(View);
+      const content = views.find((node) => {
+        const style = StyleSheet.flatten(node.props.style ?? {});
+        return style.paddingHorizontal === SPACING.sm && style.paddingTop === SPACING.sm;
+      });
+      const titleRow = views.find((node) =>
+        StyleSheet.flatten(node.props.style ?? {}).justifyContent === "space-between"
+      );
+      expect(content).toBeDefined();
+      expect(titleRow).toBeDefined();
+      expect(StyleSheet.flatten(content?.props.style).backgroundColor).toBe(COLORS.SURFACE);
+      expect(StyleSheet.flatten(titleRow?.props.style).backgroundColor).toBe(COLORS.SURFACE);
+    } finally {
+      act(() => renderer.unmount());
+    }
+  });
+
+  it("updates ownership from the latest matcher while retaining real prices, artwork and tile width", () => {
+    const bundle = makeBundle();
+    const renderer = renderCard(bundle, REMAINING_SECS, (item) => item.uuid === "item-1");
+    try {
+      const width = StyleSheet.flatten(findAllByTestId(renderer.root, "bundle-item-cell")[0].props.style).width;
+      act(() => renderer.update(<BundleImage bundle={bundle} remainingSecs={REMAINING_SECS} isOwned={(item) => item.uuid === "item-2"} />));
+      const cells = findAllByTestId(renderer.root, "bundle-item-cell");
+      expect(cells[0].findAllByProps({ testID: "bundle-item-owned-overlay" })).toHaveLength(0);
+      expect(findAllByTestId(cells[1], "bundle-item-owned-overlay")).toHaveLength(1);
+      expect(cells[0].props.accessibilityLabel).toBe("Champions Vandal, 1.766 VP");
+      expect(cells[1].props.accessibilityLabel).toBe("Champions Card, 1.766 VP, bundles_page.purchased");
+      expect(StyleSheet.flatten(cells[1].props.style).width).toBe(width);
+      expect(findAllByText(renderer.root, "5.310")).toHaveLength(1);
+      expect(findAllByText(renderer.root, "1.766")).toHaveLength(2);
+      expect(renderer.root.findByProps({ cacheId: "bundle-item:item-1:display" }).props.source).toEqual({ uri: bundle.items[0].displayIcon });
+    } finally {
+      act(() => renderer.unmount());
+    }
+  });
+  it("reads the ends-in prefix before the remaining time", () => {
+    const renderer = renderCard(makeBundle());
+    try {
+      const texts = findHostNodes(renderer.root, (node) => typeof node.props.children === "string")
+        .map((node) => node.props.children as string);
+      expect(texts.indexOf("bundles_page.ends_in")).toBeLessThan(texts.indexOf("21d 06:04:27"));
+    } finally {
+      act(() => renderer.unmount());
+    }
+  });
+
   it("renders hero, title, real Riot prices and meta on a white surface", () => {
     const renderer = renderCard(makeBundle());
     try {
@@ -137,7 +302,7 @@ describe("BundleImage white detail card", () => {
       expect(findAllByText(root, "6.640")).toHaveLength(1); // giá gốc bị gạch
       expect(findAllByText(root, "21d 06:04:27")).toHaveLength(1);
       expect(findAllByText(root, "2 items")).toHaveLength(1);
-      expect(findAllByText(root, "bundles_page.estimate")).toHaveLength(1);
+      expect(findAllByText(root, "bundles_page.estimate")).toHaveLength(0);
 
       const card = findAllByTestId(root, "bundle-card")[0];
       expect(findAllByTestId(root, "bundle-card")).toHaveLength(1);
@@ -145,9 +310,102 @@ describe("BundleImage white detail card", () => {
         COLORS.SURFACE
       );
       expect(StyleSheet.flatten(card.props.style).borderRadius).toBe(
-        RADIUS.screen
+        RADIUS.card
       );
       expect(StyleSheet.flatten(card.props.style).overflow).toBe("hidden");
+    } finally {
+      act(() => {
+        renderer.unmount();
+      });
+    }
+  });
+
+  it("reserves hero space at the reference 2.40 aspect ratio", () => {
+    const renderer = renderCard(makeBundle());
+    try {
+      const hero = renderer.root.findByProps({
+        cacheId: "bundle:champions-2026:hero:displayIcon",
+        priority: "high",
+      });
+      const frameStyle = StyleSheet.flatten(hero.parent?.props.style ?? {});
+      expect(frameStyle.aspectRatio).toBe(2.4);
+      expect(frameStyle.backgroundColor).toBe(COLORS.SURFACE_MUTED);
+    } finally {
+      act(() => {
+        renderer.unmount();
+      });
+    }
+  });
+
+  it("prefers displayIcon2 for the hero and keys the cache by source variant", () => {
+    const renderer = renderCard(
+      makeBundle({ displayIcon2: "https://example.com/hero2.png" })
+    );
+    try {
+      const hero = renderer.root.findByProps({
+        cacheId: "bundle:champions-2026:hero:displayIcon2",
+        priority: "high",
+      });
+      expect(hero.props.source).toEqual({ uri: "https://example.com/hero2.png" });
+      // Cache key của biến thể khác phải khác key displayIcon2.
+      expect(
+        renderer.root.findAllByProps({
+          cacheId: "bundle:champions-2026:hero:displayIcon",
+        })
+      ).toHaveLength(0);
+    } finally {
+      act(() => {
+        renderer.unmount();
+      });
+    }
+  });
+
+  it("falls back to verticalPromoImage with its own cache key when both icons are missing", () => {
+    const renderer = renderCard(
+      makeBundle({
+        displayIcon: "",
+        displayIcon2: "",
+        verticalPromoImage: "https://example.com/promo.png",
+      })
+    );
+    try {
+      const hero = renderer.root.findByProps({
+        cacheId: "bundle:champions-2026:hero:verticalPromoImage",
+        priority: "high",
+      });
+      expect(hero.props.source).toEqual({ uri: "https://example.com/promo.png" });
+    } finally {
+      act(() => {
+        renderer.unmount();
+      });
+    }
+  });
+
+  it("uses the fallback asset with a fallback cache key when all art is missing", () => {
+    const renderer = renderCard(
+      makeBundle({ displayIcon: "", displayIcon2: "" })
+    );
+    try {
+      const root = renderer.root;
+      const hero = root.findByProps({
+        cacheId: "bundle:champions-2026:hero:fallback",
+        priority: "high",
+      });
+      expect(hero.props.source).not.toEqual({ uri: "" });
+      expect(hero.props.source).toEqual(
+        require("~/assets/images/noimage.png")
+      );
+      // Khung hero giữ chỗ cố định qua aspectRatio dù ảnh thiếu.
+      const frameStyle = StyleSheet.flatten(hero.parent?.props.style ?? {});
+      expect(frameStyle.aspectRatio).toBe(2.4);
+
+      // Item thiếu ảnh cũng dùng fallback và giữ khung artwork.
+      const itemImage = root.findByProps({
+        cacheId: "bundle-item:item-2:display",
+      });
+      expect(itemImage.props.source).toEqual(
+        require("~/assets/images/noimage.png")
+      );
     } finally {
       act(() => {
         renderer.unmount();
@@ -229,31 +487,43 @@ describe("BundleImage white detail card", () => {
     }
   });
 
-  it("keeps reserved hero space and uses the fallback asset when art is missing", () => {
-    const renderer = renderCard(
-      makeBundle({ displayIcon: "", displayIcon2: "" })
-    );
+  it("places the countdown clock before the ends-in prefix and groups the separator with the count", () => {
+    const renderer = renderCard(makeBundle());
     try {
       const root = renderer.root;
-      const hero = root.findByProps({
-        cacheId: "bundle:champions-2026:hero",
-      });
-      expect(hero.props.source).not.toEqual({ uri: "" });
-      expect(hero.props.source).toEqual(
-        require("~/assets/images/noimage.png")
-      );
-      // Khung hero giữ chỗ cố định qua aspectRatio dù ảnh thiếu.
-      const frameStyle = StyleSheet.flatten(hero.parent?.props.style ?? {});
-      expect(frameStyle.aspectRatio).toBeGreaterThan(0);
-      expect(frameStyle.backgroundColor).toBe(COLORS.SURFACE_MUTED);
+      const clockIndex = hostTextIndex(root, "21d 06:04:27");
+      const prefixIndex = hostTextIndex(root, "bundles_page.ends_in");
+      const dividerIndex = hostTextIndex(root, "·");
+      const countIndex = hostTextIndex(root, "2 items");
 
-      // Item thiếu ảnh cũng dùng fallback và giữ khung vuông.
-      const itemImage = root.findByProps({
-        cacheId: "bundle-item:item-2:display",
-      });
-      expect(itemImage.props.source).toEqual(
-        require("~/assets/images/noimage.png")
-      );
+      expect(clockIndex).toBeGreaterThanOrEqual(0);
+      expect(prefixIndex).toBeLessThan(clockIndex);
+      expect(clockIndex).toBeLessThan(dividerIndex);
+      expect(dividerIndex).toBeLessThan(countIndex);
+
+      // Separator "·" ở cùng container với số item để không bị wrap rời rạc:
+      // node host "·" nằm dưới composite Text, lên một tầng nữa là group View.
+      const divider = findHostNodes(
+        root,
+        (node) => node.props.children === "·"
+      )[0];
+      const groupContainer = divider.parent?.parent;
+      const groupChildren = groupContainer?.props.children;
+      const siblings = (Array.isArray(groupChildren)
+        ? groupChildren
+        : [groupChildren]) as unknown[];
+      expect(siblings).toHaveLength(2);
+      expect(
+        siblings.some(
+          (node) => (node as ReactTestInstance | null)?.props?.children === "·"
+        )
+      ).toBe(true);
+      expect(
+        siblings.some(
+          (node) =>
+            (node as ReactTestInstance | null)?.props?.children === "2 items"
+        )
+      ).toBe(true);
     } finally {
       act(() => {
         renderer.unmount();
@@ -261,7 +531,7 @@ describe("BundleImage white detail card", () => {
     }
   });
 
-  it("renders a horizontal non-wrapping carousel with a partially visible next card", () => {
+  it("renders a horizontal non-wrapping carousel with three full compact tiles plus a fourth peek", () => {
     const renderer = renderCard(makeBundle());
     try {
       const root = renderer.root;
@@ -274,30 +544,131 @@ describe("BundleImage white detail card", () => {
       expect(carousel.props.showsHorizontalScrollIndicator).toBe(false);
       expect(carousel.props.nestedScrollEnabled).toBe(true);
 
-      // Cell width nằm trong khoảng clamp và hẹp hơn card để lộ card kế tiếp.
+      // Cell width theo geometry tham chiếu (24% card width, clamp 72–136).
       const cells = findAllByTestId(root, "bundle-item-cell");
       expect(cells).toHaveLength(2);
-      const cellWidth = StyleSheet.flatten(cells[0].props.style).width;
-      expect(StyleSheet.flatten(cells[0].props.style).backgroundColor).toBe(
-        COLORS.SURFACE_MUTED
+      const cellWidth = Number(
+        StyleSheet.flatten(cells[0].props.style).width
       );
-      expect(StyleSheet.flatten(cells[0].props.style).borderRadius).toBe(
-        RADIUS.xl
+      expect(cellWidth).toBe(
+        getBundleItemWidth(mockWindowDimensions.width, {
+          fontScale: mockWindowDimensions.fontScale,
+          maxPriceLength: getBundleItemMaxPriceTextLength(makeBundle().items),
+        })
       );
-      expect(cellWidth).toBeGreaterThanOrEqual(118);
-      expect(cellWidth).toBeLessThanOrEqual(164);
-      // Card content = chiều rộng màn hình trừ padding 20 mỗi bên của screen.
-      const cardContentWidth = Dimensions.get("window").width - 2 * 20;
-      expect(Number(cellWidth)).toBeLessThan(cardContentWidth);
-      expect(Number(cellWidth) * 2 + 10).toBeLessThan(cardContentWidth);
+
+      // Ba cell đầy + 2 gap vừa vùng nhìn thấy; cell thứ tư bị cắt (peek).
+      const visibleWidth =
+        mockWindowDimensions.width -
+        BUNDLE_CARD_GUTTER -
+        2 * BUNDLE_CAROUSEL_CONTENT_PADDING;
+      expect(3 * cellWidth + 2 * BUNDLE_CAROUSEL_GAP).toBeLessThanOrEqual(
+        visibleWidth
+      );
+      expect(4 * cellWidth + 3 * BUNDLE_CAROUSEL_GAP).toBeGreaterThan(
+        visibleWidth
+      );
 
       // getItemLayout ổn định cho độ rộng cố định.
       const layout = carousel.props.getItemLayout(null, 1);
-      expect(layout.length).toBe(Number(cellWidth) + 10);
-      expect(layout.offset).toBe(Number(cellWidth) + 10);
+      expect(layout.length).toBe(cellWidth + BUNDLE_CAROUSEL_GAP);
+      expect(layout.offset).toBe(cellWidth + BUNDLE_CAROUSEL_GAP);
     } finally {
       act(() => {
         renderer.unmount();
+      });
+    }
+  });
+
+  it("renders unified light tiles with a contained artwork band and a vertical price stack", () => {
+    const renderer = renderCard(makeBundle());
+    try {
+      const root = renderer.root;
+      const cells = findAllByTestId(root, "bundle-item-cell");
+      const cell = cells[0];
+
+      const cellStyle = StyleSheet.flatten(cell.props.style);
+      expect(cellStyle.backgroundColor).toBe(GLASS_MATERIAL.surface);
+      expect(cellStyle.borderRadius).toBe(RADIUS.md);
+
+      // Artwork band: landscape, contain, không divider/viền ngăn cách.
+      const itemImage = cell.findByProps({
+        cacheId: "bundle-item:item-1:display",
+      });
+      const frameStyle = StyleSheet.flatten(itemImage.parent?.props.style ?? {});
+      expect(frameStyle.aspectRatio).toBeGreaterThan(1.4);
+      expect(frameStyle.borderBottomWidth).toBeUndefined();
+
+      // Tên item căn giữa, 1 dòng ellipsized.
+      const name = findHostNodes(
+        cell,
+        (node) => node.props.children === "Champions Vandal"
+      )[0];
+      expect(name.props.numberOfLines).toBe(1);
+      expect(StyleSheet.flatten(name.props.style).textAlign).toBe("center");
+
+      // Giá base bị gạch nằm TRÊN giá hiện tại, icon VP ở cả hai hàng.
+      const cellTexts = cell.findAll((node) => typeof node.type === "string");
+      const oldIndex = cellTexts.findIndex((node) => node.props.children === "2.675");
+      const currentIndex = cellTexts.findIndex((node) => node.props.children === "1.766");
+      expect(oldIndex).toBeGreaterThanOrEqual(0);
+      expect(oldIndex).toBeLessThan(currentIndex);
+
+      const vpIcons = cell.findAllByType(CurrencyIcon);
+      expect(vpIcons).toHaveLength(2);
+      const oldPrice = cellTexts[oldIndex];
+      const currentPrice = cellTexts[currentIndex];
+      expect(
+        StyleSheet.flatten(oldPrice.props.style).textDecorationLine
+      ).toBe("line-through");
+      expect(StyleSheet.flatten(currentPrice.props.style).fontSize).toBeGreaterThan(
+        StyleSheet.flatten(oldPrice.props.style).fontSize
+      );
+      // Không ellipsize/shrink chữ số giá.
+      expect(currentPrice.props.numberOfLines).toBeUndefined();
+      expect(oldPrice.props.numberOfLines).toBeUndefined();
+    } finally {
+      act(() => {
+        renderer.unmount();
+      });
+    }
+  });
+
+  it("widens tiles for large system font scales and long VP values", () => {
+    // Font scale lớn → cell rộng hơn theo cùng công thức geometry.
+    mockWindowDimensions.width = 390;
+    mockWindowDimensions.fontScale = 1.35;
+    const scaled = renderCard(makeBundle());
+    try {
+      const cells = findAllByTestId(scaled.root, "bundle-item-cell");
+      const expected = getBundleItemWidth(390, {
+        fontScale: 1.35,
+        maxPriceLength: 4,
+      });
+      expect(StyleSheet.flatten(cells[0].props.style).width).toBe(expected);
+      expect(expected).toBeGreaterThan(getBundleItemWidth(390));
+    } finally {
+      act(() => {
+        scaled.unmount();
+      });
+    }
+
+    // Giá VP dài ("1.000.000") → cell rộng hơn để giữ trọn chữ số.
+    mockWindowDimensions.width = 320;
+    mockWindowDimensions.fontScale = 1;
+    const longVp = renderCard(
+      makeBundle({
+        items: [makeItem({ price: 1_000_000, originalPrice: undefined })],
+      })
+    );
+    try {
+      const cells = findAllByTestId(longVp.root, "bundle-item-cell");
+      expect(StyleSheet.flatten(cells[0].props.style).width).toBe(
+        getBundleItemWidth(320, { fontScale: 1, maxPriceLength: 9 })
+      );
+    } finally {
+      act(() => {
+        longVp.unmount();
       });
     }
   });
@@ -353,6 +724,88 @@ describe("BundleImage white detail card", () => {
       expect(vandalSummary).toHaveLength(1);
       expect(cardSummary).toHaveLength(1);
       expect(vandalSummary[0].props.accessible).toBe(true);
+    } finally {
+      act(() => {
+        renderer.unmount();
+      });
+    }
+  });
+
+  it("shows a faint light owned overlay with a green circular check for purchased skins", () => {
+    const renderer = renderCard(
+      makeBundle(),
+      REMAINING_SECS,
+      (item) => item.uuid === "item-1"
+    );
+    try {
+      const root = renderer.root;
+
+      const overlays = findAllByTestId(root, "bundle-item-owned-overlay");
+      expect(overlays).toHaveLength(1);
+      const overlayStyle = StyleSheet.flatten(overlays[0].props.style);
+      expect(overlayStyle.backgroundColor).toBe(COLORS.SURFACE);
+      expect(overlayStyle.opacity).toBeLessThan(1);
+      // Overlay không chặn cử chỉ ngang/dọc của carousel.
+      expect(overlays[0].props.pointerEvents).toBe("none");
+
+      const checks = findAllByTestId(root, "bundle-item-owned-check");
+      expect(checks).toHaveLength(1);
+      expect(checks[0].props.pointerEvents).toBe("none");
+      const checkStyle = StyleSheet.flatten(checks[0].props.style);
+      expect(checkStyle.backgroundColor).toBe(COLORS.SUCCESS);
+      expect(checkStyle.borderRadius).toBe(RADIUS.chip);
+
+      // Overlay chỉ phủ artwork + tên; giá vẫn nằm ngoài vùng phủ.
+      const overlayParent = overlays[0].parent!;
+      expect(
+        overlayParent.findAll(
+          (node) =>
+            typeof node.type === "string" && node.props.children === "1.766"
+        )
+      ).toHaveLength(0);
+
+      // Tóm tắt screen reader chứa trạng thái purchased đúng một lần.
+      expect(
+        findHostNodes(
+          root,
+          (node) =>
+            node.props.accessibilityLabel ===
+            "Champions Vandal, 1.766 VP, bundles_page.purchased"
+        )
+      ).toHaveLength(1);
+      // Item không sở hữu: nhãn giữ nguyên, không có overlay.
+      expect(
+        findHostNodes(
+          root,
+          (node) =>
+            node.props.accessibilityLabel === "Champions Card, 1.766 VP"
+        )
+      ).toHaveLength(1);
+      const secondCell = findAllByTestId(root, "bundle-item-cell")[1];
+      expect(
+        secondCell.findAllByProps({ testID: "bundle-item-owned-overlay" })
+      ).toHaveLength(0);
+    } finally {
+      act(() => {
+        renderer.unmount();
+      });
+    }
+  });
+
+  it("renders no owned affordances by default when no ownership callback is provided", () => {
+    const renderer = renderCard(makeBundle());
+    try {
+      const root = renderer.root;
+      expect(findAllByTestId(root, "bundle-item-owned-overlay")).toHaveLength(0);
+      expect(findAllByTestId(root, "bundle-item-owned-check")).toHaveLength(0);
+      expect(
+        findHostNodes(
+          root,
+          (node) =>
+            typeof node.props.accessibilityLabel === "string" &&
+            node.props.accessibilityLabel.includes("bundles_page.purchased")
+        )
+      ).toHaveLength(0);
     } finally {
       act(() => {
         renderer.unmount();

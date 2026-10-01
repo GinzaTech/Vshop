@@ -1,5 +1,6 @@
 import { VCurrencies, VItemTypes } from "~/utils/misc";
 import { fetchBundle, getAssetLookups } from "~/utils/valorant-assets";
+import { attachBundleOwnershipIdentity } from "./storefront-ownership";
 
 const BUNDLE_ASSET_FALLBACKS: Record<
   string,
@@ -92,10 +93,7 @@ export const createFallbackBundleAsset = (
  *  @param shop - Response v3 từ getShop() (services/riot/account-api).
  *  @param cachedBundles - Bundle đã cache, làm fallback khi asset 404.
  *  @returns { main, bundles, nightMarket, accessory, remainingSecs }. */
-export async function parseShop(
-  shop: StorefrontResponse,
-  cachedBundles: BundleShopItem[] = []
-) {
+export async function parseShop(shop: StorefrontResponse, cachedBundles: BundleShopItem[] = []) {
   /* SHOP CHÍNH (4 SKIN HÀNG NGÀY) */
   let singleItemStoreOffers = shop.SkinsPanelLayout.SingleItemStoreOffers;
   let main: SkinShopItem[] = [];
@@ -257,7 +255,7 @@ export async function parseShop(
       ...resolvedBundleAsset,
       price: discountedPrice,
       originalPrice: basePrice,
-      items: allItems,
+      items: attachBundleOwnershipIdentity(allItems, bundle.Items, buddyByAnyId),
     });
   }
   /* NIGHT MARKET (CHỢ ĐÊM) */

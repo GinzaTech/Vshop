@@ -60,14 +60,15 @@ const getQueueKey = (raw?: string | null) => {
   if (!normalized) return null;
 
   // Kiểm tra các chuỗi con để xác định loại queue
-  if (normalized.includes("teamdeathmatch")) return "team_deathmatch";
+  if (normalized.includes("abilitydraftarena")) return "ability_draft_arena";
+  if (normalized.includes("teamdeathmatch") || normalized === "hurm") return "team_deathmatch";
   if (normalized.includes("deathmatch")) return "deathmatch";
   if (normalized.includes("competitive") || normalized.includes("ranked")) {
     return "competitive";
   }
   if (normalized.includes("swiftplay")) return "swiftplay";
   if (normalized.includes("spikerush")) return "spike_rush";
-  if (normalized.includes("escalation")) return "escalation";
+  if (normalized.includes("escalation") || normalized === "ggteam") return "escalation";
   if (normalized.includes("bombgamemode") || normalized.includes("unrated")) {
     return "standard";
   }

@@ -1,12 +1,18 @@
 // ====== App.d.ts – Định nghĩa kiểu dữ liệu (TypeScript interfaces) cho toàn ứng dụng ======
 
+/** Exact storefront inventory identity; optional for older persisted shop data. */
+interface ShopItemOwnershipIdentity {
+  itemTypeId?: string;
+  entitlementItemIds?: readonly string[];
+}
+
 /**
  * SkinShopItem – Một skin trong cửa hàng (kế thừa ValorantSkin + giá tiền).
- * @extends ValorantSkin – Kế thừa toàn bộ thuộc tính của ValorantSkin (tên, icon, tier…).
+ * @extends ValorantSkin – Thông tin skin từ public metadata.
  * @param price – Giá skin trong cửa hàng (VP).
- * @param originalPrice – (tuỳ chọn) Giá base trước giảm từ Riot; chỉ có trong bundle offer.
+ * @param originalPrice – Giá base trước giảm từ Riot trong bundle offer.
  */
-interface SkinShopItem extends ValorantSkin {
+interface SkinShopItem extends ValorantSkin, ShopItemOwnershipIdentity {
   price: number;
   originalPrice?: number;
 }
@@ -19,7 +25,7 @@ interface SkinShopItem extends ValorantSkin {
  * @param price         – Giá phụ kiện (VP trong bundle, KC trong accessory shop).
  * @param originalPrice – (tuỳ chọn) Giá base trước giảm từ Riot; chỉ có trong bundle offer.
  */
-interface AccessoryShopItem {
+interface AccessoryShopItem extends ShopItemOwnershipIdentity {
   uuid: string;
   displayName: string;
   displayIcon?: string;

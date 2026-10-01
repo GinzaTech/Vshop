@@ -80,7 +80,7 @@ export function useProfileState({ cachedLoadoutSnapshot, cachedProfile, user, is
   // ─── Refs dữ liệu phiên (fix M6): fetchLoadoutData đọc qua ref, không phụ
   // thuộc identity `user` → callback ổn định, effect không re-arm khi setUser nền.
   const sessionUserRef = React.useRef(user);
-  React.useEffect(() => { sessionUserRef.current = user; }, [user]);
+  sessionUserRef.current = user;
   const competitiveRankRef = React.useRef(competitiveRank);
   React.useEffect(() => { competitiveRankRef.current = competitiveRank; }, [competitiveRank]);
   const cachedCompetitiveRankRef = React.useRef(cachedCompetitiveRank);

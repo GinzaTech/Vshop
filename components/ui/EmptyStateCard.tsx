@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "./LiquidGlassSurface";
 
 /**
  * Định nghĩa props cho EmptyStateCard.
@@ -52,6 +53,7 @@ export default function EmptyStateCard({
   return (
     // Chọn container dựa trên prop centered
     <View style={[centered ? styles.centeredContainer : styles.inlineContainer, style]}>
+      {!centered && <LiquidGlassDecoration radius={RADIUS.screen} />}
       {/* Nếu có icon, render trong iconBadge (hình tròn) */}
       {icon ? <View style={styles.iconBadge}>{icon}</View> : null}
       {/* Tiêu đề chính */}
@@ -86,11 +88,10 @@ export default function EmptyStateCard({
  */
 const styles = StyleSheet.create({
   inlineContainer: {
+    ...LIQUID_GLASS_CARD_STYLE,
     padding: 24,
-    borderRadius: 28,
-    backgroundColor: COLORS.SURFACE,
+    borderRadius: RADIUS.screen,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
   },
   centeredContainer: {
     flex: 1,

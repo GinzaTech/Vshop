@@ -48,6 +48,12 @@ export const RIOT_ENDPOINT_NAMES = [
   "party-invite-code",
   "party-join-by-code",
   "party-muc-token",
+  "party-queue",
+  "party-accessibility",
+  "party-invite-by-name",
+  "party-make-custom",
+  "party-make-default",
+  "party-start-custom",
   "contracts",
   "activate-contract",
   "item-upgrades",
@@ -73,6 +79,9 @@ export type RiotEndpointParams = {
   agentId?: string | null;
   itemTypeId?: string | null;
   code?: string | null;
+  friendName?: string | null;
+  friendTag?: string | null;
+  queueId?: string | null;
 };
 
 // Các shard Valorant được hỗ trợ (region game KHÔNG dùng trực tiếp — luôn
@@ -213,6 +222,18 @@ export function buildRiotApiUrl(params: RiotEndpointParams): string {
       )}`;
     case "party-muc-token":
       return `${glz}/parties/v1/parties/${matchId()}/muctoken`;
+    case "party-queue":
+      return `${glz}/parties/v1/parties/${matchId()}/queue`;
+    case "party-accessibility":
+      return `${glz}/parties/v1/parties/${matchId()}/accessibility`;
+    case "party-invite-by-name":
+      return `${glz}/parties/v1/parties/${matchId()}/invites/name/${encodeURIComponent(requireValue(params.friendName, "friendName"))}/tag/${encodeURIComponent(requireValue(params.friendTag, "friendTag"))}`;
+    case "party-make-custom":
+      return `${glz}/parties/v1/parties/${matchId()}/makecustomgame`;
+    case "party-make-default":
+      return `${glz}/parties/v1/parties/${matchId()}/makedefault?queueID=${encodeURIComponent(requireValue(params.queueId, "queueId"))}`;
+    case "party-start-custom":
+      return `${glz}/parties/v1/parties/${matchId()}/startcustomgame`;
     case "contracts":
       return `${pd}/contracts/v1/contracts/${userId()}`;
     case "activate-contract":

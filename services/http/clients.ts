@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getRiotHttpAdapter } from "./riot-adapter";
+import { installApiResponseLogging } from "~/utils/api-response-logger";
 
 /**
  * HTTP clients are intentionally isolated by responsibility.
@@ -19,7 +20,12 @@ export const publicHttpClient = axios.create({
   },
 });
 
+installApiResponseLogging(riotHttpClient, "riot");
+installApiResponseLogging(publicHttpClient, "public");
+
 export const telemetryHttpClient = axios.create({
   timeout: 8_000,
 });
+
+installApiResponseLogging(telemetryHttpClient, "telemetry");
 

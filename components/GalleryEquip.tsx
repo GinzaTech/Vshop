@@ -16,6 +16,7 @@ import AppIcon from "~/components/ui/AppIcon";
 import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { MOTION_DURATION } from "~/constants/Motion";
 import { useTranslation } from "react-i18next";
+import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
 
 // EquipmentDisplayItem: Kiểu item hiển thị, suy ra từ buildEquipDisplayList
 // (id, displayName, subtitle, item gốc, section)
@@ -111,6 +112,7 @@ const GalleryEquipComponent = ({
         accessible
         accessibilityLabel={`${categoryLabel}: ${displayName}`}
       >
+        <LiquidGlassDecoration radius={RADIUS.sm} />
         <View
           style={[
             styles.visualFrame,
@@ -181,11 +183,10 @@ const styles = StyleSheet.create({
     margin: 6,        // Khoảng cách giữa các card
   },
   card: {
+    ...LIQUID_GLASS_CARD_STYLE,
     flex: 1,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    backgroundColor: COLORS.SURFACE,
     overflow: "hidden",
   },
   cover: {

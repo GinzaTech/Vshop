@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useUserStore } from "~/hooks/useUserStore";
 import GlassCard from "~/components/ui/GlassCard";
 import AppIcon from "~/components/ui/AppIcon";
+import { CachedImage } from "~/components/CachedImage";
 import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { COLORS } from "~/constants/DesignSystem";
 import { useChatStore, type ChatFriend } from "~/utils/chat-store";
@@ -22,6 +23,9 @@ import { router, useFocusEffect, useNavigation } from "expo-router";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { filterFriendsByRiotId } from "~/utils/friend-search";
+import { isOnlineFriend } from "~/utils/friend-presence";
+import { getFriendCardArt } from "~/utils/friend-card";
+import { getAssets } from "~/utils/valorant-assets";
 
 // FriendStateInfo: thông tin hiển thị cho trạng thái của bạn bè
 type FriendStateInfo = { icon: AppIconName; color: string; label: string };
@@ -29,6 +33,7 @@ type FriendStateInfo = { icon: AppIconName; color: string; label: string };
 // STATE_ICONS: mapping trạng thái → icon, màu sắc, label
 const STATE_ICONS: Record<string, FriendStateInfo> = {
   chat: { icon: "connected", color: COLORS.SUCCESS, label: "friends_page.in_menu" },
+  online: { icon: "connected", color: COLORS.SUCCESS, label: "friends_page.online" },
   dnd: { icon: "connected", color: COLORS.STATUS_BUSY, label: "friends_page.dnd" },
   away: { icon: "clock", color: COLORS.STATUS_AWAY, label: "friends_page.idle" },
   mobile: { icon: "connected", color: COLORS.STATUS_INFO, label: "friends_page.mobile" },
@@ -36,7 +41,7 @@ const STATE_ICONS: Record<string, FriendStateInfo> = {
 };
 
 // FRIEND_STATE_ORDER: thứ tự sắp xếp bạn bè theo trạng thái
-const FRIEND_STATE_ORDER: Record<string, number> = { chat: 0, mobile: 0, away: 1, offline: 2, dnd: 3 };
+const FRIEND_STATE_ORDER: Record<string, number> = { chat: 0, online: 0, mobile: 0, away: 1, offline: 2, dnd: 3 };
 
 /**
  * FriendsScreen – Hiển thị danh sách bạn bè (Riot Friends) kèm trạng thái
@@ -108,15 +113,15 @@ export default function FriendsScreen() {
   // Cùng trạng thái thì sort theo tên alphabet
   const friends = React.useMemo(
     () =>
-      Object.values(friendsObj).sort((left, right) => {
-        const leftOrder = FRIEND_STATE_ORDER[left.show] ?? 2;
-        const rightOrder = FRIEND_STATE_ORDER[right.show] ?? 2;
+      Object.values(friendsObj).filter((friend) => isOnlineFriend(friend, status)).sort((left, right) => {
+        const leftOrder = FRIEND_STATE_ORDER[left.show.trim().toLowerCase()] ?? 2;
+        const rightOrder = FRIEND_STATE_ORDER[right.show.trim().toLowerCase()] ?? 2;
         if (leftOrder !== rightOrder) return leftOrder - rightOrder;
         const leftName = left.gameName && left.gameName !== "Unknown" ? left.gameName : "\uffff";
         const rightName = right.gameName && right.gameName !== "Unknown" ? right.gameName : "\uffff";
         return leftName.localeCompare(rightName);
       }),
-    [friendsObj]
+    [friendsObj, status]
   );
 
   // Query đã trim + lowercase — ổn định làm dependency cho memo lọc bên dưới
@@ -187,16 +192,19 @@ export default function FriendsScreen() {
 
   // renderFriend: render một hàng bạn bè (chấm trạng thái, tên, status text, icon)
   const renderFriend = ({ item }: { item: ChatFriend }) => {
+    const cardArt = getFriendCardArt(item, getAssets().cards);
     const displayName = item.gameName && item.gameName !== "Unknown"
       ? item.tagLine ? `${item.gameName}#${item.tagLine}` : item.gameName
       : t("friends_page.loading");
 
     // Xác định thông tin trạng thái dựa trên item.show
+    const show = item.show.trim().toLowerCase();
     let stateInfo = STATE_ICONS.offline;
-    if (item.show === "chat") stateInfo = STATE_ICONS.chat;
-    if (item.show === "dnd") stateInfo = STATE_ICONS.dnd;
-    if (item.show === "away") stateInfo = STATE_ICONS.away;
-    if (item.show === "mobile") stateInfo = STATE_ICONS.mobile;
+    if (show === "chat") stateInfo = STATE_ICONS.chat;
+    if (show === "online") stateInfo = STATE_ICONS.online;
+    if (show === "dnd") stateInfo = STATE_ICONS.dnd;
+    if (show === "away") stateInfo = STATE_ICONS.away;
+    if (show === "mobile") stateInfo = STATE_ICONS.mobile;
 
     return (
       // Pressable: khi nhấn vào → mở chat với bạn đó
@@ -212,7 +220,10 @@ export default function FriendsScreen() {
         accessibilityLabel={`${displayName}, ${item.status ? item.status : t(stateInfo.label)}`}
       >
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{displayName.slice(0, 1).toUpperCase()}</Text>
+          {cardArt ? (
+            <CachedImage source={{ uri: cardArt }} cacheId={`friend-card:${item.presence?.playerCardId}:${cardArt}`}
+              recyclingKey={cardArt} style={styles.avatar} contentFit="cover" accessible={false} />
+          ) : <Text style={styles.avatarText}>{displayName.slice(0, 1).toUpperCase()}</Text>}
           <View style={[styles.statusDot, { backgroundColor: stateInfo.color }]} />
         </View>
         <View style={styles.friendInfo}>

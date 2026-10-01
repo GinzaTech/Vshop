@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BundleImage from "~/components/BundleImage";
 import CurrencyIcon from "~/components/CurrencyIcon";
 import { useUserStore } from "~/hooks/useUserStore";
+import { useBundleOwnership } from "~/hooks/useBundleOwnership";
 import { COLORS } from "~/constants/DesignSystem";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import InfoPill from "~/components/ui/InfoPill";
@@ -35,10 +36,15 @@ function Bundles() {
   const insets = useSafeAreaInsets();
   // Lấy thông tin user từ store (bao gồm shops.bundles, balances.vp, ...)
   const user = useUserStore(({ user }) => user);
+  // Ownership theo đúng tài khoản/loại item cho badge trên skin và phụ kiện.
+  const { isOwned, reload: reloadOwnership } = useBundleOwnership();
   // refreshShop: pull-to-refresh làm mới shop + balances (force = true)
+  // và kiểm lại ownership cùng lúc — không dùng dữ liệu ownership cũ.
   const refreshShop = React.useCallback(
-    () => refreshShopAndBalances(true),
-    []
+    async () => {
+      await Promise.all([refreshShopAndBalances(true), reloadOwnership()]);
+    },
+    [reloadOwnership]
   );
   const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
 
@@ -107,6 +113,8 @@ function Bundles() {
           bundle={bundle}
           // remainingSecs: thời gian còn lại của bundle (tính bằng giây)
           remainingSecs={user.shops.remainingSecs.bundles[index]}
+          // isOwned: badge "đã sở hữu" theo entitlement của tài khoản hiện tại
+          isOwned={isOwned}
         />
       ))}
     </ScrollView>

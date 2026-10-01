@@ -1,7 +1,7 @@
 // ===== CombatSessionScreen.tsx – Màn hình theo dõi trận đang chơi (landscape) =====
 // Màn hình duy nhất được phép khóa ngang (AGENTS.md mục 5): vào màn → lock
 // landscape, rời màn → trả về portrait. Hiển thị đội mình/đối thủ với rank,
-// hiệu suất ranked 5 trận (COMP) hoặc chỉ số trận live (MATCH), poll 10s.
+// hiệu suất ranked 5 trận (COMP) hoặc chỉ số trận live (MATCH), poll 3s.
 // Dữ liệu: useCombatStore (snapshot live/pregame) + session-insights (intel).
 
 import { useFocusEffect, useRouter } from "expo-router";
@@ -38,7 +38,7 @@ import { useRiotScreenSession } from "~/hooks/useRiotScreenSession";
 import { useCombatScreenActivity } from "~/features/combat/useCombatScreenActivity";
 import { useCombatSessionPolling } from "~/features/combat/useCombatSessionPolling";
 import { useCombatPlayerIntel } from "~/features/combat/useCombatPlayerIntel";
-import { useCombatMatchPerformance } from "~/features/combat/useCombatMatchPerformance";
+import { useCombatMatchData } from "~/features/combat/useCombatMatchPerformance";
 import { useCombatSnapshot } from "~/features/combat/useCombatSnapshot";
 import { styles, TRACKER_COLORS } from "~/features/combat/combat-session.styles";
 import {
@@ -65,7 +65,7 @@ type PregameSessionPlayer = {
 };
 
 export default function CombatSessionScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { width, height } = useAppWindowDimensions();
   // Màn hình "chật" (điện thoại ngang nhỏ) → dùng layout compact.
@@ -85,7 +85,7 @@ export default function CombatSessionScreen() {
   const [statsViewMode, setStatsViewMode] =
     React.useState<StatsViewMode>("competitive");
   const activity = useCombatScreenActivity();
-  const loadSnapshot = useCombatSessionPolling(session, snapshot.state === "live", activity);
+  const loadSnapshot = useCombatSessionPolling(session, snapshot.state !== "idle", activity);
   const { refreshing, onRefresh } = useAsyncRefresh(loadSnapshot, session);
 
   // Back hardware khi modal đang mở → chỉ đóng modal, không thoát màn hình.
@@ -240,9 +240,11 @@ export default function CombatSessionScreen() {
   const { playerIntel, competitivePerformance } = useCombatPlayerIntel(
     session, playerSubjectKey, snapshot.matchId, activity
   );
-  const matchPerformance = useCombatMatchPerformance(
+  // Score ownership requires the actual self player's team, never the roster's Blue fallback.
+  const selfTeamId = teams.allies.find((player) => player.isCurrentUser)?.teamId;
+  const { performance: matchPerformance, score } = useCombatMatchData(
     session, playerSubjectKey, matchData?.MatchID,
-    statsViewMode === "match" && snapshot.state === "live", activity
+    snapshot.state === "live", activity, selfTeamId
   );
 
   /**
@@ -698,13 +700,30 @@ export default function CombatSessionScreen() {
             </View>
           </View>
 
-          {/* Khối giữa: tên map + queue */}
+          {/* Khối giữa: score đã xác minh từ match-details, hoặc map khi pregame */}
           <View style={styles.headerMatch}>
-            <Text style={styles.headerMapName} numberOfLines={1}>
-              {mapInfo?.displayName || t("combat_session_page.no_map")}
+            <Text
+              testID={snapshot.state === "live" ? "combat-match-score" : undefined}
+              style={styles.headerMapName}
+              numberOfLines={1}
+              accessibilityLabel={snapshot.state === "live" ? t("combat_session_page.score_label", {
+                defaultValue: "Allies {{ally}} : {{enemy}} enemies",
+                ally: score?.allyRoundsWon ?? "—", enemy: score?.enemyRoundsWon ?? "—",
+              }) : undefined}
+            >
+              {snapshot.state === "live"
+                ? score ? `${score.allyRoundsWon} : ${score.enemyRoundsWon}` : "— : —"
+                : mapInfo?.displayName || t("combat_session_page.no_map")}
             </Text>
-            <Text style={styles.headerQueue} numberOfLines={1}>
-              {queueLabel}
+            <Text style={styles.headerQueue} numberOfLines={snapshot.state === "live" && !score ? 2 : 1}>
+              {snapshot.state === "live"
+                ? score ? `${mapInfo?.displayName || t("combat_session_page.no_map")} · ${queueLabel}`
+                  : t("combat_session_page.score_unavailable", {
+                    defaultValue: (i18n?.resolvedLanguage || i18n?.language || "").startsWith("vi")
+                      ? "Chưa có tỉ số; dữ liệu có thể chỉ xuất hiện sau trận."
+                      : "Score unavailable; match data may appear after the match.",
+                  })
+                : queueLabel}
             </Text>
           </View>
 

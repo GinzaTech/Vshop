@@ -3,6 +3,7 @@ import TcpSocket from "react-native-tcp-socket";
 // Import NativeModules để kiểm tra module native TcpSockets có khả dụng không, Platform để kiểm tra OS
 import { NativeModules, Platform } from "react-native";
 import { trimXmppBuffer } from "./xmpp-buffer";
+import { presenceShow } from "~/features/party/party-presence";
 
 // Kiểu trạng thái kết nối XMPP: disconnected (ngắt kết nối) | connecting (đang kết nối) | authenticated (đã xác thực) | error (lỗi)
 type ConnectionState = "disconnected" | "connecting" | "authenticated" | "error";
@@ -497,16 +498,19 @@ export class XMPPClient {
   // Phương thức private: xử lý presence (trạng thái) từ buffer
   // Parse <presence>, gọi callback onPresence
   private processPresence() {
-    const presRegex = /<presence[^>]*from=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/presence>/g;
+    const presRegex = /<presence\b([^>]*?)(?:\/>|>([\s\S]*?)<\/presence>)/g;
     this.consumeMatches(presRegex, (match) => {
-      const showMatch = /<show>(.*?)<\/show>/.exec(match[2]);
-      const statusMatch = /<status>(.*?)<\/status>/.exec(match[2]);
+      const from = this.parseAttributes(match[1]).from;
+      if (!from) return;
+      const body = match[2] ?? "";
+      const showMatch = /<show>(.*?)<\/show>/.exec(body);
+      const statusMatch = /<status>(.*?)<\/status>/.exec(body);
 
       this.onPresence?.(
-        match[1],
+        from,
         statusMatch ? this.unescapeXml(statusMatch[1]) : "",
-        showMatch?.[1] || "chat",
-        match[2]
+        presenceShow(match[0], showMatch?.[1] || "chat"),
+        body
       );
     });
   }

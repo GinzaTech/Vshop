@@ -63,6 +63,76 @@ export const COLORS = {
   ON_DARK_TEXT: "rgba(255, 255, 255, 0.78)",
 };
 
+/** Shared optical material: light transmission, frosted lens and specular rims. */
+export const GLASS_MATERIAL = {
+  surface: "rgba(255, 255, 255, 0.88)",
+  denseSurface: "rgba(255, 255, 255, 0.94)",
+  fallback: COLORS.SURFACE,
+  frost: "rgba(236, 238, 240, 0.72)",
+  lens: "rgba(235, 235, 235, 0.78)",
+  lensFallback: "rgba(235, 235, 235, 0.92)",
+  border: "rgba(255, 255, 255, 0.86)",
+  innerBorder: "rgba(255, 255, 255, 0.48)",
+  highlight: "rgba(255, 255, 255, 0.72)",
+  highlightSoft: "rgba(255, 255, 255, 0.16)",
+  clear: "rgba(255, 255, 255, 0)",
+  shade: "rgba(17, 24, 28, 0.035)",
+  // The reference's deeper red remains readable on the pale gray lens at 11sp.
+  active: "#c72232",
+  inactive: COLORS.TEXT_PRIMARY,
+} as const;
+
+// Explicit SVG-alpha counterparts of the shared glass colors above.
+// react-native-svg 15.x overwrites rgba stop alpha unless stopOpacity is explicit.
+export const GLASS_SVG_OPACITY = {
+  highlight: 0.72,
+  highlightSoft: 0.16,
+  clear: 0,
+  frost: 0.72,
+  shade: 0.035,
+} as const;
+
+// Optional optical details from navigation spec sections 5.3, 17–19.
+// Keep separate from shared card opacity and the approved navigation geometry.
+export const GLASS_NAV_OPTICS = {
+  innerSeparator: "rgba(0, 0, 0, 0.025)",
+  fringeLeft: "#ff3d5d",
+  fringeRight: "#5078ff",
+  fringeLeftOpacity: 0.18,
+  fringeRightOpacity: 0.1,
+  fringeWidth: 1.5,
+  refractionOffset: 1.5,
+} as const;
+
+/** Bundle-only outline: visible on white without a tinted artwork backdrop. */
+export const BUNDLE_SURFACE_BORDER = {
+  color: COLORS.BORDER_STRONG,
+  width: 1.5,
+} as const;
+
+export const GLASS_TAB_BAR = {
+  horizontalMargin: 14,
+  smallHorizontalMargin: 10,
+  height: 54,
+  smallHeight: 52,
+  radius: 27,
+  maxWidth: 420,
+  insetHorizontal: 3,
+  insetVertical: 2,
+  iconSize: 24,
+  labelSize: 11,
+  labelLineHeight: 13,
+  labelMaxFontSizeMultiplier: 1.3,
+  labelGap: 1,
+  lensHeight: 50,
+  lensRadius: 25,
+  lensWidthRatio: 1.26,
+  lensMinWidth: 76,
+  lensMaxWidth: 90,
+  magnify: 1.065,
+  contentClearance: 20,
+} as const;
+
 /**
  * RADIUS – Bộ bán kính bo góc (borderRadius) thống nhất.
  *

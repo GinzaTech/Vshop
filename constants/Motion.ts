@@ -79,3 +79,32 @@ export const MOTION_SPRING = {
     reduceMotion: ReduceMotion.System,
   },
 } as const;
+
+/** Liquid navigation timing; icon Morphicons keep their existing bouncy preset. */
+export const NAV_MOTION = {
+  collapseHoldMs: 500,
+  collapse: MOTION_TIMING.emphasized,
+  travelMs: 310,
+  distanceStepMs: 25,
+  maxTravelMs: 390,
+  fadeDelayMs: 210,
+  fadeMs: 130,
+  reducedFadeMs: 90,
+  iconRepairMs: MOTION_DURATION.emphasized + MOTION_DURATION.fast,
+  spring: {
+    mass: 0.72,
+    damping: 20,
+    stiffness: 235,
+    overshootClamping: false,
+    energyThreshold: 0.001,
+    reduceMotion: ReduceMotion.System,
+  },
+  travel: {
+    easing: Easing.bezier(0.22, 1, 0.36, 1),
+    reduceMotion: ReduceMotion.System,
+  },
+  fade: {
+    easing: Easing.out(Easing.cubic),
+    reduceMotion: ReduceMotion.System,
+  },
+} as const;

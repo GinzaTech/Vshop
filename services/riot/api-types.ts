@@ -156,18 +156,37 @@ export interface CurrentGameMatchResponse {
 // Export interface phản hồi party (nhóm)
 export interface PartyResponse {
   ID: string;                          // UUID party
+  Version?: number;
   State?: string;
   MUCName?: string;
   InviteCode?: string;
+  Accessibility?: "OPEN" | "CLOSED";
+  MatchmakingData?: { QueueID?: string; PreferredGamePods?: string[] };
+  EligibleQueues?: string[];
+  QueueIneligibilities?: unknown[];
+  RestrictedSeconds?: number;
   CustomGameData?: {
     Settings?: {
       Mode?: string;
+      Map?: string;
+      GameRules?: Record<string, unknown> | null;
     };
+    GameRules?: Record<string, unknown> | null;
     MaxPartySize?: number;
   };
   Members: {                          // Danh sách thành viên
     Subject: string;
     IsReady: boolean;
+    IsOwner?: boolean;
+    CompetitiveTier?: number;
+    PlayerIdentity?: {
+      Subject?: string;
+      PlayerCardID?: string;
+      AccountLevel?: number;
+      Incognito?: boolean;
+      HideAccountLevel?: boolean;
+    };
+    Pings?: { Ping: number; GamePodID: string }[];
     [key: string]: unknown;
   }[];
   [key: string]: unknown;

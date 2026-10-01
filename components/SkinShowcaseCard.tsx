@@ -17,10 +17,12 @@ import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIconUri } from "~/utils/misc";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS, GLASS_MATERIAL, RADIUS } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { WEAPON_NAME_ORDER } from "~/components/GalleryProfile";
 import { MOTION_SPRING, MOTION_TIMING } from "~/constants/Motion";
+import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
+import LiquidGlassBackdrop from "~/components/ui/LiquidGlassBackdrop";
 
 // ─── SkinShowcaseCardProps ─────────────────────────────────────────────────────
 //   - item: đối tượng SkinShopItem chứa thông tin skin
@@ -244,6 +246,9 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
           },
         ]}
       >
+      {variant === "store" ? <LiquidGlassBackdrop radius={RADIUS.sm}
+        artworkUri={screenshotModeEnabled ? undefined : getDisplayIconUri(item) ?? undefined} cacheId={`skin:${item.uuid}:display`} /> : null}
+      <LiquidGlassDecoration radius={RADIUS.sm} />
       {/*
         ── imageFrame ───────────────────────────────────────────────────────────
         Khung hình trên: nền theo tier, border dưới theo tier
@@ -286,7 +291,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         ── content ──────────────────────────────────────────────────────────────
         Phần nội dung dưới: loại vũ khí, tên skin, giá (kèm icon VP)
         */}
-      <View style={styles.content}>
+      <View style={[styles.content, variant === "store" && styles.featuredContent]}>
         <Text style={styles.weaponTypeText} numberOfLines={1}>
           {weaponType}
         </Text>
@@ -332,8 +337,8 @@ const styles = StyleSheet.create({
   // card: thẻ chính, flex 1, nền SURFACE, bo góc 8, border 1px, overflow hidden
   card: {
     flex: 1,
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: 8,
+    ...LIQUID_GLASS_CARD_STYLE,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     overflow: "hidden",
   },
@@ -347,6 +352,7 @@ const styles = StyleSheet.create({
     paddingTop: 9,
     paddingBottom: 10,
   },
+  featuredContent: { backgroundColor: GLASS_MATERIAL.denseSurface },
   // currencyIcon: icon VP, 13x13
   currencyIcon: {
     width: 13,

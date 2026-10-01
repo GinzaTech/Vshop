@@ -1,4 +1,5 @@
 import { riotApiClient as axios } from "~/services/riot/client";
+import { nullableCombatResponse } from "~/services/riot/combat-response";
 import { buildRiotApiUrl } from "~/services/riot/endpoints";
 import type { CurrentGameMatchResponse, PartyResponse } from "~/services/riot/api-types";
 import { API_DEBUG_LOGGING, extraHeaders } from "~/services/riot/request-context";
@@ -94,7 +95,7 @@ export async function getPreGamePlayer(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  return res.status === 200 ? res.data : null;
+  return nullableCombatResponse(res);
 }
 
 /** Lấy chi tiết trận pregame (đội, agent đồng đội đã chọn...).
@@ -117,7 +118,7 @@ export async function getPreGameMatch(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  return res.status === 200 ? res.data : null;
+  return nullableCombatResponse(res);
 }
 
 /** Chọn (chưa khóa) agent trong pregame — POST .../select/:agentId.
@@ -168,7 +169,7 @@ export async function getCurrentGamePlayer(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  return res.status === 200 ? res.data : null;
+  return nullableCombatResponse(res);
 }
 
 /** Lấy chi tiết trận đang diễn ra (players, loadout, character selectors...).
@@ -191,7 +192,7 @@ export async function getCurrentGameMatch(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  return res.status === 200 ? res.data : null;
+  return nullableCombatResponse(res);
 }
 
 // ---------------------------------------------------------------------------
@@ -229,7 +230,7 @@ export async function getPartyPlayer(
       data: res.status === 200 ? undefined : res.data,
     });
   }
-  return res.status === 200 ? res.data : null;
+  return nullableCombatResponse(res);
 }
 
 /** Lấy chi tiết party theo ID (members, MUCName, State...).
@@ -263,7 +264,7 @@ export async function getParty(
       members: res.status === 200 ? res.data?.Members?.length || 0 : 0,
     });
   }
-  return res.status === 200 ? res.data : null;
+  return nullableCombatResponse(res);
 }
 
 /** Lấy MUC token cho party chat XMPP. Throw Error khi HTTP ≠ 200

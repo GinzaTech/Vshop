@@ -57,8 +57,9 @@ export type ProfileWarmCache = {
 
 // Thời gian sống (TTL) của profile warm cache: 5 phút (tính bằng ms)
 export const PROFILE_WARM_CACHE_TTL = 5 * 60 * 1000;
-// Phiên bản cache loadout hiện tại
-export const PROFILE_LOADOUT_CACHE_VERSION = 5;
+// Schema 5 could persist optimistic selections before GET confirmation, even
+// with the server Version unchanged. Exclude those snapshots from initial authority.
+export const PROFILE_LOADOUT_CACHE_VERSION = 6;
 // Phiên bản cache thứ hạng hiện tại
 export const PROFILE_RANK_CACHE_VERSION = 11;
 

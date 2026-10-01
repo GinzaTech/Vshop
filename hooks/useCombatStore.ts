@@ -103,7 +103,7 @@ export const useCombatStore = create<CombatState>((set, get) => ({
    *  Luồng: validate → dedup in-flight theo sessionKey → fetch 3 endpoint song
    *  song (party-player/pregame-player/coregame-player) → fetch chi tiết theo
    *  MatchID tìm được → gom subject → lấy tên → dựng snapshot ưu tiên
-   *  pregame > live > idle. Chỉ requestId mới nhất được ghi vào store.
+   *  live > pregame > idle. Chỉ requestId mới nhất được ghi vào store.
    *  @param user - đối tượng user chứa token, region, id
    *  @returns Promise<CombatSessionSnapshot> snapshot sau khi fetch (EMPTY_SESSION
    *  nếu thiếu token hoặc lỗi); lỗi mạng giữ nguyên snapshot cũ đang hiển thị.
@@ -137,6 +137,7 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     // Key phiên hiện tại; nếu đang đổi tài khoản thì snapshot cũ phải bị xóa
     // sạch trước (EMPTY_SESSION) để không lộ dữ liệu của tài khoản trước.
     const currentState = get();
+    const previousSnapshot = currentState.sessionKey === sessionKey ? currentState.snapshot : EMPTY_SESSION;
     set({
       loading: true,
       sessionKey,
@@ -150,16 +151,24 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     request = (async () => {
       try {
       // Gọi song song 3 API để lấy thông tin cơ bản của user trong party/pregame/live
-      const [partyPlayer, pregamePlayer, currentGamePlayer] = await Promise.all([
+      const [partyDiscovery, pregameDiscovery, liveDiscovery] = await Promise.allSettled([
         getPartyPlayer(user.accessToken, user.entitlementsToken, user.region, user.id),
         getPreGamePlayer(user.accessToken, user.entitlementsToken, user.region, user.id),
         getCurrentGamePlayer(user.accessToken, user.entitlementsToken, user.region, user.id),
       ]);
       if (!isCurrent()) return EMPTY_SESSION;
+      if (__DEV__) {
+        for (const result of [partyDiscovery, pregameDiscovery, liveDiscovery]) {
+          if (result.status === "rejected") console.warn("[combat] Partial discovery failure", sanitizeErrorForLog(result.reason));
+        }
+      }
+      const partyPlayer = partyDiscovery.status === "fulfilled" ? partyDiscovery.value : null;
+      const pregamePlayer = pregameDiscovery.status === "fulfilled" ? pregameDiscovery.value : null;
+      const currentGamePlayer = liveDiscovery.status === "fulfilled" ? liveDiscovery.value : null;
 
       // Từ kết quả trên, gọi song song chi tiết party, pregame match, current game match
       const partyId = partyPlayer?.CurrentPartyID || null;
-      const [party, pregameMatch, currentGameMatch] = await Promise.all([
+      const [partyDetail, pregameDetail, liveDetail] = await Promise.allSettled([
         partyId
           ? getParty(user.accessToken, user.entitlementsToken, user.region, partyId)
           : Promise.resolve(null),
@@ -171,6 +180,23 @@ export const useCombatStore = create<CombatState>((set, get) => ({
           : Promise.resolve(null),
       ]);
       if (!isCurrent()) return EMPTY_SESSION;
+      const partyMismatch = partyDetail.status === "fulfilled" && partyDetail.value !== null && partyDetail.value.ID !== partyId;
+      const pregameMismatch = pregameDetail.status === "fulfilled" && pregameDetail.value !== null && pregameDetail.value.ID !== pregamePlayer?.MatchID;
+      const liveMismatch = liveDetail.status === "fulfilled" && liveDetail.value !== null && liveDetail.value.MatchID !== currentGamePlayer?.MatchID;
+      const partyReadFailed = partyDiscovery.status === "rejected" || partyDetail.status === "rejected" || partyMismatch;
+      const party = partyDetail.status === "fulfilled" && partyDetail.value && !partyMismatch
+        ? partyDetail.value
+        : partyReadFailed && (partyDiscovery.status === "rejected" || partyId === previousSnapshot.partyId)
+          ? previousSnapshot.party : null;
+      const pregameMatch = pregameDetail.status === "fulfilled" && !pregameMismatch ? pregameDetail.value : null;
+      const freshLiveMatch = liveDetail.status === "fulfilled" && !liveMismatch ? liveDetail.value : null;
+      const liveReadFailed = liveDiscovery.status === "rejected" || liveDetail.status === "rejected" || liveMismatch;
+      const matchReadFailed = liveReadFailed || pregameDiscovery.status === "rejected" || pregameDetail.status === "rejected" || pregameMismatch;
+      const previousMatchStillCurrent = previousSnapshot.state === "live"
+        ? liveDiscovery.status === "rejected" || currentGamePlayer?.MatchID === previousSnapshot.matchId
+        : pregameDiscovery.status === "rejected" || pregamePlayer?.MatchID === previousSnapshot.matchId;
+      const currentGameMatch = freshLiveMatch ?? (liveReadFailed && previousSnapshot.state === "live" &&
+        pregameMatch?.ID === previousSnapshot.matchId ? previousSnapshot.currentGameMatch : null);
       // Party ID thực tế (có thể null nếu không có party)
       const effectivePartyId = party?.ID || null;
 
@@ -199,43 +225,46 @@ export const useCombatStore = create<CombatState>((set, get) => ({
 
       // Nếu có subject, gọi API lấy tên hiển thị (GameName#TagLine)
       const names = subjects.length
-        ? await getPlayerNames(user.accessToken, user.entitlementsToken, subjects, user.region)
+        ? await getPlayerNames(user.accessToken, user.entitlementsToken, subjects, user.region).catch((error: unknown) => {
+          if (__DEV__) console.warn("[combat] Name enrichment unavailable", sanitizeErrorForLog(error));
+          return [];
+        })
         : [];
       if (!isCurrent()) return EMPTY_SESSION;
 
       // Convert danh sách tên thành map subject -> "GameName#TagLine" để tra cứu nhanh
-      const namesBySubject = Object.fromEntries(
+      const namesBySubject = { ...previousSnapshot.namesBySubject, ...Object.fromEntries(
         names.map((entry) => [
           entry.Subject.toLowerCase(),
           entry.TagLine ? `${entry.GameName}#${entry.TagLine}` : entry.GameName,
         ])
-      );
+      ) };
 
-      // Xác định snapshot dựa trên ưu tiên: pregame > live > idle (chỉ có party)
-      // - Nếu có pregameMatch -> state = "pregame"
-      // - Nếu có currentGameMatch -> state = "live"
+      // Khi hai endpoint overlap lúc chuyển cảnh, live là bằng chứng mới hơn.
       // - Nếu không có gì -> state = "idle", giữ lại party & names nếu có
-      const nextSnapshot: CombatSessionSnapshot = pregameMatch
+      const nextSnapshot: CombatSessionSnapshot = currentGameMatch
         ? {
-            state: "pregame",
-            matchId: pregamePlayer?.MatchID || pregameMatch.ID || null,
+            state: "live",
+            matchId: currentGamePlayer?.MatchID || currentGameMatch.MatchID || null,
             partyId: effectivePartyId,
-            pregameMatch,
-            currentGameMatch: null,
+            pregameMatch: null,
+            currentGameMatch,
             party,
             namesBySubject,
           }
-        : currentGameMatch
+        : pregameMatch
           ? {
-              state: "live",
-              matchId: currentGamePlayer?.MatchID || currentGameMatch.MatchID || null,
+              state: "pregame",
+              matchId: pregamePlayer?.MatchID || pregameMatch.ID || null,
               partyId: effectivePartyId,
-              pregameMatch: null,
-              currentGameMatch,
+              pregameMatch,
+              currentGameMatch: null,
               party,
               namesBySubject,
             }
-            : {
+            : matchReadFailed && previousSnapshot.state !== "idle" && previousMatchStillCurrent ? {
+              ...previousSnapshot, partyId: effectivePartyId, party, namesBySubject,
+            } : {
               ...EMPTY_SESSION,
               partyId: effectivePartyId,
               party,

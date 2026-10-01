@@ -1,7 +1,9 @@
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { CachedImage as Image } from "~/components/CachedImage";
+import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
+import { GLASS_MATERIAL, RADIUS, SHADOWS } from "~/constants/DesignSystem";
 import { FALLBACK_IMAGE, type EquippedWeapon } from "~/components/GalleryProfile";
 import { styles } from "~/features/profile/profile-screen.styles";
 import { formatUpgradeLevel } from "~/features/profile/profile-loadout";
@@ -42,6 +44,8 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
   const upgradeLabel = formatUpgradeLevel(weapon);
   const cardStyle = [
     styles.profileSkinCard,
+    presentationStyles.glassCard,
+    SHADOWS.xs,
     {
       width,
       borderColor: tier.border,
@@ -50,6 +54,7 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
   ];
   const content = (
       <>
+        <LiquidGlassDecoration radius={RADIUS.sm} density="dense" tone="light" />
         <View
             style={[
               styles.profileSkinVisual,
@@ -109,6 +114,7 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
         <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel={`${weapon.weaponName}, ${weapon.skinName}`}
+            accessibilityState={{ disabled }}
             activeOpacity={0.86}
             disabled={disabled}
             onPress={onPress}
@@ -128,6 +134,14 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
         {content}
       </View>
   );
+});
+
+const presentationStyles = StyleSheet.create({
+  glassCard: {
+    backgroundColor: GLASS_MATERIAL.surface,
+    borderColor: GLASS_MATERIAL.border,
+    minHeight: 48,
+  },
 });
 
 /**

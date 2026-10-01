@@ -1,9 +1,35 @@
 const { withAppBuildGradle } = require("expo/config-plugins");
 
 const SIGNING_MARKER = "VSHOP_ANDROID_KEYSTORE_PATH";
+const GUARD_MARKER = "VSHOP_RELEASE_SIGNING_GUARD";
+const SAFE_STORE_FILE = `def vshopKeystorePath = System.getenv("${SIGNING_MARKER}")
+            storeFile vshopKeystorePath ? file(vshopKeystorePath) : null`;
+
+function withReleaseCredentialGuard(contents) {
+  if (contents.includes(GUARD_MARKER)) return contents;
+  return `${contents}
+
+// ${GUARD_MARKER}: Debug may configure without production secrets; release packaging must not.
+gradle.taskGraph.whenReady { graph ->
+    def createsRelease = graph.allTasks.any { task ->
+        task.project == project && task.name ==~ /(?i)(assemble|bundle|package|install|sign|validateSigning).*release.*/
+    }
+    if (createsRelease) {
+        def missing = ["VSHOP_ANDROID_KEYSTORE_PATH", "VSHOP_ANDROID_STORE_PASSWORD", "VSHOP_ANDROID_KEY_ALIAS", "VSHOP_ANDROID_KEY_PASSWORD"].findAll { !System.getenv(it)?.trim() }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Release signing credentials are required. Missing variables: " + missing.join(", "))
+        }
+    }
+}
+`;
+}
 
 function applyReleaseSigningPlugin(contents) {
-  if (contents.includes(SIGNING_MARKER)) return contents;
+  if (contents.includes(SIGNING_MARKER)) {
+    return withReleaseCredentialGuard(contents.replace(
+      'storeFile file(System.getenv("VSHOP_ANDROID_KEYSTORE_PATH"))', SAFE_STORE_FILE,
+    ));
+  }
 
   const signingConfigsPattern = /(signingConfigs\s*\{)/;
   if (!signingConfigsPattern.test(contents)) {
@@ -14,7 +40,7 @@ function applyReleaseSigningPlugin(contents) {
     signingConfigsPattern,
     `$1
         release {
-            storeFile file(System.getenv("VSHOP_ANDROID_KEYSTORE_PATH"))
+            ${SAFE_STORE_FILE}
             storePassword System.getenv("VSHOP_ANDROID_STORE_PASSWORD")
             keyAlias System.getenv("VSHOP_ANDROID_KEY_ALIAS")
             keyPassword System.getenv("VSHOP_ANDROID_KEY_PASSWORD")
@@ -26,10 +52,10 @@ function applyReleaseSigningPlugin(contents) {
     throw new Error("Unable to locate Android release signing assignment.");
   }
 
-  return withSigningConfig.replace(
+  return withReleaseCredentialGuard(withSigningConfig.replace(
     releaseBuildPattern,
     "$1signingConfig signingConfigs.release",
-  );
+  ));
 }
 
 function withAndroidReleaseSigning(config) {

@@ -12,6 +12,8 @@ import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { getDisplayIconUri } from "~/utils/misc";
+import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
+import { useMotionPreference } from "~/hooks/useMotionPreference";
 
 // Props cho NightMarketItem
 // item: đối tượng NightMarketItem (chứa thông tin skin, giá, discount)
@@ -36,6 +38,7 @@ interface NightMarketItemProps {
 export default function NightMarketItem({ item, width }: NightMarketItemProps) {
   // Hook dịch thuật i18n
   const { t } = useTranslation();
+  const reduceMotion = useMotionPreference();
   // showMediaPopup: hàm từ MediaPopup store để mở popup xem media
   const showMediaPopup = useMediaPopupStore((state) => state.showMediaPopup);
   // screenshotModeEnabled: flag chế độ screenshot từ FeatureStore
@@ -148,6 +151,7 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
       accessibilityLabel={item.displayName}
       // Disable nếu không có media để preview
       disabled={mediaEntries.length === 0}
+      accessibilityState={{ disabled: mediaEntries.length === 0 }}
       onPress={handlePress}
       style={({ pressed }) => [
         styles.card,
@@ -155,6 +159,7 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
         pressed && styles.cardPressed,
       ]}
     >
+      <LiquidGlassDecoration radius={RADIUS.sm} />
       {/* Khung ảnh: chứa badge tier, badge giảm giá, và ảnh skin */}
       <View
         style={[
@@ -183,7 +188,7 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
           contentFit="contain"
           cachePolicy="memory-disk"
           priority="normal"
-          transition={120}
+          transition={reduceMotion ? 0 : 120}
           recyclingKey={item.uuid}
         />
       </View>
@@ -230,8 +235,8 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
 // StyleSheet: Định nghĩa các style cho NightMarketItem
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: 8,
+    ...LIQUID_GLASS_CARD_STYLE,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     overflow: "hidden",              // Giữ bo góc cho nội dung bên trong
   },

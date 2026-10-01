@@ -53,16 +53,28 @@ Component nhỏ đặc thù có thể dùng radius cục bộ, nhưng các primi
 - Dùng `SPACING` cho nhịp 4/8/12/16/20/24/32.
 - Dùng `LAYOUT.screenPadding`, `minTouchTarget` và `bottomNavHeight` cho kích thước dùng chung.
 - Card thường dùng `SHADOWS.none/xs/sm`; navigation dùng tối đa `md`; `lg` dành cho modal/sheet.
-- Bottom navigation phải tham gia layout của navigator, không đặt absolute phủ lên screen content.
-- Scene của tab chính dùng native detach sau chuyển cảnh, giữ React state. Nền design system nằm trong PrimaryTabScene và ẩn cùng nội dung khi mất focus; nền navigator phải trong suốt để không che bạc trang mới. Chuyển tab dùng native transform tối đa 32 dp trong 220 ms, scene mới fade nhẹ từ opacity 0.92. Indicator chỉ khởi động một lần cho mỗi đích, không restart khi route xác nhận. Bấm tab khác đổi đích ngay và Reduce Motion chuyển tức thời.
+- Bottom navigation dùng capsule nổi theo spec Liquid Glass đã duyệt: cao 54dp, margin ngang 14dp, tối đa 420dp và năm vùng chạm bằng nhau. `getGlassNavigationMetrics` là nguồn chuẩn cho safe-area và khoảng trống cuối nội dung; không để item cuối bị thanh nổi che.
+- `LiquidNavigationShell` giữ TabRouter/descriptors/history nhưng dùng retained view host cho scene chính. `PrimaryTabScene` crossfade opacity, không trượt ngang. Lens đổi đích ngay, di chuyển 310–385ms theo khoảng cách; nội dung bắt đầu fade sau khoảng 210ms, fade 130ms. Chặn touch/accessibility của scene chưa hiện xong; thanh tab vẫn nhận lần bấm mới để retarget. Giữ một active AppIcon xuyên suốt cả khi ẩn bar ở route phụ. Reduce Motion bỏ stretch/magnification và tôn trọng OS.
 
 Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout cụ thể. Khi xuất hiện từ ba lần trở lên, nâng giá trị thành token hoặc primitive.
+
+Navigation giữ nhấn Cài đặt500ms để thu thành nút tròn54dp bên phải; bấm nút để
+mở lại, không đổi route. Expanded content giữ mounted để bảo toàn MorphIcon.
+Vùng trong suốt ngoài nút tròn phải cho chạm xuyên; tab ẩn không nhận chạm hoặc
+accessibility. Reduce Motion bỏ animation thu/mở. Bundle giữ body/title trắng
+opaque, không dùng hero lặp lại làm nền blur; ownership fade/check là lớp riêng.
+Viền Bundle/tile dùng `BUNDLE_SURFACE_BORDER` (1.5dp, `COLORS.BORDER_STRONG`).
+Badge cho card/title/spray/flex/buddy phải khớp inventory đúng loại và tài khoản;
+ID cấp/offer được giữ riêng với UUID metadata. Không suy ra sở hữu từ giá0 hoặc
+ảnh/tên. Item cache cũ thiếu loại phải được refresh, không đoán dấu tích.
 
 ## 3. UI primitives
 
 | Primitive | Vai trò |
 |---|---|
-| `GlassCard` | tonal surface có border và shadow `xs`; không blur mặc định |
+| `GlassCard` | kính sáng với lớp frost, specular rim và shadow nhẹ; giữ contract View/contentStyle, không native blur mặc định |
+| `LiquidGlassDecoration` | lớp ánh sáng/viền SVG tĩnh dùng lại trên card; không nhận touch hoặc tạo accessibility node |
+| `LiquidGlassBackdrop` | native blur từ artwork trang trí có target riêng cho card nổi bật; chữ và artwork chính luôn rõ |
 | `ValorantButton` | button chính/phụ với press feedback |
 | `InfoPill` | metric, balance hoặc badge dạng pill |
 | `PageIntro` | title/subtitle đầu màn hình |
@@ -72,6 +84,33 @@ Không tạo nhiều giá trị lệch 1–2 px nếu không có lý do layout c
 | `AppIcon` | boundary semantic có type duy nhất; mọi icon, kể cả glyph Valorant, render qua Morphicons |
 
 Trước khi tạo component mới, kiểm tra `components/ui/`. Primitive không được chứa domain logic hoặc tự gọi Riot API.
+
+### Liquid glass material
+
+`GLASS_MATERIAL` và `GLASS_TAB_BAR` giữ màu/độ trong/kích thước. Store skin và
+Profile identity được phép dùng blur với target cùng bounds đã layout và ảnh
+đã tải. Bundle giữ hero gốc và phần nội dung trắng, không blur bản sao artwork
+phía sau; lớp phủ đã sở hữu chỉ áp dụng lên ảnh/tên từng vật phẩm, không phủ giá.
+Toàn bộ card chỉ giữ tối đa sáu native blur slot; danh sách
+dày dùng lớp quang học tĩnh. Web, Android dưới API 31, Reduce Motion/Transparency,
+ảnh thiếu/lỗi hoặc hết slot dùng nền dự phòng sáng. Navigation có target nội dung
+riêng, bar là sibling để không tự lấy chính nó làm ảnh blur. Không gọi lớp SVG
+tĩnh là khúc xạ hoặc background sampling thật.
+
+Candidate Android API 33+ thêm `modules/vshop-liquid-glass`: target chỉ giữ lệnh
+vẽ của subtree trang, lens sibling dùng RenderEffect/AGSL trong bounds lens có
+padding. Không snapshot bitmap toàn màn hình, không chuyển pixel sang JS/storage.
+Khúc xạ dùng transform global để bù translation/stretch, giữ tint xám 0.92 một
+lần trên output opaque; icon/label và ánh sáng nằm trên shader. Target và lens
+cleanup khi ẩn/background/detach, Reduce Motion và APK cũ giữ fallback. Cần build
+native mới; compile/JVM/JS tests không chứng minh chất lượng hay FPS trên máy thật.
+
+Profile loadout hiển thị lựa chọn tức thời nhưng chỉ gửi một full-payload PUT cho
+mỗi owner. Các intent chưa gửi được gộp theo field và dựng lại từ ACK Version mới.
+Cache chỉ chứa dữ liệu server đã xác nhận. Force GET bị invalidation trả `null`,
+không trả cache giả làm bằng chứng; non-force GET không được giải quyết trạng thái
+PUT chưa rõ kết quả. Fixture `/ui-qa?demo=1` chỉ có ở DEV, không dùng tài khoản thật;
+production resolver thay toàn bộ module fixture bằng stub rỗng.
 
 ### AppIcon boundary
 

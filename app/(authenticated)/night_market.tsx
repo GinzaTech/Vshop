@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppIcon from "~/components/ui/AppIcon";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
@@ -21,6 +22,7 @@ import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { refreshShopAndBalances } from "~/utils/app-sync";
+import { getGlassNavigationMetrics } from "~/features/navigation/navigation-model";
 
 // Khoảng cách padding cho nội dung
 const CONTENT_PADDING = 20;
@@ -35,6 +37,7 @@ function NightMarket() {
   const { t } = useTranslation();
   // Kích thước màn hình để tính số cột và chiều rộng card
   const { width } = useAppWindowDimensions();
+  const { bottom } = useSafeAreaInsets();
   // Thông tin user từ store
   const user = useUserStore(({ user }) => user);
   // refreshShop: pull-to-refresh làm mới night market + balances (force = true)
@@ -62,7 +65,7 @@ function NightMarket() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: getGlassNavigationMetrics(width, bottom).contentBottomPadding }]}
       refreshControl={
         <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
@@ -147,7 +150,6 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: CONTENT_PADDING,
-    paddingBottom: 32,
   },
   // headerRow – Hàng header (trái: logo, phải: balance + avatar)
   headerRow: {

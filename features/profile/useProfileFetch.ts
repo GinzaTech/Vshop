@@ -3,7 +3,7 @@ import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { fetchCompetitiveRankOutcome } from "~/utils/profile-cache";
 import { isSessionChangedError } from "~/utils/session-operations";
 import { sanitizeErrorForLog } from "~/utils/log-redaction";
-import { buildProfileRefreshCache } from "./profile-refresh-data";
+import { buildProfileRefreshCache, updateProfileLoadoutCache } from "./profile-refresh-data";
 import { runWhenIdle } from "~/utils/idle-task";
 import { useUserStore } from "~/hooks/useUserStore";
 import { getSessionGeneration } from "~/utils/session-operations";
@@ -14,6 +14,7 @@ import { VItemTypes } from "~/utils/misc";
 import { getPublicWeapons } from "~/services/valorant/public-api";
 import { loadoutsMatch } from "~/features/profile/profile-loadout";
 import { PROFILE_DEMO_RANK } from "~/mocks/profile-ui";
+import { profileLoadoutRegistry } from "./profile-loadout-queue-registry";
 import type { useProfileState } from "./useProfileState";
 import type { useProfileSession } from "./useProfileSession";
 
@@ -72,7 +73,10 @@ export function useProfileFetch({
   setPickerLoading, setPickerError, t, rankRefreshAuthKeyRef, authKey, initialFetchTaskRef,
   initialFetchTimeoutRef, setRefreshing, setStatsRefreshing, fetchMatches, fetchSeasonStats,
 }: Props) {
-
+  const hydrationGeneration = getSessionGeneration();
+  const hydrationOwnerRef = React.useRef({ id: user.id, region: user.region,
+    accessToken: user.accessToken, entitlementsToken: user.entitlementsToken,
+    generation: hydrationGeneration });
 
   /**
    * syncLoadoutState — Đồng bộ toàn bộ state loadout từ response API.
@@ -90,12 +94,25 @@ export function useProfileFetch({
 
   // ── Effect: Khôi phục dữ liệu từ cache ────────────────────────────────────
   React.useEffect(() => {
+    const previousOwner = hydrationOwnerRef.current;
+    const nextOwner = { id: user.id, region: user.region, accessToken: user.accessToken,
+      entitlementsToken: user.entitlementsToken, generation: hydrationGeneration };
+    hydrationOwnerRef.current = nextOwner;
+    if (!hasAuth || previousOwner.id !== nextOwner.id || previousOwner.region !== nextOwner.region ||
+        previousOwner.accessToken !== nextOwner.accessToken || previousOwner.entitlementsToken !== nextOwner.entitlementsToken ||
+        previousOwner.generation !== nextOwner.generation) pendingLoadoutRef.current = null;
     if (!hasAuth || !cachedLoadoutSnapshot) {
       return;
     }
 
     // Cache hợp lệ → sync loadout snapshot vào toàn bộ state hiển thị.
-    syncLoadoutState(cachedLoadoutSnapshot);
+    const queue = profileLoadoutRegistry.peek({ ...user, generation: getSessionGeneration() });
+    queue?.adopt(cachedLoadoutSnapshot);
+    const pending = pendingLoadoutRef.current?.loadout;
+    // Ownership/rank cache publication can re-run hydration before a legacy
+    // pending write has a queue. Keep that display-only choice in its session.
+    const pendingDisplay = pending?.Subject === user.id ? pending : null;
+    syncLoadoutState(queue?.getSnapshot().display ?? pendingDisplay ?? cachedLoadoutSnapshot);
     // Sync danh sách item đã sở hữu (skin/spray/flex/card/title) + rank.
     setOwnedSkinItemIds(
         cachedProfile.ownedSkinItemIds?.length
@@ -109,7 +126,7 @@ export function useProfileFetch({
     setCompetitiveRank(cachedCompetitiveRank);
     setError(null);
     setLoading(false);
-  }, [cachedCompetitiveRank, cachedLoadoutSnapshot, cachedProfile, hasAuth, setCompetitiveRank, setError, setLoading, setOwnedFlexItemIds, setOwnedPlayerCardItemIds, setOwnedPlayerTitleItemIds, setOwnedSkinItemIds, setOwnedSprayItemIds, syncLoadoutState, user.ownedSkinIds]);
+  }, [cachedCompetitiveRank, cachedLoadoutSnapshot, cachedProfile, hasAuth, hydrationGeneration, pendingLoadoutRef, setCompetitiveRank, setError, setLoading, setOwnedFlexItemIds, setOwnedPlayerCardItemIds, setOwnedPlayerTitleItemIds, setOwnedSkinItemIds, setOwnedSprayItemIds, syncLoadoutState, user]);
 
   /**
    * fetchLoadoutData — Fetch profile (loadout + ownership + rank), có
@@ -135,36 +152,59 @@ export function useProfileFetch({
         attemptedFetchAuthKeyRef.current = sessionAuthKey;
         fetchLoadoutInFlightRef.current = true;
         const generation = getSessionGeneration();
-        const isCurrentRequest = () => {
+        const isCurrentSession = () => {
           const latest = useUserStore.getState().user;
-          return requestSequence === requestSequenceRef.current &&
-            generation === getSessionGeneration() &&
+          return generation === getSessionGeneration() &&
+            latest.id === currentUser.id && latest.region === currentUser.region &&
             getSessionAuthKey(latest) === sessionAuthKey &&
             latest.accessToken === currentUser.accessToken &&
             latest.entitlementsToken === currentUser.entitlementsToken;
         };
+        const isCurrentRequest = () => requestSequence === requestSequenceRef.current && isCurrentSession();
 
         if (showSpinner) setLoading(true);
         setError(null);
         try {
+          if (forceRefresh) {
+            const queue = profileLoadoutRegistry.peek({ ...currentUser, generation });
+            if (queue?.getSnapshot().uncertain) {
+              queue.reconcile();
+              await queue.whenIdle();
+              if (!isCurrentRequest()) return;
+            }
+          }
           const mutationVersionAtRequest = loadoutMutationVersionRef.current;
+          const queueAtRequest = profileLoadoutRegistry.peek({ ...currentUser, generation });
           const response = await playerLoadout(
               currentUser.accessToken, currentUser.entitlementsToken, currentUser.region, currentUser.id,
-              { force: forceRefresh }
+              { force: forceRefresh, isCurrent: isCurrentSession }
           ).catch((error: unknown) => {
             if (isSessionChangedError(error)) throw error;
             if (__DEV__) console.warn("[profile] loadout unavailable", sanitizeErrorForLog(error));
             return null;
           });
           if (!isCurrentRequest()) return;
+          const responseReceivedAt = Date.now();
 
+          let adoptedResponse = false;
           const resolveLoadoutForDisplay = () => {
+            const queue = profileLoadoutRegistry.peek({ ...currentUser, generation });
+            if (queue) {
+              if (response && loadoutMutationVersionRef.current === mutationVersionAtRequest) {
+                // Normal reads may legally return cache. Only a non-invalidated
+                // force GET can resolve an ambiguous write or restart its queue.
+                adoptedResponse = (queue.getSnapshot().uncertain
+                  ? forceRefresh && queue.reconcileFromRead(response)
+                  : queue.adopt(response)) || adoptedResponse;
+              }
+              return queue.getSnapshot().display;
+            }
             if (!response || loadoutMutationVersionRef.current !== mutationVersionAtRequest) {
               return loadoutSnapshotRef.current ?? response;
             }
             const pendingLoadout = pendingLoadoutRef.current;
             if (!pendingLoadout) return response;
-            if (loadoutsMatch(response, pendingLoadout.loadout) || Date.now() - pendingLoadout.updatedAt >= 8000) {
+            if (loadoutsMatch(response, pendingLoadout.loadout)) {
               pendingLoadoutRef.current = null;
               return response;
             }
@@ -191,13 +231,22 @@ export function useProfileFetch({
           const resolvedLoadout = resolveLoadoutForDisplay();
           const currentUserAfterFetch = useUserStore.getState().user;
           const previous = useProfileCacheStore.getState().cacheByAuth[sessionAuthKey] ?? null;
+          const queueSnapshot = profileLoadoutRegistry.peek({ ...currentUser, generation })?.getSnapshot();
+          // Initialization can confirm this GET, and an ACK can advance authority
+          // while ownership is loading. Neither requires persisting display intent.
+          const confirmedLoadout = queueSnapshot ?
+            (queueSnapshot.confirmed === response && (!queueAtRequest || adoptedResponse) ||
+              response && queueSnapshot.confirmed.Version > response.Version &&
+                queueSnapshot.confirmed !== previous?.loadoutSnapshot ?
+              queueSnapshot.confirmed : null) : (resolvedLoadout === response ? response : null);
           const merged = buildProfileRefreshCache({
             authKey: sessionAuthKey, previous,
             // A pending optimistic snapshot is not a confirmed server success.
-            loadoutSnapshot: resolvedLoadout === response ? response : null,
+            loadoutSnapshot: confirmedLoadout,
             rankOutcome, ownership, ownedSkinIds: currentUserAfterFetch.ownedSkinIds ?? [], now: Date.now(),
           });
-          const nextCache = resolvedLoadout ? { ...merged, loadoutSnapshot: resolvedLoadout } : merged;
+          const nextCache = confirmedLoadout && confirmedLoadout === response ?
+            updateProfileLoadoutCache(merged, confirmedLoadout, responseReceivedAt) : merged;
           if (resolvedLoadout) syncLoadoutState(resolvedLoadout);
           setOwnedSkinItemIds(nextCache.ownedSkinItemIds);
           setOwnedSprayItemIds(nextCache.ownedSprayItemIds);

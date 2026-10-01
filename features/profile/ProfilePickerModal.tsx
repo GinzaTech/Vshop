@@ -49,10 +49,10 @@ export interface ProfilePalette {
 interface ProfilePickerModalProps {
   activeWeaponChroma: { weapon: EquippedWeapon; option: OwnedSkinOption } | null;
   handleDismissPicker: () => void;
-  handleEquipExpression: (expression: EquippedExpression, option: OwnedExpressionOption) => void | Promise<void>;
-  handleEquipIdentity: (type: "player-card" | "player-title", optionId: string) => void | Promise<void>;
-  handleEquipSpray: (spray: EquippedSpray, option: OwnedSprayOption) => void | Promise<void>;
-  handleEquipWeapon: (weapon: EquippedWeapon, option: OwnedSkinOption) => void | Promise<void>;
+  handleEquipExpression: (expression: EquippedExpression, option: OwnedExpressionOption) => void | Promise<unknown>;
+  handleEquipIdentity: (type: "player-card" | "player-title", optionId: string) => void | Promise<unknown>;
+  handleEquipSpray: (spray: EquippedSpray, option: OwnedSprayOption) => void | Promise<unknown>;
+  handleEquipWeapon: (weapon: EquippedWeapon, option: OwnedSkinOption) => void | Promise<unknown>;
   handleOpenExpressionPicker: (expression: EquippedExpression, mode?: ExpressionKind) => void;
   identityDetails: IdentityDetails | null;
   identityPickerQuery: string;
@@ -96,8 +96,8 @@ export function ProfilePickerModal({
       return null;
     }
 
-    // Busy khi đang build options hoặc đang PUT loadout: chặn mọi nút equip.
-    const pickerBusy = pickerLoading || updatingLoadout;
+    // Option loading gates selection; background saving is informational.
+    const pickerBusy = pickerLoading;
 
     // Tiêu đề/subtitle của sheet thay đổi theo loại picker.
     let title: string;
@@ -182,7 +182,7 @@ export function ProfilePickerModal({
                     {subtitle}
                   </Text>
                 </View>
-                {pickerBusy ? (
+                {pickerLoading || updatingLoadout ? (
                     <ActivityIndicator animating color={palette.accent} />
                 ) : null}
                 <TouchableOpacity

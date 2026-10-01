@@ -35,7 +35,7 @@ describe("local Android release signing", () => {
     const gradle = applyReleaseSigningPlugin(fixture);
 
     expect(gradle).toContain(
-      'storeFile file(System.getenv("VSHOP_ANDROID_KEYSTORE_PATH"))',
+      'storeFile vshopKeystorePath ? file(vshopKeystorePath) : null',
     );
     expect(gradle).toContain("signingConfig signingConfigs.release");
     const releaseBuild = gradle.match(
@@ -44,6 +44,20 @@ describe("local Android release signing", () => {
     expect(releaseBuild).toContain("signingConfig signingConfigs.release");
     expect(releaseBuild).not.toContain("signingConfigs.debug");
     expect(applyReleaseSigningPlugin(gradle)).toBe(gradle);
+    expect(gradle).toContain("gradle.taskGraph.whenReady");
+    expect(gradle).toContain("Release signing credentials are required");
+    expect(gradle).toContain("task.project == project");
+  });
+
+  it("upgrades the old eager signing block so debug configuration does not evaluate file(null)", () => {
+    const { applyReleaseSigningPlugin } = require("../plugins/withAndroidReleaseSigning.cjs");
+    const previous = 'android { signingConfigs { release { storeFile file(System.getenv("VSHOP_ANDROID_KEYSTORE_PATH")) } } buildTypes { release { signingConfig signingConfigs.release } } }';
+    const upgraded = applyReleaseSigningPlugin(previous);
+    expect(upgraded).not.toContain('file(System.getenv("VSHOP_ANDROID_KEYSTORE_PATH"))');
+    expect(upgraded).toContain("storeFile vshopKeystorePath ? file(vshopKeystorePath) : null");
+    expect(upgraded).toContain("Release signing credentials are required");
+    expect(upgraded).not.toContain("signingConfigs.debug");
+    expect(applyReleaseSigningPlugin(upgraded)).toBe(upgraded);
   });
 
   it("fails closed before Gradle when credentials are unavailable", () => {

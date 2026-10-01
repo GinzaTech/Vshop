@@ -12,6 +12,8 @@ const mockMatchDetails = jest.fn();
 const mockMMR = jest.fn();
 const mockContent = jest.fn();
 const mockCompetitive = jest.fn();
+let mockLanguage = "en";
+const mockTranslate = jest.fn((key: string, _options?: { defaultValue?: string }) => key);
 const snapshot = (id = "match-one") => ({
   state: "live", matchId: id, pregameMatch: null, namesBySubject: { one: "Player One" },
   currentGameMatch: { MatchID: id, MapID: "map", Players: [{ Subject: "one", TeamID: "Blue", CharacterID: "agent" }] },
@@ -41,7 +43,7 @@ jest.mock("~/features/combat/session-insights", () => ({
 }));
 jest.mock("~/utils/valorant-assets", () => ({ getAssets: () => ({ maps: [], competitiveTiers: [] }), getAgent: () => ({ agents: [] }) }));
 jest.mock("~/utils/screen-orientation", () => ({ lockScreenOrientation: jest.fn().mockResolvedValue(false) }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: mockTranslate, i18n: { resolvedLanguage: mockLanguage } }) }));
 jest.mock("~/components/ui/AppIcon", () => "AppIcon");
 jest.mock("expo-status-bar", () => ({ StatusBar: "StatusBar" }));
 jest.mock("react-native-safe-area-context", () => ({ SafeAreaView: "SafeAreaView" }));
@@ -54,7 +56,11 @@ function deferred<T>() {
   const promise = new Promise<T>((res) => { resolve = res; });
   return { promise, resolve };
 }
-const details = (kills: number) => ({ players: [{ subject: "one", stats: { kills, deaths: 2, assists: 3, roundsPlayed: 10, score: 2000 } }], roundResults: [] });
+const details = (kills: number, matchId = "match-one", allyRoundsWon = 7, enemyRoundsWon = 4) => ({
+  matchInfo: { matchId },
+  teams: [{ teamId: "Red", roundsWon: enemyRoundsWon }, { teamId: "Blue", roundsWon: allyRoundsWon }],
+  players: [{ subject: "one", stats: { kills, deaths: 2, assists: 3, roundsPlayed: 10, score: 2000 } }], roundResults: [],
+});
 
 describe("Combat mounted screen lifecycle", () => {
   let renderer: TestRenderer.ReactTestRenderer;
@@ -66,6 +72,8 @@ describe("Combat mounted screen lifecycle", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockFocused = true;
+    mockLanguage = "en";
+    mockTranslate.mockClear();
     mockUser = account("one");
     mockSnapshot = snapshot();
     mockSessionKey = "ap|one";
@@ -122,7 +130,7 @@ describe("Combat mounted screen lifecycle", () => {
     await update();
     expect(mockMatchDetails).toHaveBeenCalledTimes(1);
     await act(async () => { pending.resolve(null); });
-    await advance(10_000);
+    await advance(3_000);
     expect(mockMatchDetails).toHaveBeenCalledTimes(2);
   });
 
@@ -157,20 +165,20 @@ describe("Combat mounted screen lifecycle", () => {
     jest.spyOn(console, "warn").mockImplementation(() => undefined);
     await mountMatch();
     expect(visibleText()).toContain("12/2/3");
-    await advance(10_000);
+    await advance(3_000);
     expect(visibleText()).toContain("12/2/3");
     expect(console.warn).toHaveBeenCalledWith("[combat] Refresh failed", { message: "redacted" });
   });
 
   it("rejects an old match response after the match changes", async () => {
     const old = deferred<ReturnType<typeof details>>();
-    mockMatchDetails.mockReturnValueOnce(old.promise).mockResolvedValue(details(22));
+    mockMatchDetails.mockReturnValueOnce(old.promise).mockResolvedValue(details(22, "match-two"));
     await mountMatch();
     mockSnapshot = snapshot("match-two");
     await update();
     await act(async () => { old.resolve(details(99)); });
     expect(visibleText()).not.toContain("99/2/3");
-    await advance(10_000);
+    await advance(3_000);
     expect(visibleText()).toContain("22/2/3");
   });
 
@@ -203,7 +211,7 @@ describe("Combat mounted screen lifecycle", () => {
     act(() => { refreshPromise = refresh(); });
     expect(mockFetchSession).toHaveBeenCalledTimes(1);
     await act(async () => { pending.resolve(mockSnapshot); await refreshPromise; });
-    await advance(10_000);
+    await advance(3_000);
     expect(mockFetchSession).toHaveBeenCalledTimes(2);
   });
 
@@ -223,5 +231,131 @@ describe("Combat mounted screen lifecycle", () => {
     const refresh = renderer.root.findByType(AppRefreshControl).props.onRefresh;
     await act(async () => { await refresh(); });
     expect(mockFetchSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("updates the live score in COMP mode and shares each request with MATCH stats", async () => {
+    mockMatchDetails.mockResolvedValueOnce(details(12)).mockResolvedValue(details(13, "match-one", 8, 4));
+    await act(async () => { renderer = TestRenderer.create(<CombatSessionScreen />); });
+    expect(visibleText()).toContain("7 : 4");
+    expect(visibleText()).toContain("combat_session_page.stats_competitive_short");
+    expect(mockMatchDetails).toHaveBeenCalledTimes(1);
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: "Show current match statistics" }).props.onPress(); });
+    expect(visibleText()).toContain("12/2/3");
+    expect(mockMatchDetails).toHaveBeenCalledTimes(1);
+    await advance(2_999);
+    expect(mockMatchDetails).toHaveBeenCalledTimes(1);
+    await advance(1);
+    expect(mockMatchDetails).toHaveBeenCalledTimes(2);
+    expect(visibleText()).toContain("8 : 4");
+    expect(visibleText()).toContain("13/2/3");
+  });
+
+  it("shows an unavailable score on initial failure and hides it in pregame", async () => {
+    mockMatchDetails.mockRejectedValue(new Error("not published"));
+    jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    await mountMatch();
+    expect(visibleText()).toContain("— : —");
+    expect(visibleText()).toContain("combat_session_page.score_unavailable");
+    expect(visibleText()).not.toContain("0 : 0");
+    mockSnapshot = { ...snapshot(), state: "pregame" };
+    await update();
+    expect(visibleText()).not.toContain("— : —");
+    const count = mockFetchSession.mock.calls.length;
+    await advance(3_000);
+    expect(mockFetchSession).toHaveBeenCalledTimes(count + 1);
+    expect(mockMatchDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not infer a Blue score when the current player is absent", async () => {
+    mockSnapshot = { ...snapshot(), currentGameMatch: { ...snapshot().currentGameMatch,
+      Players: [{ Subject: "someone-else", TeamID: "Blue", CharacterID: "agent" }],
+    } };
+    mockMatchDetails.mockResolvedValue(details(12));
+    await mountMatch();
+    expect(visibleText()).toContain("— : —");
+    expect(visibleText()).not.toContain("7 : 4");
+  });
+
+  it("retains a good score on null, failure, or mismatched match data", async () => {
+    mockMatchDetails.mockResolvedValueOnce(details(12)).mockResolvedValueOnce(null)
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce(details(99, "unrelated-match", 99, 98));
+    jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    await mountMatch();
+    for (let wave = 0; wave < 3; wave++) {
+      expect(visibleText()).toContain("7 : 4");
+      await advance(3_000);
+    }
+    expect(visibleText()).toContain("7 : 4");
+    expect(visibleText()).not.toContain("99 : 98");
+    expect(visibleText()).not.toContain("99/2/3");
+    expect(mockMatchDetails).toHaveBeenCalledTimes(4);
+  });
+
+  it("retains the good score across blur and rejects a pending completion", async () => {
+    const pending = deferred<ReturnType<typeof details>>();
+    mockMatchDetails.mockResolvedValueOnce(details(12)).mockReturnValueOnce(pending.promise);
+    await mountMatch();
+    await advance(3_000);
+    mockFocused = false;
+    await update();
+    await act(async () => { pending.resolve(details(99, "match-one", 99, 98)); });
+    mockMatchDetails.mockResolvedValue(null);
+    mockFocused = true;
+    await update();
+    expect(visibleText()).toContain("7 : 4");
+    expect(visibleText()).not.toContain("99 : 98");
+  });
+
+  it("clears a previous match score immediately and rejects its pending wave", async () => {
+    const pending = deferred<ReturnType<typeof details>>();
+    mockMatchDetails.mockResolvedValueOnce(details(12)).mockReturnValueOnce(pending.promise);
+    await mountMatch();
+    await advance(3_000);
+    mockSnapshot = snapshot("match-two");
+    await update();
+    expect(visibleText()).toContain("— : —");
+    expect(visibleText()).not.toContain("7 : 4");
+    await act(async () => { pending.resolve(details(99, "match-one", 99, 98)); });
+    expect(visibleText()).not.toContain("99 : 98");
+    mockMatchDetails.mockResolvedValue(details(22, "match-two", 2, 1));
+    await advance(3_000);
+    expect(visibleText()).toContain("2 : 1");
+  });
+
+  it("clears a previous account score and rejects its pending wave", async () => {
+    const pending = deferred<ReturnType<typeof details>>();
+    mockMatchDetails.mockResolvedValueOnce(details(12)).mockReturnValueOnce(pending.promise);
+    await mountMatch();
+    await advance(3_000);
+    mockUser = account("two");
+    await update();
+    expect(visibleText()).not.toContain("7 : 4");
+    await act(async () => { pending.resolve(details(99, "match-one", 99, 98)); });
+    expect(visibleText()).not.toContain("99 : 98");
+  });
+
+  it("uses a Vietnamese unavailable fallback without requiring an i18n file edit", async () => {
+    mockLanguage = "vi";
+    await mountMatch();
+    expect(mockTranslate).toHaveBeenCalledWith("combat_session_page.score_unavailable", {
+      defaultValue: "Chưa có tỉ số; dữ liệu có thể chỉ xuất hiện sau trận.",
+    });
+  });
+
+  it("clears the score on token rotation and ignores the old pending result", async () => {
+    const pending = deferred<ReturnType<typeof details>>();
+    mockMatchDetails.mockResolvedValueOnce(details(12)).mockReturnValueOnce(pending.promise);
+    await mountMatch();
+    await advance(3_000);
+    mockUser = { ...mockUser, entitlementsToken: "rotated" };
+    await update();
+    expect(visibleText()).toContain("— : —");
+    expect(visibleText()).not.toContain("7 : 4");
+    await act(async () => { pending.resolve(details(99, "match-one", 99, 98)); });
+    expect(visibleText()).not.toContain("99 : 98");
+    mockMatchDetails.mockResolvedValue(details(22, "match-one", 2, 1));
+    await advance(3_000);
+    expect(visibleText()).toContain("2 : 1");
   });
 });

@@ -12,7 +12,7 @@
 
 A third-party companion app for **Valorant** — browse the daily store, check match history, view your profile loadout, track competitive rank, chat with friends, and more.
 
-Navigation motion uses shared timing tokens, transition-aware tab preloading and live OS Reduce Motion preferences. Primary scenes hide outgoing content during the subtle incoming fade to avoid double images; indicator animations do not restart on route confirmation. See [the motion system](BUILD_DESIGN_SYSTEM.md#4-motion-system) for implementation rules; device FPS validation is separate from source tests and exports.
+Navigation motion uses shared timing tokens, transition-aware tab preloading and live OS Reduce Motion preferences. The unreleased Liquid Glass capsule preserves the existing icon animations while its lens retargets immediately and retained primary scenes crossfade without horizontal movement. See [the motion system](BUILD_DESIGN_SYSTEM.md#4-motion-system) for implementation rules; device FPS validation is separate from source tests and exports.
 
 Authorized local desktop testing can use the fail-closed
 [`pnpm run web:pentest` workflow](markdown/DESKTOP_PENTEST_COMPANION.md): Riot
@@ -47,7 +47,39 @@ blocked by default. This development companion is not a production RSO backend.
 
 # English
 
+## Unreleased: liquid glass and responsive loadout
+
+Shared white glass surfaces now cover weapon/shop, Bundle, collection, Profile
+and Party cards. A floating five-slot navigation capsule uses a moving lens,
+bounded native blur, delayed scene crossfade and the existing MorphIcon system.
+Hold Settings for 500ms to collapse the bar to its right-hand circular button;
+tap that button to expand without changing the current route.
+Navigation labels reserve their capped system-font height (up to 1.3×); the
+54dp capsule and 50dp lens keep their size when system text grows.
+Bundle backgrounds stay white, while owned items retain their separate faded artwork and check mark.
+Bundle frames/items have clearer outlines. Ownership marks cover skins, player
+cards/titles, sprays, flex and gun buddies; unknown item types are not guessed.
+The Android 13+ candidate additionally samples the real page drawing commands
+through a lens-sized AGSL refraction layer. It requires a new development APK;
+old binaries, web/iOS and reduced-motion/background states retain the existing
+material. Physical visual fidelity and performance are **not yet verified**.
+Profile selections remain editable during saving: full-payload requests are
+serialized, latest unsent choices are coalesced by field, and only actual server
+ACKs become cache authority. Four graffiti/flex slots remain side by side.
+
+The [completion plan](markdown/plans/2026-09-30-liquid-glass-completion.md)
+separates source checks, historical emulator evidence, physical-device evidence and remaining
+verification. With the project already open, the DEV-only `vshop://ui-qa?demo=1` route uses an isolated synthetic
+transport, not the real Riot session. Native QA runs through
+`scripts/verify-android-local-ui.py` with an explicit device serial and an
+artifact directory outside the checkout; physical devices require explicit
+human authorization and `--allow-physical`, and the script refuses any screen
+without the local-fixture markers. No production release is implied.
+
 ## 4.1.10 local release candidate: smooth primary navigation and startup recovery
+
+Historical build snapshot below predates the current unreleased glass/loadout
+changes; the completion plan above is authoritative for current verification.
 
 Android now keeps preloaded primary scenes attached so warm navigation does not
 re-attach Profile's large native hierarchy during the 220 ms shift. Heavy
@@ -171,7 +203,7 @@ The 4.1.6 production APK hardens startup synchronization, session recovery, matc
 - **Consistent collection cards:** Equipment and the Skin Gallery now use the Store card hierarchy while retaining their existing filters, media preview and wishlist interactions.
 
 - **Latest production OTA (29 August 2026):** primary tabs are preloaded and kept attached on Android for a full-width opaque horizontal transition; Profile supports vertical collapse gestures from its hero and empty areas.
-- **Primary navigation:** The unreleased redesign preserves mounted React state while detaching inactive native scenes. It combines a short horizontal shift (up to 32 dp) with a subtle 220 ms incoming fade. Outgoing content and its background hide together to avoid ghosting and washout. A new tab press can interrupt the transition; Reduce Motion switches pages instantly. Device performance targets are not yet met.
+- **Primary navigation:** The current unreleased Liquid Glass redesign retains visited primary scenes and crossfades without a horizontal shift. New tab presses retarget the lens immediately; Reduce Motion removes decorative stretch/magnification. Device performance is verified separately.
 - **Natural Profile scrolling:** vertical drags from the player card and empty content areas collapse the Profile header, while horizontal skin and collection gestures keep their existing behavior.
 - **Web-safe profile export:** native media-library code is isolated from the web static renderer.
 - **Modern runtime:** upgraded to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
@@ -295,7 +327,7 @@ browser JavaScript.
 | **Observed-match archive** | Native SQLite keyed by account + Act; existing storage adapter on web/test | Keeps the newest 1,000 hydrated Competitive summaries per Act beyond the 200-record working-cache limit, deduplicates Match IDs and stores neither credentials nor full detail payloads |
 | **Act recording baseline** | Immutable local timestamp per normalized account, mirrored into the Match store | Starts the current Act at zero, excludes pre-baseline matches/options/cache statistics without deleting recoverable archive rows, then exposes each completed future Act |
 | **Season metrics** | Per-Act UI cache with calculation version and 2-hour TTL, backed by the durable archive | Archive, competitive updates and retained history provide available metrics; older Acts fall back to Riot MMR win/loss totals, leaving unavailable combat metrics blank; cancelled/unknown outcomes do not enter win rate |
-| **Combat** | Memory-only snapshot | Party, pregame and live endpoints are resolved together; stale responses are discarded and live sessions poll every 10 seconds |
+| **Combat** | Memory-only snapshot | Party, pregame and live resolve together; stale responses are discarded; Party/tracker poll every 3 seconds after the previous wave settles while focused/foreground |
 | **Chat** | Memory-only Zustand store | One XMPP client per credential/region key; messages and presence are normalized by Riot PUUID and deduplicated |
 | **Assets** | File-system cache, 24-hour TTL, plus memory lookup maps | Public metadata is language-aware; in-flight loads and bundle requests are shared |
 
@@ -555,7 +587,28 @@ device-runtime result is claimed yet.
 
 # Tiếng Việt
 
+## Chưa phát hành: liquid glass và loadout không khoá thao tác
+
+Các card skin/shop, Bundle, bộ sưu tập, Profile và Party dùng chung chất liệu kính
+trắng. Thanh điều hướng năm ô có lens di chuyển, blur có giới hạn, crossfade nội
+dung trễ và giữ hệ animation MorphIcon hiện có. Profile cho chọn tiếp trong khi
+lưu; request full-payload được tuần tự hoá, gộp lựa chọn mới nhất theo field và
+chỉ dùng ACK thật từ server làm cache. Bốn ô graffiti/flex nằm cùng một hàng.
+Nhãn nav dành đủ chiều cao cho cỡ chữ hệ thống (giới hạn 1,3×), giữ nguyên
+thanh 54dp, lens 50dp, animation icon và thao tác giữ Cài đặt 0,5 giây.
+
+[Plan hoàn thiện](markdown/plans/2026-09-30-liquid-glass-completion.md) tách rõ
+check source, APK máy ảo, bằng chứng runtime và phần chưa xác minh. Route DEV
+`vshop://ui-qa?demo=1` (mở sau khi project đã chạy) dùng transport/ownership giả lập độc lập, không đổi đồ trên
+tài khoản Riot thật. Script `scripts/verify-android-local-ui.py` chỉ nhận serial
+thiết bị rõ ràng, lưu bằng chứng ngoài repository và từ chối thao tác nếu mất
+marker QA. Máy thật cần người dùng yêu cầu rõ ràng cùng cờ `--allow-physical`.
+Chưa có phát hành production từ đợt thay đổi này.
+
 ## Bản local release candidate 4.1.10: chuyển tab mượt và phục hồi cập nhật
+
+Mốc build lịch sử dưới đây có trước đợt glass/loadout chưa phát hành hiện tại;
+plan hoàn thiện ở trên mới là trạng thái kiểm chứng của code hiện tại.
 
 Android giữ nóng các primary scene đã preload để khi quay lại Profile không phải
 attach lại toàn bộ native tree đúng lúc animation chạy. Dashboard nặng của
@@ -783,7 +836,7 @@ HttpOnly.
 | **Kho trận đã quan sát** | SQLite native theo tài khoản + Act; web/test dùng storage adapter sẵn có | Giữ tối đa 1.000 summary Competitive mới nhất mỗi Act ngoài giới hạn 200 record của working cache, chống trùng Match ID và không lưu credential hay full detail |
 | **Mốc ghi nhận Act** | Timestamp cục bộ bất biến theo tài khoản đã chuẩn hoá, mirror vào Match store | Cho Act hiện tại bắt đầu từ 0, loại trận/option/cache thống kê trước mốc mà không xoá archive có thể phục hồi, rồi hiển thị từng Act tương lai đã hoàn tất |
 | **Thống kê mùa** | UI cache từng Act có calculation version và TTL 2 giờ, được chống lưng bởi kho lâu dài | Archive, updates và history còn lưu cung cấp metric hiện có; Act quá cũ fallback tổng thắng/thua từ Riot MMR và để trống metric combat không còn nguồn; huỷ/chưa rõ không tính vào win rate |
-| **Combat** | Snapshot chỉ nằm trong RAM | Party, pregame và live được ghép chung; response cũ bị bỏ và trận live poll mỗi 10 giây |
+| **Combat** | Snapshot chỉ nằm trong RAM | Party, pregame và live được ghép chung; bỏ response cũ; Party/tracker poll 3 giây sau khi wave trước xong, chỉ khi đang focus/foreground |
 | **Chat** | Zustand store chỉ trong RAM | Một XMPP client cho mỗi bộ credential/region; message và presence chuẩn hóa theo Riot PUUID |
 | **Asset** | File cache 24 giờ và lookup map trong RAM | Metadata công khai theo ngôn ngữ; các lần load và request bundle dùng chung Promise |
 
@@ -949,6 +1002,23 @@ lại Metro. Giá trị storage/credential bị loại hoặc che, định danh 
 bị xoá và log API cũ được dọn. Không bật thường xuyên hoặc chia sẻ log chưa
 kiểm tra. Test source/component không thay thế kiểm thử UI trên thiết bị;
 kết quả hiện tại nằm trong [LOGIC_AUDIT.md](LOGIC_AUDIT.md).
+
+Response JSON đầy đủ hơn (đã lọc dữ liệu nhạy cảm) có flag riêng
+`EXPO_PUBLIC_API_RESPONSE_LOGGING=1`, chỉ hoạt động trong bản dev native.
+Recorder quan sát response HTTP Riot/public, giữ asset/item ID để nối dữ liệu,
+che credential/private identifier và báo rõ phần bị giới hạn hoặc bỏ qua.
+JSONL nằm trong cache ứng dụng `api-responses/responses.jsonl`, không được
+commit. Khởi động phiên chẩn đoán trong PowerShell:
+
+```powershell
+$env:EXPO_PUBLIC_API_RESPONSE_LOGGING = '1'
+npm start
+# Khi Expo sẵn sàng, nhấn a để mở development client Android.
+```
+
+Các API và dữ liệu có thể khai thác được mô tả trong
+[API_RESPONSE_DIAGNOSTICS.md](markdown/API_RESPONSE_DIAGNOSTICS.md), cùng
+phân biệt giữa contract nguồn và response đã quan sát trên thiết bị.
 
 ### OpenCode worker có guardrail
 

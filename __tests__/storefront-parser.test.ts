@@ -3,6 +3,7 @@ import {
   parseShop,
 } from "~/services/riot/storefront-parser";
 import { VCurrencies, VItemTypes } from "~/utils/misc";
+import { getAssetLookups } from "~/utils/valorant-assets";
 
 jest.mock("~/utils/valorant-assets", () => ({
   fetchBundle: jest.fn(async () => null),
@@ -76,6 +77,33 @@ function makeChampionsBundle(overrides: {
 }
 
 describe("storefront parser", () => {
+  it("preserves each Bundle offer's exact inventory type and item identity without inventing ownership", async () => {
+    const kinds = [VItemTypes.SkinLevel, VItemTypes.SkinChroma, VItemTypes.PlayerCard,
+      VItemTypes.PlayerTitle, VItemTypes.Spray, VItemTypes.Flex, VItemTypes.Buddy, "unknown-type"];
+    const bundle = makeChampionsBundle({ TotalBaseCost: null, TotalDiscountedCost: null });
+    bundle.Items = kinds.map((kind, index) => ({ ...makeChampionsBundleItem(), Item: {
+      ItemTypeID: kind, ItemID: `inventory-${index}`, Amount: 1,
+    } }));
+    const before = JSON.stringify(bundle);
+    const result = await parseShop(makeStorefrontWithBundles([bundle]));
+    result.bundles[0].items.forEach((item, index) => {
+      expect(item).toMatchObject({ itemTypeId: kinds[index], entitlementItemIds: [`inventory-${index}`] });
+      expect(item).not.toHaveProperty("owned");
+    });
+    expect(JSON.stringify(bundle)).toBe(before);
+  });
+
+  it("retains Buddy offer/level IDs when display metadata remaps to a root UUID", async () => {
+    const lookups = getAssetLookups();
+    const buddy = { uuid: "buddy-root", displayName: "Buddy", displayIcon: "root.png",
+      levels: [{ uuid: "buddy-offer-level", displayIcon: "level.png" }, { uuid: "buddy-level-2", displayIcon: "level2.png" }] } as unknown as ValorantBuddyAccessory;
+    jest.mocked(getAssetLookups).mockReturnValueOnce({ ...lookups, buddyByAnyId: new Map([["buddy-offer-level", buddy]]) });
+    const bundle = makeChampionsBundle({ TotalBaseCost: null, TotalDiscountedCost: null });
+    bundle.Items = [{ ...makeChampionsBundleItem(), Item: { ItemTypeID: VItemTypes.Buddy, ItemID: "buddy-offer-level", Amount: 1 } }];
+    const result = await parseShop(makeStorefrontWithBundles([bundle]));
+    expect(result.bundles[0].items[0]).toMatchObject({ uuid: "buddy-root", itemTypeId: VItemTypes.Buddy,
+      entitlementItemIds: ["buddy-offer-level", "buddy-level-2"], price: 1766 });
+  });
   it("returns stable empty collections for an empty storefront", async () => {
     const result = await parseShop({
       SkinsPanelLayout: {

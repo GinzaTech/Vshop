@@ -6,12 +6,123 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Repair the Android handoff deep link: `adb shell` joined argv into the
+  device shell where `&` parsed as a background operator, truncating the
+  `vshop://session_handoff` URI (every vault creation failed with
+  DEVICE_LAUNCH_FAILED). The remote command is now a single argument with the
+  URI single-quoted.
+- Load the Valorant asset catalog memory-only on web: `FileSystem.cacheDirectory`
+  is null there, so cache reads could reject and the post-fetch write always
+  threw before the in-memory assignment, leaving every screen without images.
+  Native keeps the 24h file cache; web assigns in memory first and treats the
+  disk write as best-effort.
+- Fail chat XMPP fast on web (raw TLS sockets are unavailable) without
+  scheduling reconnect retries, and keep friends/messages across token
+  renewals instead of wiping the chat store.
+- Restore web UI parity: stateful MorphIcons remount on identity change
+  (react-native-web silently drops SVG path mutations), pull-to-refresh
+  screens show a top progress bar while refreshing (react-native-web drops
+  the refreshControl prop), and synthetic safe-area insets keep content off
+  the frame edge — including fixing the refresh-control wrapper regression
+  that blanked pull-to-refresh screens on web.
+
 ### Changed
 
+- Reserve the scaled navigation label line and align its active icon at large
+  system text sizes while preserving the54dp capsule,50dp lens,1.3 text cap,
+  default geometry, icon animations and500ms collapse gesture.
+- Raise Axios to1.20.0 to resolve newly reported runtime-option, redirect,
+  prototype-pollution and HTTP-adapter advisories without weakening audit policy.
+- Harden opt-in API-response diagnostics: restrict retained keys/text/enums,
+  redact numeric capability/signing fields and encoded private URL segments,
+  and allow explicit log clearing after capture is disabled. Keep API responses
+  unchanged for callers and exclude captures, packages and signing files from Git.
+- Track authored Android module source/tests while keeping root Expo prebuild
+  and native build output ignored, so a fresh checkout contains the glass module.
+
+- Restore Settings hold-to-collapse at 500ms and tap-to-expand for the glass
+  navigation bar, preserving the active MorphIcon and route. Retire late
+  gestures across collapse/hide and keep the empty collapsed area touch-through.
+- Keep Bundle information and item-section backgrounds white instead of
+  duplicating the hero as a blurred gray backdrop. Preserve owned-item fading,
+  green checks, compact item cards and real prices.
+- Strengthen the Bundle frame and item outlines with shared white-surface border
+  tokens. Extend owned-item overlays to player cards/titles, sprays, flex and gun
+  buddies using type-scoped inventory evidence and preserved offer/level IDs.
+
+- Extend shared light liquid-glass layers across weapon, bundle, collection,
+  accessory, Profile and Party cards. Prominent finite artwork surfaces opt into
+  bounded native blur; dense lists and unsupported/accessibility modes retain a
+  lightweight fallback, clear artwork/text and existing touch behavior.
+- Replace the primary bar with the specified floating five-slot capsule,
+  traveling magnifying lens and delayed opacity-only scene crossfade. Preserve
+  the existing mounted MorphIcon, history and rapid retarget behavior. Native
+  fidelity/performance verification is tracked separately in the completion plan.
+- Add the reference's three-stop lens highlight, motion-bounded chromatic edge
+  and subtle optical offset without changing approved geometry/material opacity.
+  Preserve SVG gradient alpha explicitly with `stopOpacity`: the installed native
+  serializer otherwise turns transparent rgba stops into opaque paint. These
+  optical layers are not claimed as full page-background refraction.
+- Add an Android API 33+ native backdrop-refraction candidate: a page-only
+  retained RenderNode feeds a padded lens-sized AGSL effect, without screenshots,
+  JS pixel transfer or changing the existing MorphIcon. Old binaries and
+  unsupported/accessibility/background states retain the material fallback.
+  Requires a new native development build; device fidelity remains NOT VERIFIED.
+- Make Profile equipment selection nonblocking with per-owner serialized,
+  latest-field-wins writes, raw server ACK authority, scoped rollback and
+  credential-retirement barriers. Keep four compact expression slots together.
+  Invalidate legacy optimistic loadout caches without deleting rank/ownership.
+- Prevent invalidated force reads and ordinary cached reads from becoming false
+  reconciliation proof after a lost PUT receipt. Regression tests cover both
+  v2 full-payload overwrite risk and v3 versioned writes.
+- Preserve a same-session pending Profile choice during cache hydration even
+  when its registry queue is absent; clear that fallback on account, region,
+  credential, generation or authentication changes. Extend behavioral tests for
+  cold/warm fetch scheduling, teardown, partial failures and stats lifecycle.
+- Add an isolated DEV native QA fixture and explicit-device executable
+  interaction harness. Synthetic ownership/price/write latency is labelled;
+  the fixture cannot read the real session or persist Profile cache and its
+  payload module is excluded from production.
+- Permit Debug Gradle configuration without release secrets while failing actual
+  release packaging explicitly if production signing variables are absent.
+  Production never falls back to the debug signing key.
+- Redesign the Party code section into a compact white panel with a prominent
+  selectable real code, adjacent Copy/Share icon controls, contextual Generate
+  placement and a separated quiet Join/Invite row. Empty Generate stays beside
+  the placeholder; existing-code Generate stays in the header. Long codes scroll
+  without truncation; narrow/large-font actions stack using the app viewport
+  hook. Native Android Share opens with the current code; dismissal is safe.
+- Replace default Combat agents/role browsing with a compact white Party sheet,
+  real members, online-only friend cards, queue/privacy controls and an agent
+  popup only when a new pregame match is detected. Successful lock opens the
+  match tracker; teammates/enemies and scores use actual API data, never a
+  fabricated 0–0 fallback. Focused foreground polling uses 3-second settled
+  waves with cleanup and stale session/party/match guards.
+- Finish accepted Party mutations before background reconciliation. Ready
+  toggles immediately with scoped display-only optimistic state, rollback on
+  rejection and confirmed-data-only Start permissions. Add explicit code
+  generation, copy/native sharing, validated join-by-code and Name#Tag invite
+  forms; compact typography/padding retains 48dp touch targets. Friend cards
+  read the current nested Valorant presence fields, with honest placeholders
+  when metadata is unavailable. No native release or automatic account actions.
+- Patch production-audit transitive Joi, fast-uri and brace-expansion versions
+  through compatible overrides; preserve the existing documented audit policy
+  instead of adding exceptions for new advisories.
+- Refine Bundle cards against the Champions reference with a wider hero using
+  the alternate banner, smaller unified item tiles, stacked VP prices and
+  current-account purchased-skin overlays. Ownership comes from inventory IDs
+  joined to skin/level/chroma assets; prices retain Riot's actual values. Remove
+  the bundle estimate note as requested.
+- Add opt-in native DEV HTTP response diagnostics for Riot/public clients.
+  Sanitized JSONL bodies retain asset data for analysis while omitting auth
+  secrets, identify partial/omitted captures, and remain outside source control.
+  Document API data capabilities separately from observed runtime responses.
 - Reshape the Bundles screen into a white, reference-aligned bundle detail
   card. Each bundle renders its hero artwork, title, real Riot base and
   discounted VP totals (the struck old price only appears when the base price
-  is higher), a full countdown with item count, estimate copy and a
+  is higher), a full countdown with item count and a
   horizontal, non-wrapping item preview that peeks at the next card. The dark
   blur/modal bundle-detail flow is removed because all items are now inline,
   the page canvas and balance pill use light design tokens, and the storefront

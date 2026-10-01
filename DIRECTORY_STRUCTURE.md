@@ -31,6 +31,10 @@ Vshop/
 │   ├── profile/                 profile dashboard sections
 │   └── ui/                      design-system primitives
 │       ├── AppIcon.tsx          boundary Morphicons/vendor duy nhất
+│       ├── AppIcon.web.tsx      biến thể web: remount SVG khi đổi icon
+│       ├── AppViewport.tsx      phone-frame clamp + safe-area tổng hợp web
+│       ├── LiquidGlassSurface.tsx vật liệu kính tĩnh (SVG frost/shine)
+│       ├── LiquidGlassBackdrop.tsx blur target cho hiệu ứng kính thật
 │       ├── app-icon-registry.ts semantic token → morphable IconNode có type
 │       ├── app-icon-lucide.ts   deep ESM Lucide + custom Pistol boundary
 │       └── RecoveryUpdateActions.tsx update recovery không phụ thuộc route
@@ -38,7 +42,13 @@ Vshop/
 │   ├── useRecoveryUpdate.ts     UI state + duplicate suppression
 │   └── useStartupRecoveryWatchdog.ts watchdog bootstrap 8 giây
 ├── plugins/
-│   └── withAndroidReleaseSigning.cjs release signer từ environment
+│   ├── withAndroidReleaseSigning.cjs release signer từ environment
+│   └── withDesktopHandoff.cjs  cleartext loopback + route gate cho handoff
+├── modules/                       native modules tự viết
+│   └── vshop-liquid-glass/        Android Kotlin: lens renderer hiệu ứng kính
+│       ├── LensGeometry.kt        hình học/refraction lens
+│       ├── LensRenderer.kt        vòng đời render target
+│       └── RefractionLensView.kt  view blur khúc xạ thật (BlurTargetView)
 ├── scripts/
 │   ├── build-android-release-local.mjs local signed release orchestrator
 │   └── measure-android-primary-tabs.ps1 ADB gfx/memory matrix
@@ -66,8 +76,15 @@ Vshop/
 │   │   ├── request-context.ts   headers, auth context và debug redaction
 │   │   ├── account-api.ts       player identity, names và account data
 │   │   ├── loadout-api.ts       inventory, loadout và storefront
+│   │   ├── loadout-response.ts  chuẩn hoá response loadout v2/v3
+│   │   ├── loadout-lifecycle.ts PUT loadout + xác nhận sau mutation
 │   │   ├── match-api.ts         history, MMR và match details
 │   │   ├── combat-api.ts        party, pregame và coregame
+│   │   ├── combat-response.ts   chuẩn hoá response pregame/live
+│   │   ├── party-api.ts         party create/join/leave/ready
+│   │   ├── party-custom-api.ts  party code + custom game helpers
+│   │   ├── pregame-actions.ts   select/lock/quit pregame
+│   │   ├── storefront-ownership.ts đối chiếu ownership với storefront
 │   │   └── progression-api.ts   contracts, content và leaderboard
 │   ├── matches/
 │   │   ├── match-archive-core.ts repository, validate và merge archive theo Act
@@ -78,7 +95,13 @@ Vshop/
 ├── utils/                       domain helpers, cache, sync và compatibility
 │   ├── valorant-api.ts          facade tương thích re-export Riot services
 │   ├── valorant-user.ts         default user/session shape
-│   ├── valorant-assets.ts       cache + orchestration asset
+│   ├── valorant-assets.ts       cache + orchestration asset (web memory-only)
+│   ├── api-response-redaction.ts chuẩn hoá + redact body API khi log opt-in
+│   ├── api-response-logger.ts   logger response an toàn theo giới hạn kích thước
+│   ├── api-response-fields.ts   registry field/enum đã phân loại cho redaction
+│   ├── bundle-ownership.ts      đối chiếu skin/accessory đã sở hữu trong bundle
+│   ├── friend-card.ts           view-model danh bạ bạn bè
+│   ├── friend-presence.ts       chuẩn hoá trạng thái presence bạn bè
 │   ├── riot-cookies.ts          logic cookie dùng chung; cookies.* là entry point nền tảng
 │   ├── primary-tab-motion.ts    cấu hình chuyển tab dùng bởi runtime và test
 │   ├── auth-session.ts          tạo/khôi phục session

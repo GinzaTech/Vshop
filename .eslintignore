@@ -5,5 +5,7 @@ rn-flow-visualizer/
 valorant-api-docs/
 test/
 dist/
+modules/*/android/build/
+modules/*/android/.gradle/
 *.bak
 **/*.bak

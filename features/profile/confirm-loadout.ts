@@ -6,6 +6,7 @@ import { playerLoadout } from "~/services/riot/loadout-api";
 import type { PlayerLoadoutResponse } from "~/services/riot/api-types";
 import { getSessionGeneration } from "~/utils/session-operations";
 import type { PendingLoadoutUpdate } from "./profile-loadout";
+import { isLoadoutResponse } from "~/services/riot/loadout-response";
 
 /** Credentials – Thông tin xác thực tối thiểu để gọi Riot API. */
 type Credentials = {
@@ -35,13 +36,14 @@ export async function confirmProfileLoadout(
   pending: PendingLoadoutUpdate,
   getPending: () => PendingLoadoutUpdate | null,
   matches: (latest: PlayerLoadoutResponse, expected: PlayerLoadoutResponse) => boolean,
+  isCurrent: () => boolean = () => true,
 ) {
   const generation = getSessionGeneration();
   await new Promise<void>((resolve) => setTimeout(resolve, 650));
-  if (generation !== getSessionGeneration() || getPending() !== pending) return null;
+  if (!isCurrent() || generation !== getSessionGeneration() || getPending() !== pending) return null;
   const latest = await playerLoadout(
     user.accessToken, user.entitlementsToken, user.region, user.id, { force: true }
   ).catch(() => null);
-  return generation === getSessionGeneration() && getPending() === pending &&
-    latest && matches(latest, expected) ? latest : null;
+  return isCurrent() && generation === getSessionGeneration() && getPending() === pending &&
+    isLoadoutResponse(latest, user.id, expected.Version) && matches(latest, expected) ? latest : null;
 }

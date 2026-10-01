@@ -4,26 +4,27 @@
 // Component thuần hiển thị — toàn bộ state/mutation nằm ở ProfileScreen.
 
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import type { TFunction } from "i18next";
 
 import { CachedImage as Image } from "~/components/CachedImage";
-import AppIcon from "~/components/ui/AppIcon";
+import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
 import {
   FALLBACK_IMAGE,
   formatSpraySlot,
   type EquippedSpray,
   type IdentityDetails,
 } from "~/components/GalleryProfile";
-import { COLORS, SHADOWS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, SHADOWS } from "~/constants/DesignSystem";
 import type { EquippedExpression } from "~/features/profile/profile-loadout";
 import { styles } from "~/features/profile/profile-screen.styles";
+import { expressionStyles } from "~/features/profile/profile-expression.styles";
 
 /**
  * ProfileEquipmentSectionsProps – Props chung của các section trang bị.
  * Props của từng component được chọn riêng qua Pick<> để interface rõ ràng.
  */
-type ProfileEquipmentSectionsProps = {
+export type ProfileEquipmentSectionsProps = {
   expressionDetails: EquippedExpression[];
   identityDetails: IdentityDetails | null;
   onOpenExpressionPicker: (expression: EquippedExpression) => void;
@@ -33,137 +34,7 @@ type ProfileEquipmentSectionsProps = {
   t: TFunction;
 };
 
-/**
- * ProfileIdentitySection – Section danh tính: ảnh player card (bấm mở picker),
- * tên card (sửa), khẩu hiệu/title (sửa) và cấp tài khoản.
- * @param {IdentityDetails | null} identityDetails - Dữ liệu identity đã enrich;
- *   null → section ẩn hoàn toàn.
- * @param {Function} onOpenIdentityPicker - Mở picker "player-card"|"player-title".
- * @param {TFunction} t - Hàm dịch i18next.
- * @returns {JSX.Element | null} Section identity hoặc null nếu không có dữ liệu.
- */
-export function ProfileIdentitySection({
-  identityDetails,
-  onOpenIdentityPicker,
-  t,
-}: Pick<
-  ProfileEquipmentSectionsProps,
-  "identityDetails" | "onOpenIdentityPicker" | "t"
->) {
-  if (!identityDetails) return null;
-
-  return (
-    <View style={styles.section}>
-      <View
-        style={[
-          styles.identityContainer,
-          SHADOWS.xs,
-          {
-            backgroundColor: COLORS.PURE_WHITE,
-            borderColor: COLORS.BORDER,
-            borderWidth: 1,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={t("equip_page.identity.card_picker_title", {
-            defaultValue: "Chọn ảnh đại diện",
-          })}
-          activeOpacity={0.86}
-          onPress={() => onOpenIdentityPicker("player-card")}
-          style={styles.identityImageFrame}
-        >
-          <Image
-            cacheId={`player-card:${identityDetails.cardId}:display-icon`}
-            source={
-              identityDetails.cardArt
-                ? { uri: identityDetails.cardArt }
-                : FALLBACK_IMAGE
-            }
-            style={styles.identityImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            priority="high"
-            recyclingKey={identityDetails.cardArt}
-          />
-          <View style={styles.identityLevelBadge}>
-            <AppIcon
-              color={COLORS.PURE_WHITE}
-              decorative
-              name="rank"
-              size={13}
-            />
-            <Text style={styles.identityLevelText}>{identityDetails.level}</Text>
-          </View>
-        </TouchableOpacity>
-        <View style={styles.identityInfo}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            activeOpacity={0.75}
-            onPress={() => onOpenIdentityPicker("player-card")}
-            style={styles.identityCardNameRow}
-          >
-            <Text
-              style={[styles.identityTitle, { color: COLORS.TEXT_PRIMARY }]}
-              numberOfLines={2}
-            >
-              {identityDetails.cardName ||
-                t("equip_page.identity.card_fallback")}
-            </Text>
-            <AppIcon
-              decorative
-              name="edit"
-              size={16}
-              color={COLORS.TEXT_SECONDARY}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            accessibilityRole="button"
-            activeOpacity={0.75}
-            onPress={() => onOpenIdentityPicker("player-title")}
-            style={styles.identityTitleAction}
-          >
-            <View style={styles.identityActionText}>
-              <Text style={styles.identityActionLabel}>
-                {t("equip_page.identity.motto", {
-                  defaultValue: "Khẩu hiệu",
-                })}
-              </Text>
-              <Text
-                style={[
-                  styles.identityActionValue,
-                  { color: COLORS.TEXT_PRIMARY },
-                ]}
-                numberOfLines={2}
-              >
-                {identityDetails.titleName ||
-                  t("equip_page.identity.title_fallback")}
-              </Text>
-            </View>
-            <AppIcon
-              decorative
-              name="forward"
-              size={18}
-              color={COLORS.TEXT_SECONDARY}
-            />
-          </TouchableOpacity>
-          <Text
-            style={[
-              styles.identityAccountLevel,
-              { color: COLORS.TEXT_SECONDARY },
-            ]}
-          >
-            {t("equip_page.identity.account_level", {
-              level: identityDetails.level,
-              defaultValue: "Cấp tài khoản: {{level}}",
-            })}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
+export { ProfileIdentitySection } from "./ProfileIdentitySection";
 
 /**
  * ProfileExpressionSection – Section biểu cảm đã trang bị: ưu tiên slot
@@ -193,6 +64,41 @@ export function ProfileExpressionSection({
   const hasExpressionSlots = expressionDetails.length > 0;
   if (!hasExpressionSlots && sprayDetails.length === 0) return null;
 
+  const kindLabel = (kind: EquippedExpression["kind"]) =>
+    kind === "flex"
+      ? t("equip_page.expressions.flex", { defaultValue: "Flex" })
+      : t("equip_page.expressions.graffiti", { defaultValue: "Graffiti" });
+  const overflow =
+    (hasExpressionSlots ? expressionDetails.length : sprayDetails.length) > 4;
+  const cells = hasExpressionSlots
+    ? expressionDetails.map((expression) => (
+        <ProfileExpressionCell
+          key={`${expression.slotIndex}-${expression.kind}-${expression.id}`}
+          cacheId={`${expression.kind}:${expression.id}:display`}
+          icon={expression.icon}
+          name={expression.name}
+          kind={kindLabel(expression.kind)}
+          slot={t("equip_page.expressions.slot", {
+            slot: expression.slotIndex + 1,
+            defaultValue: `Vị trí ${expression.slotIndex + 1}`,
+          })}
+          overflow={overflow}
+          onPress={() => onOpenExpressionPicker(expression)}
+        />
+      ))
+    : sprayDetails.map((spray) => (
+        <ProfileExpressionCell
+          key={`${spray.slot}-${spray.id}`}
+          cacheId={`spray:${spray.id}:display`}
+          icon={spray.icon}
+          name={spray.name}
+          kind={kindLabel("spray")}
+          slot={formatSpraySlot(spray.slot, t)}
+          overflow={overflow}
+          onPress={() => onOpenSprayPicker(spray)}
+        />
+      ));
+
   return (
     <View style={styles.section}>
       <Text
@@ -205,88 +111,68 @@ export function ProfileExpressionSection({
           defaultValue: "Graffiti & Flex đã trang bị",
         })}
       </Text>
-      <View style={styles.sprayList}>
-        {hasExpressionSlots
-          ? expressionDetails.map((expression) => (
-              <TouchableOpacity
-                key={`${expression.slotIndex}-${expression.kind}-${expression.id}`}
-                activeOpacity={0.9}
-                onPress={() => onOpenExpressionPicker(expression)}
-                style={[
-                  styles.sprayCard,
-                  SHADOWS.xs,
-                  { borderColor: COLORS.BORDER, borderWidth: 1 },
-                ]}
-              >
-                <Image
-                  cacheId={`${expression.kind}:${expression.id}:display`}
-                  source={
-                    expression.icon
-                      ? { uri: expression.icon }
-                      : FALLBACK_IMAGE
-                  }
-                  style={styles.sprayImage}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
-                  priority="normal"
-                  recyclingKey={expression.icon}
-                />
-                <Text
-                  style={[styles.sprayName, { color: COLORS.TEXT_PRIMARY }]}
-                >
-                  {expression.kind === "flex"
-                    ? t("equip_page.expressions.flex", {
-                        defaultValue: "Flex",
-                      })
-                    : t("equip_page.expressions.graffiti", {
-                        defaultValue: "Graffiti",
-                      })}
-                </Text>
-                <Text
-                  style={[styles.spraySlot, { color: COLORS.TEXT_SECONDARY }]}
-                >
-                  {t("equip_page.expressions.slot", {
-                    slot: expression.slotIndex + 1,
-                    defaultValue: `Vị trí ${expression.slotIndex + 1}`,
-                  })}
-                </Text>
-              </TouchableOpacity>
-            ))
-          : sprayDetails.map((spray) => (
-              <TouchableOpacity
-                key={`${spray.slot}-${spray.id}`}
-                activeOpacity={0.9}
-                onPress={() => onOpenSprayPicker(spray)}
-                style={[
-                  styles.sprayCard,
-                  SHADOWS.xs,
-                  { borderColor: COLORS.BORDER, borderWidth: 1 },
-                ]}
-              >
-                <Image
-                  cacheId={`spray:${spray.id}:display`}
-                  source={spray.icon ? { uri: spray.icon } : FALLBACK_IMAGE}
-                  style={styles.sprayImage}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
-                  priority="normal"
-                  recyclingKey={spray.icon}
-                />
-                <Text
-                  style={[styles.sprayName, { color: COLORS.TEXT_PRIMARY }]}
-                >
-                  {t("equip_page.expressions.graffiti", {
-                    defaultValue: "Graffiti",
-                  })}
-                </Text>
-                <Text
-                  style={[styles.spraySlot, { color: COLORS.TEXT_SECONDARY }]}
-                >
-                  {formatSpraySlot(spray.slot, t)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-      </View>
+      {overflow ? (
+        <ScrollView
+          testID="profile-expression-row"
+          horizontal
+          contentContainerStyle={[
+            expressionStyles.row,
+            expressionStyles.overflowRow,
+          ]}
+        >
+          {cells}
+        </ScrollView>
+      ) : (
+        <View testID="profile-expression-row" style={expressionStyles.row}>
+          {cells}
+        </View>
+      )}
     </View>
+  );
+}
+function ProfileExpressionCell({
+  cacheId,
+  icon,
+  name,
+  kind,
+  slot,
+  overflow,
+  onPress,
+}: {
+  cacheId: string;
+  icon?: string;
+  name: string;
+  kind: string;
+  slot: string;
+  overflow: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={`${name}, ${kind}, ${slot}`}
+      activeOpacity={0.9}
+      onPress={onPress}
+      style={[
+        expressionStyles.card,
+        SHADOWS.xs,
+        overflow && expressionStyles.overflowCard,
+      ]}
+    >
+      <LiquidGlassDecoration radius={RADIUS.md} density="dense" tone="light" />
+      <Image
+        accessible={false}
+        cacheId={cacheId}
+        source={icon ? { uri: icon } : FALLBACK_IMAGE}
+        style={expressionStyles.image}
+        contentFit="contain"
+        cachePolicy="memory-disk"
+        priority="normal"
+        recyclingKey={icon}
+      />
+      <Text style={expressionStyles.kind}>{kind}</Text>
+      <Text style={expressionStyles.slot}>{slot}</Text>
+    </TouchableOpacity>
   );
 }

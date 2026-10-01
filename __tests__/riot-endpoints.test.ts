@@ -47,6 +47,12 @@ const expectedUrls: Record<RiotEndpointName, string> = {
   "party-invite-code": "https://glz-ap-1.ap.a.pvp.net/parties/v1/parties/match%2Fid/invitecode",
   "party-join-by-code": "https://glz-ap-1.ap.a.pvp.net/parties/v1/players/joinbycode/join%2Fcode",
   "party-muc-token": "https://glz-ap-1.ap.a.pvp.net/parties/v1/parties/match%2Fid/muctoken",
+  "party-queue": "https://glz-ap-1.ap.a.pvp.net/parties/v1/parties/match%2Fid/queue",
+  "party-accessibility": "https://glz-ap-1.ap.a.pvp.net/parties/v1/parties/match%2Fid/accessibility",
+  "party-invite-by-name": "https://glz-ap-1.ap.a.pvp.net/parties/v1/parties/match%2Fid/invites/name/friend%2Fname/tag/friend%2Ftag",
+  "party-make-custom": "https://glz-ap-1.ap.a.pvp.net/parties/v1/parties/match%2Fid/makecustomgame",
+  "party-make-default": "https://glz-ap-1.ap.a.pvp.net/parties/v1/parties/match%2Fid/makedefault?queueID=queue%2Fid",
+  "party-start-custom": "https://glz-ap-1.ap.a.pvp.net/parties/v1/parties/match%2Fid/startcustomgame",
   contracts: "https://pd.ap.a.pvp.net/contracts/v1/contracts/user%2Fid",
   "activate-contract": "https://pd.ap.a.pvp.net/contracts/v1/contracts/user%2Fid/special/item%2Ftype",
   "item-upgrades": "https://pd.ap.a.pvp.net/contract-definitions/v3/item-upgrades",
@@ -70,6 +76,9 @@ describe("Riot endpoint registry", () => {
       agentId: AGENT_ID,
       itemTypeId: ITEM_TYPE_ID,
       code: CODE,
+      friendName: "friend/name",
+      friendTag: "friend/tag",
+      queueId: "queue/id",
     });
 
     expect(url).toBe(expectedUrls[name]);
@@ -90,6 +99,9 @@ describe("Riot endpoint registry", () => {
     expect(() =>
       buildRiotApiUrl({ name: "wallet", region: "ap", userId: "  " }),
     ).toThrow("Missing Riot endpoint parameter: userId");
+    expect(() => buildRiotApiUrl({ name: "party-invite-by-name", region: "ap", matchId: MATCH_ID, friendTag: "AP" })).toThrow("friendName");
+    expect(() => buildRiotApiUrl({ name: "party-invite-by-name", region: "ap", matchId: MATCH_ID, friendName: "Name" })).toThrow("friendTag");
+    expect(() => buildRiotApiUrl({ name: "party-make-default", region: "ap", matchId: MATCH_ID })).toThrow("queueId");
   });
 });
 

@@ -6,7 +6,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList }
 import { CachedImage as Image } from "~/components/CachedImage";
 import { useTranslation } from "react-i18next";
 import { getAgent } from "~/utils/valorant-assets";
-import { COLORS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
 
@@ -167,6 +168,7 @@ const AgentItem = React.memo(({ item, onPress, selected }: { item: ValorantAgent
             accessibilityState={{ selected }}
             accessibilityLabel={item.displayName}
         >
+            <LiquidGlassDecoration radius={RADIUS.lg} />
             <Image
                 cacheId={`agent:${item.uuid}:display-icon`}
                 source={{ uri: item.displayIcon }}
@@ -315,12 +317,11 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     box: {
+        ...LIQUID_GLASS_CARD_STYLE,
         width: "100%",
         aspectRatio: 1,                // Hình vuông
-        backgroundColor: COLORS.SURFACE,
-        borderRadius: 14,
+        borderRadius: RADIUS.lg,
         borderWidth: 1,
-        borderColor: COLORS.BORDER,
         alignItems: "center",
         justifyContent: "center",
     },

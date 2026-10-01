@@ -47,6 +47,66 @@ const deferred = <T,>() => {
 };
 
 describe("combat store request ownership", () => {
+  it.each(["party", "pregame", "live"])("rejects fulfilled %s details with a different resource ID", async (resource) => {
+    if (resource === "party") {
+      mockGetPartyPlayer.mockResolvedValue({ CurrentPartyID: "expected-party" });
+      mockGetParty.mockResolvedValue({ ID: "other-party", Members: [] });
+    } else if (resource === "pregame") {
+      mockGetPreGamePlayer.mockResolvedValue({ MatchID: "expected-match" });
+      mockGetPreGameMatch.mockResolvedValue({ ID: "other-match", AllyTeam: { Players: [] } });
+    } else {
+      mockGetCurrentGamePlayer.mockResolvedValue({ MatchID: "expected-match" });
+      mockGetCurrentGameMatch.mockResolvedValue({ MatchID: "other-match", Players: [] });
+    }
+    const result = await useCombatStore.getState().fetchSession(user("one"));
+    expect(result.state).toBe("idle");
+    expect(result.party).toBeNull();
+    expect(result.pregameMatch).toBeNull();
+    expect(result.currentGameMatch).toBeNull();
+  });
+
+  it("does not attach a previous match to a newly discovered match after a detail failure", async () => {
+    mockGetCurrentGamePlayer.mockResolvedValue({ MatchID: "old-match" });
+    mockGetCurrentGameMatch.mockResolvedValue({ MatchID: "old-match", Players: [] });
+    await useCombatStore.getState().fetchSession(user("one"));
+    mockGetCurrentGamePlayer.mockResolvedValue({ MatchID: "new-match" });
+    mockGetCurrentGameMatch.mockRejectedValue(new Error("unavailable"));
+    const result = await useCombatStore.getState().fetchSession(user("one"));
+    expect(result.state).toBe("idle");
+    expect(result.currentGameMatch).toBeNull();
+  });
+
+  it.each(["party discovery", "party detail"])("detects a real live match despite a failed %s", async (failure) => {
+    if (failure === "party discovery") mockGetPartyPlayer.mockRejectedValue(new Error("unavailable"));
+    else {
+      mockGetPartyPlayer.mockResolvedValue({ CurrentPartyID: "party-one" });
+      mockGetParty.mockRejectedValue(new Error("unavailable"));
+    }
+    mockGetCurrentGamePlayer.mockResolvedValue({ MatchID: "live-one" });
+    mockGetCurrentGameMatch.mockResolvedValue({ MatchID: "live-one", Players: [] });
+    const result = await useCombatStore.getState().fetchSession(user("one"));
+    expect(result.state).toBe("live");
+    expect(result.matchId).toBe("live-one");
+  });
+
+  it("detects pregame while unrelated live discovery is temporarily unavailable", async () => {
+    mockGetCurrentGamePlayer.mockRejectedValue(new Error("unavailable"));
+    mockGetPreGamePlayer.mockResolvedValue({ MatchID: "pregame-one" });
+    mockGetPreGameMatch.mockResolvedValue({ ID: "pregame-one", AllyTeam: { Players: [] } });
+    const result = await useCombatStore.getState().fetchSession(user("one"));
+    expect(result.state).toBe("pregame");
+  });
+
+  it("prefers confirmed live match data during a pregame-to-live overlap", async () => {
+    mockGetPreGamePlayer.mockResolvedValue({ MatchID: "active-match" });
+    mockGetCurrentGamePlayer.mockResolvedValue({ MatchID: "active-match" });
+    mockGetPreGameMatch.mockResolvedValue({ ID: "active-match", AllyTeam: { Players: [] } });
+    mockGetCurrentGameMatch.mockResolvedValue({ MatchID: "active-match", Players: [] });
+    const result = await useCombatStore.getState().fetchSession(user("one"));
+    expect(result.state).toBe("live");
+    expect(result.pregameMatch).toBeNull();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockActiveUser.user = user("one");

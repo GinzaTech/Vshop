@@ -33,7 +33,7 @@
     "@sentry/react": "^10.47.0",
     "@shopify/react-native-skia": "2.6.2",
     "@tradle/react-native-http": "^2.0.1",
-    "axios": "^1.19.0",
+    "axios": "^1.20.0",
     "buffer": "^5.7.1",
     "deepmerge": "^4.3.1",
     "ecc-universal": "^2.2.1",

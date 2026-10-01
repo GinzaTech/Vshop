@@ -4,12 +4,15 @@ import { useCombatStore } from "~/hooks/useCombatStore";
 import { hasRiotScreenSession, isCurrentRiotScreenSession, type RiotScreenSession } from "~/hooks/useRiotScreenSession";
 import { useCombatPoll } from "~/features/combat/useCombatPoll";
 import type { useCombatScreenActivity } from "~/features/combat/useCombatScreenActivity";
+import { getSessionGeneration } from "~/utils/session-operations";
 
-export function useCombatSessionPolling(session: RiotScreenSession, live: boolean, activity: ReturnType<typeof useCombatScreenActivity>) {
+/** activeMatch is true for both pregame and live; idle stays a one-shot fetch. */
+export function useCombatSessionPolling(session: RiotScreenSession, activeMatch: boolean, activity: ReturnType<typeof useCombatScreenActivity>) {
   const fetchSession = useCombatStore((state) => state.fetchSession);
   const pending = React.useRef<Promise<unknown> | null>(null);
   const { isActive, isActiveNow } = activity;
-  const isCurrent = React.useCallback(() => isActiveNow() && isCurrentRiotScreenSession(session), [isActiveNow, session]);
+  const generation = getSessionGeneration();
+  const isCurrent = React.useCallback(() => isActiveNow() && generation === getSessionGeneration() && isCurrentRiotScreenSession(session), [generation, isActiveNow, session]);
   const refresh = React.useCallback(async () => {
     if (!isCurrent() || !hasRiotScreenSession(session)) return;
     if (pending.current) return pending.current;
@@ -18,6 +21,6 @@ export function useCombatSessionPolling(session: RiotScreenSession, live: boolea
     try { return await task; }
     finally { if (pending.current === task) pending.current = null; }
   }, [fetchSession, isCurrent, session]);
-  useCombatPoll({ enabled: isActive && hasRiotScreenSession(session), repeat: live, request: refresh, isCurrent });
+  useCombatPoll({ enabled: isActive && hasRiotScreenSession(session), repeat: activeMatch, intervalMs: 3000, request: refresh, isCurrent });
   return refresh;
 }

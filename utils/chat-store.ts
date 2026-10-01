@@ -1,5 +1,6 @@
 // Import hàm create từ zustand để tạo store
 import { create } from "zustand";
+import type { PartyPresence } from "~/features/party/party-presence";
 
 // Interface định nghĩa cấu trúc một tin nhắn chat
 export interface ChatMessage {
@@ -27,6 +28,7 @@ export interface ChatFriend {
   status: string;   // Trạng thái (VD: "Valorant", "Mobile",...)
   show: string;     // Trạng thái online: "online", "dnd", "chat", "away", "offline"
   jid?: string;     // Jabber ID (XMPP)
+  presence?: PartyPresence;
 }
 
 // Interface định nghĩa toàn bộ state và actions của chat store
@@ -38,7 +40,7 @@ interface ChatState {
   // Tin nhắn riêng tư (key là friend ID, value là mảng ChatMessage)
   messages: Record<string, ChatMessage[]>;
   // Presence đang chờ xử lý (khi friend chưa có trong danh sách)
-  pendingPresence: Record<string, { status: string; show: string }>;
+  pendingPresence: Record<string, { status: string; show: string; presence?: PartyPresence }>;
   // Phòng party chat hiện tại (null nếu chưa tham gia)
   partyChatRoom: string | null;
   // Party ID hiện tại từ presence
@@ -50,7 +52,7 @@ interface ChatState {
   setStatus: (status: "disconnected" | "connecting" | "authenticated" | "error") => void;
   setFriends: (friends: ChatFriend[]) => void;
   updateFriendNames: (names: { id: string; gameName: string; tagLine: string }[]) => void;
-  updateFriendPresence: (id: string, status: string, show: string) => void;
+  updateFriendPresence: (id: string, status: string, show: string, presence?: PartyPresence) => void;
   addMessage: (friendId: string, message: ChatMessage) => void;
   setPartyChatRoom: (room: string | null) => void;
   setCurrentPartyId: (partyId: string | null) => void;
@@ -66,6 +68,20 @@ interface ChatState {
 const normalizeChatId = (value: string) =>
   value.split("/")[0].split("@")[0].trim().toLowerCase();
 
+// Static display identity survives reconnect within this account's friend cache.
+// Availability/activity always comes from the latest stanza, never cached state.
+function mergeFriendPresence(previous: PartyPresence | undefined, next?: PartyPresence, offline = false): PartyPresence | undefined {
+  const playerCardId = (offline ? undefined : next?.playerCardId) ?? previous?.playerCardId;
+  const accountLevel = (offline ? undefined : next?.accountLevel) ?? previous?.accountLevel;
+  const sessionLoopState = offline ? undefined : next?.sessionLoopState;
+  if (!playerCardId && accountLevel === undefined && !sessionLoopState) return undefined;
+  return {
+    ...(playerCardId ? { playerCardId } : {}),
+    ...(accountLevel !== undefined ? { accountLevel } : {}),
+    ...(sessionLoopState ? { sessionLoopState } : {}),
+  };
+}
+
 // Tạo zustand store cho chat
 export const useChatStore = create<ChatState>((set) => ({
   // State mặc định
@@ -78,7 +94,12 @@ export const useChatStore = create<ChatState>((set) => ({
   partyMessages: {},
 
   // Cập nhật trạng thái kết nối
-  setStatus: (status) => set({ status }),
+  setStatus: (status) => set((state) => status === "authenticated" ? { status } : {
+    status,
+    // Cached names/messages survive token renewal; availability must come from the new connection.
+    friends: Object.fromEntries(Object.entries(state.friends).map(([id, friend]) => [id, { ...friend, status: "", show: "offline", presence: mergeFriendPresence(friend.presence, undefined, true) }])),
+    pendingPresence: {},
+  }),
 
   // Thiết lập danh sách bạn bè, giữ lại gameName và presence từ state cũ nếu có
   setFriends: (friends) =>
@@ -99,6 +120,9 @@ export const useChatStore = create<ChatState>((set) => ({
           tagLine: existing?.tagLine || friend.tagLine,
           status: pendingPresence?.status ?? existing?.status ?? friend.status,
           show: pendingPresence?.show ?? existing?.show ?? friend.show,
+          presence: pendingPresence
+            ? mergeFriendPresence(existing?.presence ?? friend.presence, pendingPresence.presence)
+            : existing?.presence ?? friend.presence,
         };
       }
 
@@ -128,7 +152,7 @@ export const useChatStore = create<ChatState>((set) => ({
 
   // Cập nhật presence (trạng thái online) của một bạn bè
   // Nếu friend chưa có trong danh sách, lưu vào pendingPresence
-  updateFriendPresence: (id, status, show) =>
+  updateFriendPresence: (id, status, show, presence) =>
     set((state) => {
       const friendId = normalizeChatId(id);
       const friend = state.friends[friendId];
@@ -137,7 +161,7 @@ export const useChatStore = create<ChatState>((set) => ({
         return {
           pendingPresence: {
             ...state.pendingPresence,
-            [friendId]: { status, show },
+            [friendId]: { status, show, presence: mergeFriendPresence(state.pendingPresence[friendId]?.presence, presence, show === "offline") },
           },
         };
       }
@@ -149,6 +173,7 @@ export const useChatStore = create<ChatState>((set) => ({
             ...friend,
             status,
             show,
+            presence: mergeFriendPresence(friend.presence, presence, show === "offline"),
           },
         },
       };

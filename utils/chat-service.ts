@@ -19,6 +19,7 @@ import { jwtDecode } from "jwt-decode";
 // Import Buffer từ buffer để decode base64
 import { Buffer } from "buffer";
 import { sanitizeErrorForLog } from "~/utils/log-redaction";
+import { parsePartyPresence } from "~/features/party/party-presence";
 
 // Map các region -> chat host fallback (khi không lấy được từ server)
 const fallbackChatHosts: Record<string, string> = {
@@ -404,6 +405,7 @@ export async function initChatService(
     client.onPresence = (from, status, show, raw) => {
       if (!isActiveClient()) return;
       const fromUserId = normalizeFriendId(from);
+      const friendMetadata = parsePartyPresence(raw);
       const partyId =
         currentUserId && fromUserId === currentUserId
           ? getPartyIdFromPresence(raw)
@@ -416,7 +418,7 @@ export async function initChatService(
       }
       useChatStore
         .getState()
-        .updateFriendPresence(normalizeFriendId(from), status, show);
+        .updateFriendPresence(normalizeFriendId(from), status, show, friendMetadata);
     };
 
     // Sự kiện: nhận tin nhắn từ bạn bè

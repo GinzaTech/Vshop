@@ -1,6 +1,5 @@
-// ====== GlassCard – Shared tonal surface ======
-// Tên component được giữ để tương thích; nền dùng surface tĩnh thay vì blur
-// nhằm giảm overdraw và giữ độ tương phản ổn định trên Android.
+// Shared optical glass with the original View/content/entrance contract.
+// Repeated cards use static frost and specular light, without native blur.
 
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, ViewProps } from "react-native";
@@ -8,7 +7,8 @@ import Animated, {
     FadeInDown,
     ReduceMotion,
 } from "react-native-reanimated";
-import { GLOBAL_STYLES, RADIUS, SHADOWS } from "~/constants/DesignSystem";
+import { COLORS, GLASS_MATERIAL, RADIUS } from "~/constants/DesignSystem";
+import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "./LiquidGlassSurface";
 import { MOTION_DURATION } from "~/constants/Motion";
 
 // CARD_ENTRANCE: Animation entrance FadeInDown dùng khi animated=true;
@@ -42,7 +42,7 @@ interface GlassCardProps extends ViewProps {
  *   ngược lại render View tĩnh (tránh chi phí animation không cần thiết).
  *
  * @param props – Xem interface GlassCardProps ở trên.
- * @returns Một tonal surface chứa nội dung con.
+ * @returns Một optical surface chứa nội dung con.
  */
 export default function GlassCard({
     style,
@@ -51,20 +51,34 @@ export default function GlassCard({
     animated = false,
     ...props
 }: GlassCardProps) {
+    const outer = StyleSheet.flatten(style);
+    const inner = StyleSheet.flatten(contentStyle);
+    const tone = outer?.backgroundColor === COLORS.ACCENT_DEEP ||
+        outer?.backgroundColor === COLORS.PURE_BLACK ||
+        outer?.backgroundColor === COLORS.VALORANT_DARK_BLUE ? "dark" : "light";
+    const isLegacyLight = (color: ViewStyle["backgroundColor"]) =>
+        color === COLORS.SURFACE || color === COLORS.BACKGROUND || color === COLORS.SURFACE_MUTED;
+    const surfaceStyle = [styles.container, style,
+        isLegacyLight(outer?.backgroundColor) && { backgroundColor: GLASS_MATERIAL.surface }];
+    const childrenContent = <>
+        <LiquidGlassDecoration radius={typeof outer?.borderRadius === "number" ? outer.borderRadius : RADIUS.card} tone={tone} />
+        <View style={[styles.content, contentStyle,
+            isLegacyLight(inner?.backgroundColor) && { backgroundColor: GLASS_MATERIAL.clear }]}>{children}</View>
+    </>;
     if (animated) {
         return (
             <Animated.View
                 entering={CARD_ENTRANCE}
-                style={[styles.container, style]}
+                style={surfaceStyle}
                 {...props}
             >
-                <View style={[styles.content, contentStyle]}>{children}</View>
+                {childrenContent}
             </Animated.View>
         );
     }
     return (
-        <View style={[styles.container, style]} {...props}>
-            <View style={[styles.content, contentStyle]}>{children}</View>
+        <View style={surfaceStyle} {...props}>
+            {childrenContent}
         </View>
     );
 }
@@ -73,8 +87,8 @@ export default function GlassCard({
  * StyleSheet định nghĩa giao diện cho GlassCard.
  *
  * container:
- *   - Kế thừa GLOBAL_STYLES.glassContainer (nền trắng, viền, overflow hidden)
- *   - borderRadius = RADIUS.card (24) – bo góc mềm mại
+ *   - Material, viền và shadow lấy từ primitive kính dùng chung
+ *   - borderRadius = RADIUS.card
  *   - Dùng shadow cấp `xs` để tránh quầng xám quanh card
  *   - flexShrink: 1 – cho phép co lại khi không đủ không gian
  *
@@ -84,9 +98,9 @@ export default function GlassCard({
  */
 const styles = StyleSheet.create({
     container: {
-        ...GLOBAL_STYLES.glassContainer,
+        ...LIQUID_GLASS_CARD_STYLE,
+        overflow: "hidden",
         borderRadius: RADIUS.card,
-        ...SHADOWS.xs,
         flexShrink: 1,
     },
     content: {

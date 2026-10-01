@@ -4,13 +4,14 @@ import { sanitizeErrorForLog } from "~/utils/log-redaction";
 const POLL_INTERVAL = 10_000;
 
 /** Schedule after settlement and retain the in-flight guard across blur/effect restarts. */
-export function useCombatPoll<T>({ enabled, repeat, request, onResult, onError, isCurrent }: {
+export function useCombatPoll<T>({ enabled, repeat, request, onResult, onError, isCurrent, intervalMs = POLL_INTERVAL }: {
   enabled: boolean;
   repeat: boolean;
   request: (isCurrent: () => boolean) => Promise<T>;
   onResult?: (value: T) => void;
   onError?: () => void;
   isCurrent: () => boolean;
+  intervalMs?: number;
 }) {
   const pending = React.useRef<Promise<void> | null>(null);
   const generation = React.useRef(0);
@@ -20,7 +21,7 @@ export function useCombatPoll<T>({ enabled, repeat, request, onResult, onError, 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const current = () => generation.current === requestId && isCurrent();
     const schedule = () => {
-      if (repeat && current()) timer = setTimeout(() => { void poll(); }, POLL_INTERVAL);
+      if (repeat && current()) timer = setTimeout(() => { void poll(); }, intervalMs);
     };
     const poll = async () => {
       if (!current()) return;
@@ -52,5 +53,5 @@ export function useCombatPoll<T>({ enabled, repeat, request, onResult, onError, 
       generation.current += 1;
       if (timer !== undefined) clearTimeout(timer);
     };
-  }, [enabled, isCurrent, onError, onResult, repeat, request]);
+  }, [enabled, intervalMs, isCurrent, onError, onResult, repeat, request]);
 }

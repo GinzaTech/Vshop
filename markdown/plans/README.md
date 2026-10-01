@@ -17,6 +17,21 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 
 ## Plan hiện tại
 
+**Đã tiếp tục theo goal mới ngày 2026-09-30.** Plan điều phối hiện tại:
+[`2026-09-30-liquid-glass-completion.md`](2026-09-30-liquid-glass-completion.md).
+Bản [`stopped-work-handoff`](2026-09-30-stopped-work-handoff.md) là mốc lịch sử
+trước khi tiếp tục, không phải trạng thái thực thi hiện tại.
+
+- [`2026-09-30-profile-loadout-responsive.md`](2026-09-30-profile-loadout-responsive.md) —
+  active: Profile equip không khóa thao tác, hàng đợi PUT versioned/coalesced,
+  bảo vệ lựa chọn mới và bốn ô graffiti/flex compact cùng hàng.
+- [`2026-09-30-party-match-flow.md`](2026-09-30-party-match-flow.md) —
+  active: Party compact, friends online/card thật, popup agent/polling 3s,
+  mutation acknowledgement nhanh, Ready optimistic và code/share/join/invite.
+  Source/device read-only evidence tách biệt khỏi live mutation QA.
+- [`2026-09-30-bundle-reference-refinement.md`](2026-09-30-bundle-reference-refinement.md) —
+  active: chỉnh tỷ lệ/ảnh hero và carousel compact theo screenshot thực tế;
+  bổ sung lớp mờ/check skin đã mua từ inventory thật và dev response diagnostics.
 - [`2026-09-30-white-bundle-detail-card.md`](2026-09-30-white-bundle-detail-card.md) —
   done: card bundle trắng inline hoàn tất theo RED→GREEN (parser giữ giá
   base/discounted thật, không invent ownership; carousel ngang peek card kế;
