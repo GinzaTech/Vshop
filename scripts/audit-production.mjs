@@ -12,6 +12,10 @@ const allowedAdvisories = new Map([
   // forced 4.x override would break tooling rather than ship behavior.
   ["1193726", "js-yaml 3.x only via @react-native/jest-preset test tooling; affected load() API unused by VShop."],
   ["1193727", "js-yaml 3.x only via @react-native/jest-preset test tooling; affected load() API unused by VShop."],
+  // node-forge is only reachable through Expo CLI/code-signing build tooling.
+  // There is no patched upstream version, it is excluded from the app bundle,
+  // and VShop does not verify untrusted RSA PKCS#1 v1.5 signatures at runtime.
+  ["1240912", "Expo CLI/code-signing build tooling only; no patched upstream version and no VShop runtime signature-verification path."],
 ]);
 
 const pnpmEntrypoint = process.env.npm_execpath;
