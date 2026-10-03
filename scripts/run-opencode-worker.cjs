@@ -102,11 +102,11 @@ function resolveOpenCodeCommand({
   if (platform !== "win32") {
     return "opencode";
   }
-  if (!env.PNPM_HOME || !path.isAbsolute(env.PNPM_HOME)) {
+  if (!env.PNPM_HOME || !path.win32.isAbsolute(env.PNPM_HOME)) {
     throw new RunnerError("OPENCODE_BINARY_REJECTED");
   }
-  const pnpmHome = path.resolve(env.PNPM_HOME);
-  const shimPath = path.join(pnpmHome, "bin", "opencode.cmd");
+  const pnpmHome = path.win32.resolve(env.PNPM_HOME);
+  const shimPath = path.win32.join(pnpmHome, "bin", "opencode.cmd");
   if (!existsImpl(shimPath)) {
     throw new RunnerError("OPENCODE_BINARY_REJECTED");
   }
@@ -118,24 +118,24 @@ function resolveOpenCodeCommand({
   if (!targetMatch) {
     throw new RunnerError("OPENCODE_BINARY_REJECTED");
   }
-  const executable = path.resolve(path.dirname(shimPath), targetMatch[1]);
-  const relative = path.relative(pnpmHome, executable);
-  const requiredSuffix = path.join(
+  const executable = path.win32.resolve(path.win32.dirname(shimPath), targetMatch[1]);
+  const relative = path.win32.relative(pnpmHome, executable);
+  const requiredSuffix = path.win32.join(
     "node_modules",
     "opencode-ai",
     "bin",
     "opencode.exe",
   ).toLowerCase();
-  const globalRelative = path.relative(path.join(pnpmHome, "global"), executable);
+  const globalRelative = path.win32.relative(path.win32.join(pnpmHome, "global"), executable);
   if (
     relative === ".." ||
-    relative.startsWith(`..${path.sep}`) ||
-    path.isAbsolute(relative) ||
+    relative.startsWith(`..${path.win32.sep}`) ||
+    path.win32.isAbsolute(relative) ||
     globalRelative === ".." ||
-    globalRelative.startsWith(`..${path.sep}`) ||
-    path.isAbsolute(globalRelative) ||
+    globalRelative.startsWith(`..${path.win32.sep}`) ||
+    path.win32.isAbsolute(globalRelative) ||
     !executable.toLowerCase().endsWith(requiredSuffix) ||
-    path.extname(executable).toLowerCase() !== ".exe" ||
+    path.win32.extname(executable).toLowerCase() !== ".exe" ||
     !existsImpl(executable)
   ) {
     throw new RunnerError("OPENCODE_BINARY_REJECTED");

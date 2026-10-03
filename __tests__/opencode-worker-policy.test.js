@@ -10,14 +10,16 @@ const {
   validateTaskPacket,
 } = require("../scripts/lib/opencode-worker-policy.cjs");
 
-const mainCheckout = "C:\\Users\\kona\\Desktop\\Project\\Vshop";
+const path = require("node:path");
+
+const mainCheckout = path.resolve(__dirname, "fixtures", "repo");
 
 const createPacket = () => ({
   schemaVersion: 1,
   taskId: "profile-cache-race",
   title: "Fix profile cache race",
   objective: "Prevent stale responses from overwriting a newer account.",
-  workspace: "C:\\Users\\kona\\.codex\\worktrees\\profile-cache-race",
+  workspace: path.resolve(__dirname, "fixtures", "worktrees", "profile-cache-race"),
   model: "zai-coding-plan/glm-5.3",
   planPath: "markdown/plans/2026-09-29-profile-cache-race.md",
   allowedPaths: ["services/profile/cache.ts", "__tests__/profile-cache.test.ts"],

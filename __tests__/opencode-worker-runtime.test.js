@@ -26,20 +26,22 @@ const createChild = () => {
   return child;
 };
 
-const linkedWorktreeGit = ({ root = "C:/worktrees/task", status = "" } = {}) =>
+const fixturePath = (...segments) => path.resolve(__dirname, "fixtures", ...segments);
+
+const linkedWorktreeGit = ({ root = fixturePath("worktrees", "task"), status = "" } = {}) =>
   jest.fn((command, args) => {
     const operation = args.slice(2).join(" ");
     if (operation === "rev-parse --show-toplevel") return `${root}\n`;
-    if (operation === "rev-parse --git-dir") return "C:/repo/.git/worktrees/task\n";
-    if (operation === "rev-parse --git-common-dir") return "C:/repo/.git\n";
+    if (operation === "rev-parse --git-dir") return fixturePath("repo", ".git", "worktrees", "task") + "\n";
+    if (operation === "rev-parse --git-common-dir") return fixturePath("repo", ".git") + "\n";
     if (operation === "status --porcelain=v1 -z --untracked-files=all") return status;
     throw new Error(`UNEXPECTED_GIT_CALL:${operation}`);
   });
 
 describe("OpenCode worker Git and path runtime", () => {
   test.each([
-    ["relative", "C:/repo", "WORKTREE_PATH_REJECTED"],
-    ["C:/worktrees/task", "relative", "MAIN_CHECKOUT_REJECTED"],
+    ["relative", fixturePath("repo"), "WORKTREE_PATH_REJECTED"],
+    [fixturePath("worktrees", "task"), "relative", "MAIN_CHECKOUT_REJECTED"],
   ])("rejects invalid workspace inputs", (workspace, mainCheckout, code) => {
     expect(() => inspectWorktree(workspace, {
       mainCheckout,
@@ -48,12 +50,12 @@ describe("OpenCode worker Git and path runtime", () => {
   });
 
   test("accepts only a clean linked worktree", () => {
-    const result = inspectWorktree("C:/worktrees/task", {
-      mainCheckout: "C:/repo",
+    const result = inspectWorktree(fixturePath("worktrees", "task"), {
+      mainCheckout: fixturePath("repo"),
       execFileSyncImpl: linkedWorktreeGit(),
     });
     expect(result).toMatchObject({
-      root: path.resolve("C:/worktrees/task"),
+      root: path.resolve(fixturePath("worktrees", "task")),
       clean: true,
       linked: true,
     });
@@ -61,8 +63,8 @@ describe("OpenCode worker Git and path runtime", () => {
   });
 
   test.each([
-    ["C:/repo", "C:/repo", "", "MAIN_CHECKOUT_REJECTED"],
-    ["C:/worktrees/task", "C:/repo", " M src/file.ts\0", "DIRTY_BASELINE"],
+    [fixturePath("repo"), fixturePath("repo"), "", "MAIN_CHECKOUT_REJECTED"],
+    [fixturePath("worktrees", "task"), fixturePath("repo"), " M src/file.ts\0", "DIRTY_BASELINE"],
   ])("rejects workspace=%s status=%s", (root, mainCheckout, status, code) => {
     expect(() => inspectWorktree(root, {
       mainCheckout,
@@ -73,14 +75,14 @@ describe("OpenCode worker Git and path runtime", () => {
   test("rejects an ordinary checkout whose git dir equals its common dir", () => {
     const execFileSyncImpl = jest.fn((command, args) => {
       const operation = args.slice(2).join(" ");
-      if (operation === "rev-parse --show-toplevel") return "C:/other\n";
+      if (operation === "rev-parse --show-toplevel") return fixturePath("other") + "\n";
       if (operation === "rev-parse --git-dir") return ".git\n";
       if (operation === "rev-parse --git-common-dir") return ".git\n";
       if (operation.startsWith("status ")) return "";
       throw new Error(operation);
     });
-    expect(() => inspectWorktree("C:/other", {
-      mainCheckout: "C:/repo",
+    expect(() => inspectWorktree(fixturePath("other"), {
+      mainCheckout: fixturePath("repo"),
       execFileSyncImpl,
     })).toThrow("LINKED_WORKTREE_REQUIRED");
   });
@@ -93,7 +95,7 @@ describe("OpenCode worker Git and path runtime", () => {
     ]);
     const execFileSyncImpl = jest.fn((command, args) =>
       outputs.get(args.slice(2).join(" ")) || "");
-    expect(listChangedPaths("C:/worktrees/task", { execFileSyncImpl })).toEqual([
+    expect(listChangedPaths(fixturePath("worktrees", "task"), { execFileSyncImpl })).toEqual([
       "src/a.ts",
       "src/deleted.ts",
       "src/new.ts",
@@ -103,46 +105,46 @@ describe("OpenCode worker Git and path runtime", () => {
 
   test("resolves the primary checkout from Git worktree porcelain output", () => {
     const execFileSyncImpl = jest.fn(() => [
-      "worktree C:/repo",
+      `worktree ${fixturePath("repo")}`,
       "HEAD abc123",
       "branch refs/heads/main",
       "",
-      "worktree C:/repo-worktrees/task",
+      `worktree ${fixturePath("repo-worktrees", "task")}`,
       "HEAD def456",
       "detached",
       "",
     ].join("\n"));
-    expect(resolvePrimaryWorktree("C:/repo-worktrees/task", { execFileSyncImpl }))
-      .toBe(path.resolve("C:/repo"));
+    expect(resolvePrimaryWorktree(fixturePath("repo-worktrees", "task"), { execFileSyncImpl }))
+      .toBe(path.resolve(fixturePath("repo")));
     expect(execFileSyncImpl).toHaveBeenCalledWith(
       "git",
-      ["-C", "C:/repo-worktrees/task", "worktree", "list", "--porcelain"],
+      ["-C", fixturePath("repo-worktrees", "task"), "worktree", "list", "--porcelain"],
       { encoding: "utf8", windowsHide: true },
     );
   });
 
   test("rejects worktree output without a primary path", () => {
-    expect(() => resolvePrimaryWorktree("C:/worktree", {
+    expect(() => resolvePrimaryWorktree(fixturePath("worktree"), {
       execFileSyncImpl: () => "HEAD abc\n",
     })).toThrow("PRIMARY_WORKTREE_NOT_FOUND");
   });
 
   test("rejects a linked scope whose nearest existing parent escapes the worktree", () => {
     expect(() => assertScopesInsideWorktree(
-      "C:\\worktree",
+      fixturePath("worktree"),
       [{ base: "linked/new.ts", directory: false }],
       {
         existsImpl: (value) => value.endsWith("linked") || value.endsWith("worktree"),
         realpathImpl: (value) => value.endsWith("linked")
-          ? "C:\\outside\\target"
-          : "C:\\worktree",
+          ? fixturePath("outside", "target")
+          : fixturePath("worktree"),
       },
     )).toThrow("SCOPE_REALPATH_ESCAPE");
   });
 
   test("accepts a not-yet-created file under a real parent inside the worktree", () => {
     expect(() => assertScopesInsideWorktree(
-      "C:\\worktree",
+      fixturePath("worktree"),
       [{ base: "src/new.ts", directory: false }],
       {
         existsImpl: (value) => value.endsWith("src") || value.endsWith("worktree"),
@@ -152,28 +154,28 @@ describe("OpenCode worker Git and path runtime", () => {
   });
 
   test("rejects malformed scopes and a missing worktree root", () => {
-    expect(() => assertScopesInsideWorktree("C:\\worktree", null, {
+    expect(() => assertScopesInsideWorktree(fixturePath("worktree"), null, {
       realpathImpl: (value) => value,
     })).toThrow("SCOPE_REALPATH_REJECTED");
-    expect(() => assertScopesInsideWorktree("C:\\worktree", [null], {
+    expect(() => assertScopesInsideWorktree(fixturePath("worktree"), [null], {
       realpathImpl: (value) => value,
     })).toThrow("SCOPE_REALPATH_REJECTED");
     expect(() => assertScopesInsideWorktree(
-      "C:\\worktree",
+      fixturePath("worktree"),
       [{ base: "src/new.ts", directory: false }],
       { existsImpl: () => false, realpathImpl: (value) => value },
     )).toThrow("SCOPE_REALPATH_REJECTED");
   });
 
   test("fingerprints file contents and deletion markers deterministically", async () => {
-    const reads = new Map([["C:\\worktree\\a.ts", "alpha"]]);
-    const first = await fingerprintWorkspace("C:\\worktree", {
+    const reads = new Map([[fixturePath("worktree", "a.ts"), "alpha"]]);
+    const first = await fingerprintWorkspace(fixturePath("worktree"), {
       listChangedPathsImpl: () => ["deleted.ts", "a.ts"],
       existsImpl: (value) => reads.has(value),
       readFileImpl: (value) => Buffer.from(reads.get(value)),
     });
-    reads.set("C:\\worktree\\a.ts", "beta");
-    const second = await fingerprintWorkspace("C:\\worktree", {
+    reads.set(fixturePath("worktree", "a.ts"), "beta");
+    const second = await fingerprintWorkspace(fixturePath("worktree"), {
       listChangedPathsImpl: () => ["a.ts", "deleted.ts"],
       existsImpl: (value) => reads.has(value),
       readFileImpl: (value) => Buffer.from(reads.get(value)),
@@ -188,7 +190,7 @@ describe("OpenCode worker stability and process runtime", () => {
     const fingerprints = ["a", "a", "b", "b", "b"];
     let now = 0;
     const result = await waitForStableWrite({
-      workspace: "C:/worktree",
+      workspace: fixturePath("worktree"),
       stableMs: 2_000,
       maxWaitMs: 10_000,
       pollMs: 1_000,
@@ -203,7 +205,7 @@ describe("OpenCode worker stability and process runtime", () => {
     let now = 0;
     let fingerprint = 0;
     await expect(waitForStableWrite({
-      workspace: "C:/worktree",
+      workspace: fixturePath("worktree"),
       stableMs: 3_000,
       maxWaitMs: 2_000,
       pollMs: 1_000,
@@ -219,7 +221,7 @@ describe("OpenCode worker stability and process runtime", () => {
     const pending = runProcess({
       command: "opencode.cmd",
       args: ["run"],
-      cwd: "C:/worktree",
+      cwd: fixturePath("worktree"),
       env: { SAFE: "1" },
       timeoutMs: 1_000,
       maxOutputBytes: 5,
@@ -248,7 +250,7 @@ describe("OpenCode worker stability and process runtime", () => {
     const pending = runProcess({
       command: "opencode.cmd",
       args: ["run"],
-      cwd: "C:/worktree",
+      cwd: fixturePath("worktree"),
       env: {},
       timeoutMs: 1,
       spawnImpl: () => child,
@@ -269,7 +271,7 @@ describe("OpenCode worker stability and process runtime", () => {
     const pending = runProcess({
       command: "opencode.exe",
       args: ["run"],
-      cwd: "C:/worktree",
+      cwd: fixturePath("worktree"),
       env: {},
       timeoutMs: 1,
       terminationGraceMs: 1,
@@ -323,7 +325,7 @@ describe("OpenCode worker stability and process runtime", () => {
     const pending = runProcess({
       command: "opencode.cmd",
       args: [],
-      cwd: "C:/worktree",
+      cwd: fixturePath("worktree"),
       env: {},
       timeoutMs: 1_000,
       spawnImpl: () => child,

@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Make the OpenCode worker tests portable across Windows and Linux and restore
+  the versioned worker configuration required by clean checkouts.
+- Align Expo SDK patch versions and include authored local native modules in
+  EAS source packaging while excluding top-level prebuild outputs.
+
+### Security
+
+- Patch `braces@3.0.3` to bound nested patterns and AST traversal for
+  GHSA-vfj7-8cjw-p6xm. Production audit verifies the reviewed patch on every
+  reported dependency path before accepting that specific advisory.
+
 ## [4.2.0] - 2026-10-01
 
 ### Security

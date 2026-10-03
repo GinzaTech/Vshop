@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { verifyBracesAdvisory } from "./lib/braces-security.cjs";
 
 const allowedAdvisories = new Map([
   ["1117911", "Expo React Native CLI pins fast-xml-parser 4.x; app does not build untrusted XML."],
@@ -35,16 +36,23 @@ if (!output) {
 
 const audit = JSON.parse(output);
 const advisories = Object.entries(audit.advisories ?? {});
+// No upstream fix exists for this advisory. Accept only verified patched copies
+// along every dependency path reported by the registry; never ignore the version.
+const bracesMitigated = advisories.some(([id, advisory]) =>
+  id === "1240992" && verifyBracesAdvisory(advisory));
 const unexpected = advisories.filter(([id, advisory]) => {
   if (advisory.severity === "critical") return true;
   if (advisory.severity === "high" || advisory.severity === "moderate") {
+    if (id === "1240992" && bracesMitigated) return false;
     return !allowedAdvisories.has(id);
   }
   return false;
 });
 
 for (const [id, advisory] of advisories) {
-  const rationale = allowedAdvisories.get(id) ?? "not allowlisted";
+  const rationale = id === "1240992" && bracesMitigated
+    ? "verified bounded-recursion patch on every reported dependency path"
+    : allowedAdvisories.get(id) ?? "not allowlisted";
   console.log(`${advisory.severity} ${id} ${advisory.module_name}: ${rationale}`);
 }
 

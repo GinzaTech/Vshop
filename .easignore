@@ -16,8 +16,10 @@ expo-dev.err.log
 .env*
 *.env
 out/
-android/
-ios/
+/android/
+/ios/
+modules/*/android/build/
+modules/*/android/.gradle/
 expo-env.d.ts
 
 # Local Codex indexes, logs, temporary files, and backups

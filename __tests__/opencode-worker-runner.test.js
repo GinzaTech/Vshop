@@ -16,12 +16,14 @@ const {
   resolveOpenCodeCommand,
 } = require("../scripts/run-opencode-worker.cjs");
 
+const fixturePath = (...segments) => path.resolve(__dirname, "fixtures", ...segments);
+
 const createTask = () => policy.validateTaskPacket({
   schemaVersion: 1,
   taskId: "worker-smoke",
   title: "Worker smoke",
   objective: "Create the approved smoke proof.",
-  workspace: "C:\\worktrees\\worker-smoke",
+  workspace: fixturePath("worktrees", "worker-smoke"),
   model: "zai-coding-plan/glm-5.3",
   planPath: "markdown/plans/worker-smoke.md",
   allowedPaths: ["markdown/plans/proof.md"],
@@ -30,12 +32,12 @@ const createTask = () => policy.validateTaskPacket({
   targetedCommands: [],
   timeoutMinutes: 15,
   maxRepairRounds: 0,
-}, { mainCheckout: "C:\\repo" });
+}, { mainCheckout: fixturePath("repo") });
 
 const createEvidenceStore = () => {
   const writes = [];
   return {
-    root: "C:\\evidence\\worker-smoke-run",
+    root: fixturePath("evidence", "worker-smoke-run"),
     writes,
     writeJson: (name, value) => writes.push({ name, value }),
   };
@@ -45,11 +47,11 @@ const createExecutionDeps = (overrides = {}) => {
   const evidenceStore = createEvidenceStore();
   return {
     openCodeCommand: "opencode.cmd",
-    projectRoot: "C:\\runner",
+    projectRoot: fixturePath("runner"),
     env: { LOCALAPPDATA: "C:\\local" },
     dryRun: false,
-    resolvePrimaryWorktreeImpl: () => "C:\\repo",
-    inspectWorktreeImpl: () => ({ root: "C:\\worktrees\\worker-smoke" }),
+    resolvePrimaryWorktreeImpl: () => fixturePath("repo"),
+    inspectWorktreeImpl: () => ({ root: fixturePath("worktrees", "worker-smoke") }),
     assertScopesInsideWorktreeImpl: jest.fn(),
     planExistsImpl: () => true,
     probeOpenCodeImpl: () => ({
@@ -81,19 +83,26 @@ describe("OpenCode runner model and status handling", () => {
     const pnpmHome = path.join(temporaryRoot, "pnpm");
     const shimDir = path.join(pnpmHome, "bin");
     const executable = path.join(pnpmHome, "global", "v11", "hash", "node_modules", "opencode-ai", "bin", "opencode.exe");
-    fs.mkdirSync(path.dirname(executable), { recursive: true });
-    fs.mkdirSync(shimDir, { recursive: true });
-    fs.writeFileSync(executable, "binary", "utf8");
-    fs.writeFileSync(
-      path.join(shimDir, "opencode.cmd"),
-      '@SETLOCAL\r\n@"%~dp0\\..\\global\\v11\\hash\\node_modules\\opencode-ai\\bin\\opencode.exe" %*\r\n',
-      "utf8",
-    );
-    expect(resolveOpenCodeCommand({
-      platform: "win32",
-      env: { PNPM_HOME: pnpmHome },
-    })).toBe(path.resolve(executable));
-    fs.rmSync(temporaryRoot, { recursive: true, force: true });
+    // The simulated Windows resolver uses backslashes; the fixture lives on the host filesystem.
+    const hostPath = (value) => value.replace(/\\/g, path.sep);
+    try {
+      fs.mkdirSync(path.dirname(executable), { recursive: true });
+      fs.mkdirSync(shimDir, { recursive: true });
+      fs.writeFileSync(executable, "binary", "utf8");
+      fs.writeFileSync(
+        path.join(shimDir, "opencode.cmd"),
+        '@SETLOCAL\r\n@"%~dp0\\..\\global\\v11\\hash\\node_modules\\opencode-ai\\bin\\opencode.exe" %*\r\n',
+        "utf8",
+      );
+      expect(resolveOpenCodeCommand({
+        platform: "win32",
+        env: { PNPM_HOME: pnpmHome },
+        existsImpl: (value) => fs.existsSync(hostPath(value)),
+        readFileImpl: (value, encoding) => fs.readFileSync(hostPath(value), encoding),
+      })).toBe(path.win32.resolve(executable));
+    } finally {
+      fs.rmSync(temporaryRoot, { recursive: true, force: true });
+    }
   });
 
   test("uses PATH resolution on non-Windows and rejects an unbounded Windows shim", () => {
@@ -104,6 +113,21 @@ describe("OpenCode runner model and status handling", () => {
       existsImpl: () => true,
       readFileImpl: () => '@"C:\\outside\\opencode.exe" %*',
     })).toThrow("OPENCODE_BINARY_REJECTED");
+  });
+
+  test("resolves Windows shims independently of the host path implementation", () => {
+    let resolveOnPosixHost;
+    jest.isolateModules(() => {
+      jest.doMock("node:path", () => path.posix);
+      resolveOnPosixHost = require("../scripts/run-opencode-worker.cjs").resolveOpenCodeCommand;
+    });
+    jest.dontMock("node:path");
+    expect(resolveOnPosixHost({
+      platform: "win32",
+      env: { PNPM_HOME: "C:\\pnpm" },
+      existsImpl: () => true,
+      readFileImpl: () => '@"%~dp0\\..\\global\\v11\\hash\\node_modules\\opencode-ai\\bin\\opencode.exe" %*',
+    })).toBe("C:\\pnpm\\global\\v11\\hash\\node_modules\\opencode-ai\\bin\\opencode.exe");
   });
 
   test("rejects a pnpm shim that targets the wrong package inside PNPM_HOME", () => {
@@ -117,7 +141,7 @@ describe("OpenCode runner model and status handling", () => {
 
   test("rejects malformed argument arrays", () => {
     expect(() => parseArgs(null)).toThrow("INVALID_TASK_PACKET");
-    expect(() => parseArgs(["--task-file", "C:\\task.json", "--dry-run", "--dry-run"]))
+    expect(() => parseArgs(["--task-file", fixturePath("task.json"), "--dry-run", "--dry-run"]))
       .toThrow("INVALID_TASK_PACKET");
   });
 
@@ -210,7 +234,7 @@ describe("OpenCode runner model and status handling", () => {
       status: "PASS_TO_REVIEW",
       changedPaths: ["markdown/plans/proof.md"],
     });
-    expect(deps.runGitDiffCheckImpl).toHaveBeenCalledWith("C:\\worktrees\\worker-smoke");
+    expect(deps.runGitDiffCheckImpl).toHaveBeenCalledWith(fixturePath("worktrees", "worker-smoke"));
   });
 
   test("passes an argument array and inline permissions without a shell", async () => {
@@ -226,7 +250,7 @@ describe("OpenCode runner model and status handling", () => {
     await executeValidatedTask(createTask(), deps);
     expect(deps.runProcessImpl).toHaveBeenCalledWith(expect.objectContaining({
       command: "opencode.cmd",
-      cwd: "C:\\worktrees\\worker-smoke",
+      cwd: fixturePath("worktrees", "worker-smoke"),
       args: expect.arrayContaining([
         "run",
         "--model",
@@ -363,11 +387,11 @@ describe("OpenCode runner evidence and CLI", () => {
     const deps = createExecutionDeps({
       stdout,
       stderr: { write: jest.fn() },
-      projectRoot: "C:\\runner",
+      projectRoot: fixturePath("runner"),
       loadTaskFileImpl: () => task,
       validateTaskPacketImpl: (value) => value,
     });
-    await expect(main(["--task-file", "C:\\task.json"], deps)).resolves.toBe(0);
+    await expect(main(["--task-file", fixturePath("task.json")], deps)).resolves.toBe(0);
     expect(stdout.write).toHaveBeenCalledWith("OPENCODE_WORKER_STATUS=PASS_TO_REVIEW\n");
     expect(stdout.write).toHaveBeenCalledWith(expect.stringContaining("OPENCODE_WORKER_EVIDENCE="));
   });
