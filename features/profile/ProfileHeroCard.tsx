@@ -91,7 +91,7 @@ export function ProfileHeroCard({
 }: ProfileHeroCardProps) {
   const { t } = useTranslation();
   const { width, fontScale } = useAppWindowDimensions();
-  const statRowHeight = Math.max(64, Math.ceil(64 * fontScale));
+  const statRowHeight = Math.max(72, Math.ceil(72 * fontScale));
   const equipmentModeLabel = t("profile_page.hero_badge");
   const infoModeLabel = t("profile_page.player_info");
   const modeLabelReserve = styles.heroModeLabelEquipmentSlot.paddingLeft + styles.heroModeLabelEquipmentSlot.paddingRight;
@@ -406,18 +406,14 @@ export function ProfileHeroCard({
                       typingSpeed={36}
                     />
                   </View>
-                  <TypewriterSwapText
+                  <Text
                     adjustsFontSizeToFit
-                    animate={!profileModeTransitioning}
-                    deletingSpeed={20}
-                    initialDelay={60}
                     minimumFontScale={0.82}
                     numberOfLines={1}
-                    showCursor={false}
                     style={styles.heroStatValue}
-                    text={String(visibleStat.value)}
-                    typingSpeed={34}
-                  />
+                  >
+                    {String(visibleStat.value)}
+                  </Text>
                 </Animated.View>
               );
             })}

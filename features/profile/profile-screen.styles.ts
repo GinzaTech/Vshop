@@ -282,7 +282,7 @@ export const styles = StyleSheet.create({
   },
   heroStatsViewport: {
     position: "relative",
-    height: 64,
+    height: 72,
     marginTop: 8,
   },
   heroStatCard: {
@@ -290,7 +290,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 18,
   },
   heroStatLabelRow: {
