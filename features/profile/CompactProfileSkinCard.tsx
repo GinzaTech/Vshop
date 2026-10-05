@@ -46,9 +46,10 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
   const upgradeLabel = formatUpgradeLevel(weapon);
   const compactArtwork = width < 120;
   const artworkScale = compactArtwork ? 0.72 : 0.82;
+  const artworkSize = `${Math.round(artworkScale * 100)}%` as `${number}%`;
   const artworkShift = -Math.max(
     8,
-    Math.round(width * (compactArtwork ? 0.24 : 0.08))
+    Math.round(width * (compactArtwork ? 0.14 : 0.06))
   );
   const cardStyle = [
     styles.profileSkinCard,
@@ -101,10 +102,9 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
                 style={[
                   styles.profileSkinImage,
                   {
-                    transform: [
-                      { scale: artworkScale },
-                      { translateX: artworkShift },
-                    ],
+                    width: artworkSize,
+                    height: artworkSize,
+                    transform: [{ translateX: artworkShift }],
                   },
                 ]}
                 contentFit="contain"
