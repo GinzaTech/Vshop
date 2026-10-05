@@ -95,13 +95,13 @@ export function ProfileHeroCard({
   const equipmentModeLabel = t("profile_page.hero_badge");
   const infoModeLabel = t("profile_page.player_info");
   const modeLabelReserve = styles.heroModeLabelEquipmentSlot.paddingLeft + styles.heroModeLabelEquipmentSlot.paddingRight;
-  // Estimate two lines for both labels so the width stays stable during the morph.
-  const localizedModeWidth = Math.max(equipmentModeLabel.length, infoModeLabel.length) * styles.heroModeLabel.fontSize * Math.max(1, fontScale) * 0.55 / 2 + modeLabelReserve;
+  // Keep both localized labels on one line while reserving the moving thumb.
+  const localizedModeWidth = Math.max(equipmentModeLabel.length, infoModeLabel.length) * styles.heroModeLabel.fontSize * Math.max(1, fontScale) * 0.52 + modeLabelReserve;
   const modeWidth = Math.min(
     Math.max(48, width - 64),
     Math.ceil(Math.max(styles.heroModeToggle.width * Math.max(1, Math.min(fontScale, 1.25)), localizedModeWidth)),
   );
-  const modeVisualHeight = Math.max(styles.heroModeSurface.height, Math.ceil(2 * styles.heroModeLabel.lineHeight * fontScale + 8));
+  const modeVisualHeight = Math.max(styles.heroModeSurface.height, Math.ceil(styles.heroModeLabel.lineHeight * fontScale + 10));
   const modeHeight = Math.max(styles.heroModeToggle.height, modeVisualHeight);
   const regionTextMinWidth = Math.ceil(regionLabel.length * styles.heroRegionText.fontSize * 0.8 * Math.max(1, fontScale)) + 3;
   const [heroLayoutHeight, setHeroLayoutHeight] = React.useState(
@@ -275,9 +275,9 @@ export function ProfileHeroCard({
                 <TypewriterSwapText
                   animate={!profileModeTransitioning}
                   charactersPerStep={1}
-                  numberOfLines={2}
+                  numberOfLines={1}
                   adjustsFontSizeToFit
-                  minimumFontScale={0.7}
+                  minimumFontScale={0.78}
                   style={[styles.heroModeLabel, modeLabelStyle]}
                   text={
                     isPlayerInfoMode
@@ -294,7 +294,6 @@ export function ProfileHeroCard({
             onPress={onRegionPress}
             style={({ pressed }) => [
               styles.heroRegionPill,
-              { backgroundColor: "rgba(255,255,255,0.1)" },
               pressed && styles.heroModePressed,
             ]}
           >
@@ -412,7 +411,7 @@ export function ProfileHeroCard({
                     animate={!profileModeTransitioning}
                     deletingSpeed={20}
                     initialDelay={60}
-                    minimumFontScale={0.7}
+                    minimumFontScale={0.82}
                     numberOfLines={1}
                     showCursor={false}
                     style={styles.heroStatValue}

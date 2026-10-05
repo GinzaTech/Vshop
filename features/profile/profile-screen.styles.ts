@@ -152,7 +152,7 @@ export const styles = StyleSheet.create({
   },
   // Toggle hero/profile info (thumb trượt + nhãn typewriter)
   heroModeToggle: {
-    width: 136,
+    width: 150,
     height: 48,
     flexShrink: 0,
   },
@@ -230,7 +230,6 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   heroTitle: {
-    flex: 1,
     flexShrink: 1,
     minWidth: 0,
     fontSize: 22,
@@ -316,7 +315,7 @@ export const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 0,
     marginLeft: 6,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     color: "rgba(255,255,255,0.72)",
   },
@@ -328,7 +327,8 @@ export const styles = StyleSheet.create({
     minWidth: 0,
     flexShrink: 1,
     marginTop: 4,
-    fontSize: 14,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
