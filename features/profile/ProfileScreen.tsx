@@ -439,6 +439,7 @@ function Profile() {
             Math.max(0, categoryWeapons.length - 1) * 8 +
             8
         );
+        const centerSkinList = skinListWidth < availableRowWidth;
 
         return (
             <View style={styles.profileSkinCategoryRow}>
@@ -456,6 +457,13 @@ function Profile() {
                 </Text>
               </View>
               <View style={styles.profileSkinCardLane}>
+                {centerSkinList ? (
+                    <View
+                        collapsable={false}
+                        style={styles.profileSkinRowWhitespace}
+                        {...skinWhitespacePagerPanResponder.panHandlers}
+                    />
+                ) : null}
                 <FlatList
                     horizontal
                     style={{ width: skinListWidth, flexGrow: 0 }}
@@ -473,7 +481,7 @@ function Profile() {
                     windowSize={3}
                     updateCellsBatchingPeriod={48}
                 />
-                {skinListWidth < availableRowWidth ? (
+                {centerSkinList ? (
                     <View
                         collapsable={false}
                         style={styles.profileSkinRowWhitespace}
