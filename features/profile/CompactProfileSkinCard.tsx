@@ -47,10 +47,6 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
   const compactArtwork = width < 120;
   const artworkScale = compactArtwork ? 0.72 : 0.82;
   const artworkSize = `${Math.round(artworkScale * 100)}%` as `${number}%`;
-  const artworkShift = -Math.max(
-    8,
-    Math.round(width * (compactArtwork ? 0.14 : 0.06))
-  );
   const cardStyle = [
     styles.profileSkinCard,
     presentationStyles.contentCard,
@@ -94,25 +90,25 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
             ) : null}
           </View>
           <View style={styles.profileSkinImageStage}>
-            <Image
-                cacheId={`skin-image:${
-                    weapon.chromaId || weapon.skinLevelId || weapon.skinId
-                }:profile-card-v2`}
-                source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
+            <View
                 style={[
-                  styles.profileSkinImage,
-                  {
-                    width: artworkSize,
-                    height: artworkSize,
-                    transform: [{ translateX: artworkShift }],
-                  },
+                  styles.profileSkinArtworkBounds,
+                  { width: artworkSize, height: artworkSize },
                 ]}
-                contentFit="contain"
-                contentPosition="center"
-                cachePolicy="memory-disk"
-                priority={imagePriority}
-                recyclingKey={weapon.skinId || weapon.weaponId}
-            />
+            >
+              <Image
+                  cacheId={`skin-image:${
+                      weapon.chromaId || weapon.skinLevelId || weapon.skinId
+                  }:profile-card-v2`}
+                  source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
+                  style={styles.profileSkinImage}
+                  contentFit="contain"
+                  contentPosition="center"
+                  cachePolicy="memory-disk"
+                  priority={imagePriority}
+                  recyclingKey={weapon.skinId || weapon.weaponId}
+              />
+            </View>
           </View>
         </View>
 

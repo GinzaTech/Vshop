@@ -977,6 +977,10 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
+  profileSkinArtworkBounds: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   profileSkinImage: {
     width: "100%",
     height: "100%",
