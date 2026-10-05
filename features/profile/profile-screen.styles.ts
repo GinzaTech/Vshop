@@ -932,11 +932,9 @@ export const styles = StyleSheet.create({
   },
   profileSkinCardLane: {
     flexDirection: "row",
-    alignItems: "flex-start",
   },
   profileSkinRowWhitespace: {
     flex: 1,
-    minWidth: 0,
   },
   profileSkinCategorySpacer: {
     height: 16,
@@ -1069,10 +1067,9 @@ export const styles = StyleSheet.create({
   collectionFilterChipTextActive: {
     color: COLORS.PURE_WHITE,
   },
-  // Hàng grid collection; hàng cuối được căn giữa khi chưa đủ số cột.
+  // Hàng grid collection.
   collectionRow: {
     flexDirection: "row",
-    justifyContent: "center",
     gap: 8,
     paddingHorizontal: 16,
   },
