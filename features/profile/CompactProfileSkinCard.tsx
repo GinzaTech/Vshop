@@ -44,7 +44,6 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
       weapon.contentTierName
   );
   const upgradeLabel = formatUpgradeLevel(weapon);
-  const compactArtwork = width < 120;
   const cardStyle = [
     styles.profileSkinCard,
     presentationStyles.contentCard,
@@ -93,14 +92,8 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
                     weapon.chromaId || weapon.skinLevelId || weapon.skinId
                 }:profile-card-v2`}
                 source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
-                style={[
-                  styles.profileSkinImage,
-                  compactArtwork
-                    ? styles.profileSkinImageCompact
-                    : styles.profileSkinImageRegular,
-                ]}
+                style={styles.profileSkinImage}
                 contentFit="contain"
-                contentPosition="center"
                 cachePolicy="memory-disk"
                 priority={imagePriority}
                 recyclingKey={weapon.skinId || weapon.weaponId}
