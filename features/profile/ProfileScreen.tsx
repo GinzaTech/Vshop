@@ -96,7 +96,7 @@ function Profile() {
     profileExpandedHeroHeight, legacyContentAnimatedStyle,
     statsDashboardLayerAnimatedStyle, profileSegmentPositionAnimatedStyle,
     profileHeaderTitleAnimatedStyle,
-    profileBalancePillAnimatedStyle, handleRegionPress,
+    handleRegionPress,
     toggleHeroMode, handleStatsDashboardTabChange,
   } = useProfileMotion({
     viewportWidth, hasAuth, fetchMatches, user,
@@ -288,11 +288,7 @@ function Profile() {
           >
             Vshop
           </Animated.Text>
-          <Animated.View
-            style={[styles.topBalancePill, profileBalancePillAnimatedStyle]}
-          >
-            <Text style={styles.topBalanceText}>{user.balances.vp} {t("vp")}</Text>
-          </Animated.View>
+          <View pointerEvents="none" style={styles.topHeaderSpacer} />
         </View>
         <ProfileHeroCard
             accountLevel={identityDetails?.level ?? user.progress.level}
@@ -658,7 +654,6 @@ function Profile() {
     handleOpenIdentityPicker,
     user,
     profileHeaderTitleAnimatedStyle,
-    profileBalancePillAnimatedStyle,
     actRankSummaryStats,
     competitiveRank,
     profileExpandedHeroHeight,

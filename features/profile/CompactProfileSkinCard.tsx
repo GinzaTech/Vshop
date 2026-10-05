@@ -63,26 +63,29 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
               },
             ]}
         >
-          {/* Badge tier (VD: DELUXE, EXCLUSIVE, ...) */}
-          <View
-              style={[
-                styles.profileSkinTierBadge,
-                { backgroundColor: tier.badgeBackground },
-              ]}
-          >
-            <Text
-                style={[styles.profileSkinTierText, { color: tier.text }]}
-                numberOfLines={1}
+          <View style={styles.profileSkinBadgeRow}>
+            {/* Tier and level have their own row so labels never cover artwork. */}
+            <View
+                style={[
+                  styles.profileSkinTierBadge,
+                  { backgroundColor: tier.badgeBackground },
+                ]}
             >
-              {(weapon.contentTierName || tier.label).toUpperCase()}
-            </Text>
+              <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.72}
+                  numberOfLines={1}
+                  style={[styles.profileSkinTierText, { color: tier.text }]}
+              >
+                {(weapon.contentTierName || tier.label).toUpperCase()}
+              </Text>
+            </View>
+            {upgradeLabel ? (
+                <View style={styles.profileSkinLevelBadge}>
+                  <Text style={styles.profileSkinLevelText}>{upgradeLabel}</Text>
+                </View>
+            ) : null}
           </View>
-          {/* Badge upgrade level (VD: 2/4) */}
-          {upgradeLabel ? (
-              <View style={styles.profileSkinLevelBadge}>
-                <Text style={styles.profileSkinLevelText}>{upgradeLabel}</Text>
-              </View>
-          ) : null}
           <Image
               cacheId={`skin-image:${
                   weapon.chromaId || weapon.skinLevelId || weapon.skinId

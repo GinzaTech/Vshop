@@ -97,18 +97,9 @@ export const styles = StyleSheet.create({
     color: COLORS.TEXT_PRIMARY,
     letterSpacing: -0.5,
   },
-  topBalancePill: {
-    backgroundColor: COLORS.PURE_BLACK,
-    borderWidth: 1,
-    borderColor: "transparent",
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-  },
-  topBalanceText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.PURE_WHITE,
+  topHeaderSpacer: {
+    width: 48,
+    height: 48,
   },
   // ── Hero card: tên, subtitle, meta, stats, rank ──
   heroCard: {
@@ -161,7 +152,7 @@ export const styles = StyleSheet.create({
   },
   // Toggle hero/profile info (thumb trượt + nhãn typewriter)
   heroModeToggle: {
-    width: 144,
+    width: 136,
     height: 48,
     flexShrink: 0,
   },
@@ -197,8 +188,8 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
   },
   // Keep either controller thumb endpoint clear while the expanded layer fades.
-  heroModeLabelEquipmentSlot: { paddingLeft: 36, paddingRight: 36 },
-  heroModeLabelInfoSlot: { paddingLeft: 36, paddingRight: 36 },
+  heroModeLabelEquipmentSlot: { paddingLeft: 31, paddingRight: 31 },
+  heroModeLabelInfoSlot: { paddingLeft: 31, paddingRight: 31 },
   heroModeLabel: {
     fontSize: 11,
     lineHeight: 14,
@@ -208,15 +199,18 @@ export const styles = StyleSheet.create({
   },
   // Pill region (double-tap mở/thu hàng stats)
   heroRegionPill: {
-    flexDirection: "row",
     flexShrink: 0,
-    minWidth: 64,
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
     minHeight: 48,
-    borderRadius: RADIUS.chip,
+    justifyContent: "center",
+  },
+  heroRegionSurface: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    minHeight: 30,
+    borderRadius: 999,
     backgroundColor: COLORS.ON_DARK_BORDER,
   },
   heroRegionText: {
@@ -231,17 +225,22 @@ export const styles = StyleSheet.create({
   heroNameRow: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
+    width: "100%",
     marginTop: 8,
+    gap: 8,
   },
   heroTitle: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     fontSize: 22,
+    lineHeight: 28,
     paddingEnd: 3,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
   heroTagPill: {
-    marginLeft: 10,
+    flexShrink: 0,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: RADIUS.chip,
@@ -314,6 +313,8 @@ export const styles = StyleSheet.create({
     height: 14,
   },
   heroStatLabel: {
+    flexShrink: 1,
+    minWidth: 0,
     marginLeft: 6,
     fontSize: 11,
     fontWeight: "700",
@@ -323,6 +324,9 @@ export const styles = StyleSheet.create({
     color: COLORS.ON_DARK_TEXT,
   },
   heroStatValue: {
+    width: "100%",
+    minWidth: 0,
+    flexShrink: 1,
     marginTop: 4,
     fontSize: 14,
     fontWeight: "700",
@@ -715,15 +719,20 @@ export const styles = StyleSheet.create({
   segmentButton: {
     flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 4,
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
   },
   segmentLabel: {
-    fontSize: 13,
+    width: "100%",
+    minWidth: 0,
+    flexShrink: 1,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
+    textAlign: "center",
   },
   // ── Section identity trên trang loadout ──
   identityContainer: {
@@ -948,26 +957,31 @@ export const styles = StyleSheet.create({
   },
   profileSkinVisual: {
     aspectRatio: 2.25,
+    minHeight: 78,
     backgroundColor: "transparent",
-    alignItems: "center",
     borderBottomWidth: 1,
-    justifyContent: "center",
     padding: 6,
-    position: "relative",
+    gap: 4,
+  },
+  profileSkinBadgeRow: {
+    minHeight: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 4,
   },
   profileSkinImage: {
+    flex: 1,
+    minHeight: 0,
     width: "100%",
-    height: "100%",
   },
   profileSkinTierBadge: {
+    flexShrink: 1,
+    minWidth: 0,
     borderRadius: 4,
-    left: 6,
-    maxWidth: "67%",
-    paddingHorizontal: 3,
+    maxWidth: "78%",
+    paddingHorizontal: 4,
     paddingVertical: 2,
-    position: "absolute",
-    top: 6,
-    zIndex: 1,
   },
   profileSkinTierText: {
     fontSize: 11,
@@ -977,11 +991,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.PURE_BLACK,
     borderRadius: 4,
     paddingHorizontal: 5,
-    paddingVertical: 3,
-    position: "absolute",
-    right: 6,
-    bottom: 4,
-    zIndex: 1,
+    paddingVertical: 2,
   },
   profileSkinLevelText: {
     color: COLORS.PURE_WHITE,

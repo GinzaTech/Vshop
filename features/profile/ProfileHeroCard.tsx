@@ -298,18 +298,27 @@ export function ProfileHeroCard({
               pressed && styles.heroModePressed,
             ]}
           >
-            <AppIcon
-              color={COLORS.PURE_WHITE}
-              decorative
-              name="region"
-              size={13}
-            />
-            <Text numberOfLines={1} style={[styles.heroRegionText, { minWidth: regionTextMinWidth }]}>{regionLabel}</Text>
+            <View style={styles.heroRegionSurface}>
+              <AppIcon
+                color={COLORS.PURE_WHITE}
+                decorative
+                name="region"
+                size={13}
+              />
+              <Text numberOfLines={1} style={[styles.heroRegionText, { minWidth: regionTextMinWidth }]}>{regionLabel}</Text>
+            </View>
           </Pressable>
         </View>
 
         <View style={styles.heroNameRow}>
-          <Text style={styles.heroTitle}>{name}</Text>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+            numberOfLines={1}
+            style={styles.heroTitle}
+          >
+            {name}
+          </Text>
           {tagLine ? (
             <View style={styles.heroTagPill}>
               <Text style={styles.heroTagText}>#{tagLine}</Text>
@@ -383,9 +392,12 @@ export function ProfileHeroCard({
                       </Animated.View>
                     </View>
                     <TypewriterSwapText
+                      adjustsFontSizeToFit
                       animate={!profileModeTransitioning}
                       deletingSpeed={22}
                       initialDelay={60}
+                      minimumFontScale={0.78}
+                      numberOfLines={1}
                       showCursor={false}
                       style={[
                         styles.heroStatLabel,
@@ -396,9 +408,12 @@ export function ProfileHeroCard({
                     />
                   </View>
                   <TypewriterSwapText
+                    adjustsFontSizeToFit
                     animate={!profileModeTransitioning}
                     deletingSpeed={20}
                     initialDelay={60}
+                    minimumFontScale={0.7}
+                    numberOfLines={1}
                     showCursor={false}
                     style={styles.heroStatValue}
                     text={String(visibleStat.value)}

@@ -111,6 +111,9 @@ export function ProfileSegmentedControl({
                     ]}
                 >
                   <Animated.Text
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
+                      numberOfLines={1}
                       style={[
                         styles.segmentLabel,
                         index === 0
@@ -154,6 +157,9 @@ export function ProfileSegmentedControl({
                     ]}
                 >
                   <Animated.Text
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.76}
+                      numberOfLines={1}
                       style={[
                         styles.segmentLabel,
                         {
