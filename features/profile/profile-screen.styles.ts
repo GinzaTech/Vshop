@@ -225,16 +225,15 @@ export const styles = StyleSheet.create({
   heroNameRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     width: "100%",
     marginTop: 8,
     gap: 8,
   },
   heroTitle: {
-    flexShrink: 1,
-    minWidth: 0,
     fontSize: 22,
     lineHeight: 28,
-    paddingEnd: 3,
+    paddingRight: 8,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
@@ -247,7 +246,7 @@ export const styles = StyleSheet.create({
   },
   heroTagText: {
     fontSize: 11,
-    paddingEnd: 3,
+    paddingHorizontal: 2,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
     letterSpacing: 0.3,

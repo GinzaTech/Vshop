@@ -310,17 +310,12 @@ export function ProfileHeroCard({
         </View>
 
         <View style={styles.heroNameRow}>
-          <Text
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-            numberOfLines={1}
-            style={styles.heroTitle}
-          >
+          <Text style={styles.heroTitle}>
             {name}
           </Text>
           {tagLine ? (
             <View style={styles.heroTagPill}>
-              <Text style={styles.heroTagText}>#{tagLine}</Text>
+              <Text numberOfLines={1} style={styles.heroTagText}>#{tagLine}</Text>
             </View>
           ) : null}
         </View>
