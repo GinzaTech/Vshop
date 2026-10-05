@@ -957,7 +957,7 @@ export const styles = StyleSheet.create({
   },
   profileSkinVisual: {
     aspectRatio: 2.25,
-    minHeight: 78,
+    minHeight: 96,
     backgroundColor: "transparent",
     borderBottomWidth: 1,
     padding: 6,
