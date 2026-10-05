@@ -20,7 +20,8 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 **Plan điều phối hiện tại ngày 2026-10-05:**
 [`2026-10-05-release-4.2.1.md`](2026-10-05-release-4.2.1.md) — active: chốt
 source/docs, tích hợp origin/main, EAS production APK, GitHub Release kèm APK và
-changelog, rồi shutdown host sau xác minh. Plan liquid-glass ngày 2026-09-30 và
+changelog; EAS APK và CI đã PASS, GitHub upload đang chờ hoàn tất. Host được giữ
+nguyên sau xác minh theo chỉ đạo mới. Plan liquid-glass ngày 2026-09-30 và
 stopped-work-handoff là mốc lịch sử, không phải trạng thái phát hành hiện tại.
 
 - [`2026-10-05-reference-skin-preview.md`](2026-10-05-reference-skin-preview.md) —

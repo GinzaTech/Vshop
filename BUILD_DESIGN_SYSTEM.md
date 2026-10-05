@@ -284,8 +284,21 @@ Sau khi build:
   production audit PASS với bounded-recursion patch cho `braces`,219 suite /
   3042 test PASS. Coverage statement75,55% vẫn dưới mục tiêu repository80%.
 - Android export PASS:9,17/12MiB tổng,7,87/8MiB Hermes, asset lớn nhất
-  0,92/1,50MiB; Expo Doctor21/21. EAS artifact, signer và GitHub Release được
-  ghi bổ sung sau khi build đạt trạng thái FINISHED.
+  0,92/1,50MiB; Expo Doctor21/21.
+- EAS production build
+  [`15ede85c-c5f1-4dd4-b4cd-41aa79d06da0`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/15ede85c-c5f1-4dd4-b4cd-41aa79d06da0)
+  từ source `cf243cc395524d469b28e6ea34bd126ef850caac` đã `FINISHED` và tạo
+  `VShop-4.2.1-production-93.apk` cho `com.android.vshop`.
+- APK có kích thước180.799.597 byte, SHA-256
+  `6323EBA2E5BB1694925DC09C2C95B0C0134B913BB6E9106D22CEAF78299C01C9`.
+  `aapt` xác nhận version `4.2.1` / code `93`; archive1.760 entry; APK Signature
+  Scheme v2 một signer; certificate SHA-256
+  `736f72bc0a3c6a33b4a774115f52f540192448f0105585653ddaa4c93a53c462`;
+  zipalign16KiB PASS.
+- GitHub Actions
+  [`37292019480`](https://github.com/GinzaTech/Vshop/actions/runs/37292019480)
+  PASS source gate và Android native compile. Thiết bị đã ngắt ADB trước khi APK
+  hoàn tất, nên production install/runtime vẫn **NOT VERIFIED**.
 
 ### Lịch sử source candidate 4.2.0
 

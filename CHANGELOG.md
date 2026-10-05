@@ -180,6 +180,25 @@ No unreleased changes.
   GHSA-vfj7-8cjw-p6xm. Production audit verifies the reviewed patch on every
   reported dependency path before accepting that specific advisory.
 
+### Release artifact
+
+- EAS production build
+  [`15ede85c-c5f1-4dd4-b4cd-41aa79d06da0`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/15ede85c-c5f1-4dd4-b4cd-41aa79d06da0)
+  finished from source commit `cf243cc395524d469b28e6ea34bd126ef850caac`
+  for `com.android.vshop`, version `4.2.1` / Android code `93`, runtime and
+  channel `4.2.1` / `production`.
+- Verified `VShop-4.2.1-production-93.apk`: 180,799,597 bytes, SHA-256
+  `6323EBA2E5BB1694925DC09C2C95B0C0134B913BB6E9106D22CEAF78299C01C9`.
+  Archive inspection found 1,760 entries; `aapt` confirmed package/version;
+  `apksigner` confirmed one APK Signature Scheme v2 signer with certificate
+  SHA-256 `736f72bc0a3c6a33b4a774115f52f540192448f0105585653ddaa4c93a53c462`;
+  16 KiB zip alignment passed.
+- GitHub Actions run
+  [`37292019480`](https://github.com/GinzaTech/Vshop/actions/runs/37292019480)
+  passed both the source gate and Android native compile. The production APK
+  was not installed because the physical device was disconnected, so installed
+  runtime and the latest popup/scroll visual acceptance remain **NOT VERIFIED**.
+
 ## [4.2.0] - 2026-10-01
 
 ### Security

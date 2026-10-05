@@ -516,7 +516,15 @@ remain pending. Source/export evidence does not substitute for those device case
 
 ## 4.2.1 release boundary
 
-The integrated source is versioned4.2.1/code93. Production EAS and GitHub artifact
-evidence are added only after the build reaches FINISHED; the source gates above
-do not claim an APK exists. Release packaging uses EAS remote credentials while
-non-EAS local release builds retain the fail-closed production-keystore guard.
+The integrated source is versioned4.2.1/code93. EAS production build
+[`15ede85c-c5f1-4dd4-b4cd-41aa79d06da0`](https://expo.dev/accounts/hyeon004/projects/vshop/builds/15ede85c-c5f1-4dd4-b4cd-41aa79d06da0)
+reached `FINISHED` from source `cf243cc395524d469b28e6ea34bd126ef850caac`.
+The resulting `com.android.vshop` APK is180,799,597 bytes with SHA-256
+`6323EBA2E5BB1694925DC09C2C95B0C0134B913BB6E9106D22CEAF78299C01C9`;
+package/version, one v2 signer, stored production signer continuity, archive
+integrity and16KiB alignment passed. GitHub Actions run
+[`37292019480`](https://github.com/GinzaTech/Vshop/actions/runs/37292019480)
+passed source and native Android jobs. The phone disconnected before artifact
+completion, so production install/runtime and the pending physical popup/scroll
+acceptance remain **NOT VERIFIED**. EAS uses remote credentials; non-EAS local
+release builds retain the fail-closed production-keystore guard.

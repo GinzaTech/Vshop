@@ -12,10 +12,10 @@
 
 A third-party companion app for **Valorant** — browse the daily store, check match history, view your profile loadout, track competitive rank, chat with friends, and more.
 
-The unreleased launcher icon uses the same sculpted cart as the startup screen,
+The 4.2.1 launcher icon uses the same sculpted cart as the startup screen,
 with an opaque common icon and a safely padded Android adaptive foreground.
 See [asset provenance](assets/generated/production/startup/vshop-app-icon-v1.provenance.md).
-Changing the installed launcher icon requires a new native build.
+It is included in the signed 4.2.1 production APK.
 
 Latest connected main Expo checks show VP/RP/KC and AP fully readable in Profile.
 Its equipped player-card artwork occupies one third of its row at120dp height; Bundle previews use a3.2 ratio
