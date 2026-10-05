@@ -41,5 +41,13 @@ RN_OBSERVER_PERFORMANCE_TEST_REPORT_*.md
 %ProgramData%/
 *.bak
 
+# Local OpenCode/Vexo helpers stay on this workstation and out of EAS uploads
+.opencode/agents/
+rn-flow-visualizer/
+skills/codex-opencode-handoff/
+.vexoignore
+LOGIC_AUDIT.md
+vexo.json
+
 # OS metadata
 .DS_Store

@@ -91,11 +91,9 @@ expo-env.d.ts
 # Local tooling (external skills + opencode config)
 ECC/
 opencode.json
-/.opencode/agents/*
-!/.opencode/agents/codex-worker.md
+/.opencode/agents/
 /rn-flow-visualizer/
-/skills/codex-opencode-handoff/*
-!/skills/codex-opencode-handoff/SKILL.md
+/skills/codex-opencode-handoff/
 /.vexoignore
 /LOGIC_AUDIT.md
 /vexo.json

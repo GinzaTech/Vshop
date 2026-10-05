@@ -1,6 +1,7 @@
 /* eslint-env node, jest */
 const original = require("../app.json").expo;
-const { resolveAppConfig } = require("../app.config.js");
+const appConfigFactory = require("../app.config.js");
+const { resolveAppConfig } = appConfigFactory;
 
 it("preserves the default application and creates a separate explicit native test identity", () => {
   const before = JSON.stringify(original);
@@ -14,4 +15,9 @@ it("preserves the default application and creates a separate explicit native tes
   expect(qa.icon).toBe(original.icon);
   expect(qa.plugins).toEqual(original.plugins);
   expect(JSON.stringify(original)).toBe(before);
+});
+
+it("merges the Expo-provided app.json config in dynamic config mode", () => {
+  const config = { ...original, description: "doctor-config-marker" };
+  expect(appConfigFactory({ config }).description).toBe("doctor-config-marker");
 });

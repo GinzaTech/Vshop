@@ -9,6 +9,17 @@ module.exports = {
   moduleNameMapper: {
     "^~/(.*)$": "<rootDir>/$1",
   },
+  // User-local tools are intentionally kept in the checkout but outside Git.
+  // Exclude them from Haste discovery so clean and long-lived workspaces resolve
+  // the same React Native mocks and package names.
+  modulePathIgnorePatterns: [
+    "<rootDir>/\\.codex-tmp/",
+    "<rootDir>/\\.opencode/",
+    "<rootDir>/\\.agents/",
+    "<rootDir>/ECC/",
+    "<rootDir>/rn-flow-visualizer/",
+    "<rootDir>/skills/codex-opencode-handoff/",
+  ],
   setupFilesAfterEnv: ["@shopify/react-native-skia/jestSetup.js"],
   transform: {
     ...expoPreset.transform,
@@ -36,6 +47,8 @@ module.exports = {
     "/backup/",
     "/.codex-tmp/",
     "/rn-flow-visualizer/",
+    "/ECC/",
+    "/.opencode/",
     "/valorant-api-docs/",
   ],
   coverageThreshold: {

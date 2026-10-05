@@ -274,16 +274,26 @@ Sau khi build:
 4. kiểm tra login, shop, profile, refresh, match history, TLS chat và update channel;
 5. phát hành GitHub Release nếu smoke test đạt.
 
-### Trạng thái source candidate 4.2.0
+### Trạng thái release candidate 4.2.1
 
-- Metadata: app/runtime `4.2.0`, Android `versionCode 92`, iOS `buildNumber 43`
-  (không build iOS trong đợt này).
+- Metadata: app/runtime `4.2.1`, Android `versionCode 93`, iOS `buildNumber 44`
+  (đợt này chỉ build Android APK).
+- Production EAS dùng remote credentials và integration `credentials.json`;
+  ngoài EAS, Gradle release vẫn fail-closed nếu thiếu production keystore.
+- Source gate sau khi tích hợp `origin/main`: strict TypeScript, ESLint0 warning,
+  production audit PASS với bounded-recursion patch cho `braces`,219 suite /
+  3042 test PASS. Coverage statement75,55% vẫn dưới mục tiêu repository80%.
+- Android export PASS:9,17/12MiB tổng,7,87/8MiB Hermes, asset lớn nhất
+  0,92/1,50MiB; Expo Doctor21/21. EAS artifact, signer và GitHub Release được
+  ghi bổ sung sau khi build đạt trạng thái FINISHED.
+
+### Lịch sử source candidate 4.2.0
+
+- Metadata: app/runtime `4.2.0`, Android `versionCode 92`, iOS `buildNumber 43`.
 - Native refraction lens đã wire vào primary navigation qua
-  `NativeRefraction.android.tsx`; gate: API 33+, `apiVersion 1`, foreground,
-  tag hợp lệ, không Reduce Transparency; Reduce Motion chỉ tắt animation.
-- Full gate PASS: 166 suite / 2367 test, audit, export 9,01/12 MiB tổng,
-  7,79/8 MiB Hermes và asset 0,92/1,50 MiB. FPS/frame metrics trên máy thật
-  chưa đo trong đợt này.
+  `NativeRefraction.android.tsx`; source gate lúc đó166 suite/2367 test PASS.
+- Production EAS build cũ không tạo APK vì local signing guard chặn EAS-managed
+  credentials; lỗi này được sửa trong4.2.1, không tái sử dụng artifact lỗi.
 
 ### Trạng thái source candidate 4.1.10
 

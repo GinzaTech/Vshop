@@ -2,18 +2,18 @@
 const base = require("./app.json").expo;
 
 /** Explicit local QA identity keeps device testing separate from real app data. */
-function resolveAppConfig(env) {
-  if (env.VSHOP_NATIVE_QA !== "1") return base;
+function resolveAppConfig(env, source = base) {
+  if (env.VSHOP_NATIVE_QA !== "1") return source;
   return {
-    ...base,
+    ...source,
     name: "VShop QA",
     scheme: "vshopqa",
-    android: { ...base.android, package: "com.android.vshop.startupqa" },
-    ios: { ...base.ios, bundleIdentifier: "dev.vasc.vshop.startupqa" },
-    updates: { ...base.updates, enabled: false },
-    extra: { ...base.extra, nativeQaBuild: true },
+    android: { ...source.android, package: "com.android.vshop.startupqa" },
+    ios: { ...source.ios, bundleIdentifier: "dev.vasc.vshop.startupqa" },
+    updates: { ...source.updates, enabled: false },
+    extra: { ...source.extra, nativeQaBuild: true },
   };
 }
 
-module.exports = () => resolveAppConfig(process.env);
+module.exports = ({ config }) => resolveAppConfig(process.env, config);
 module.exports.resolveAppConfig = resolveAppConfig;

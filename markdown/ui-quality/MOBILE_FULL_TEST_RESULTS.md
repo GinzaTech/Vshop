@@ -502,14 +502,21 @@ External evidence C:/Users/kona/.codex/artifacts/vshop-skin-preview-20261005/:
 old actual viewer before PNG/XML; behavior RED logs for model/popup/owner/fallback,
 selection and centered-popup changes; integrated current scopes211 tests/10
 suites and centered-popup35/35. Profile scroll RED1 then GREEN34/34 is under
-vshop-profile-scroll-boundary-20261005. Final source snapshot: TypeScript/lint
-PASS,217suites/3021tests PASS60.425s; overallcheck still FAIL only at existing
-braces1240992 audit and statement coverage remains below80%. Android export
-PASS9.18/12MiB total,7.87/8MiB Hermes,0.92/1.5MiB largest; temp removed and
-diffcheckPASS.
+vshop-profile-scroll-boundary-20261005. Final source rebased onto origin/main:
+TypeScript/lint PASS,219suites/3042tests PASS104.172s; production audit PASS with
+the verified braces bounded-recursion patch. Statement coverage75.55% remains
+below80%. Android export PASS9.17/12MiB total,7.87/8MiB Hermes,0.92/1.5MiB
+largest; temp removed, diffcheck PASS and Expo Doctor21/21.
 
-Expo Metro remains running on8081. Main client loaded the latest source once,
+Main client loaded the latest source once before Metro was stopped for release;
 then the physical popup replay was fail-closed when another application owned the
 foreground; no input was injected. Store/Night/Bundle centered-popup screenshots,
 video/selector/Back replay, compact mode round-trip and physical Profile end-drag
 remain pending. Source/export evidence does not substitute for those device cases.
+
+## 4.2.1 release boundary
+
+The integrated source is versioned4.2.1/code93. Production EAS and GitHub artifact
+evidence are added only after the build reaches FINISHED; the source gates above
+do not claim an APK exists. Release packaging uses EAS remote credentials while
+non-EAS local release builds retain the fail-closed production-keystore guard.

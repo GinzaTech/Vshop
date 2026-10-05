@@ -12,6 +12,11 @@ No unreleased changes.
 
 ### Changed
 
+- Move release history out of README; CHANGELOG is now the single release ledger.
+  Update plans/results/build documentation for the4.2.1 source and release gates.
+- Use EAS remote Android credentials for cloud production builds while retaining
+  the fail-closed local production-keystore guard. Exclude user-local OpenCode,
+  Vexo and flow-visualizer files from Git, Jest discovery and EAS uploads.
 - Redesign commerce skin preview as a centered, bounded white popup for Store,
   Bundle and Night Market: image-first hero, real rarity icon, opt-in Video,
   red level selector and catalog variant swatches. Preserve decoder lifetimes,
@@ -108,6 +113,8 @@ No unreleased changes.
 
 ### Fixed
 
+- Prevent ignored local package trees from polluting Jest Haste module discovery;
+  clean long-lived workspaces now resolve the same React Native mocks as CI.
 - Make the OpenCode worker tests portable across Windows and Linux and align
   Expo SDK patch versions. Include authored local native modules in EAS source
   packaging while excluding top-level prebuild outputs.

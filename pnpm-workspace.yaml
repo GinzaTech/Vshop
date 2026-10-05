@@ -1,6 +1,5 @@
 packages:
   - "."
-  - "rn-flow-visualizer"
 
 nodeLinker: hoisted
 virtualStoreDirMaxLength: 120
