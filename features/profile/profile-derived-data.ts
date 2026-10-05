@@ -51,10 +51,10 @@ export function buildProfileLoadoutDetails(rawGuns: readonly PlayerLoadoutGun[],
         skinLevelName: level?.displayName,
         chromaName: chroma?.displayName,
         image:
+            chroma?.fullRender ||
             chroma?.displayIcon ||
             level?.displayIcon ||
-            skin?.displayIcon ||
-            chroma?.fullRender,
+            skin?.displayIcon,
         buddyName: buddyLevel?.displayName || buddy?.displayName,
         buddyIcon: buddyLevel?.displayIcon,
         contentTierUuid: skin?.contentTierUuid,

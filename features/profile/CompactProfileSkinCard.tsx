@@ -90,7 +90,7 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
             <Image
                 cacheId={`skin-image:${
                     weapon.chromaId || weapon.skinLevelId || weapon.skinId
-                }:display`}
+                }:profile-card-v2`}
                 source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
                 style={styles.profileSkinImage}
                 contentFit="contain"

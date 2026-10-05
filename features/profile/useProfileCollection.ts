@@ -102,10 +102,10 @@ export function useProfileCollection({
             skinLevelName: selectedLevel?.displayName,
             chromaName: selectedChroma?.displayName,
             image:
+                selectedChroma?.fullRender ||
                 selectedChroma?.displayIcon ||
                 selectedLevel?.displayIcon ||
-                skin.displayIcon ||
-                selectedChroma?.fullRender,
+                skin.displayIcon,
             buddyName: equippedWeapon?.buddyName,
             buddyIcon: equippedWeapon?.buddyIcon,
             contentTierUuid: skin.contentTierUuid,

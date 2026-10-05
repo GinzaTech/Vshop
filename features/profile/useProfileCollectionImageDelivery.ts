@@ -35,7 +35,7 @@ function buildDeliveryPlan(rows: Props["rows"]) {
       if (priorityIds.size >= VISIBLE_THUMBNAIL_LIMIT) return { priorityIds, warmImages };
       if (priorityIds.has(item.collectionId)) continue;
       priorityIds.add(item.collectionId);
-      const cacheKey = buildImageCacheKey(`skin-image:${item.chromaId || item.skinLevelId || item.skinId}:display`);
+      const cacheKey = buildImageCacheKey(`skin-image:${item.chromaId || item.skinLevelId || item.skinId}:profile-card-v2`);
       if (!item.image || !cacheKey || !isPublicThumbnail(item.image) || cacheKeys.has(cacheKey)) continue;
       cacheKeys.add(cacheKey);
       warmImages.push({ uri: item.image, cacheKey });
