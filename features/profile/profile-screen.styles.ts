@@ -943,7 +943,7 @@ export const styles = StyleSheet.create({
   },
   profileSkinCategoryTitle: {
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: "700",
   },
   profileSkinRow: {
     gap: 8,
@@ -994,7 +994,7 @@ export const styles = StyleSheet.create({
   },
   profileSkinTierText: {
     fontSize: 11,
-    fontWeight: "900",
+    fontWeight: "800",
   },
   profileSkinLevelBadge: {
     backgroundColor: COLORS.PURE_BLACK,
@@ -1005,7 +1005,7 @@ export const styles = StyleSheet.create({
   profileSkinLevelText: {
     color: COLORS.PURE_WHITE,
     fontSize: 11,
-    fontWeight: "900",
+    fontWeight: "800",
   },
   profileSkinContent: {
     paddingHorizontal: 6,
@@ -1015,13 +1015,13 @@ export const styles = StyleSheet.create({
   profileSkinWeaponName: {
     color: COLORS.TEXT_SECONDARY,
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "500",
     marginBottom: 2,
   },
   profileSkinName: {
     color: COLORS.TEXT_PRIMARY,
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: "700",
     lineHeight: 16,
     minHeight: 32,
   },
@@ -1064,7 +1064,7 @@ export const styles = StyleSheet.create({
   collectionFilterChipText: {
     color: COLORS.TEXT_SECONDARY,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   collectionFilterChipTextActive: {
     color: COLORS.PURE_WHITE,
