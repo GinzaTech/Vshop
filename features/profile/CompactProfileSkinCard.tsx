@@ -86,17 +86,20 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
                 </View>
             ) : null}
           </View>
-          <Image
-              cacheId={`skin-image:${
-                  weapon.chromaId || weapon.skinLevelId || weapon.skinId
-              }:display`}
-              source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
-              style={styles.profileSkinImage}
-              contentFit="contain"
-              cachePolicy="memory-disk"
-              priority={imagePriority}
-              recyclingKey={weapon.skinId || weapon.weaponId}
-          />
+          <View style={styles.profileSkinImageStage}>
+            <Image
+                cacheId={`skin-image:${
+                    weapon.chromaId || weapon.skinLevelId || weapon.skinId
+                }:display`}
+                source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
+                style={styles.profileSkinImage}
+                contentFit="contain"
+                contentPosition="center"
+                cachePolicy="memory-disk"
+                priority={imagePriority}
+                recyclingKey={weapon.skinId || weapon.weaponId}
+            />
+          </View>
         </View>
 
         {/* Tên vũ khí + skin */}

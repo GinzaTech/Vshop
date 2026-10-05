@@ -970,10 +970,17 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 4,
   },
-  profileSkinImage: {
+  profileSkinImageStage: {
     flex: 1,
     minHeight: 0,
     width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  profileSkinImage: {
+    width: "100%",
+    height: "100%",
   },
   profileSkinTierBadge: {
     flexShrink: 1,
