@@ -4,21 +4,25 @@
 
 import React from "react";
 import {
-  ActivityIndicator,
   Alert,
   Linking,
   Platform,
-  ScrollView,
   StyleSheet,
   ToastAndroid,
-  TouchableOpacity,
   View,
 } from "react-native";
 import {
   Switch,
   Text,
 } from "react-native-paper";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
+import { MoreGlassScene } from "~/components/ui/more-glass/MoreGlassScene";
+import { MoreGlassCard } from "~/components/ui/more-glass/MoreGlassCard";
+import { AccountSwitcherPopupHost } from "~/components/settings/AccountSwitcherPopupHost";
+import { AccountSwitcherRow } from "~/components/settings/AccountSwitcherRow";
+import { toAccountDisplayRow } from "~/components/settings/AccountSwitcherDisplay";
+import TouchableOpacity from "~/components/ui/ContentCardTouchable";
+import Animated from "react-native-reanimated";
 import * as Clipboard from "expo-clipboard";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
@@ -30,9 +34,8 @@ import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import BatteryOptimizationWarning from "~/components/BatteryOptimizationWarning";
-import GlassCard from "~/components/ui/GlassCard";
 import UpdatePopup from "~/components/popups/UpdatePopup";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, MORE_GLASS_MATERIAL } from "~/constants/DesignSystem";
 import {
   AppUpdateCheckResult,
   applyOtaUpdate,
@@ -87,6 +90,8 @@ function Settings() {
   const [switchingAccountId, setSwitchingAccountId] = React.useState<
     string | null
   >(null);
+  const [accountPopupVisible, setAccountPopupVisible] = React.useState(false);
+  const dismissAccountPopup = React.useCallback(() => setAccountPopupVisible(false), []);
   // refreshApp: pull-to-refresh chạy full sync nền (force = true)
   const refreshApp = React.useCallback(() => fullBackgroundSync(true), []);
   const { refreshing, onRefresh } = useAsyncRefresh(refreshApp);
@@ -113,6 +118,16 @@ function Settings() {
       return right.lastUsedAt - left.lastUsedAt;
     });
   }, [savedAccounts, user]);
+  const accountDisplayRows = accountRows.map((account) => {
+    const isCurrent = normalizeAccountId(account.id) === normalizeAccountId(user.id);
+    return toAccountDisplayRow({
+      id: account.id, name: isCurrent ? user.name : account.name,
+      tagLine: isCurrent ? user.TagLine : account.tagLine,
+      region: isCurrent ? user.region : account.region,
+    }, isCurrent ? "current" : hasReusableAccessToken(account.accessToken) ? "ready" : "login-required");
+  });
+  const currentAccount = accountDisplayRows.find((account) => account.status === "current");
+
 
   /**
    * handleLogout – Xử lý đăng xuất: xóa cookies, reset user, dừng background fetch,
@@ -367,19 +382,20 @@ function Settings() {
 
   return (
     <>
-      <ScrollView
+      <MoreGlassScene accessibilityElementsHidden={accountPopupVisible} aria-hidden={accountPopupVisible}
+        importantForAccessibility={accountPopupVisible ? "no-hide-descendants" : "auto"}>
+      {({ onShortcutGridLayout, onShortcutLayout, onCardLayout, onScroll }) => <Animated.ScrollView
         removeClippedSubviews={Platform.OS === "android"}
         style={styles.screen}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: getPrimaryTabContentBottomPadding(insets.bottom) },
-        ]}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         alwaysBounceVertical
         showsVerticalScrollIndicator={false}
       >
+      <View style={[styles.content, { paddingBottom: getPrimaryTabContentBottomPadding(insets.bottom) }]}>
         {/* Hero: tiêu đề */}
         <View style={styles.hero}>
           <Text style={styles.title}>{t("settings_page.title")}</Text>
@@ -389,8 +405,8 @@ function Settings() {
         <BatteryOptimizationWarning />
 
         {/* Grid các shortcut tính năng */}
-        <View style={styles.shortcutGrid}>
-          {shortcutItems.map((item) => (
+        <View style={styles.shortcutGrid} onLayout={onShortcutGridLayout}>
+          {shortcutItems.map((item, index) => (
             <TouchableOpacity
               key={item.key}
               testID={`settings-shortcut-${item.key}`}
@@ -398,6 +414,7 @@ function Settings() {
               accessibilityLabel={item.label}
               activeOpacity={0.85}
               style={styles.shortcutCard}
+              onLayout={(event) => onShortcutLayout(index, event)}
               onPress={() => {
                 if (item.onPress) {
                   item.onPress();
@@ -409,17 +426,19 @@ function Settings() {
                 }
               }}
             >
-              <View style={styles.shortcutIcon}>
-                <AppIcon name={item.icon} size={20} color={COLORS.TEXT_PRIMARY} decorative />
-              </View>
-              <Text style={styles.shortcutLabel}>{item.label}</Text>
+              <MoreGlassCard index={index} style={styles.shortcutGlass} contentStyle={styles.shortcutContent}>
+                <View style={styles.shortcutIcon}>
+                  <AppIcon name={item.icon} size={20} color={COLORS.TEXT_PRIMARY} decorative />
+                </View>
+                <Text style={styles.shortcutLabel}>{item.label}</Text>
+              </MoreGlassCard>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Section Preferences: ngôn ngữ, thông báo, screenshot mode */}
         <Text style={styles.sectionTitle}>{t("settings_page.preferences")}</Text>
-        <GlassCard style={styles.card}>
+        <MoreGlassCard index={10} onLayout={(event) => onCardLayout(10, event)} style={styles.card} contentStyle={styles.groupContent}>
           {renderRow({
             icon: "settingsLanguage",
             title: t("language"),
@@ -454,11 +473,11 @@ function Settings() {
                 ),
               })
             : null}
-        </GlassCard>
+        </MoreGlassCard>
 
         {/* Section Links: Discord, credits, privacy, xóa tài khoản */}
         <Text style={styles.sectionTitle}>{t("settings_page.links")}</Text>
-        <GlassCard style={styles.card}>
+        <MoreGlassCard index={11} onLayout={(event) => onCardLayout(11, event)} style={styles.card} contentStyle={styles.groupContent}>
           {renderRow({
             icon: "accountGroup",
             title: t("discord_server"),
@@ -482,116 +501,35 @@ function Settings() {
                 "https://support-valorant.riotgames.com/hc/en-us/articles/360050328414-Deleting-Your-Riot-Account-and-All-Your-Data"
               ),
           })}
-        </GlassCard>
+        </MoreGlassCard>
 
         <MobileAccountMirrorPanel mode="accounts" />
 
-        {/* Saved account list: current account first, then recent accounts */}
+        {/* Current account inline; the count opens other saved accounts. */}
         <View style={styles.sectionHeading}>
           <Text accessibilityRole="header" style={styles.sectionTitleInline}>
             {t("settings_page.accounts.logged_in")}
           </Text>
-          <View
-            accessible
-            accessibilityRole="text"
-            style={styles.accountCountBadge}
-            accessibilityLabel={t("settings_page.accounts.logged_in_count", {
-              count: accountRows.length,
-            })}
-          >
-            <Text style={styles.accountCountText}>{accountRows.length}</Text>
-          </View>
+          <TouchableOpacity testID="settings-account-count"
+            accessibilityRole="button" accessibilityState={{ expanded: accountPopupVisible, disabled: Boolean(switchingAccountId) }}
+            disabled={Boolean(switchingAccountId)} onPress={() => { if (!switchingAccountId) setAccountPopupVisible(true); }}
+            style={{ minHeight: 48, minWidth: 48, alignItems: "center", justifyContent: "center" }}
+            accessibilityLabel={t("settings_page.accounts.logged_in_count", { count: accountDisplayRows.length })}>
+            <View style={styles.accountCountBadge}>
+              <Text style={styles.accountCountText}>{accountDisplayRows.length}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-        <GlassCard style={styles.card}>
-          {accountRows.map((account) => {
-            const isCurrent =
-              normalizeAccountId(account.id) === normalizeAccountId(user.id);
-            const isSwitching = switchingAccountId === account.id;
-            const sessionReady = hasReusableAccessToken(account.accessToken);
-            const displayName = account.name
-              ? `${account.name}#${account.tagLine}`
-              : account.id;
-
-            return (
-              <View key={account.id} style={styles.accountRow}>
-                <TouchableOpacity
-                  activeOpacity={isCurrent ? 1 : 0.82}
-                  disabled={isCurrent || Boolean(switchingAccountId)}
-                  onPress={() => void handleSwitchAccount(account.id)}
-                  style={styles.accountMain}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("settings_page.accounts.switch_to", {
-                    account: displayName,
-                  })}
-                  accessibilityState={{
-                    disabled: isCurrent || Boolean(switchingAccountId),
-                    selected: isCurrent,
-                    busy: isSwitching,
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.accountAvatar,
-                      isCurrent && styles.accountAvatarCurrent,
-                    ]}
-                  >
-                    <AppIcon
-                      name="settingsAccount"
-                      size={21}
-                      color={isCurrent ? COLORS.PURE_WHITE : COLORS.TEXT_PRIMARY}
-                      decorative
-                    />
-                  </View>
-                  <View style={styles.accountCopy}>
-                    <Text style={styles.rowTitle} numberOfLines={1}>
-                      {displayName}
-                    </Text>
-                    <Text style={styles.rowDescription} numberOfLines={1}>
-                      {isCurrent
-                        ? t("settings_page.accounts.current", {
-                            region: account.region.toUpperCase(),
-                          })
-                        : sessionReady
-                          ? t("settings_page.accounts.ready", {
-                              region: account.region.toUpperCase(),
-                            })
-                          : t("settings_page.accounts.login_required", {
-                              region: account.region.toUpperCase(),
-                            })}
-                    </Text>
-                  </View>
-                  {isSwitching ? (
-                    <ActivityIndicator size="small" color={COLORS.TEXT_PRIMARY} />
-                  ) : isCurrent ? (
-                    <AppIcon name="success" size={22} color={COLORS.SUCCESS} decorative />
-                  ) : (
-                    <AppIcon name="settingsSwap" size={22} color={COLORS.TEXT_SECONDARY} decorative />
-                  )}
-                </TouchableOpacity>
-                {!isCurrent ? (
-                  <TouchableOpacity
-                    activeOpacity={0.75}
-                    onPress={() => confirmRemoveAccount(account)}
-                    disabled={Boolean(switchingAccountId)}
-                    style={styles.removeAccountButton}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("settings_page.accounts.remove_account", {
-                      account: displayName,
-                    })}
-                  >
-                    <AppIcon name="close" size={20} color={COLORS.TEXT_SECONDARY} decorative />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            );
-          })}
-        </GlassCard>
+        <MoreGlassCard index={12} onLayout={(event) => onCardLayout(12, event)} style={styles.card} contentStyle={styles.groupContent}>
+          {currentAccount ? <AccountSwitcherRow account={currentAccount} isCurrent
+            busy={Boolean(switchingAccountId)} switching={switchingAccountId === currentAccount.id} /> : null}
+        </MoreGlassCard>
 
         {/* Account management actions */}
         <Text accessibilityRole="header" style={styles.sectionTitle}>
           {t("settings_page.accounts.manage")}
         </Text>
-        <GlassCard style={styles.card}>
+        <MoreGlassCard index={13} onLayout={(event) => onCardLayout(13, event)} style={styles.card} contentStyle={styles.groupContent}>
           {renderRow({
             icon: "settingsAccount",
             title: t("settings_page.accounts.add"),
@@ -610,11 +548,21 @@ function Settings() {
             onPress: handleLogout,
             danger: true,
           })}
-        </GlassCard>
+        </MoreGlassCard>
 
         {/* Disclaimer */}
         <Text style={styles.disclaimer}>{t("settings_page.disclaimer")}</Text>
-      </ScrollView>
+      </View>
+      </Animated.ScrollView>}
+      </MoreGlassScene>
+
+      <AccountSwitcherPopupHost visible={accountPopupVisible} accounts={accountDisplayRows}
+        currentId={user.id} busyId={switchingAccountId} onDismiss={dismissAccountPopup}
+        onSwitch={handleSwitchAccount} onRemove={(id) => {
+          if (switchingAccountId || normalizeAccountId(id) === normalizeAccountId(user.id)) return;
+          const account = accountRows.find((row) => row.id === id);
+          if (account) confirmRemoveAccount(account);
+        }} />
 
       {/* Popup kiểm tra cập nhật */}
       <UpdatePopup
@@ -639,7 +587,7 @@ const styles = StyleSheet.create({
   // screen – Container chính
   screen: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
+    backgroundColor: "transparent",
   },
   // content – Padding cho ScrollView
   content: {
@@ -676,11 +624,23 @@ const styles = StyleSheet.create({
     width: "48%",
     minHeight: 112,
     marginBottom: 10,
-    padding: 14,
+    padding: 0,
     borderRadius: RADIUS.card,
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
+    backgroundColor: "transparent",
+    borderWidth: 0,
+  },
+  shortcutGlass: {
+    flex: 1,
+    minHeight: 112,
+    borderRadius: RADIUS.card,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+    boxShadow: "none",
+  },
+  shortcutContent: {
+    padding: 14,
   },
   // shortcutIcon – Icon trong card shortcut
   shortcutIcon: {
@@ -689,7 +649,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.chip,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.SURFACE_MUTED,
+    backgroundColor: MORE_GLASS_MATERIAL.tint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.ON_DARK_BORDER,
     marginBottom: 12,
   },
   // shortcutLabel – Label của shortcut
@@ -737,6 +699,7 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 20,
   },
+  groupContent: { padding: 16 },
   // row – Một hàng trong card settings
   row: {
     flexDirection: "row",
@@ -797,41 +760,6 @@ const styles = StyleSheet.create({
   // rowDescriptionCompact – Description compact
   rowDescriptionCompact: {
     fontSize: 12,
-  },
-  accountRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: 64,
-  },
-  accountMain: {
-    flex: 1,
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 8,
-  },
-  accountAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: RADIUS.chip,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.SURFACE_MUTED,
-  },
-  accountAvatarCurrent: {
-    backgroundColor: COLORS.PURE_BLACK,
-  },
-  accountCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  removeAccountButton: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.chip,
-    alignItems: "center",
-    justifyContent: "center",
   },
   // disclaimer – Text disclaimer cuối trang
   disclaimer: {

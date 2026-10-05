@@ -64,3 +64,22 @@ export const getPublicSkinLevel = (skinLevelId: string, language?: string) => {
     language ? { language } : undefined,
   );
 };
+
+export const getPublicContentTierIconUri = (
+  contentTierId: unknown,
+): string | undefined => {
+  if (typeof contentTierId !== "string") {
+    return undefined;
+  }
+
+  const normalizedContentTierId = contentTierId.trim();
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      normalizedContentTierId,
+    )
+  ) {
+    return undefined;
+  }
+
+  return `https://media.valorant-api.com/contenttiers/${normalizedContentTierId.toLowerCase()}/displayicon.png`;
+};

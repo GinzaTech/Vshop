@@ -9,7 +9,7 @@ import { Platform, StyleSheet, type ViewStyle } from "react-native";
  *
  * ACCENT:         #687076 – Màu xám nhấn (dùng cho chi tiết phụ).
  * ACCENT_DEEP:    #1c2024 – Xám đậm hơn.
- * BACKGROUND:     #f4f6f9 – Màu nền tổng thể (xám rất nhạt).
+ * BACKGROUND:     #eceef0 – Màu nền tổng thể (xám trung tính).
  * SURFACE:        #ffffff – Màu nền thẻ / bề mặt (trắng).
  * SURFACE_MUTED:  #eceef0 – Nền bề mặt mờ (xám nhạt hơn).
  * TEXT_PRIMARY:   #11181c – Màu chữ chính (gần đen).
@@ -33,7 +33,7 @@ import { Platform, StyleSheet, type ViewStyle } from "react-native";
 export const COLORS = {
   ACCENT: "#687076",
   ACCENT_DEEP: "#1c2024",
-  BACKGROUND: "#f4f6f9",
+  BACKGROUND: "#eceef0",
   SURFACE: "#ffffff",
   SURFACE_MUTED: "#eceef0",
   TEXT_PRIMARY: "#11181c",
@@ -92,6 +92,30 @@ export const GLASS_SVG_OPACITY = {
   clear: 0,
   frost: 0.72,
   shade: 0.035,
+} as const;
+
+/** White Liquid Glass navigation; gray pages remain independent. */
+export const NAV_GLASS_MATERIAL = {
+  opaque: false,
+  veil: "rgba(255, 255, 255, 0.24)",
+  blurIntensity: 18,
+  fallback: COLORS.PURE_WHITE,
+  border: GLASS_MATERIAL.clear,
+  lens: "rgba(255, 255, 255, 0.32)",
+  nativeLensTint: "rgba(255, 255, 255, 0.12)",
+  clearText: COLORS.TEXT_PRIMARY,
+  clearSelectedText: COLORS.TEXT_PRIMARY,
+  text: COLORS.TEXT_PRIMARY,
+  selectedText: COLORS.TEXT_PRIMARY,
+  activeIcon: COLORS.VALORANT_RED,
+} as const;
+
+/** Reference skin viewer: darker red keeps small white level labels readable. */
+export const SKIN_PREVIEW_MATERIAL = {
+  activeLevel: "#c23d48",
+  surface: COLORS.SURFACE,
+  frameFallback: COLORS.SURFACE_MUTED,
+  backdrop: "rgba(17, 24, 28, 0.18)",
 } as const;
 
 // Optional optical details from navigation spec sections 5.3, 17–19.
@@ -154,6 +178,21 @@ export const RADIUS = {
   button: 14,
 };
 
+/** Clear silver lenses for the finite More grid, rendered over a shared light field. */
+export const MORE_GLASS_MATERIAL = {
+  background: COLORS.BACKGROUND,
+  silver: COLORS.VALORANT_DARK_BLUE,
+  tint: GLASS_MATERIAL.highlightSoft,
+  highlight: COLORS.PURE_WHITE,
+  edge: COLORS.BORDER_STRONG,
+  radius: RADIUS.xl,
+  whiteVeil: 0.08,
+  refraction: 12,
+  bevelWidth: 14,
+  magnification: 1.025,
+  wallpaperStrength: 0.72,
+} as const;
+
 /**
  * SPACING – Thang khoảng cách (px) thống nhất: xxs(4) → xxl(32).
  * Dùng cho margin/padding/gap thay vì số lẻ tự chọn.
@@ -172,7 +211,9 @@ export const SPACING = {
  * TYPOGRAPHY – Thang cỡ chữ (px) thống nhất: caption(12) → display(28).
  */
 export const TYPOGRAPHY = {
+  captionSmall: 11,
   caption: 12,
+  bodyCompact: 13,
   bodySmall: 14,
   body: 16,
   titleSmall: 18,

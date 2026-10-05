@@ -3,9 +3,9 @@
 // Sau khi chọn, tự động đóng modal và quay lại màn hình trước.
 
 import { useNavigation } from "expo-router";
-import React from "react";
-import { useTranslation } from "react-i18next";
-import { ScrollView, View } from "react-native";
+import React, { startTransition } from "react";
+import { useTranslation } from "~/hooks/useAppTranslation";
+import { Alert, ScrollView, View } from "react-native";
 import { RadioButton } from "react-native-paper";
 import { resources } from "~/utils/localization";
 import { COLORS } from "~/constants/DesignSystem";
@@ -23,25 +23,37 @@ import GlassCard from "~/components/ui/GlassCard";
  * resources: Object chứa tất cả các ngôn ngữ có sẵn (key = mã ngôn ngữ).
  *
  * Behavior:
- * - Khi người dùng chọn một RadioButton, gọi i18n.changeLanguage(value)
- *   và gọi navigation.goBack() để đóng modal.
+ * - Đóng modal trước, rồi cập nhật bản dịch với ưu tiên React transition.
+ * - Giữ cơ chế lưu ngôn ngữ hiện có; chặn lựa chọn trùng hoặc không hỗ trợ.
  *
  * @returns {JSX.Element} Màn hình modal chọn ngôn ngữ.
  */
 function Language() {
   const { i18n, t } = useTranslation();
   const navigation = useNavigation();
+  const selecting = React.useRef(false);
+
+  const selectLanguage = (value: string) => {
+    if (selecting.current || !Object.prototype.hasOwnProperty.call(resources, value)) return;
+    selecting.current = true;
+    // Close the native modal before retained screens reconcile their translations.
+    navigation.goBack();
+    if (value === i18n.language) return;
+    startTransition(() => {
+      void i18n.changeLanguage(value).catch(() => {
+        Alert.alert(t("common.error", { defaultValue: "Error" }), t("language_change_failed", {
+          defaultValue: "Unable to change language. Please try again.",
+        }));
+      });
+    });
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.BACKGROUND }}>
       <View style={{ padding: 20 }}>
-        <GlassCard>
+        <GlassCard variant="flat">
           <RadioButton.Group
-            onValueChange={(value) => {
-              // Đổi ngôn ngữ và quay lại
-              i18n.changeLanguage(value);
-              navigation.goBack();
-            }}
+            onValueChange={selectLanguage}
             value={i18n.language} // Ngôn ngữ hiện tại được chọn
           >
             {Object.keys(resources).map((lang) => (

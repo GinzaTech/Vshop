@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useMobileAccountMirror } from "~/hooks/useMobileAccountMirror";

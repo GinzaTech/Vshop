@@ -1,6 +1,8 @@
 import React from "react";
 import { GestureDetector } from "react-native-gesture-handler";
 import { FlatList, Platform, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
+import { getProfileCompactLayout } from "./profile-compact-layout";
 import Animated from "react-native-reanimated";
 import { ActivityIndicator, Searchbar } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
@@ -33,6 +35,8 @@ import { useProfileCollection } from "./useProfileCollection";
 import { useProfilePickers } from "./useProfilePickers";
 import { useProfilePager } from "./useProfilePager";
 import { useProfileMutations } from "./useProfileMutations";
+import { useDismissPickerOnBlur } from "~/hooks/useDismissPickerOnBlur";
+import { useProfileCollectionImageDelivery } from "./useProfileCollectionImageDelivery";
 type ProfileListRow =
     | { key: "identity"; kind: "identity" }
     | { key: "expressions"; kind: "expressions" }
@@ -50,14 +54,20 @@ type ProfileListRow =
       tone: "error" | "empty";
     };
 
+const EMPTY_SEASON_STATS: ReturnType<typeof useProfileSession>["dashboardSeasonStatsById"] = {};
+const EMPTY_SEASON_MATCHES: ReturnType<typeof useProfileSession>["dashboardSeasonMatchesById"] = {};
+const EMPTY_SEASON_OPTIONS: ReturnType<typeof useProfileSession>["dashboardSeasonOptions"] = [];
+
 function Profile() {
   const {
     insets, colors, t, viewportWidth, isProfileDemo, user, setUser, matchHistoryLoading,
-    seasonStatsLoading, fetchMatches, fetchSeasonStats, setProfileCache, profileGridColumns,
-    profileGridCardWidth, profileSkinRowCardWidth, hasAuth, authKey, cachedProfile, cachedCompetitiveRank,
+    seasonStatsLoading, fetchMatches, fetchSeasonStats, setProfileCache,
+    hasAuth, authKey, cachedProfile, cachedCompetitiveRank,
     cachedLoadoutSnapshot, dashboardMatches, dashboardSeasonStats, dashboardSeasonStatsById,
     dashboardSeasonMatchesById, dashboardSeasonOptions,
   } = useProfileSession();
+  const { fontScale } = useAppWindowDimensions();
+  const { profileGridColumns, profileGridCardWidth, profileSkinRowCardWidth } = getProfileCompactLayout(viewportWidth, fontScale);
   const {
     loading, setLoading, refreshing, setRefreshing, statsRefreshing, setStatsRefreshing, error, setError,
     pickerError, setPickerError, pickerLoading, setPickerLoading, updatingLoadout, setUpdatingLoadout,
@@ -108,6 +118,7 @@ function Profile() {
     setProfileCache, setWeaponMetadata, isProfileDemo, setPickerState, setIdentityPickerQuery,
     setPickerLoading, setPickerError, t, rankRefreshAuthKeyRef, authKey, initialFetchTaskRef,
     initialFetchTimeoutRef, setRefreshing, setStatsRefreshing, fetchMatches, fetchSeasonStats,
+    pickerTaskRef, setActiveWeaponChroma, setUpdatingLoadout,
   });
   const {
     loadoutDetails, loadoutSorted, loadoutByCategory, orderedLoadoutCategories, sprayDetails,
@@ -139,6 +150,7 @@ function Profile() {
     setPickerError, t, buildOwnedSkinOptions, buildOwnedSprayOptions, buildOwnedExpressionOptions,
     ownedPlayerCardOptions, ownedPlayerTitleOptions,
   });
+  const focused = useDismissPickerOnBlur(handleDismissPicker);
   const {
     handleTabChange, setPagerGestureEnabled, collapsibleBodyAnimatedStyle, profileContentPanGesture,
     handleProfileContentScroll, handleHeaderLayout, collapsibleHeaderAnimatedStyle,
@@ -162,6 +174,10 @@ function Profile() {
   });
 
 
+  const collectionImagePriorityIds = useProfileCollectionImageDelivery({
+    rows: profileListRowsByTab.collection, authKey, focused, t,
+  });
+
   // ── Effect cleanup: Hủy các task và timeout khi unmount ─────────────────
   React.useEffect(
       () => () => {
@@ -179,6 +195,16 @@ function Profile() {
       },
       [initialFetchTaskRef, initialFetchTimeoutRef, pickerTaskRef, profileModeInteractionLockedRef, profileModeInteractionTimerRef]
   );
+  // Session mismatch supplies fresh empty containers; keep empty presentation
+  // values stable without changing the session or passing another account data.
+  const presentationSeasonStatsById = dashboardSeasonStatsById && Object.keys(dashboardSeasonStatsById).length === 0 ? EMPTY_SEASON_STATS : dashboardSeasonStatsById;
+  const presentationSeasonMatchesById = dashboardSeasonMatchesById && Object.keys(dashboardSeasonMatchesById).length === 0 ? EMPTY_SEASON_MATCHES : dashboardSeasonMatchesById;
+  const presentationSeasonOptions = dashboardSeasonOptions?.length === 0 ? EMPTY_SEASON_OPTIONS : dashboardSeasonOptions;
+
+  // Focus only changes the picker mask below. Retain the unchanged header,
+  // lists and dashboard elements; include every data value and callback so
+  // account, locale, refresh and selection updates still rebuild this tree.
+  const profilePresentation = React.useMemo(() => {
   // renderIdentitySection: bọc ProfileIdentitySection cho row 'identity'.
   const renderIdentitySection = () => (
       <ProfileIdentitySection
@@ -198,7 +224,7 @@ function Profile() {
       />
   );
   // renderSkinGridCard: card skin tab skins (CompactProfileSkinCard, memo).
-  const renderSkinGridCard = React.useCallback(
+  const renderSkinGridCard =
       (weapon: EquippedWeapon) => (
           <CompactProfileSkinCard
               key={weapon.weaponId}
@@ -206,14 +232,10 @@ function Profile() {
               width={profileSkinRowCardWidth}
               onPress={() => handleOpenWeaponPicker(weapon)}
           />
-      ),
-      [handleOpenWeaponPicker, profileSkinRowCardWidth]
-  );
+      );
+
   // renderSkinListItem: adapter renderItem của FlatList ngang → renderSkinGridCard.
-  const renderSkinListItem = React.useCallback(
-      ({ item }: { item: EquippedWeapon }) => renderSkinGridCard(item),
-      [renderSkinGridCard]
-  );
+  const renderSkinListItem = ({ item }: { item: EquippedWeapon }) => renderSkinGridCard(item);
   // renderPageHeader: top bar + hero + segment, bọc pan gesture thu gọn header.
   const renderPageHeader = () => (
       <GestureDetector gesture={profileHeaderPanGesture}>
@@ -371,17 +393,17 @@ function Profile() {
       </>
   );
   // renderCollectionCard: card collection → equip nhanh hoặc mở picker.
-  const renderCollectionCard = React.useCallback(
+  const renderCollectionCard =
       (item: OwnedWeaponCollectionItem) => (
           <CompactProfileSkinCard
               key={item.collectionId}
               weapon={item}
               width={profileGridCardWidth}
+              imagePriority={activeTab === "collection" && collectionImagePriorityIds.has(item.collectionId) ? "high" : "low"}
               onPress={() => handleEquipCollectionSkin(item)}
           />
-      ),
-      [handleEquipCollectionSkin, profileGridCardWidth]
-  );
+      );
+
   // renderProfileListRow: theo row kind → loading/message/identity/skins/collection.
   const renderProfileListRow = ({ item }: { item: ProfileListRow }) => {
     switch (item.kind) {
@@ -519,6 +541,8 @@ function Profile() {
             onScroll={handleProfileContentScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
             refreshControl={
               <RefreshControl
                   refreshing={refreshing}
@@ -537,31 +561,16 @@ function Profile() {
       </View>
   );
 
-  return (
-    <CollectionCheckerExportProvider
-        items={ownedCollection}
-        profile={collectionCheckerProfile}
-        disabled={refreshing}
-    >
-      <Animated.View
-        style={[
-          styles.container,
-          {
-            backgroundColor: isPlayerInfoMode
-              ? PROFILE_INFO_COLORS.background
-              : COLORS.PURE_WHITE,
-          },
-        ]}
-      >
+
+    return (
+      <>
         {renderPageHeader()}
         <GestureDetector gesture={profileContentPanGesture}>
           <Animated.View
             style={[
               styles.profileBodyStack,
               {
-                backgroundColor: isPlayerInfoMode
-                  ? PROFILE_INFO_COLORS.background
-                  : COLORS.PURE_WHITE,
+                backgroundColor: isPlayerInfoMode ? PROFILE_INFO_COLORS.background : COLORS.BACKGROUND,
               },
               collapsibleHeaderHeight > 0 && styles.profileBodyStackCollapsible,
               collapsibleHeaderHeight > 0 && {
@@ -622,16 +631,126 @@ function Profile() {
                     onSeasonChange={handleSeasonChange}
                     onRefresh={handleStatsRefresh}
                     refreshing={statsRefreshing}
-                    seasonMatchesById={dashboardSeasonMatchesById}
-                    seasonOptions={dashboardSeasonOptions}
+                    seasonMatchesById={presentationSeasonMatchesById}
+                    seasonOptions={presentationSeasonOptions}
                     seasonStats={dashboardSeasonStats}
-                    seasonStatsById={dashboardSeasonStatsById}
+                    seasonStatsById={presentationSeasonStatsById}
                     tabProgress={statsTabProgress}
                 />
               </Animated.View>
           ) : null}
           </Animated.View>
         </GestureDetector>
+      </>
+    );
+  }, [
+    expressionDetails,
+    handleOpenExpressionPicker,
+    handleOpenSprayPicker,
+    sprayDetails,
+    t,
+    profileSkinRowCardWidth,
+    handleOpenWeaponPicker,
+    profileHeaderPanGesture,
+    handleHeaderLayout,
+    collapsibleHeaderAnimatedStyle,
+    identityDetails,
+    handleOpenIdentityPicker,
+    user,
+    profileHeaderTitleAnimatedStyle,
+    profileBalancePillAnimatedStyle,
+    actRankSummaryStats,
+    competitiveRank,
+    profileExpandedHeroHeight,
+    hasAuth,
+    isProfileDemo,
+    heroModeProgress,
+    isPlayerInfoMode,
+    handleRegionPress,
+    toggleHeroMode,
+    pageModeProgress,
+    profileModeTransitioning,
+    profileStats,
+    rankSplitContentMode,
+    rankSplitProgress,
+    regionLabel,
+    statsVisibilityProgress,
+    dashboardSeasonStats,
+    dashboardMatches,
+    profileSegmentPositionAnimatedStyle,
+    activeTab,
+    collectionSegmentLabelAnimatedStyle,
+    handleSegmentContainerLayout,
+    handleStatsDashboardTabChange,
+    handleTabChange,
+    loadoutSegmentLabelAnimatedStyle,
+    profileNavContentMode,
+    profileSegmentLayerAnimatedStyle,
+    segmentIndicatorAnimatedStyle,
+    skinsSegmentLabelAnimatedStyle,
+    statsSegmentLayerAnimatedStyle,
+    tabItems,
+    searchQuery,
+    setSearchQuery,
+    palette,
+    setPagerGestureEnabled,
+    collectionWeaponTabs,
+    collectionWeaponFilter,
+    setCollectionWeaponFilter,
+    profileGridCardWidth,
+    handleEquipCollectionSkin,
+    loadoutByCategory,
+    viewportWidth,
+    skinWhitespacePagerPanResponder,
+    formatCategoryLabel,
+    loading,
+    error,
+    loadoutSorted,
+    profileListRowsByTab,
+    insets,
+    handleProfileContentScroll,
+    refreshing,
+    handleRefresh,
+    profileContentPanGesture,
+    collapsibleHeaderHeight,
+    collapsibleBodyAnimatedStyle,
+    legacyContentAnimatedStyle,
+    profilePagerRef,
+    handlePagerScroll,
+    handlePagerMomentumEnd,
+    statsDashboardMounted,
+    statsDashboardLayerAnimatedStyle,
+    authKey,
+    matchHistoryLoading,
+    seasonStatsLoading,
+    handleSeasonChange,
+    handleStatsRefresh,
+    statsRefreshing,
+    presentationSeasonMatchesById,
+    presentationSeasonOptions,
+    presentationSeasonStatsById,
+    statsTabProgress,
+    collectionImagePriorityIds,
+  ]);
+
+  return (
+    <CollectionCheckerExportProvider
+        items={ownedCollection}
+        profile={collectionCheckerProfile}
+        disabled={refreshing}
+    >
+      <Animated.View
+        accessibilityElementsHidden={Boolean(pickerState)}
+        aria-hidden={Boolean(pickerState)}
+        importantForAccessibility={pickerState ? "no-hide-descendants" : "auto"}
+        style={[
+          styles.container,
+          {
+            backgroundColor: isPlayerInfoMode ? PROFILE_INFO_COLORS.background : COLORS.BACKGROUND,
+          },
+        ]}
+      >
+        {profilePresentation}
         <ProfilePickerModal
           activeWeaponChroma={activeWeaponChroma}
           handleDismissPicker={handleDismissPicker}
@@ -645,7 +764,7 @@ function Profile() {
           palette={palette}
           pickerError={pickerError}
           pickerLoading={pickerLoading}
-          pickerState={pickerState}
+          pickerState={focused ? pickerState : null}
           setActiveWeaponChroma={setActiveWeaponChroma}
           setIdentityPickerQuery={setIdentityPickerQuery}
           updatingLoadout={updatingLoadout}

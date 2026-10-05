@@ -1,7 +1,7 @@
 // ===== Combat.tsx =====
 // Hook quản lý toàn bộ logic chọn/lock agent, quản lý party, và trạng thái combat trong game Valorant.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import { getAgent } from "~/utils/valorant-assets";

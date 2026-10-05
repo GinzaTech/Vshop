@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { useUserStore } from "~/hooks/useUserStore";
 import GlassCard from "~/components/ui/GlassCard";
@@ -24,8 +24,15 @@ import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { filterFriendsByRiotId } from "~/utils/friend-search";
 import { isOnlineFriend } from "~/utils/friend-presence";
-import { getFriendCardArt } from "~/utils/friend-card";
+import { getFriendCardArt, normalizeFriendCardId, subscribeFriendCardAssets } from "~/utils/friend-card";
 import { getAssets } from "~/utils/valorant-assets";
+
+const EMPTY_FRIEND_CARDS = Object.freeze([]);
+const readFriendCards = () => {
+  const cards = getAssets().cards;
+  return Array.isArray(cards) ? cards : EMPTY_FRIEND_CARDS;
+};
+const subscribeFriendCards = (onChange: () => void) => subscribeFriendCardAssets(readFriendCards, onChange);
 
 // FriendStateInfo: thông tin hiển thị cho trạng thái của bạn bè
 type FriendStateInfo = { icon: AppIconName; color: string; label: string };
@@ -67,6 +74,7 @@ export default function FriendsScreen() {
   // Lấy dữ liệu từ store
   const friendsObj = useChatStore((state) => state.friends); // Object bạn bè {id: ChatFriend}
   const status = useChatStore((state) => state.status);      // Trạng thái kết nối chat
+  const friendCards = React.useSyncExternalStore(subscribeFriendCards, readFriendCards, readFriendCards);
   const [loadingRoster, setLoadingRoster] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [searchVisible, setSearchVisible] = React.useState(false);
@@ -192,7 +200,7 @@ export default function FriendsScreen() {
 
   // renderFriend: render một hàng bạn bè (chấm trạng thái, tên, status text, icon)
   const renderFriend = ({ item }: { item: ChatFriend }) => {
-    const cardArt = getFriendCardArt(item, getAssets().cards);
+    const cardArt = getFriendCardArt(item, friendCards);
     const displayName = item.gameName && item.gameName !== "Unknown"
       ? item.tagLine ? `${item.gameName}#${item.tagLine}` : item.gameName
       : t("friends_page.loading");
@@ -221,7 +229,7 @@ export default function FriendsScreen() {
       >
         <View style={styles.avatar}>
           {cardArt ? (
-            <CachedImage source={{ uri: cardArt }} cacheId={`friend-card:${item.presence?.playerCardId}:${cardArt}`}
+            <CachedImage source={{ uri: cardArt }} cacheId={`friend-card:${normalizeFriendCardId(item.presence?.playerCardId)}:${cardArt}`}
               recyclingKey={cardArt} style={styles.avatar} contentFit="cover" accessible={false} />
           ) : <Text style={styles.avatarText}>{displayName.slice(0, 1).toUpperCase()}</Text>}
           <View style={[styles.statusDot, { backgroundColor: stateInfo.color }]} />
@@ -272,6 +280,7 @@ export default function FriendsScreen() {
       ) : null}
       <FlatList
         data={visibleFriends}
+        extraData={friendCards}
         keyExtractor={(item) => item.id}
         renderItem={renderFriend}
         contentContainerStyle={[
@@ -279,7 +288,7 @@ export default function FriendsScreen() {
           visibleFriends.length === 0 && styles.listContentEmpty,
         ]}
         ListEmptyComponent={
-          <GlassCard style={styles.emptyCard}>
+          <GlassCard variant="flat" style={styles.emptyCard}>
             {normalizedSearchQuery ? (
               <>
                 <AppIcon name="friendSearch" size={48} color={COLORS.TEXT_SECONDARY} decorative />
@@ -380,7 +389,7 @@ const styles = StyleSheet.create({
   listContentEmpty: { flexGrow: 1 },
   // Hàng bạn bè: hàng ngang, gap 12, có borderBottom
   friendRow: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.BORDER },
-  friendRowPressed: { opacity: 0.72 },
+  friendRowPressed: { backgroundColor: COLORS.SURFACE_MUTED },
   avatar: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.SURFACE_MUTED },
   avatarText: { color: COLORS.TEXT_PRIMARY, fontSize: 15, fontWeight: "800" },
   statusDot: { position: "absolute", right: -1, bottom: -1, width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: COLORS.BACKGROUND },

@@ -4,14 +4,15 @@
 // (card skin), collection* (tab bộ sưu tập). Xem chú thích chi tiết ở ProfileScreen.
 import { StyleSheet } from "react-native";
 
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
+import { PROFILE_METRIC_CARD_STYLE } from "~/components/profile/profile-metric.styles";
 import { PROFILE_HERO_COMPACT_HEIGHT } from "~/features/profile/profile-transition";
 
 export const styles = StyleSheet.create({
   // ── Khung màn + pager ngang giữa các tab ──
   container: {
     flex: 1,
-    backgroundColor: COLORS.PURE_WHITE,
+    backgroundColor: COLORS.BACKGROUND,
     overflow: "hidden",
   },
   profilePager: {
@@ -52,8 +53,8 @@ export const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   topAvatarButton: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     position: "relative",
   },
   topAvatar: {
@@ -153,13 +154,22 @@ export const styles = StyleSheet.create({
   },
   heroTopRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     justifyContent: "space-between",
     alignItems: "center",
   },
   // Toggle hero/profile info (thumb trượt + nhãn typewriter)
   heroModeToggle: {
-    width: 120,
-    height: 32,
+    width: 144,
+    height: 48,
+    flexShrink: 0,
+  },
+  heroModeSurface: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 36,
     borderRadius: RADIUS.chip,
     overflow: "hidden",
   },
@@ -173,7 +183,7 @@ export const styles = StyleSheet.create({
   heroModeThumb: {
     position: "absolute",
     left: 5,
-    top: 4,
+    top: 12,
     width: 24,
     height: 24,
     alignItems: "center",
@@ -185,25 +195,34 @@ export const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 6,
   },
+  // Keep either controller thumb endpoint clear while the expanded layer fades.
+  heroModeLabelEquipmentSlot: { paddingLeft: 36, paddingRight: 36 },
+  heroModeLabelInfoSlot: { paddingLeft: 36, paddingRight: 36 },
   heroModeLabel: {
-    fontSize: 10,
+    fontSize: 11,
+    lineHeight: 14,
+    width: "100%",
     fontWeight: "700",
     textAlign: "center",
   },
   // Pill region (double-tap mở/thu hàng stats)
   heroRegionPill: {
     flexDirection: "row",
+    flexShrink: 0,
+    minWidth: 64,
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 7,
+    minHeight: 48,
     borderRadius: RADIUS.chip,
     backgroundColor: COLORS.ON_DARK_BORDER,
   },
   heroRegionText: {
-    fontSize: 10,
+    fontSize: 11,
+    flexShrink: 0,
+    paddingEnd: 3,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
     letterSpacing: 0.6,
@@ -217,6 +236,7 @@ export const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 22,
+    paddingEnd: 3,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },
@@ -228,7 +248,8 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.14)",
   },
   heroTagText: {
-    fontSize: 10,
+    fontSize: 11,
+    paddingEnd: 3,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
     letterSpacing: 0.3,
@@ -250,7 +271,7 @@ export const styles = StyleSheet.create({
   },
   heroMetaText: {
     marginLeft: 6,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
     color: COLORS.PURE_WHITE,
   },
@@ -267,13 +288,12 @@ export const styles = StyleSheet.create({
     marginTop: 8,
   },
   heroStatCard: {
+    ...PROFILE_METRIC_CARD_STYLE,
     flex: 1,
     minWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 18,
-    borderWidth: 1,
-    backgroundColor: COLORS.ON_DARK_BORDER,
   },
   heroStatLabelRow: {
     flexDirection: "row",
@@ -295,7 +315,7 @@ export const styles = StyleSheet.create({
   },
   heroStatLabel: {
     marginLeft: 6,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     color: "rgba(255,255,255,0.72)",
   },
@@ -303,7 +323,7 @@ export const styles = StyleSheet.create({
     color: COLORS.ON_DARK_TEXT,
   },
   heroStatValue: {
-    marginTop: 8,
+    marginTop: 4,
     fontSize: 14,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
@@ -378,9 +398,9 @@ export const styles = StyleSheet.create({
     fontSize: 13,
   },
   pickerCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.chip,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -610,8 +630,8 @@ export const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     right: 10,
-    width: 28,
-    height: 28,
+    width: 48,
+    height: 48,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
@@ -711,10 +731,12 @@ export const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
     overflow: "hidden",
     borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE,
   },
   identityImageFrame: {
-    width: 150,
-    height: 150,
+    width: "33.333333%",
+    height: 120,
     position: "relative",
   },
   identityImage: {
@@ -743,28 +765,29 @@ export const styles = StyleSheet.create({
   identityInfo: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    justifyContent: "space-between",
   },
   identityCardNameRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 0,
   },
   identityTitle: {
     flex: 1,
     paddingRight: 8,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: "700",
   },
   identityTitleAction: {
     minHeight: 48,
+    marginTop: SPACING.xs,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 9,
-    paddingVertical: 7,
+    paddingVertical: 2,
     borderRadius: 8,
     backgroundColor: COLORS.SURFACE_MUTED,
   },
@@ -775,19 +798,14 @@ export const styles = StyleSheet.create({
   },
   identityActionLabel: {
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
   },
   identityActionValue: {
     marginTop: 2,
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: "700",
-  },
-  identityAccountLevel: {
-    marginTop: 8,
-    fontSize: 11,
-    fontWeight: "600",
   },
   // ── Danh sách spray/flex đã trang bị ──
   sprayList: {
@@ -929,11 +947,12 @@ export const styles = StyleSheet.create({
     overflow: "hidden",
   },
   profileSkinVisual: {
-    aspectRatio: 1.45,
+    aspectRatio: 2.25,
+    backgroundColor: "transparent",
     alignItems: "center",
     borderBottomWidth: 1,
     justifyContent: "center",
-    padding: 8,
+    padding: 6,
     position: "relative",
   },
   profileSkinImage: {
@@ -943,15 +962,15 @@ export const styles = StyleSheet.create({
   profileSkinTierBadge: {
     borderRadius: 4,
     left: 6,
-    maxWidth: "58%",
-    paddingHorizontal: 5,
-    paddingVertical: 3,
+    maxWidth: "67%",
+    paddingHorizontal: 3,
+    paddingVertical: 2,
     position: "absolute",
     top: 6,
     zIndex: 1,
   },
   profileSkinTierText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "900",
   },
   profileSkinLevelBadge: {
@@ -961,31 +980,31 @@ export const styles = StyleSheet.create({
     paddingVertical: 3,
     position: "absolute",
     right: 6,
-    top: 6,
+    bottom: 4,
     zIndex: 1,
   },
   profileSkinLevelText: {
     color: COLORS.PURE_WHITE,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "900",
   },
   profileSkinContent: {
-    paddingHorizontal: 8,
-    paddingTop: 7,
-    paddingBottom: 8,
+    paddingHorizontal: 6,
+    paddingTop: 4,
+    paddingBottom: 5,
   },
   profileSkinWeaponName: {
     color: COLORS.TEXT_SECONDARY,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
     marginBottom: 2,
   },
   profileSkinName: {
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "800",
-    lineHeight: 14,
-    minHeight: 28,
+    lineHeight: 16,
+    minHeight: 32,
   },
   // ── Tab collection: tìm kiếm + lọc vũ khí ──
   searchBar: {
@@ -1009,6 +1028,8 @@ export const styles = StyleSheet.create({
   },
   // Chip lọc theo vũ khí
   collectionFilterChip: {
+    minHeight: 48,
+    justifyContent: "center",
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: RADIUS.chip,

@@ -7,7 +7,25 @@ import subprocess
 import time
 import xml.etree.ElementTree as ET
 import uiautomator2
-from lib.android_ui_guard import DeviceNotReady, assert_vshop_ready
+from lib.android_ui_guard import (
+    ALLOWED_VSHOP_PACKAGES, DEFAULT_VSHOP_PACKAGE, DeviceNotReady,
+    assert_vshop_ready, read_vshop_package_info, validate_vshop_package,
+)
+
+
+class ProfileContextNotReady(RuntimeError):
+    """Observe-only modal entrance; no input until its owned markers are ready."""
+
+
+def profile_context_visible(nodes):
+    """Native Modal hides its background; validate the observed picker instead."""
+    modal = any(n.get("content-desc") == "Close modal" for n in nodes)
+    if not modal:
+        return any(n.get("resource-id") == "profile-expression-row" for n in nodes)
+    return (any(n.get("resource-id") == "modal-surface" for n in nodes)
+            and any(n.get("text") in ("Chọn Graffiti hoặc Flex", "Choose Graffiti or Flex") for n in nodes)
+            and any(re.fullmatch(r"(?:Vị trí|Slot) [1-4]", n.get("text", "")) for n in nodes)
+            and any(n.get("content-desc") in ("Đóng", "Close") and n.get("clickable") == "true" for n in nodes))
 
 
 def main():
@@ -16,7 +34,10 @@ def main():
     parser.add_argument("--allow-physical", action="store_true")
     parser.add_argument("--output", required=True)
     parser.add_argument("--adb", default="adb")
+    parser.add_argument("--package", choices=ALLOWED_VSHOP_PACKAGES, default=DEFAULT_VSHOP_PACKAGE,
+                        help="Exact app target; startupqa requires explicit opt-in")
     args = parser.parse_args()
+    validate_vshop_package(args.package)
     if not re.fullmatch(r"emulator-\d+", args.serial) and not args.allow_physical:
         raise RuntimeError("Physical testing needs explicit --allow-physical authorization")
     output = Path(args.output).resolve()
@@ -29,14 +50,15 @@ def main():
         return subprocess.run([args.adb, "-s", args.serial, *parts], check=True,
                               capture_output=True, timeout=15).stdout.decode(errors="replace")
 
-    report = {"serial": args.serial, "scope": "open/close only; no equip action", "slots": []}
+    report = {"serial": args.serial, "package": args.package,
+              "scope": "open/close only; no equip action", "slots": []}
 
     def tree():
-        assert_vshop_ready(adb)
+        assert_vshop_ready(adb, package=args.package)
         _ = device.info
         nodes = list(ET.fromstring(device.dump_hierarchy()).iter("node"))
-        if not any(n.get("resource-id") == "profile-expression-row" for n in nodes):
-            raise RuntimeError("Real Profile expression row missing; no taps allowed")
+        if not profile_context_visible(nodes):
+            raise ProfileContextNotReady("Verified Profile/picker context missing; no taps allowed")
         return nodes
 
     def rect(node):
@@ -51,7 +73,13 @@ def main():
     def wait_for(predicate, label):
         deadline = time.monotonic() + 12
         while True:
-            nodes = tree()
+            try:
+                nodes = tree()
+            except ProfileContextNotReady:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.2)
+                continue  # Observation only; focused-package guard still runs.
             if predicate(nodes):
                 return nodes
             if time.monotonic() > deadline:
@@ -59,7 +87,7 @@ def main():
             time.sleep(0.2)
 
     def press(node):
-        assert_vshop_ready(adb)
+        assert_vshop_ready(adb, package=args.package)
         x1, y1, x2, y2 = rect(node)
         x, y = (x1 + x2) // 2, (y1 + y2) // 2
         adb("shell", "input", "swipe", str(x), str(y), str(x), str(y), "120")
@@ -76,7 +104,8 @@ def main():
                 re.search(r", (?:Vị trí|Slot) [1-4]$", n.get("content-desc", ""))]
 
     try:
-        assert_vshop_ready(adb)
+        assert_vshop_ready(adb, package=args.package)
+        report.update(read_vshop_package_info(adb, package=args.package))
         device = uiautomator2.connect(args.serial)
         nodes = tree()
         if modal_open(nodes):
@@ -92,7 +121,7 @@ def main():
             slot_bounds = rect(target)
             press(target)
             nodes = wait_for(modal_open, f"slot {slot} picker")
-            # The header's slot label precedes the still-mounted background row.
+            # Validate the modal slot header; its background is hidden natively.
             labels = [n for n in nodes if n.get("text") in (f"Vị trí {slot}", f"Slot {slot}")]
             assert labels and min(rect(n)[1] for n in labels) < slot_bounds[1], "Wrong or missing picker slot header"
             nodes = close(nodes)

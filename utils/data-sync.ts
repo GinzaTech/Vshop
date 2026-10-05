@@ -20,6 +20,7 @@ import { getRiotClientConfig } from "./valorant-api";
 import { markStartupCacheReady } from "./startup-cache";
 import { getAccountSessionKey } from "./saved-accounts";
 import { getSessionGeneration, SessionChangedError } from "./session-operations";
+import { sanitizeErrorForLog } from "./log-redaction";
 
 // ===== Types =====
 
@@ -148,7 +149,7 @@ export function syncAllData(
 // syncAllDataInternal — Thân chính của syncAllData (đã có dedup ở wrapper).
 // Luồng: assert phiên còn hợp lệ → đọc cache → làm mới entitlement/session
 // (buildAuthenticatedUser) → stamp TTL shop/balances ngay → fetch song song
-// client config + matches + profile → diff với cache → markStartupCacheReady.
+// client config + matches + profile → diff với cache → enqueue optional metadata.
 // Mỗi bước đều assertCurrent: nếu generation/account/token đổi giữa chừng
 // (re-auth, switch account) thì throw SessionChangedError và bỏ kết quả.
 async function syncAllDataInternal(
@@ -273,7 +274,20 @@ async function syncAllDataInternal(
   // Startup/resume chỉ hoàn tất khi mọi nguồn lõi khả dụng. Matches đã được
   // stamp phía trên (chỉ khi fetch thành công). Việc này ngăn session nửa vời
   // vào app với các API action chết.
-  await markStartupCacheReady(authUser);
+  assertCurrent();
+  // Metadata persistence is optional: enqueue immediately so the helper captures
+  // this session's generation, but do not hold usable core data behind storage.
+  // Its queue still guards invalidated writes and orders logout removals.
+  void markStartupCacheReady(authUser).then((stored) => {
+    if (!stored) {
+      console.warn("[data-sync] Startup cache metadata was not persisted");
+    }
+  }).catch((error: unknown) => {
+    console.warn(
+      "[data-sync] Startup cache metadata persistence failed",
+      sanitizeErrorForLog(error),
+    );
+  });
   assertCurrent();
 
   const report: SyncReport = {

@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { Alert } from "react-native";
 
 import type { LoginWebViewProps } from "~/components/LoginWebView.types";

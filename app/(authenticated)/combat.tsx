@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { COLORS, SPACING } from "~/constants/DesignSystem";
 import ValorantButton from "~/components/ui/ValorantButton";
@@ -70,7 +70,7 @@ export default function Combat() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.SURFACE_MUTED, paddingTop: SPACING.xs },
+  screen: { flex: 1, backgroundColor: COLORS.BACKGROUND, paddingTop: SPACING.xs },
   preview: {
     flexDirection: "row", justifyContent: "space-between",
     paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xs,

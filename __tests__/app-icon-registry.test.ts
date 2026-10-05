@@ -59,6 +59,10 @@ const INITIAL_SEMANTIC_TOKENS = [
   "combatSword",
 ] as const;
 
+it("resolves the skin preview play action without the unknown fallback", () => {
+  expect(resolveAppIconName("mediaPlay")).toBe("mediaPlay");
+});
+
 const TASK_3_SEMANTIC_TOKENS = [
   "navStore",
   "navShop",
@@ -208,14 +212,14 @@ describe("AppIcon registry", () => {
     expect(Object.keys(APP_ICON_REGISTRY)).toEqual(
       expect.arrayContaining(TASK_5_SEMANTIC_TOKENS),
     );
-    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(116);
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(117);
   });
 
   it("contains every Task 6 Combat, social, and Settings semantic token", () => {
     expect(Object.keys(APP_ICON_REGISTRY)).toEqual(
       expect.arrayContaining(TASK_6_SEMANTIC_TOKENS),
     );
-    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(116);
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(117);
   });
 
   it.each(TASK_6_SEMANTIC_TOKENS)(
@@ -253,7 +257,7 @@ describe("AppIcon registry", () => {
       kind: "morph",
       icon: ShieldUser,
     });
-    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(116);
+    expect(Object.keys(APP_ICON_REGISTRY)).toHaveLength(117);
   });
 
   it("maps every controlled game glyph to morphable vector data", () => {

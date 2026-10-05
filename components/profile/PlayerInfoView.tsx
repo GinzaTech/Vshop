@@ -9,7 +9,7 @@
 // Nguồn dữ liệu: seasonStats + match detail theo Act (props); không có số liệu
 // giả. Mùa lịch sử được tải theo nhu cầu từ store, không crawl đồng loạt.
 // Hai panel Tổng quan/Chi tiết luôn được layout sẵn để đổi tab không phải dựng
-// lại card. Bảng Đặc vụ/Bản đồ vẫn dùng motion nhẹ và tôn trọng Reduce Motion.
+// lại card. Bảng Đặc vụ/Bản đồ giữ nội dung cố định, chỉ trượt indicator của tab.
 
 import React from "react";
 import {
@@ -28,10 +28,9 @@ import Animated, {
   type SharedValue,
   useAnimatedStyle,
   useSharedValue,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CachedImage as Image } from "~/components/CachedImage";
@@ -39,6 +38,7 @@ import AppIcon from "~/components/ui/AppIcon";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { MOTION_DURATION } from "~/constants/Motion";
+import { COLORS } from "~/constants/DesignSystem";
 import {
   getProfileContentBottomPadding,
   PROFILE_INFO_COLORS,
@@ -543,9 +543,8 @@ const StatsTableCard = ({
   mapRows: AggregateRow[];
 }) => {
   const { t } = useTranslation();
-  // tableMode: tab đang chọn; tableMorph: shared value hiệu ứng co/nở
+  // tableMode selects data; only the tab indicator animates.
   const [tableMode, setTableMode] = React.useState<TableMode>("agents");
-  const tableMorph = useSharedValue(1);
   const rows = tableMode === "agents" ? agentRows : mapRows;
   const tableTabs: {
     icon: AppIconName;
@@ -579,24 +578,13 @@ const StatsTableCard = ({
   }));
 
   /**
-   * handleTableModeChange – Đổi tab bảng: chạy sequence co (0.94) → nở (1)
-   * rồi mới swap dữ liệu để nội dung "co vào rồi nở ra" như spec.
+   * handleTableModeChange – Đổi dữ liệu tab, giữ nguyên độ rõ và kích thước bảng.
    * @param mode – Tab đích ("agents" | "maps").
    */
   const handleTableModeChange = (mode: TableMode) => {
     if (mode === tableMode) return;
     setTableMode(mode);
-    tableMorph.value = withSequence(
-      withTiming(0.94, { duration: 100, reduceMotion: ReduceMotion.System }),
-      withTiming(1, MORPH_TIMING)
-    );
   };
-
-  // tableAnimatedStyle: opacity + scale theo tableMorph (co/nở nội dung bảng)
-  const tableAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(tableMorph.value, [0.94, 1], [0.45, 1]),
-    transform: [{ scale: tableMorph.value }],
-  }));
 
   return (
     <View style={styles.elevatedCard}>
@@ -655,7 +643,7 @@ const StatsTableCard = ({
         })}
       </View>
       {/* Nội dung bảng (co/nở khi đổi tab) */}
-      <Animated.View style={tableAnimatedStyle}>
+      <View>
         {rows.length === 0 ? (
           // Empty state: giữ card + tabs, không render bảng rỗng thừa divider
           <View style={styles.tableEmpty}>
@@ -724,7 +712,7 @@ const StatsTableCard = ({
             ))}
           </View>
         )}
-      </Animated.View>
+      </View>
     </View>
   );
 };
@@ -819,7 +807,7 @@ const DetailsPanel = React.memo(function DetailsPanel({
                 <Text style={styles.metricLabel}>
                   {t("profile_page.current_rank")}
                 </Text>
-                <Text style={styles.rankRowValue} numberOfLines={1}>
+                <Text style={styles.rankRowValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
                   {rank.currentName || "--"}
                 </Text>
               </View>
@@ -838,7 +826,7 @@ const DetailsPanel = React.memo(function DetailsPanel({
                 <Text style={styles.metricLabel}>
                   {t("profile_page.peak_rank")}
                 </Text>
-                <Text style={styles.rankRowValue} numberOfLines={1}>
+                <Text style={styles.rankRowValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
                   {rank.peakName || "--"}
                 </Text>
               </View>
@@ -1193,13 +1181,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 2,
   },
-  sectionDividerLine: { flex: 1, height: 1, backgroundColor: PLAYER_INFO_TOKENS.divider },
+  sectionDividerLine: { flex: 1, height: 1, backgroundColor: COLORS.BORDER },
   sectionHeaderIcon: { marginRight: 6 },
   sectionDividerTitle: {
     fontSize: 13,
     fontWeight: "600",
     letterSpacing: 1,
-    color: PLAYER_INFO_TOKENS.textPrimary,
+    color: COLORS.TEXT_PRIMARY,
     marginHorizontal: 8,
   },
 
@@ -1219,7 +1207,7 @@ const styles = StyleSheet.create({
   verticalDivider: { width: 1, alignSelf: "stretch", backgroundColor: PLAYER_INFO_TOKENS.divider },
   metricCell: { flex: 1, alignItems: "center", gap: 4, paddingHorizontal: 4 },
   metricLabel: {
-    fontSize: 9.5,
+    fontSize: 11,
     fontWeight: "500",
     color: PLAYER_INFO_TOKENS.textMuted,
   },
@@ -1236,8 +1224,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PLAYER_INFO_TOKENS.border,
     backgroundColor: PLAYER_INFO_TOKENS.bgElevated,
-    padding: 14,
-    gap: 10,
+    padding: 8,
+    gap: 6,
     marginTop: 12,
   },
   summaryCard: {
@@ -1299,7 +1287,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   seasonChip: {
-    minHeight: PROFILE_SEASON_SELECTOR_LAYOUT.chipHeight,
+    minHeight: 48,
     maxWidth: 170,
     flexDirection: "row",
     alignItems: "center",
@@ -1397,7 +1385,7 @@ const styles = StyleSheet.create({
     borderBottomColor: PLAYER_INFO_TOKENS.borderSubtle,
   },
   tableHeaderText: {
-    fontSize: 9.5,
+    fontSize: 11,
     fontWeight: "500",
     color: PLAYER_INFO_TOKENS.textMuted,
   },

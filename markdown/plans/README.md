@@ -17,10 +17,21 @@ Thư mục này là nguồn chuẩn cho các plan nhiều bước của VShop. D
 
 ## Plan hiện tại
 
-**Đã tiếp tục theo goal mới ngày 2026-09-30.** Plan điều phối hiện tại:
-[`2026-09-30-liquid-glass-completion.md`](2026-09-30-liquid-glass-completion.md).
-Bản [`stopped-work-handoff`](2026-09-30-stopped-work-handoff.md) là mốc lịch sử
-trước khi tiếp tục, không phải trạng thái thực thi hiện tại.
+**Plan điều phối hiện tại ngày 2026-10-05:**
+[`2026-10-05-release-4.2.1.md`](2026-10-05-release-4.2.1.md) — active: chốt
+source/docs, tích hợp origin/main, EAS production APK, GitHub Release kèm APK và
+changelog, rồi shutdown host sau xác minh. Plan liquid-glass ngày 2026-09-30 và
+stopped-work-handoff là mốc lịch sử, không phải trạng thái phát hành hiện tại.
+
+- [`2026-10-05-reference-skin-preview.md`](2026-10-05-reference-skin-preview.md) —
+  source complete: popup skin giữa màn hình cho Store/Bundle/Night, ảnh trước,
+  video opt-in, Level/Variant thật; native popup replay còn chờ VShop foreground.
+- [`2026-10-05-profile-scroll-boundary.md`](2026-10-05-profile-scroll-boundary.md) —
+  source complete: giới hạn Android overscroll ba tab Profile, giữ refresh/nav clearance.
+- [`2026-10-05-compact-profile-mode-button.md`](2026-10-05-compact-profile-mode-button.md) —
+  source complete: visual144x36dp, native target48dp và fitting bản dịch dài.
+- [`2026-10-05-restore-white-liquid-navigation.md`](2026-10-05-restore-white-liquid-navigation.md) —
+  done: kính trắng, light blur và native refraction đã source/device xác nhận.
 
 - [`2026-09-30-profile-loadout-responsive.md`](2026-09-30-profile-loadout-responsive.md) —
   active: Profile equip không khóa thao tác, hàng đợi PUT versioned/coalesced,

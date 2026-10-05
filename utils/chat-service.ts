@@ -19,6 +19,7 @@ import { jwtDecode } from "jwt-decode";
 // Import Buffer từ buffer để decode base64
 import { Buffer } from "buffer";
 import { sanitizeErrorForLog } from "~/utils/log-redaction";
+import { captureFriendCardResponse } from "~/utils/friend-card-response-log";
 import { parsePartyPresence } from "~/features/party/party-presence";
 
 // Map các region -> chat host fallback (khi không lấy được từ server)
@@ -349,6 +350,9 @@ export async function initChatService(
     // Sự kiện: nhận danh sách bạn bè (roster)
     client.onRoster = (friends) => {
       if (!isActiveClient()) return;
+      if (__DEV__ && process.env.EXPO_PUBLIC_VSHOP_CARD_RESPONSE_DEBUG === "1") {
+        console.info("[friend-card-response]", JSON.stringify(captureFriendCardResponse("roster", { friends })));
+      }
       rosterRevision += 1;
       const friendIds = friends.map((friend) => normalizeFriendId(friend.jid));
       useChatStore.getState().setFriends(
@@ -412,6 +416,9 @@ export async function initChatService(
       if (!isActiveClient()) return;
       const fromUserId = normalizeFriendId(from);
       const friendMetadata = parsePartyPresence(raw);
+      if (__DEV__ && process.env.EXPO_PUBLIC_VSHOP_CARD_RESPONSE_DEBUG === "1") {
+        console.info("[friend-card-response]", JSON.stringify(captureFriendCardResponse("presence", { from, status, show, raw, parsed: friendMetadata })));
+      }
       const partyId =
         currentUserId && fromUserId === currentUserId
           ? getPartyIdFromPresence(raw)

@@ -2,7 +2,7 @@ import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 
 import SessionHandoffScreen from "~/app/session_handoff";
-const mockClaim = jest.fn(async (_input: unknown) => undefined);
+const mockClaim = jest.fn(async (_input: unknown): Promise<void> => undefined);
 const mockCapture = jest.fn(() => ({ schemaVersion: 2 }));
 let mockEnabled = true;
 let mockAccountState = {
@@ -45,6 +45,16 @@ const savedAccount = {
   lastUsedAt: 1,
 };
 
+function deferred<T = void>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((done, fail) => {
+    resolve = done;
+    reject = fail;
+  });
+  return { promise, resolve, reject };
+}
+
 describe("SessionHandoffScreen", () => {
   beforeEach(() => {
     mockEnabled = true;
@@ -83,5 +93,68 @@ describe("SessionHandoffScreen", () => {
     expect(renderer.root.findByProps({ accessibilityRole: "alert" }).props.children)
       .toBe("mobile_handoff.unavailable");
     expect(renderer.root.findAllByProps({ testID: "mobile-handoff-send" })).toHaveLength(0);
+  });
+
+  it("retries only after an explicit failed-send press with a fresh snapshot", async () => {
+    const firstEnvelope = { schemaVersion: 2, attempt: "first" };
+    const secondEnvelope = { schemaVersion: 2, attempt: "second" };
+    mockCapture
+      .mockReturnValueOnce(firstEnvelope)
+      .mockReturnValueOnce(secondEnvelope);
+    mockClaim
+      .mockRejectedValueOnce(new Error("desktop unavailable"))
+      .mockResolvedValueOnce(undefined);
+
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<SessionHandoffScreen />); });
+
+    await act(async () => {
+      await renderer.root.findByProps({ testID: "mobile-handoff-send" }).props.onPress();
+    });
+
+    expect(mockCapture).toHaveBeenCalledTimes(1);
+    expect(mockClaim).toHaveBeenCalledTimes(1);
+    expect(mockClaim).toHaveBeenLastCalledWith(expect.objectContaining({ envelope: firstEnvelope }));
+    expect(renderer.root.findByProps({ accessibilityRole: "alert" }).props.children)
+      .toBe("mobile_handoff.error");
+    expect(renderer.root.findByProps({ testID: "mobile-handoff-send" }).props.accessibilityState)
+      .toEqual({ disabled: false, busy: false });
+
+    expect(mockClaim).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await renderer.root.findByProps({ testID: "mobile-handoff-send" }).props.onPress();
+    });
+
+    expect(mockCapture).toHaveBeenCalledTimes(2);
+    expect(mockClaim).toHaveBeenCalledTimes(2);
+    expect(mockClaim).toHaveBeenLastCalledWith(expect.objectContaining({ envelope: secondEnvelope }));
+    expect(renderer.root.findByProps({ accessibilityLiveRegion: "polite" }).props.children)
+      .toBe("mobile_handoff.sent");
+  });
+
+  it("blocks duplicate send presses while a claim is already in flight", async () => {
+    const pendingClaim = deferred();
+    mockClaim.mockReturnValueOnce(pendingClaim.promise);
+
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<SessionHandoffScreen />); });
+
+    act(() => {
+      const press = renderer.root.findByProps({ testID: "mobile-handoff-send" }).props.onPress;
+      press();
+      press();
+    });
+
+    expect(mockCapture).toHaveBeenCalledTimes(1);
+    expect(mockClaim).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pendingClaim.resolve(undefined);
+      await pendingClaim.promise;
+    });
+
+    expect(renderer.root.findByProps({ accessibilityLiveRegion: "polite" }).props.children)
+      .toBe("mobile_handoff.sent");
   });
 });

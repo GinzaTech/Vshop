@@ -61,16 +61,29 @@ describe("core journey automation and accessibility contracts", () => {
     expect(controlSource).toContain(hitSlop);
   });
 
-  it("keeps Task 6 state on labelled parent controls", () => {
-    const combatSession = read("features/combat/CombatSessionScreen.tsx");
-    expect(combatSession).toContain('accessibilityRole="button"');
-    expect(combatSession).toContain(
-      'accessibilityLabel={t("combat_page.actions.refresh",',
-    );
-    expect(combatSession).toContain(
-      "accessibilityState={{ busy: loading, disabled: loading }}",
+  it("keeps Combat refresh labelled and busy/disabled during loading or refreshing", () => {
+    const controls = read("features/combat/CombatSessionScreen.tsx")
+      .match(/<Pressable\b[\s\S]*?\n\s*>/g) ?? [];
+    const refreshControls = controls.filter((control) =>
+      control.includes('accessibilityLabel={t("combat_page.actions.refresh",'),
     );
 
+    expect(refreshControls).toHaveLength(1);
+    const [refreshControl] = refreshControls;
+    expect(refreshControl).toContain('accessibilityRole="button"');
+    expect(refreshControl).toMatch(
+      /accessibilityLabel=\{t\("combat_page\.actions\.refresh",\s*\{\s*defaultValue: "Refresh",?\s*\}\)\}/,
+    );
+    // Both flags must independently block refresh; neither loading-only nor
+    // refreshing-only (or &&) preserves this accessibility contract.
+    expect(refreshControl).toMatch(
+      /accessibilityState=\{\{\s*busy: loading\s*\|\|\s*refreshing,\s*disabled: loading\s*\|\|\s*refreshing\s*,?\s*\}\}/,
+    );
+    expect(refreshControl).toMatch(/\bdisabled=\{loading\s*\|\|\s*refreshing\}/);
+    expect(refreshControl).toContain("onPress={onRefresh}");
+  });
+
+  it("keeps Task 6 state on labelled parent controls", () => {
     const member = read("features/party/PartyMemberCard.tsx");
     expect(member).toContain('accessibilityRole="switch"');
     expect(member).toContain('accessibilityLabel={t("party_page.ready",');

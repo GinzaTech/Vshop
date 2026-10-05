@@ -74,11 +74,13 @@ function mergeFriendPresence(previous: PartyPresence | undefined, next?: PartyPr
   const playerCardId = (offline ? undefined : next?.playerCardId) ?? previous?.playerCardId;
   const accountLevel = (offline ? undefined : next?.accountLevel) ?? previous?.accountLevel;
   const sessionLoopState = offline ? undefined : next?.sessionLoopState;
-  if (!playerCardId && accountLevel === undefined && !sessionLoopState) return undefined;
+  const isIdle = !offline && typeof next?.isIdle === "boolean" ? next.isIdle : undefined;
+  if (!playerCardId && accountLevel === undefined && !sessionLoopState && isIdle === undefined) return undefined;
   return {
     ...(playerCardId ? { playerCardId } : {}),
     ...(accountLevel !== undefined ? { accountLevel } : {}),
     ...(sessionLoopState ? { sessionLoopState } : {}),
+    ...(isIdle !== undefined ? { isIdle } : {}),
   };
 }
 

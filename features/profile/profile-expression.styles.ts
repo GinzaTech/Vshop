@@ -19,14 +19,14 @@ export const expressionStyles = StyleSheet.create({
     gap: SPACING.xxs,
     alignItems: "center",
     borderRadius: RADIUS.md,
+    overflow: "hidden",
     backgroundColor: GLASS_MATERIAL.surface,
     borderColor: GLASS_MATERIAL.border,
     borderWidth: 1,
-    overflow: "hidden",
   },
   // Unexpected extra upstream slots stay reachable without shrinking targets.
   overflowCard: { minWidth: 48 },
-  image: { width: "100%", maxWidth: 48, height: 48 },
+  image: { width: "100%", maxWidth: 28, height: 28 },
   kind: {
     width: "100%",
     fontSize: TYPOGRAPHY.caption,

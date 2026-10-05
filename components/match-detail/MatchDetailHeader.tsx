@@ -3,7 +3,7 @@
 // tỉ số 2 đội (A vs B), nút đóng và hàng meta (thời điểm, thời lượng).
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { MatchImage } from "~/components/matches/MatchImage";
 import AppIcon from "~/components/ui/AppIcon";

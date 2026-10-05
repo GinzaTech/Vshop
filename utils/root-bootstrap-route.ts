@@ -31,3 +31,10 @@ export function captureRootBootstrapRoute(
     pathname: input.pathname,
   };
 }
+
+/** Live handoff policy is checked by the root; normal navigation retains its snapshot. */
+export function resolveRootBootstrapHandoffPath(
+  snapshotPathname: string, currentPathname: string, allowMobileHandoffRoute: boolean
+): string {
+  return allowMobileHandoffRoute ? currentPathname : snapshotPathname;
+}

@@ -1,14 +1,13 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { CachedImage as Image } from "~/components/CachedImage";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIconUri } from "~/utils/misc";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
-import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
-import { useMotionPreference } from "~/hooks/useMotionPreference";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 //   - item: đối tượng AccessoryShopItem chứa thông tin phụ kiện (uuid, price,
@@ -44,7 +43,6 @@ interface Props {
  */
 export default function ShopAccessoryItem({ item }: Props) {
   const { t } = useTranslation();
-  const reduceMotion = useMotionPreference();
   const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
 
   const imageSource = React.useMemo(() => {
@@ -59,7 +57,6 @@ export default function ShopAccessoryItem({ item }: Props) {
 
   return (
     <View style={styles.card}>
-      <LiquidGlassDecoration radius={RADIUS.sm} />
       {/*
         ── visualFrame ──────────────────────────────────────────────────────────
         Khung hình phía trên card: chứa typeBadge (nhãn "ACCESSORY") và ảnh
@@ -77,7 +74,7 @@ export default function ShopAccessoryItem({ item }: Props) {
           contentFit="contain"
           cachePolicy="memory-disk"
           priority="low"
-          transition={reduceMotion ? 0 : 120}
+          transition={0}
           recyclingKey={item.uuid}
         />
       </View>
@@ -109,7 +106,7 @@ export default function ShopAccessoryItem({ item }: Props) {
 const styles = StyleSheet.create({
   // card: thẻ chính, border warning, nền SURFACE, bo góc 8, overflow hidden
   card: {
-    ...LIQUID_GLASS_CARD_STYLE,
+    ...FLAT_CARD_STYLE,
     flex: 1,
     borderRadius: RADIUS.sm,
     borderWidth: 1,

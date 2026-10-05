@@ -2,7 +2,7 @@
 // Được điều hướng đến khi token của người dùng đã hết hạn
 // hoặc không thể khôi phục session từ cache.
 
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useCallback, useEffect } from "react";
 import {
   BackHandler,
@@ -136,7 +136,7 @@ function ReAuth() {
       </View>
 
       {/* ── Form đăng nhập ── */}
-      <GlassCard style={styles.loginCard} contentStyle={styles.loginCardContent}>
+      <GlassCard variant="flat" style={styles.loginCard} contentStyle={styles.loginCardContent}>
         <LoginWebView
           minHeight={loginHeight}
           expectedAccountId={mode === "switch" ? params.accountId : undefined}

@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import AppIcon from "~/components/ui/AppIcon";
 import { GpuLineChartCanvas } from "~/components/ui/GpuLineChartCanvas";
@@ -27,7 +27,7 @@ import { buildChartSegments } from "~/utils/chart-geometry";
  * EconomyMetric – Các chỉ số kinh tế có thể chọn để vẽ biểu đồ.
  * - difference: chênh lệch kinh tế A vs B (mặc định)
  * - total: tổng kinh tế 2 đội | teamA/teamB: kinh tế từng đội
- * - loadout: chênh lệch loadout trung bình | spent: chênh lệch đã tiêu
+ * - loadout: tổng giá trị trang bị hai đội | spent: chênh lệch đã tiêu
  */
 type EconomyMetric =
   | "difference"
@@ -77,7 +77,7 @@ const compactCredits = (value: number) => {
  * @returns Giá trị số tương ứng với metric.
  */
 const metricValue = (point: EconomyPoint, metric: EconomyMetric) => {
-  if (metric === "total") return point.teamAEconomy + point.teamBEconomy;
+  if (metric === "total" || metric === "loadout") return point.teamAEconomy + point.teamBEconomy;
   if (metric === "teamA") return point.teamAEconomy;
   if (metric === "teamB") return point.teamBEconomy;
   if (metric === "spent") return point.teamASpent - point.teamBSpent;

@@ -6,10 +6,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { useTranslation } from "react-i18next";
+import TouchableOpacity from "~/components/ui/ContentCardTouchable";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import AppIcon from "~/components/ui/AppIcon";

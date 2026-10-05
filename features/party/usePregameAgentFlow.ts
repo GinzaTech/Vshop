@@ -1,7 +1,7 @@
 import React from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useCombatStore, type CombatSessionSnapshot } from "~/hooks/useCombatStore";
 import { hasRiotScreenSession, isCurrentRiotScreenSession, type RiotScreenSession } from "~/hooks/useRiotScreenSession";
 import { useCombatScreenActivity } from "~/features/combat/useCombatScreenActivity";

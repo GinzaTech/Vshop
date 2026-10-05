@@ -14,7 +14,7 @@ const readI18nBundlePage = (locale: string) =>
     readFileSync(join(process.cwd(), "assets", "i18n", `${locale}.json`), "utf8")
   ).bundles_page as Record<string, unknown>;
 
-describe("bundles route inline white card boundary", () => {
+describe("bundles route compact cards on the shared gray page", () => {
   it("no longer contains the dark modal flow", () => {
     expect(routeSource).not.toMatch(/\bModal\b/);
     expect(routeSource).not.toMatch(/\bPortal\b/);
@@ -43,9 +43,9 @@ describe("bundles route inline white card boundary", () => {
     expect(routeSource).toMatch(/removeClippedSubviews/);
   });
 
-  it("uses light design tokens for the canvas and balance pill", () => {
+  it("uses the gray page token and the original light balance pill", () => {
     expect(routeSource).toMatch(/backgroundColor: COLORS\.SURFACE\b/);
-    expect(routeSource).not.toMatch(/backgroundColor: COLORS\.BACKGROUND/);
+    expect(routeSource).toMatch(/backgroundColor: COLORS\.BACKGROUND/);
     expect(routeSource).toMatch(/backgroundColor: COLORS\.SURFACE\b/);
     expect(routeSource).not.toMatch(/VALORANT_DARK_BLUE/);
     expect(routeSource).not.toMatch(/PURE_BLACK/);

@@ -5,14 +5,25 @@ import LocalUiQaScreen from "~/mocks/ui-qa";
 import { createUiQaTransport, QA_USER, createQaLoadout, QA_WRITE_DELAY_MS } from "~/mocks/ui-qa-data";
 import { ProfilePickerModal } from "~/features/profile/ProfilePickerModal";
 import { ProfileExpressionSection } from "~/features/profile/ProfileEquipmentSections";
+jest.mock("~/components/ui/refractive-glass", () => jest.requireActual("./helpers/refractive-glass-mock"));
 
 const mockRiot = jest.fn((...args: unknown[]) => { void args; throw new Error("QA must never call real Riot"); });
 const mockUserRead = jest.fn(() => { throw new Error("QA must not access the real session"); });
 const mockCacheRead = jest.fn(() => { throw new Error("QA must not access persistent profile cache"); });
+jest.mock("react-native-reanimated", () => {
+  const ReactModule = require("react") as typeof React;
+  return { __esModule: true, default: { View: require("react-native").View },
+    cancelAnimation: jest.fn(), useReducedMotion: () => false, ReduceMotion: { System: "system" },
+    Easing: { out: () => undefined, inOut: () => undefined, cubic: () => undefined, bezier: () => undefined },
+    useSharedValue: (value: number) => ReactModule.useRef({ value }).current,
+    useAnimatedStyle: (factory: () => object) => factory(), withTiming: (value: number) => value,
+  };
+});
 jest.mock("~/utils/valorant-api", () => ({ playerLoadout: (...args: unknown[]) => mockRiot(...args), updatePlayerLoadoutV3First: (...args: unknown[]) => mockRiot(...args) }));
 jest.mock("~/hooks/useUserStore", () => ({ useUserStore: { getState: () => mockUserRead() } }));
 jest.mock("~/hooks/useProfileCacheStore", () => ({ useProfileCacheStore: { getState: () => mockCacheRead() } }));
 jest.mock("~/utils/profile-cache", () => ({ PROFILE_LOADOUT_CACHE_VERSION: 5 }));
+jest.mock("~/utils/recovery-update", () => ({ startRecoveryUpdate: jest.fn(() => { throw new Error("Local QA must not apply a real update"); }) }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock("~/mocks/profile-ui", () => ({ PROFILE_DEMO_RANK: null }));
 jest.mock("~/components/GalleryProfile", () => ({ FALLBACK_IMAGE: "fallback", formatSpraySlot: (slot: string) => slot }));
@@ -70,6 +81,19 @@ describe("Local QA drives actual Profile hooks and pickers", () => {
   });
   it("shows the configured local transport latency instead of a stale hardcoded note", () => {
     expect(renderer.root.findByProps({ testID: "ui-qa-latency-note" }).props.children.join("")).toContain(String(QA_WRITE_DELAY_MS));
+  });
+  it("isolates background accessibility while a picker is open and restores it after dismissal", () => {
+    press("ui-qa-open-weapon");
+    const background = renderer.root.findByProps({ testID: "ui-qa-screen" });
+    expect(background.props.accessibilityElementsHidden).toBe(true);
+    expect(background.props["aria-hidden"]).toBe(true);
+    const route = renderer.root.findByProps({ testID: "ui-qa-route" });
+    expect(route.props.importantForAccessibility).toBe("no-hide-descendants");
+    expect(background.props.importantForAccessibility).toBe("no-hide-descendants");
+    act(() => renderer.root.findByType(ProfilePickerModal).props.handleDismissPicker());
+    const restored = renderer.root.findByProps({ testID: "ui-qa-screen" });
+    expect(restored.props.accessibilityElementsHidden).toBe(false);
+    expect(restored.props.importantForAccessibility).toBe("auto");
   });
   it("fails exactly the next write and rolls back only that field while retaining a later title choice", async () => {
     press("ui-qa-fail-next"); expect(stats().failNext).toBe(true);
@@ -144,4 +168,18 @@ describe("local simulated transport cleanup", () => {
     await expect(transport.runtime.write(owner, createQaLoadout())).rejects.toThrow("disposed");
     jest.useRealTimers();
   });
+});
+
+it("switches startup preview into recovery, checks a local update and retries without external actions", () => {
+  let renderer!: TestRenderer.ReactTestRenderer;
+  act(() => { renderer = TestRenderer.create(<LocalUiQaScreen startupPreview />); });
+  expect(renderer.root.findAllByProps({ testID: "startup-recovery-panel" })).toHaveLength(0);
+  act(() => renderer.update(<LocalUiQaScreen startupPreview recoveryPreview />));
+  expect(renderer.root.findByProps({ testID: "startup-recovery-panel" })).toBeDefined();
+  act(() => renderer.root.findByProps({ testID: "recovery-check-update-button" }).props.onPress());
+  expect(renderer.root.findByProps({ testID: "recovery-update-status" }).props.children).toBe("VShop is already up to date.");
+  act(() => renderer.root.findByProps({ testID: "startup-retry-button" }).props.onPress());
+  expect(renderer.root.findAllByProps({ testID: "startup-recovery-panel" })).toHaveLength(0);
+  expect(mockRiot).not.toHaveBeenCalled(); expect(mockUserRead).not.toHaveBeenCalled(); expect(mockCacheRead).not.toHaveBeenCalled();
+  act(() => renderer.unmount());
 });

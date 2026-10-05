@@ -5,7 +5,7 @@
 //   3. Đăng nhập (sign-in) – chỉ hiện nếu đã chọn region
 
 import { useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Button,
@@ -95,7 +95,7 @@ function Setup() {
             paddingVertical: 12,
           }}
         >
-          <GlassCard style={{ overflow: "hidden" }} contentStyle={{ padding: 0 }}>
+          <GlassCard variant="flat" style={{ overflow: "hidden" }} contentStyle={{ padding: 0 }}>
             <Image
               style={{
                 height: heroImageHeight,
@@ -135,7 +135,7 @@ function Setup() {
             paddingBottom: 12,
           }}
         >
-          <GlassCard style={{ flex: 1 }} contentStyle={{ flex: 1 }}>
+          <GlassCard variant="flat" style={{ flex: 1 }} contentStyle={{ flex: 1 }}>
             <Title
               style={{ fontSize: 28, fontWeight: "700", color: COLORS.TEXT_PRIMARY }}
             >
@@ -176,7 +176,7 @@ function Setup() {
               paddingBottom: 12,
             }}
           >
-            <GlassCard style={{ flex: 1 }} contentStyle={{ flex: 1 }}>
+            <GlassCard variant="flat" style={{ flex: 1 }} contentStyle={{ flex: 1 }}>
               <View
                 style={{
                   paddingBottom: 10,
@@ -204,7 +204,7 @@ function Setup() {
           paddingBottom: Math.max(8, insets.bottom + 8),
         }}
       >
-        <GlassCard>
+        <GlassCard variant="flat">
           <View style={{ flexDirection: "row" }}>
             {/* Nút Back – disabled ở trang đầu tiên */}
             <Button

@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import { Profiler, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { Tabs } from "expo-router";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { Header, Screen, getHeaderTitle } from "expo-router/react-navigation";
 import { StyleSheet, View } from "react-native";
 import { BlurTargetView } from "expo-blur";
-import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
+import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { COLORS } from "~/constants/DesignSystem";
+import { COLORS, NAV_GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { MOTION_DURATION, NAV_MOTION } from "~/constants/Motion";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
@@ -14,14 +14,15 @@ import { FloatingTabBar } from "./FloatingTabBar";
 import { supportsNavigationBlur } from "./NavigationBarBackdrop";
 import { NavigationSceneContext } from "./NavigationSceneContext";
 import { RefractionTarget } from "./NativeRefraction";
-import { getNavigationFadeDelay, isPrimaryRoute, PRIMARY_ROUTE_ORDER, sceneDestination } from "./navigation-model";
+import { isPrimaryRoute, PRIMARY_ROUTE_ORDER, sceneDestination } from "./navigation-model";
+import { recordNavigationResponse, recordNavigationRender } from "./navigation-response-profile";
 
 export type LiquidNavigationShellProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["layout"]>>[0];
 
 /**
  * Keep TabRouter/descriptors (URL, history, focus and preload), replace only its
  * view host. BottomTabView/MaybeScreen hides activityState=0 even with detach=false;
- * plain retained hosts let Reanimated own the complete crossfade on every platform.
+ * plain retained hosts preserve state while a single opaque primary owns content.
  */
 export function LiquidNavigationShell({ state, descriptors, navigation }: LiquidNavigationShellProps) {
   // Tabs.layout exposes core generics; the live navigator is still the TabRouter.
@@ -33,13 +34,14 @@ export function LiquidNavigationShell({ state, descriptors, navigation }: Liquid
   const blurTarget = useRef<View | null>(null);
   const [blurTargetReady, setBlurTargetReady] = useState(false);
   const [refractionTargetTag, setRefractionTargetTag] = useState<number | null>(null);
-  const nativeBlurSupported = supportsNavigationBlur();
+  const nativeBlurSupported = !NAV_GLASS_MATERIAL.opaque && supportsNavigationBlur();
   const PageBlurTarget = nativeBlurSupported ? BlurTargetView : View;
   const initialIndex = isPrimaryRoute(active.name) ? PRIMARY_ROUTE_ORDER.indexOf(active.name) : -1;
   const weights = useSharedValue<number[]>(sceneDestination(initialIndex));
   const secondaryOpacity = useSharedValue(1);
-  const previous = useRef({ key: active.key, index: initialIndex });
+  const previous = useRef({ key: active.key, index: initialIndex, reduceMotion });
   const generation = useRef(0);
+  const transitionPending = useRef(false);
   const mounted = useRef(true);
   const latest = useRef({ active, tabNavigation });
   latest.current = { active, tabNavigation };
@@ -47,30 +49,43 @@ export function LiquidNavigationShell({ state, descriptors, navigation }: Liquid
   const [visited, setVisited] = useState<readonly string[]>([active.key]);
   const loaded = useMemo(() => new Set([...visited, active.key, ...state.preloadedRouteKeys]), [visited, active.key, state.preloadedRouteKeys]);
   const finish = useCallback((key: string, revision: number) => {
-    if (!mounted.current || revision !== generation.current || latest.current.active.key !== key) return;
+    if (!mounted.current || !transitionPending.current || revision !== generation.current || latest.current.active.key !== key) return;
+    transitionPending.current = false;
+    recordNavigationResponse("settled", latest.current.active.name);
     setSettledHost({ key, revision });
     latest.current.tabNavigation.emit({ type: "transitionEnd", target: key });
   }, []);
 
   useLayoutEffect(() => {
+    recordNavigationResponse("commit", active.name);
     const before = previous.current;
-    if (before.key === active.key) return;
-    const revision = ++generation.current;
-    setSettledHost(null);
     const nextIndex = isPrimaryRoute(active.name) ? PRIMARY_ROUTE_ORDER.indexOf(active.name) : -1;
-    previous.current = { key: active.key, index: nextIndex };
+    previous.current = { key: active.key, index: nextIndex, reduceMotion };
+    if (before.key === active.key) {
+      if (reduceMotion && !before.reduceMotion && transitionPending.current) {
+        const revision = ++generation.current;
+        cancelAnimation(weights);
+        cancelAnimation(secondaryOpacity);
+        weights.value = sceneDestination(nextIndex);
+        secondaryOpacity.value = 1;
+        finish(active.key, revision);
+      }
+      return;
+    }
+    const revision = ++generation.current;
+    transitionPending.current = true;
+    setSettledHost(null);
     setVisited((keys) => keys.includes(active.key) ? keys : [...keys, active.key]);
     tabNavigation.emit({ type: "transitionStart", target: active.key });
     cancelAnimation(weights);
     cancelAnimation(secondaryOpacity);
     const destination = sceneDestination(nextIndex);
     if (before.index >= 0 && nextIndex >= 0) {
-      // withTiming retargets the whole opacity vector from its current sampled values.
-      // Its sum stays one, including a third tap halfway through an existing fade.
-      weights.value = withDelay(reduceMotion ? 0 : getNavigationFadeDelay(before.index, nextIndex),
-        withTiming(destination, { ...NAV_MOTION.fade, duration: reduceMotion ? NAV_MOTION.reducedFadeMs : NAV_MOTION.fadeMs }, (finished) => {
-          if (finished) scheduleOnRN(finish, active.key, revision);
-        }));
+      // Blending independent text/list hierarchies creates double-image ghosts.
+      // Content commits once; only the floating indicator/glyph animates travel.
+      weights.value = destination;
+      secondaryOpacity.value = 1;
+      finish(active.key, revision);
     } else {
       // Returning from a secondary route is immediate; no replay from a primary default.
       weights.value = destination;
@@ -101,7 +116,7 @@ export function LiquidNavigationShell({ state, descriptors, navigation }: Liquid
   return (
     <NavigationSceneContext.Provider value={context}>
       <View style={styles.shell} testID="liquid-navigation-shell">
-        <RefractionTarget style={styles.pages} enabled={!reduceMotion && isPrimaryRoute(active.name)} onTargetReady={setRefractionTargetTag}>
+        <RefractionTarget style={styles.pages} enabled={!NAV_GLASS_MATERIAL.opaque && !reduceMotion && isPrimaryRoute(active.name)} onTargetReady={setRefractionTargetTag}>
         <PageBlurTarget ref={blurTarget} testID="navigation-blur-target" accessible={false}
           collapsable={false} pointerEvents="box-none" style={styles.pages}
           onLayout={({ nativeEvent }) => {
@@ -128,7 +143,7 @@ export function LiquidNavigationShell({ state, descriptors, navigation }: Liquid
                   ? options.header({ layout: dimensions, route: descriptor.route, navigation: descriptor.navigation, options })
                   : <Header {...options} layout={dimensions} title={getHeaderTitle(options, route.name)} />}
                 style={styles.screen}>
-                {descriptor.render()}
+                {__DEV__ ? <Profiler id={route.name} onRender={recordNavigationRender}>{descriptor.render()}</Profiler> : descriptor.render()}
               </Screen>
             </Animated.View>
           );

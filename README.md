@@ -12,7 +12,30 @@
 
 A third-party companion app for **Valorant** — browse the daily store, check match history, view your profile loadout, track competitive rank, chat with friends, and more.
 
-Navigation motion uses shared timing tokens, transition-aware tab preloading and live OS Reduce Motion preferences. The unreleased Liquid Glass capsule preserves the existing icon animations while its lens retargets immediately and retained primary scenes crossfade without horizontal movement. See [the motion system](BUILD_DESIGN_SYSTEM.md#4-motion-system) for implementation rules; device FPS validation is separate from source tests and exports.
+The unreleased launcher icon uses the same sculpted cart as the startup screen,
+with an opaque common icon and a safely padded Android adaptive foreground.
+See [asset provenance](assets/generated/production/startup/vshop-app-icon-v1.provenance.md).
+Changing the installed launcher icon requires a new native build.
+
+Latest connected main Expo checks show VP/RP/KC and AP fully readable in Profile.
+Its equipped player-card artwork occupies one third of its row at120dp height; Bundle previews use a3.2 ratio
+for50% more height at unchanged width. Night Market's explicit artwork dimensions
+fill card width on the device. Five primary views, Bundle disclosure, Profile
+mode round-trip and Night preview were replayed; larger fonts and new frame-rate
+performance are not inferred from those checks. See the
+[latest physical results](markdown/ui-quality/MOBILE_FULL_TEST_RESULTS.md).
+
+Commerce skin previews now share a centered popup modeled on the supplied
+reference: a large still image opens first, Video is explicit, Level uses a red
+segmented control and Variant uses real catalog swatches. Store, Night Market and
+weapon cells in expanded Bundles use the same viewer. The Profile equipment-mode
+pill is visually smaller with its Android48dp hit target retained; the three
+Profile content tabs clamp Android overscroll at the final content while retaining
+refresh and bottom-navigation clearance. These latest layouts are source/export
+verified; physical popup and end-scroll replay remain pending when VShop regains
+the phone foreground.
+
+Navigation motion uses shared timing tokens, retained primary scenes and live OS Reduce Motion preferences. The latest capsule restores white Liquid Glass: a light page-only blur, translucent white veil, dark labels and a refractive moving lens, preserving icon animations without an outer rim or shadow. Missing/unsupported targets and Reduce Transparency use an opaque white fallback; hidden/collapsed navigation stops backdrop blur. Profile and More retain unchanged presentation during focus updates, reducing measured Expo press-to-React-commit delay; native frame metrics are reported separately. Pages use neutral gray #eceef0 without decorative wallpaper. Store's four daily cards use a larger two-by-two phone grid. Night Market budgets six offers into two columns and three rows on normal phones, with artwork frames explicitly filling card width. Bundle has a taller wide preview banner, ending time below, and initially closed details that slide open on press. Profile keeps compact cards, larger graffiti/Flex choices and bounded thumbnail-cache warmup; region and equipment-mode labels reserve room for complete text. See [the motion system](BUILD_DESIGN_SYSTEM.md#4-motion-system), [UI refinements](markdown/plans/2026-10-05-ui-refinements.md), [captured corrections](markdown/plans/2026-10-05-captured-layout-corrections.md) and [restored white glass](markdown/plans/2026-10-05-restore-white-liquid-navigation.md). Current default-font main Expo screenshots and control replays are recorded separately from source checks and frame-rate claims.
 
 Authorized local desktop testing can use the fail-closed
 [`pnpm run web:pentest` workflow](markdown/DESKTOP_PENTEST_COMPANION.md): Riot
@@ -46,174 +69,6 @@ blocked by default. This development companion is not a production RSO backend.
 ---
 
 # English
-
-## Unreleased: liquid glass and responsive loadout
-
-Shared white glass surfaces now cover weapon/shop, Bundle, collection, Profile
-and Party cards. A floating five-slot navigation capsule uses a moving lens,
-bounded native blur, delayed scene crossfade and the existing MorphIcon system.
-Hold Settings for 500ms to collapse the bar to its right-hand circular button;
-tap that button to expand without changing the current route.
-Navigation labels reserve their capped system-font height (up to 1.3×); the
-54dp capsule and 50dp lens keep their size when system text grows.
-Bundle backgrounds stay white, while owned items retain their separate faded artwork and check mark.
-Bundle frames/items have clearer outlines. Ownership marks cover skins, player
-cards/titles, sprays, flex and gun buddies; unknown item types are not guessed.
-The Android 13+ candidate additionally samples the real page drawing commands
-through a lens-sized AGSL refraction layer. It requires a new development APK;
-old binaries, web/iOS and reduced-motion/background states retain the existing
-material. Physical visual fidelity and performance are **not yet verified**.
-Profile selections remain editable during saving: full-payload requests are
-serialized, latest unsent choices are coalesced by field, and only actual server
-ACKs become cache authority. Four graffiti/flex slots remain side by side.
-
-The [completion plan](markdown/plans/2026-09-30-liquid-glass-completion.md)
-separates source checks, historical emulator evidence, physical-device evidence and remaining
-verification. With the project already open, the DEV-only `vshop://ui-qa?demo=1` route uses an isolated synthetic
-transport, not the real Riot session. Native QA runs through
-`scripts/verify-android-local-ui.py` with an explicit device serial and an
-artifact directory outside the checkout; physical devices require explicit
-human authorization and `--allow-physical`, and the script refuses any screen
-without the local-fixture markers. No production release is implied.
-
-## 4.1.10 local release candidate: smooth primary navigation and startup recovery
-
-Historical build snapshot below predates the current unreleased glass/loadout
-changes; the completion plan above is authoritative for current verification.
-
-Android now keeps preloaded primary scenes attached so warm navigation does not
-re-attach Profile's large native hierarchy during the 220 ms shift. Heavy
-Profile dashboard work waits for focus, transition completion and an idle slot;
-blur cancels queued work. The floating indicator adopts an accepted destination
-icon immediately, and repeated system-chrome values no longer notify the root.
-
-Loading and ErrorBoundary surfaces now expose a route-independent update action.
-The recovery state machine checks OTA first, supports a trusted native-release
-fallback, announces checking/downloading/restarting states, preserves valid
-cache/session data and blocks repeated startup failures from the same update.
-
-The full source gate passes 91 suites / 961 tests and the production audit.
-Optimized Android export passes at 10.18/12 MiB total, 7.71/8 MiB Hermes and
-1.25/1.50 MiB largest asset. A local production APK was built with the existing
-authorized EAS signer: `4.1.10 (91)`, 180,798,308 bytes, SHA-256
-`76A6F8DA4BBC73FB2A7B2628EB45E44A9906B4733F90297B63B041C0CA5E44B8`.
-Signature match and 16 KiB zip alignment pass; device install/performance
-measurement remains pending because ADB disconnected after the build.
-
-## 4.1.9 source candidate: typed Morphicons icon system
-
-The 4.1.9 source candidate routes every application icon, including
-Valorant-specific glyphs, through the typed `components/ui/AppIcon.tsx`
-boundary and `MorphIcon`. Screens and shared components use VShop semantic
-names; `app-icon-registry.ts` consumes exact icon data from
-`app-icon-lucide.ts`, Morphicons renders state transitions, and
-`react-native-svg` supplies the native SVG runtime. The Lucide runtime deep ESM
-imports are isolated to `app-icon-lucide.ts`, `lucide` is pinned at `1.47.0`,
-and the pistol is a local `IconNode`. `AppIcon` no longer imports or renders a
-MaterialCommunityIcons fallback.
-
-Stateful controls update one mounted `AppIcon`, every Morphicons render pins
-`reducedMotion="user"`, and labelled parent buttons/tabs keep role, label and
-selected/expanded/disabled state while their child icon remains decorative.
-An icon-only `AppIcon` may expose one label. The wishlist selected state is the
-documented fill exception: it keeps the same Heart path and changes only
-`fill`, rather than substituting a different symbol.
-
-Jest transforms Lucide's `.mjs` modules with the Expo transformer. The first
-full `pnpm run check` attempt passed strict source checks, the production audit
-policy and 87 Jest suites / 909 tests, then correctly failed the unchanged
-Hermes budget at 8.79/8.00 MiB. Isolating the deep ESM imports reduced Hermes to
-8.26 MiB but was not enough by itself. The final Android gate enables Expo's
-optimized module graph and tree shaking and passes at 10.16/12 MiB total,
-7.69/8 MiB Hermes and 1.25/1.50 MiB for the largest asset. The development,
-preview and production EAS profiles carry the same optimization environment;
-`production-store` inherits it from production. The EAS project
-`@hyeon004/vshop` production environment has also been set and verified with
-both values as plaintext variables, so future
-`eas update --environment production` runs use the same optimizer.
-After removing the last unused vendor-glyph surface, the final complete
-`pnpm run check` passes 87 suites / 910 tests, the production audit policy and
-the same Android export budgets.
-
-`pnpm dlx expo-doctor` currently passes 20/21 checks. Its only failure is the
-separately tracked SDK 57 patch-alignment warning for six Expo packages that
-are each one patch behind Doctor's recommendation; this icon migration does not
-silently change that dependency set.
-
-The source metadata is `4.1.9`, Android `versionCode 90` and iOS
-`buildNumber 42`. Because `react-native-svg` is a native dependency, 4.1.9
-requires a newly built binary and must not be sent to the 4.1.8 runtime as an
-OTA. Development and the first production APK both built and installed, but
-physical production startup exposed a Profile preload TypeError caused by an
-empty production fixture alias. The alias now has a tested immutable
-empty/null contract and the full gate passes 88 suites / 911 tests; the first
-production artifact is rejected as a standalone/offline release. EAS could not
-create a fixed rebuild because the monthly Android Free quota was exhausted;
-no debug-signed local APK replaced it. Verified production OTA group
-`5ba85a7f-a273-45a0-8ccc-90c13c1fc97a` delivers commit `e7f17e5` only to
-runtime 4.1.9. Device `45218ba` applied that update and passed Profile
-equipment/player-data, Overview/Details and five-primary-tab smoke tests with no
-TypeError, FATAL, ANR or SIGSEGV. Manual TalkBack and broader flows remain
-**NOT VERIFIED**.
-
-## Release 4.1.8 source highlights
-
-Profile now has a coordinated reversible player-data transition, a full dark canvas,
-consistent number hierarchy and historical Act selection backed by a durable archive
-of matches observed by this installation, retained Riot details or Riot's per-season
-ranked totals. New installations now establish an immutable per-account recording
-baseline: the current Act starts at zero, only Competitive matches observed at or
-after that timestamp count, and completed future Acts remain selectable. Older local
-archive rows are retained for recovery but stay hidden and cannot affect statistics.
-Account rollback restores
-domain data; request generations and both credentials prevent stale writes, including
-storage hydration after logout. Diagnostic logs are opt-in in development and OAuth
-callbacks require per-attempt state/nonce correlation.
-Economy and RR trend charts use a single native Skia surface, while the Profile
-mode morph keeps its moving layers on UI-thread transforms and opacity.
-The transformed Profile header now passes empty hit areas through to the
-multi-Act selector, and player-data mode disables the competing body-collapse
-pan. Cold dashboard content mounts before the visible 220 ms morph, while
-Profile/Match Detail controls expose consistent tab and state semantics.
-
-See the [17 architecture diagram types](markdown/README.md),
-[UI/UX, motion and generated-asset workflow](markdown/UI_UX_WORKFLOW.md),
-[Act recording implementation report](markdown/ACT_RECORDING_REPORT.md),
-[audit and verification limits](LOGIC_AUDIT.md) and [release notes](CHANGELOG.md).
-Source checks, real-device UI testing and a finished EAS APK are separate results;
-the version number alone does not certify an available production artifact.
-
-Download the signed [`VShop-4.1.8-production-89.apk`](https://github.com/GinzaTech/Vshop/releases/download/v4.1.8/VShop-4.1.8-production-89.apk), or inspect the
-[completed EAS build](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557). The 131,262,994-byte artifact has SHA-256
-`554AE2715CE64639413CD98F5318B26E23D6803A66B1CFD4303749F737157224`.
-
-## Release 4.1.6 highlights
-
-The 4.1.6 production APK hardens startup synchronization, session recovery, match-history caching and Riot chat reconnection. Token renewal is shared across callers and serialized with native cookie/account operations. Temporary service failures preserve the session, stale responses cannot replace newer credentials, and localized Riot callbacks such as `/vi-vn/opt_in/` are accepted. Unused helpers, assets and the unused Stripe integration have been removed from the repository and native build.
-
-- **Cleaner Combat flow:** removes the Party Chat pager while preserving party codes, join/leave controls, ready state and agent selection.
-- **Truthful direct-chat presence:** chat headers now show the selected friend as `Online` or `Offline` instead of reporting only the Riot socket state.
-- **Polished floating navigation:** selected icons are centered precisely, short horizontal transitions and crossfades adapt to the live viewport and primary pages keep their final content above the floating bar.
-- **Accessibility and readability:** Bundle modals isolate background controls correctly, Reduce Motion is respected and small match/Profile labels now use a readable minimum size.
-
-## Release 4.1.4 highlights
-
-- **Security and recovery release (26 August 2026):** encrypts Riot sessions and saved accounts with a Keystore/Keychain-protected key, validates Riot chat TLS certificates, restricts OAuth navigation, checks OTA updates on normal launch and recovers transient Riot/network failures without discarding good cached data.
-- **Large friend-list recovery:** preserves an incomplete Riot roster until its closing XMPP stanza arrives, preventing large rosters from timing out after launch or foreground recovery.
-- **Consistent collection cards:** Equipment and the Skin Gallery now use the Store card hierarchy while retaining their existing filters, media preview and wishlist interactions.
-
-- **Latest production OTA (29 August 2026):** primary tabs are preloaded and kept attached on Android for a full-width opaque horizontal transition; Profile supports vertical collapse gestures from its hero and empty areas.
-- **Primary navigation:** The current unreleased Liquid Glass redesign retains visited primary scenes and crossfades without a horizontal shift. New tab presses retarget the lens immediately; Reduce Motion removes decorative stretch/magnification. Device performance is verified separately.
-- **Natural Profile scrolling:** vertical drags from the player card and empty content areas collapse the Profile header, while horizontal skin and collection gestures keep their existing behavior.
-- **Web-safe profile export:** native media-library code is isolated from the web static renderer.
-- **Modern runtime:** upgraded to Expo SDK 57, React Native 0.86, React 19, Reanimated 4 and Zustand 5.
-- **Safer API architecture:** Riot/public traffic now uses isolated clients, a typed endpoint registry, validation, contract tests and read-only smoke tests. Profile and Combat Session are thin routes backed by feature modules, while CI reports app-wide coverage separately from stricter critical-domain thresholds.
-- **Refresh everywhere:** authenticated data screens, empty states, Match Session and chat support pull-to-refresh with duplicate-request protection.
-- **Complete leaderboard history:** every started Act can be selected, with Episode/Act labels, newest-first ordering and stale-response protection.
-- **Smoother motion:** shared timing/spring tokens keep high-frequency interaction animation on the UI thread and respect system Reduce Motion.
-- **Expo Blur compatibility:** Android blur targets use the current BlurView API without deprecated-property warnings.
-
-See [CHANGELOG.md](CHANGELOG.md) for the complete release notes and validation details.
 
 ## Features
 
@@ -565,16 +420,11 @@ The local Android export gate and every EAS build profile use
 `EXPO_UNSTABLE_TREE_SHAKING=1`; `production-store` inherits the production
 environment.
 
-The `@hyeon004/vshop` EAS production environment also has both optimizer values
-set and verified as plaintext variables for future
-`eas update --environment production` runs. This configuration parity does not
-permit a 4.1.9 OTA to binary/runtime 4.1.8; 4.1.9 still requires a newly built
-native binary.
-
-Install via QR code or APK from the Expo dashboard. The current signed APK is
-also attached to [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/releases/tag/v4.1.8).
-The 4.1.9 source candidate requires a fresh native build; no 4.1.9 APK or
-device-runtime result is claimed yet.
+The `@hyeon004/vshop` EAS production environment has both optimizer values set.
+Production builds use EAS-managed Android credentials; local release builds keep
+the repository's fail-closed production-keystore guard. Download the latest
+verified APK and its changelog from the
+[latest GitHub Release](https://github.com/GinzaTech/Vshop/releases/latest).
 
 ## Credits
 
@@ -586,147 +436,6 @@ device-runtime result is claimed yet.
 ---
 
 # Tiếng Việt
-
-## Chưa phát hành: liquid glass và loadout không khoá thao tác
-
-Các card skin/shop, Bundle, bộ sưu tập, Profile và Party dùng chung chất liệu kính
-trắng. Thanh điều hướng năm ô có lens di chuyển, blur có giới hạn, crossfade nội
-dung trễ và giữ hệ animation MorphIcon hiện có. Profile cho chọn tiếp trong khi
-lưu; request full-payload được tuần tự hoá, gộp lựa chọn mới nhất theo field và
-chỉ dùng ACK thật từ server làm cache. Bốn ô graffiti/flex nằm cùng một hàng.
-Nhãn nav dành đủ chiều cao cho cỡ chữ hệ thống (giới hạn 1,3×), giữ nguyên
-thanh 54dp, lens 50dp, animation icon và thao tác giữ Cài đặt 0,5 giây.
-
-[Plan hoàn thiện](markdown/plans/2026-09-30-liquid-glass-completion.md) tách rõ
-check source, APK máy ảo, bằng chứng runtime và phần chưa xác minh. Route DEV
-`vshop://ui-qa?demo=1` (mở sau khi project đã chạy) dùng transport/ownership giả lập độc lập, không đổi đồ trên
-tài khoản Riot thật. Script `scripts/verify-android-local-ui.py` chỉ nhận serial
-thiết bị rõ ràng, lưu bằng chứng ngoài repository và từ chối thao tác nếu mất
-marker QA. Máy thật cần người dùng yêu cầu rõ ràng cùng cờ `--allow-physical`.
-Chưa có phát hành production từ đợt thay đổi này.
-
-## Bản local release candidate 4.1.10: chuyển tab mượt và phục hồi cập nhật
-
-Mốc build lịch sử dưới đây có trước đợt glass/loadout chưa phát hành hiện tại;
-plan hoàn thiện ở trên mới là trạng thái kiểm chứng của code hiện tại.
-
-Android giữ nóng các primary scene đã preload để khi quay lại Profile không phải
-attach lại toàn bộ native tree đúng lúc animation chạy. Dashboard nặng của
-Profile chỉ mount sau focus + transition + idle; blur sẽ huỷ công việc đang chờ.
-Floating indicator đổi ngay sang icon đích đã chấp nhận và system chrome không
-phát render khi tone không đổi.
-
-Loading/ErrorBoundary có thêm đường kiểm tra cập nhật độc lập với Profile,
-Settings và Riot session. State machine ưu tiên OTA, chỉ mở GitHub Release chính
-chủ khi cần native build, giữ cache/session tốt và chặn cùng update lỗi lặp lại.
-
-Full gate đạt 91 suite / 961 test; Android export đạt 10,18/12 MiB tổng,
-7,71/8 MiB Hermes và asset lớn nhất 1,25/1,50 MiB. APK production local ký bằng
-đúng signer EAS đã build: `4.1.10 (91)`, 180.798.308 byte, SHA-256
-`76A6F8DA4BBC73FB2A7B2628EB45E44A9906B4733F90297B63B041C0CA5E44B8`.
-Chữ ký và zipalign 16 KiB đều PASS; cài/đo thiết bị còn pending vì ADB mất kết
-nối sau build.
-
-## Bản source candidate 4.1.9: hệ icon Morphicons có type
-
-Source candidate 4.1.9 đưa mọi icon ứng dụng, kể cả glyph đặc thù Valorant, qua
-boundary có type `components/ui/AppIcon.tsx` và `MorphIcon`. Screen/component
-dùng semantic name của VShop; `app-icon-registry.ts` nhận icon data chính xác từ
-`app-icon-lucide.ts`, Morphicons render chuyển trạng thái và `react-native-svg`
-cung cấp SVG runtime native. Mọi deep ESM import Lucide runtime được cô lập tại
-`app-icon-lucide.ts`, `lucide` được pin đúng `1.47.0`, còn pistol dùng
-`IconNode` local. `AppIcon` không còn import hoặc render fallback
-MaterialCommunityIcons.
-
-Control có trạng thái cập nhật trên cùng một `AppIcon`, mọi Morphicons render
-đều khóa `reducedMotion="user"`, còn button/tab cha giữ role, label và state
-selected/expanded/disabled để icon con chỉ mang tính trang trí. `AppIcon`
-icon-only được phép tạo đúng một label. Wishlist selected là ngoại lệ fill đã
-được duyệt: giữ nguyên path Heart và chỉ đổi `fill`, không đổi sang ký hiệu khác.
-
-Jest dùng Expo transformer cho module `.mjs` của Lucide. Lần chạy
-`pnpm run check` đầy đủ đầu tiên đã đạt strict source checks, production audit
-policy và 87 Jest suite / 909 test, sau đó fail đúng budget Hermes không đổi ở
-8,79/8,00 MiB. Chỉ cô lập deep ESM import giảm Hermes còn 8,26 MiB nhưng vẫn
-chưa đủ. Gate Android cuối bật Expo optimized module graph và tree shaking,
-PASS ở 10,16/12 MiB tổng, 7,69/8 MiB Hermes và 1,25/1,50 MiB asset lớn nhất.
-Các profile EAS development, preview và production mang cùng env tối ưu;
-`production-store` kế thừa từ production. EAS project `@hyeon004/vshop` cũng đã
-set/verify hai giá trị dạng plaintext trong production environment, nên các lần
-`eas update --environment production` sau này dùng cùng optimizer.
-Sau khi xoá bề mặt tên glyph vendor không còn được sử dụng, lần
-`pnpm run check` cuối đạt 87 suite / 910 test, production audit policy và cùng
-các budget Android ở trên.
-
-Metadata source hiện là `4.1.9`, Android `versionCode 90`, iOS `buildNumber 42`.
-Do `react-native-svg` là dependency native, 4.1.9 phải có binary build mới và
-không được phát qua OTA cho runtime 4.1.8. APK development và production đầu
-tiên đều build/cài được, nhưng cold-start production trên thiết bị phát hiện
-Profile preload TypeError do production fixture alias rỗng. Alias đã được sửa
-bằng contract empty/null bất biến có test; full gate mới đạt 88 suite / 911
-test. Artifact production đầu bị loại như một bản phát hành độc lập/offline;
-EAS không tạo rebuild mới vì quota Android Free tháng này đã hết và không dùng
-APK local ký debug để thay thế. OTA production đã xác minh group
-`5ba85a7f-a273-45a0-8ccc-90c13c1fc97a` đưa commit `e7f17e5` chỉ tới runtime
-4.1.9. Thiết bị `45218ba` đã áp dụng update và vượt smoke test Profile hai chế
-độ, Tổng quan/Chi tiết cùng năm tab chính, không có TypeError/FATAL/ANR/SIGSEGV.
-TalkBack và các flow rộng hơn còn **NOT VERIFIED**.
-
-## Điểm nổi bật mã nguồn 4.1.8
-
-Profile dùng một chuyển động hai chiều đồng bộ, nền dữ liệu tối toàn màn hình,
-phân cấp số liệu nhất quán và chọn được Act cũ bằng kho trận đã được bản cài này
-quan sát, match detail còn lưu hoặc tổng xếp hạng theo mùa của Riot. Rollback tài
-khoản phục hồi cả dữ liệu. Bản cài mới tạo một mốc ghi nhận bất biến cho từng
-tài khoản: Act hiện tại bắt đầu từ 0, chỉ trận Competitive từ mốc đó mới được
-tính, rồi các Act hoàn tất trong tương lai vẫn xem lại được. Dòng archive cũ vẫn
-được giữ để phục hồi nhưng bị ẩn và không thể làm sai thống kê. Request kiểm
-tra generation cùng hai token, storage loại kết quả hydrate cũ sau logout. Log
-chẩn đoán chỉ bật khi opt-in ở dev; callback OAuth kiểm tra state/nonce từng lần.
-Biểu đồ economy và xu hướng RR dùng một native Skia surface; chuyển chế độ
-Profile giữ các lớp chuyển động trên transform/opacity của UI thread.
-Vùng trống của header đã transform cho touch đi xuyên tới bộ chọn nhiều Act;
-player-data mode đồng thời tắt body-collapse pan đang tranh gesture. Dashboard
-lạnh được mount trước morph 220 ms, và các control Profile/Match Detail có
-role/state nhất quán cho accessibility.
-
-Xem [17 loại sơ đồ kiến trúc](markdown/README.md),
-[workflow UI/UX, motion và generated asset](markdown/UI_UX_WORKFLOW.md),
-[báo cáo triển khai mốc ghi nhận Act](markdown/ACT_RECORDING_REPORT.md),
-[audit và giới hạn kiểm chứng](LOGIC_AUDIT.md), [changelog](CHANGELOG.md).
-Check mã nguồn, test UI máy thật và APK EAS hoàn tất là ba kết quả riêng biệt;
-chỉ tăng version không có nghĩa bản production đã tồn tại.
-
-Tải APK đã ký [`VShop-4.1.8-production-89.apk`](https://github.com/GinzaTech/Vshop/releases/download/v4.1.8/VShop-4.1.8-production-89.apk), hoặc xem
-[build EAS đã hoàn tất](https://expo.dev/accounts/hyeon004/projects/vshop/builds/6e0a0273-9bac-46c5-b1d8-66c230b24557). Artifact 131.262.994 byte có SHA-256
-`554AE2715CE64639413CD98F5318B26E23D6803A66B1CFD4303749F737157224`.
-
-## Điểm nổi bật bản 4.1.6
-
-APK production 4.1.6 tăng độ ổn định cho đồng bộ lúc khởi động, phục hồi phiên, cache lịch sử đấu và kết nối lại Riot chat. Các luồng dùng chung một lần làm mới token và thao tác cookie được thực hiện tuần tự. Lỗi dịch vụ tạm thời giữ nguyên phiên, response cũ không được ghi đè credentials mới và callback Riot theo ngôn ngữ như `/vi-vn/opt_in/` được nhận diện. Helper, asset không dùng và tích hợp Stripe chưa sử dụng đã được loại khỏi repository và native build.
-
-- **Combat gọn hơn:** bỏ trang vuốt Chat tổ đội nhưng vẫn giữ mã tổ đội, tham gia/rời đội, trạng thái sẵn sàng và chọn đặc vụ.
-- **Presence chat chính xác:** tiêu đề chat riêng hiển thị người bạn đang `Online` hoặc `Offline`, thay vì chỉ báo trạng thái socket Riot.
-- **Thanh điều hướng hoàn thiện:** icon được căn chính giữa vòng tròn, chuyển cảnh ngang thích ứng với kích thước màn hình hiện tại và nội dung cuối trang không còn bị thanh nổi che.
-- **Dễ dùng hơn:** modal Bundle tách đúng lớp accessibility, Reduce Motion được tôn trọng và chữ nhỏ trong lịch sử đấu/Profile đã được tăng lên mức dễ đọc.
-
-## Điểm nổi bật bản 4.1.4
-
-- **Bản bảo mật và phục hồi (26/08/2026):** mã hoá phiên Riot và tài khoản đã lưu bằng khoá được Keystore/Keychain bảo vệ, xác thực chứng chỉ TLS của Riot chat, giới hạn điều hướng OAuth, kiểm tra OTA khi mở app bình thường và phục hồi lỗi Riot/mạng tạm thời mà không xoá cache tốt.
-- **Khôi phục danh sách bạn bè lớn:** giữ nguyên roster Riot đang nhận dở cho tới khi stanza XMPP đóng hoàn chỉnh, tránh timeout sau khi mở app hoặc quay lại từ nền.
-
-- **OTA production mới nhất (29/08/2026):** tab chính được preload và giữ attached trên Android để chuyển ngang toàn màn hình mà không làm mờ component; Profile kéo dọc được từ hero và khoảng trống.
-- **Điều hướng chính:** Bản chưa phát hành giữ React state, tách scene native không hoạt động và chuyển ngang tối đa 32 dp trong 220 ms. Nền và nội dung trang cũ ẩn cùng nhau để tránh phủ mờ trang mới. Bấm tab khác được tiếp nhận ngay; Reduce Motion chuyển trang tức thời. Chỉ tiêu hiệu năng trên máy thật chưa đạt.
-- **Cuộn Profile tự nhiên:** kéo dọc từ bảng người chơi và các khoảng trống đều thu gọn header, còn thao tác kéo ngang skin và bộ sưu tập vẫn giữ nguyên.
-- **Profile tương thích web:** phần xuất ảnh dùng media-library native đã được tách khỏi trình render web tĩnh.
-- **Runtime mới:** nâng lên Expo SDK 57, React Native 0.86, React 19, Reanimated 4 và Zustand 5.
-- **Kiến trúc API an toàn hơn:** Riot/public API dùng client tách biệt; API Riot được chia thành các service account, loadout, match, combat và progression sau một facade tương thích mỏng. Endpoint registry có type, validation, contract test và smoke test chỉ đọc. Profile và Combat Session là route mỏng dùng feature module; account picker và segmented navigation của Profile cũng được test/tái sử dụng độc lập.
-- **Kéo để tải lại toàn ứng dụng:** các màn dữ liệu, empty state, Phiên đấu và chat đều hỗ trợ refresh, đồng thời chặn request trùng.
-- **Đầy đủ lịch sử bảng xếp hạng:** chọn được mọi Act đã bắt đầu, có nhãn Episode/Act, sắp xếp mới nhất và chống response cũ ghi đè.
-- **Animation mượt và nhất quán:** timing/spring dùng token chung, chạy tương tác trên UI thread và tôn trọng Reduce Motion.
-- **BlurView tương thích SDK mới:** Android dùng `blurTarget` và `blurMethod`, không còn cảnh báo prop deprecated.
-
-Xem đầy đủ thay đổi và kết quả kiểm tra tại [CHANGELOG.md](CHANGELOG.md).
 
 ## Tính năng
 
@@ -1085,20 +794,17 @@ Gate Android local và mọi profile EAS đều dùng
 `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` cùng
 `EXPO_UNSTABLE_TREE_SHAKING=1`; `production-store` kế thừa env production.
 
-Production environment của EAS project `@hyeon004/vshop` cũng đã set/verify hai
-plaintext vars này cho `eas update --environment production`. Việc đồng nhất
-optimizer không cho phép OTA 4.1.9 vào binary/runtime 4.1.8; 4.1.9 vẫn cần
-native binary build mới.
+Production environment của EAS project `@hyeon004/vshop` đã set hai optimizer.
+Build production dùng Android credentials do EAS quản lý; build release local
+vẫn fail-closed nếu thiếu production keystore.
 
 `pnpm dlx expo-doctor` hiện đạt 20/21 check. Điểm chưa đạt duy nhất là cảnh báo
 đồng bộ patch SDK 57 đã được theo dõi riêng: sáu gói Expo đang chậm hơn một patch
 so với khuyến nghị hiện tại của Doctor; migration icon này không tự ý nâng nhóm
 dependency đó.
 
-Cài qua QR code hoặc file APK từ dashboard Expo. APK đã ký hiện tại cũng được
-đính kèm tại [GitHub Release v4.1.8](https://github.com/GinzaTech/Vshop/releases/tag/v4.1.8).
-Source candidate 4.1.9 cần native build mới; hiện chưa tuyên bố có APK 4.1.9
-hoặc kết quả runtime trên thiết bị.
+Cài qua QR code hoặc APK từ dashboard Expo. APK đã xác minh và changelog đi kèm
+được đính tại [GitHub Release mới nhất](https://github.com/GinzaTech/Vshop/releases/latest).
 
 ## Ghi công
 

@@ -14,6 +14,7 @@ jest.mock("~/components/ui/AppViewport", () => ({ useAppWindowDimensions: () => 
 jest.mock("~/components/ui/AppIcon", () => "AppIcon");
 jest.mock("~/components/Countdown", () => "Countdown");
 jest.mock("~/components/NightMarketItem", () => "NightMarketItem");
+jest.mock("~/components/ui/refractive-glass", () => jest.requireActual("./helpers/refractive-glass-mock"));
 jest.mock("~/components/ui/EmptyStateCard", () => "EmptyStateCard");
 jest.mock("~/components/ui/AppRefreshControl", () => "AppRefreshControl");
 jest.mock("~/utils/app-sync", () => ({ refreshShopAndBalances: jest.fn() }));

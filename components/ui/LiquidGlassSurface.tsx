@@ -1,5 +1,5 @@
 import React, { useId } from "react";
-import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from "react-native";
+import { Platform, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from "react-native";
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { COLORS, GLASS_MATERIAL, GLASS_SVG_OPACITY, RADIUS, SHADOWS } from "~/constants/DesignSystem";
 
@@ -22,7 +22,8 @@ export function LiquidGlassDecoration({ radius = RADIUS.card, density = "regular
     <View pointerEvents="none" accessible={false} accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={[StyleSheet.absoluteFill, styles.clip, { borderRadius: radius }]}>
-      <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" accessible={false}>
+      <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"
+        accessible={Platform.OS === "web" ? undefined : false} aria-hidden>
         <Defs>
           <LinearGradient id={frostId} x1="0%" y1="0%" x2="80%" y2="100%">
             <Stop offset="0" stopColor={GLASS_MATERIAL.highlightSoft} stopOpacity={GLASS_SVG_OPACITY.highlightSoft} />
@@ -50,6 +51,18 @@ export const LIQUID_GLASS_CARD_STYLE: ViewStyle = {
   borderColor: GLASS_MATERIAL.border,
   borderWidth: 1,
   ...SHADOWS.xs,
+};
+
+/** Repeated cards that require a crisp single outline, without optical halos. */
+export const FLAT_CARD_STYLE: ViewStyle = {
+  backgroundColor: COLORS.SURFACE,
+  borderColor: COLORS.BORDER,
+  borderWidth: 1,
+  shadowOpacity: 0,
+  shadowRadius: 0,
+  shadowOffset: { width: 0, height: 0 },
+  elevation: 0,
+  boxShadow: "none",
 };
 
 /** Lightweight glass for chips/segment tabs: translucent white + inner rim.

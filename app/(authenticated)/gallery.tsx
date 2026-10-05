@@ -1,10 +1,11 @@
 // ===== Import thư viện =====
 import React from "react";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import TouchableOpacity from "~/components/ui/ContentCardTouchable";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import AppIcon from "~/components/ui/AppIcon";
-import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import GalleryWeapon from "~/components/GalleryWeapon";
@@ -55,8 +56,8 @@ function useDebounceValue(value: string, delay: number) {
  */
 function Gallery() {
   const { t } = useTranslation();
-  const { width } = useAppWindowDimensions();
-  const columnCount = width >= 700 ? 3 : 2;
+  const { width, fontScale } = useAppWindowDimensions();
+  const columnCount = width >= 700 ? 5 : width >= 360 && fontScale < 1.3 ? 3 : 2;
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filter, setFilter] = React.useState<"all" | "wishlist">("all");
   const debouncedQuery = useDebounceValue(searchQuery, 100);
@@ -131,7 +132,7 @@ function Gallery() {
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               onPress={() => setFilter(item.key as "all" | "wishlist")}
-              activeOpacity={0.85} style={[styles.chip, LIQUID_GLASS_CHIP_STYLE, active && styles.chipActive]}>
+              activeOpacity={0.85} style={[styles.chip, FLAT_CARD_STYLE, active && styles.chipActive]}>
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
@@ -151,7 +152,7 @@ function Gallery() {
           gallerySkins.length === 0 && styles.gridContentEmpty,
         ]}
         ListEmptyComponent={
-          <EmptyStateCard
+          <EmptyStateCard variant="flat"
             title={t("gallery_page.empty_title")}
             subtitle={t("gallery_page.empty_subtitle")}
             style={styles.emptyState}

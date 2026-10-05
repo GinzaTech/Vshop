@@ -8,18 +8,18 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
+import TouchableOpacity from "~/components/ui/ContentCardTouchable";
 import { ActivityIndicator } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import AppIcon from "~/components/ui/AppIcon";
 import { useUserStore } from "~/hooks/useUserStore";
 import { fetchCompetitiveTiers, getAssets } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
-import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import {
   COMPETITIVE_TIER_IDS,
@@ -225,7 +225,7 @@ export default function LeaderboardScreen() {
                 accessibilityState={{ selected: selectedSeason === s.id }}
                 style={[
                   styles.seasonChip,
-                  LIQUID_GLASS_CHIP_STYLE,
+                  FLAT_CARD_STYLE,
                   selectedSeason === s.id && styles.seasonChipActive,
                 ]}
                 onPress={() => handleSeasonChange(s.id)}
@@ -287,7 +287,7 @@ export default function LeaderboardScreen() {
         ]}
         ListEmptyComponent={
           loading ? null : (
-            <GlassCard style={styles.emptyCard}>
+            <GlassCard variant="flat" style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>
                 {t("leaderboard_page.no_results")}
               </Text>

@@ -63,7 +63,10 @@ describe("Phase 3 visible copy localization", () => {
     const upgradesSource = sources["app/(authenticated)/item_upgrades.tsx"];
     const aboutSource = sources["app/(authenticated)/about.tsx"];
 
-    expect(agentSource).toContain('import { useTranslation } from "react-i18next";');
+    expect(agentSource).toContain('import { useTranslation } from "~/hooks/useAppTranslation";');
+    const bridge = readWorkspaceFile("hooks/useAppTranslation.ts");
+    expect(bridge).toContain('useTranslation as useReactTranslation');
+    expect(bridge).toContain("instance.getFixedT(");
     expect(agentSource).toContain("const { t } = useTranslation();");
     expect(agentSource).toContain("{t(role.labelKey)}");
 

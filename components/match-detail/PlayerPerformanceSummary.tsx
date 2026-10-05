@@ -3,7 +3,7 @@
 // ảnh full portrait agent, tên, rank và lưới chỉ số (điểm TB, K/D/A, K/D, ADR).
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { MatchImage } from "~/components/matches/MatchImage";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";

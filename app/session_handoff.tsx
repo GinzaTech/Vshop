@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { useAccountStore } from "~/hooks/useAccountStore";
 import { captureMobileAccountVaultEnvelope } from "~/services/mobile-handoff/snapshot";
@@ -27,6 +27,7 @@ export default function SessionHandoffScreen() {
   const accounts = useAccountStore((state) => state.accounts);
   const activeAccountId = useAccountStore((state) => state.activeAccountId);
   const [sendState, setSendState] = useState<SendState>("idle");
+  const sendInFlightRef = useRef(false);
   const enabled = isMobileHandoffBuildEnabled({
     platform: Platform.OS,
     publicFlag: process.env.EXPO_PUBLIC_VSHOP_DESKTOP_HANDOFF,
@@ -38,10 +39,12 @@ export default function SessionHandoffScreen() {
     params = null;
   }
   const active = accounts.find((account) => account.id === activeAccountId);
-  const canSend = enabled && Boolean(params) && accounts.length > 0 && sendState === "idle";
+  const canSend = enabled && Boolean(params) && accounts.length > 0 &&
+    (sendState === "idle" || sendState === "error");
 
   const send = async () => {
-    if (!canSend || !params) return;
+    if (!canSend || !params || sendInFlightRef.current) return;
+    sendInFlightRef.current = true;
     setSendState("sending");
     try {
       const envelope = captureMobileAccountVaultEnvelope();
@@ -49,6 +52,8 @@ export default function SessionHandoffScreen() {
       setSendState("sent");
     } catch {
       setSendState("error");
+    } finally {
+      sendInFlightRef.current = false;
     }
   };
 

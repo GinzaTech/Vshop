@@ -2,12 +2,13 @@
 // Component thư viện (gallery) hiển thị danh sách các Agent trong Valorant.
 // Bao gồm: bộ lọc theo role, lưới agent, và modal chi tiết agent.
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, FlatList } from "react-native";
+import { View, Text, StyleSheet, Modal, ScrollView, FlatList } from "react-native";
+import TouchableOpacity from "~/components/ui/ContentCardTouchable";
 import { CachedImage as Image } from "~/components/CachedImage";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { getAgent } from "~/utils/valorant-assets";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
-import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
 
@@ -163,12 +164,11 @@ const AgentItem = React.memo(({ item, onPress, selected }: { item: ValorantAgent
         <TouchableOpacity
             style={[styles.box, selected && styles.selectedBox]}
             onPress={() => onPress(item)}
-            activeOpacity={0.85}
+            activeOpacity={1}
             accessibilityRole="button"
             accessibilityState={{ selected }}
             accessibilityLabel={item.displayName}
         >
-            <LiquidGlassDecoration radius={RADIUS.lg} />
             <Image
                 cacheId={`agent:${item.uuid}:display-icon`}
                 source={{ uri: item.displayIcon }}
@@ -240,9 +240,14 @@ export const AgentGrid: React.FC<AgentGridProps> = React.memo(({ agents, onAgent
 export const AgentModal: React.FC<AgentModalProps> = React.memo(({ agent, onClose, selectedAbility, onAbilityPress, sortAbilities, }) => {
   // reduceMotion: tắt animation slide nếu người dùng bật Reduce Motion
   const reduceMotion = useMotionPreference();
+  const { t } = useTranslation();
   return (
     <Modal visible={!!agent} transparent={false} animationType={reduceMotion ? "none" : "slide"} onRequestClose={onClose}>
-        <View style={styles.modalContainer}>
+        <View style={styles.modalContainer} accessibilityViewIsModal>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("common.close")}
+                onPress={onClose} style={styles.modalClose}>
+                <Text style={styles.modalCloseText}>{t("common.close")}</Text>
+            </TouchableOpacity>
             <ScrollView contentContainerStyle={styles.modalContent}>
                 {agent && (
                     <>
@@ -269,6 +274,9 @@ export const AgentModal: React.FC<AgentModalProps> = React.memo(({ agent, onClos
                             {sortAbilities(agent.abilities).map((ability) => (
                                 <TouchableOpacity
                                     key={`${ability.slot}-${ability.displayName}`}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={ability.displayName}
+                                    accessibilityState={{ selected: selectedAbility?.slot === ability.slot }}
                                     style={styles.abilityContainer}
                                     onPress={() => onAbilityPress(ability)}
                                 >
@@ -317,7 +325,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     box: {
-        ...LIQUID_GLASS_CARD_STYLE,
+        ...FLAT_CARD_STYLE,
         width: "100%",
         aspectRatio: 1,                // Hình vuông
         borderRadius: RADIUS.lg,
@@ -347,6 +355,14 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.BACKGROUND,
         color: COLORS.TEXT_PRIMARY,
     },
+    modalClose: {
+        alignSelf: "flex-end",
+        minWidth: 48,
+        minHeight: 48,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    modalCloseText: { color: COLORS.TEXT_PRIMARY },
     agentName: {
         fontSize: 30,
         fontWeight: "bold",

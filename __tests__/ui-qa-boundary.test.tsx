@@ -8,7 +8,7 @@ import { captureRootBootstrapRoute } from "~/utils/root-bootstrap-route";
 
 let mockDemo: string | string[] | undefined = "1";
 const devGlobal = globalThis as typeof globalThis & { __DEV__: boolean };
-jest.mock("expo-router", () => ({ useLocalSearchParams: () => ({ demo: mockDemo }), Redirect: "Redirect" }));
+jest.mock("expo-router", () => ({ useLocalSearchParams: () => ({ demo: mockDemo }), Redirect: "Redirect", Stack: { Screen: () => null } }));
 jest.mock("~/mocks/ui-qa", () => ({ __esModule: true, default: "LocalQaScreen" }));
 jest.mock("expo/metro-config", () => ({ getDefaultConfig: () => ({ resolver: {} }) }));
 describe("local UI QA production and route boundary", () => {

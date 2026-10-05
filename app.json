@@ -2,12 +2,12 @@
   "expo": {
     "name": "VShop",
     "slug": "vshop",
-    "version": "4.2.0",
+    "version": "4.2.1",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "orientation": "default",
-    "icon": "./assets/images/icon-v2.png",
+    "icon": "./assets/generated/production/startup/vshop-app-icon-v1.png",
     "scheme": "vshop",
     "userInterfaceStyle": "automatic",
     "updates": {
@@ -17,22 +17,22 @@
     },
     "ios": {
       "bundleIdentifier": "dev.vasc.vshop",
-      "buildNumber": "43",
+      "buildNumber": "44",
       "supportsTablet": true
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "allowBackup": false,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#2f343b"
+        "foregroundImage": "./assets/generated/production/startup/vshop-app-icon-foreground-v1.png",
+        "backgroundColor": "#f4f6f9"
       },
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "package": "com.android.vshop",
-      "versionCode": 92
+      "versionCode": 93
     },
     "web": {
       "bundler": "metro",
@@ -78,9 +78,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-v3.png",
+          "image": "./assets/generated/production/startup/vshop-launch-mark-v1.png",
+          "imageWidth": 112,
           "resizeMode": "contain",
-          "backgroundColor": "#f4f6f9"
+          "backgroundColor": "#eceef0"
         }
       ],
       "expo-status-bar",

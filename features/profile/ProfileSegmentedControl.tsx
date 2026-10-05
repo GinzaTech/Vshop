@@ -6,7 +6,7 @@
 import React from "react";
 import { type LayoutChangeEvent, TouchableOpacity, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";

@@ -10,19 +10,19 @@ import Animated, {
 import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
 import * as Haptics from "expo-haptics";
 import { CachedImage as Image } from "~/components/CachedImage";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getDisplayIconUri } from "~/utils/misc";
-import { COLORS, GLASS_MATERIAL, RADIUS } from "~/constants/DesignSystem";
+import { buildSkinPreviewMedia } from "~/utils/skin-preview";
+import { COLORS, RADIUS, MORE_GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { WEAPON_NAME_ORDER } from "~/components/GalleryProfile";
 import { MOTION_SPRING, MOTION_TIMING } from "~/constants/Motion";
-import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
-import LiquidGlassBackdrop from "~/components/ui/LiquidGlassBackdrop";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 
 // ─── SkinShowcaseCardProps ─────────────────────────────────────────────────────
 //   - item: đối tượng SkinShopItem chứa thông tin skin
@@ -61,6 +61,8 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   const toggleSkin = useWishlistStore((state) => state.toggleSkin);
   const screenshotModeEnabled = useFeatureStore((state) => state.screenshotModeEnabled);
   const reduceMotion = useReducedMotion();
+  const compact = variant !== "gallery";
+  const [contentPressed, setContentPressed] = React.useState(false);
   // previewTimeoutRef: lưu timeout phân biệt click đơn (preview) vs click
   // đôi (toggle wishlist) trong cửa sổ 220ms
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,44 +73,23 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   );
   const previousFavoritedRef = useRef(isFavorited);
 
-  const scale = useSharedValue(1);
   const badgeScale = useSharedValue(0);
-  const cardAnimatedStyle = useAnimatedStyle(
-    () => ({ transform: [{ scale: scale.value }] }),
-    [],
-  );
   const badgeAnimatedStyle = useAnimatedStyle(
     () => ({ transform: [{ scale: badgeScale.value }] }),
     [],
   );
 
   // useCallback: handlePreviewPress
-  //   - Tập hợp danh sách media từ levels (video/icon) và chromas (video/render)
-  //   - Lọc bỏ entry không có URI
+  //   - Helper chung giữ cache identity và metadata ảnh/video của skin
   //   - Gọi showMediaPopup để mở popup xem media
-  //   - Phụ thuộc: [item.chromas, item.displayName, item.levels, showMediaPopup]
+  //   - Phụ thuộc: [item, showMediaPopup] để dùng metadata mới nhất
   const handlePreviewPress = useCallback(() => {
-    const media = [
-      ...(item.levels ?? []).map((level) => ({
-        cacheId: `skin-level:${level.uuid}:media`,
-        group: "level" as const,
-        kind: level.streamedVideo ? ("video" as const) : ("image" as const),
-        label: level.displayName,
-        uri: level.streamedVideo || level.displayIcon || "",
-      })),
-      ...(item.chromas ?? []).map((chroma) => ({
-        cacheId: `skin-chroma:${chroma.uuid}:media`,
-        group: "chroma" as const,
-        kind: chroma.streamedVideo ? ("video" as const) : ("image" as const),
-        label: chroma.displayName,
-        uri: chroma.streamedVideo || chroma.fullRender || "",
-      })),
-    ].filter((entry) => Boolean(entry.uri));
+    const media = buildSkinPreviewMedia(item);
 
     if (media.length > 0) {
       showMediaPopup(media, item.displayName);
     }
-  }, [item.chromas, item.displayName, item.levels, showMediaPopup]);
+  }, [item, showMediaPopup]);
 
   // useEffect: animation badge "SAVED" + haptic khi trạng thái wishlist đổi
   //   - isFavorited: chạy sequence spring (1.2 → 1) trừ khi Reduce Motion;
@@ -200,6 +181,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   //   - Single-tap: set timeout 220ms, sau đó gọi handlePreviewPress
   //   - Phụ thuộc: [handlePreviewPress, item.levels, item.uuid, toggleSkin]
   const handleCardPress = useCallback(() => {
+    setContentPressed(false);
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
       previewTimeoutRef.current = null;
@@ -224,31 +206,23 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
   }, []);
 
   return (
-    <Animated.View style={[styles.container, cardAnimatedStyle]}>
+    <View style={styles.container}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={item.displayName}
         onPress={handleCardPress}
-        onPressIn={() => {
-          scale.value = reduceMotion
-            ? 1
-            : withSpring(0.97, MOTION_SPRING.press);
-        }}
-        onPressOut={() => {
-          scale.value = reduceMotion
-            ? 1
-            : withSpring(1, MOTION_SPRING.settle);
-        }}
+        onPressIn={() => setContentPressed(true)}
+        onPressOut={() => setContentPressed(false)}
         style={[
           styles.card,
+          FLAT_CARD_STYLE,
+          compact && styles.compactTarget,
           {
             borderColor: tier.border, // border theo tier
           },
+          contentPressed && styles.galleryPressed,
         ]}
       >
-      {variant === "store" ? <LiquidGlassBackdrop radius={RADIUS.sm}
-        artworkUri={screenshotModeEnabled ? undefined : getDisplayIconUri(item) ?? undefined} cacheId={`skin:${item.uuid}:display`} /> : null}
-      <LiquidGlassDecoration radius={RADIUS.sm} />
       {/*
         ── imageFrame ───────────────────────────────────────────────────────────
         Khung hình trên: nền theo tier, border dưới theo tier
@@ -257,19 +231,20 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
       <View
         style={[
           styles.imageFrame,
+          compact && styles.compactImageFrame,
           {
             backgroundColor: tier.cardBackground,
             borderBottomColor: tier.border,
           },
         ]}
       >
-        <View style={[styles.tierBadge, { backgroundColor: tier.badgeBackground }]}>
+        <View style={[styles.tierBadge, compact && styles.compactTierBadge, { backgroundColor: tier.badgeBackground }]}>
           <Text style={[styles.tierText, { color: tier.text }]} numberOfLines={1}>
             {tier.label.toUpperCase()}
           </Text>
         </View>
         {isFavorited ? (
-          <Animated.View style={[styles.savedBadge, badgeAnimatedStyle]}>
+          <Animated.View style={[styles.savedBadge, compact && styles.compactSavedBadge, badgeAnimatedStyle]}>
             <Text style={styles.savedBadgeText}>
               {t("shop_cards.saved")}
             </Text>
@@ -282,7 +257,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
           contentFit="contain"
           cachePolicy="memory-disk"
           priority="low"
-          transition={reduceMotion ? 0 : 120}
+          transition={0}
           recyclingKey={item.uuid}
         />
       </View>
@@ -291,12 +266,12 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
         ── content ──────────────────────────────────────────────────────────────
         Phần nội dung dưới: loại vũ khí, tên skin, giá (kèm icon VP)
         */}
-      <View style={[styles.content, variant === "store" && styles.featuredContent]}>
-        <Text style={styles.weaponTypeText} numberOfLines={1}>
+      <View style={[styles.content, compact && styles.compactContent]}>
+        <Text style={[styles.weaponTypeText, compact && styles.compactSecondary]} numberOfLines={1}>
           {weaponType}
         </Text>
         <Text
-          style={styles.title}
+          style={[styles.title, compact && styles.compactTitle]}
           numberOfLines={variant === "bundle" ? undefined : 2}
         >
           {item.displayName}
@@ -306,6 +281,7 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
           <View
             style={[
               styles.priceWrapper,
+              compact && styles.compactPriceWrapper,
               {
                 backgroundColor: tier.badgeBackground,
                 borderColor: tier.border,
@@ -318,14 +294,14 @@ const SkinShowcaseCard = React.memo(function SkinShowcaseCard({
                 style={[styles.currencyIcon, { tintColor: tier.text }]}
               />
             ) : null}
-            <Text style={[styles.priceText, { color: tier.text }]}>
+            <Text style={[styles.priceText, compact && styles.compactPriceText, { color: tier.text }]}>
               {footer}
             </Text>
           </View>
         </View>
       </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 });
 
@@ -334,25 +310,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // card: thẻ chính, flex 1, nền SURFACE, bo góc 8, border 1px, overflow hidden
+  // Native flat material keeps a single crisp rarity border and clear artwork.
   card: {
     flex: 1,
-    ...LIQUID_GLASS_CARD_STYLE,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     overflow: "hidden",
   },
-  // cardPressed: hiệu ứng khi nhấn - giảm opacity
-  cardPressed: {
-    opacity: 0.86,
-  },
+  galleryPressed: { borderColor: COLORS.BORDER_STRONG },
   // content: padding ngang/dọc cho vùng nội dung
   content: {
     paddingHorizontal: 10,
     paddingTop: 9,
     paddingBottom: 10,
   },
-  featuredContent: { backgroundColor: GLASS_MATERIAL.denseSurface },
+  compactTarget: { borderRadius: MORE_GLASS_MATERIAL.radius, minHeight: 48, minWidth: 48 },
+  compactImageFrame: { aspectRatio: 1.5, padding: 8 },
+  compactContent: { paddingHorizontal: 8, paddingTop: 6, paddingBottom: 8 },
+  compactSecondary: { fontSize: 10, marginBottom: 2 },
+  compactTitle: { fontSize: 12, lineHeight: 16, minHeight: 32, marginBottom: 4 },
+  compactPriceText: { flexShrink: 1, minWidth: 0 },
+  compactTierBadge: { left: 4, top: 4, maxWidth: "40%", paddingHorizontal: 4 },
+  compactSavedBadge: { right: 4, top: 4, paddingHorizontal: 4 },
+  compactPriceWrapper: { paddingHorizontal: 4, paddingVertical: 4, flexWrap: "wrap", maxWidth: "100%" },
   // currencyIcon: icon VP, 13x13
   currencyIcon: {
     width: 13,

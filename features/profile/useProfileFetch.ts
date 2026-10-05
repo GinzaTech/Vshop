@@ -1,6 +1,6 @@
 import React from "react";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
-import { fetchCompetitiveRankOutcome } from "~/utils/profile-cache";
+import { fetchCompetitiveRankOutcome, type ProfileWarmCache } from "~/utils/profile-cache";
 import { isSessionChangedError } from "~/utils/session-operations";
 import { sanitizeErrorForLog } from "~/utils/log-redaction";
 import { buildProfileRefreshCache, updateProfileLoadoutCache } from "./profile-refresh-data";
@@ -44,6 +44,9 @@ type Props = Pick<ReturnType<typeof useProfileState>,
   "setIdentityPickerQuery" |
   "setPickerLoading" |
   "setPickerError" |
+  "pickerTaskRef" |
+  "setActiveWeaponChroma" |
+  "setUpdatingLoadout" |
   "rankRefreshAuthKeyRef" |
   "initialFetchTaskRef" |
   "initialFetchTimeoutRef" |
@@ -52,7 +55,6 @@ type Props = Pick<ReturnType<typeof useProfileState>,
 Pick<ReturnType<typeof useProfileSession>,
   "hasAuth" |
   "cachedLoadoutSnapshot" |
-  "cachedProfile" |
   "user" |
   "cachedCompetitiveRank" |
   "setUser" |
@@ -61,7 +63,7 @@ Pick<ReturnType<typeof useProfileSession>,
   "t" |
   "authKey" |
   "fetchMatches" |
-  "fetchSeasonStats">;
+  "fetchSeasonStats"> & { cachedProfile: ProfileWarmCache | null };
 
 export function useProfileFetch({
   loadoutSnapshotRef, setLoadoutSnapshot, setRawGuns, setRawSprays, setRawActiveExpressions, setIdentity,
@@ -72,7 +74,10 @@ export function useProfileFetch({
   setProfileCache, setWeaponMetadata, isProfileDemo, setPickerState, setIdentityPickerQuery,
   setPickerLoading, setPickerError, t, rankRefreshAuthKeyRef, authKey, initialFetchTaskRef,
   initialFetchTimeoutRef, setRefreshing, setStatsRefreshing, fetchMatches, fetchSeasonStats,
+  pickerTaskRef, setActiveWeaponChroma, setUpdatingLoadout,
 }: Props) {
+  const requestSequenceRef = React.useRef(0);
+  const attemptedFetchAuthKeyRef = React.useRef<string | null>(null);
   const hydrationGeneration = getSessionGeneration();
   const hydrationOwnerRef = React.useRef({ id: user.id, region: user.region,
     accessToken: user.accessToken, entitlementsToken: user.entitlementsToken,
@@ -93,15 +98,48 @@ export function useProfileFetch({
   }, [loadoutSnapshotRef, setIdentity, setLoadoutSnapshot, setRawActiveExpressions, setRawGuns, setRawSprays]);
 
   // ── Effect: Khôi phục dữ liệu từ cache ────────────────────────────────────
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const previousOwner = hydrationOwnerRef.current;
     const nextOwner = { id: user.id, region: user.region, accessToken: user.accessToken,
       entitlementsToken: user.entitlementsToken, generation: hydrationGeneration };
-    hydrationOwnerRef.current = nextOwner;
-    if (!hasAuth || previousOwner.id !== nextOwner.id || previousOwner.region !== nextOwner.region ||
+    const ownerChanged = previousOwner.id !== nextOwner.id || previousOwner.region !== nextOwner.region ||
         previousOwner.accessToken !== nextOwner.accessToken || previousOwner.entitlementsToken !== nextOwner.entitlementsToken ||
-        previousOwner.generation !== nextOwner.generation) pendingLoadoutRef.current = null;
-    if (!hasAuth || !cachedLoadoutSnapshot) {
+        previousOwner.generation !== nextOwner.generation;
+    if (ownerChanged) hydrationOwnerRef.current = nextOwner;
+    if (!hasAuth || ownerChanged) {
+      // Invalidate A before B paints or starts a read. A's completion cannot
+      // release B's in-flight gate or restore old visible/picker data.
+      requestSequenceRef.current += 1;
+      attemptedFetchAuthKeyRef.current = null;
+      fetchLoadoutInFlightRef.current = false;
+      rankRefreshAuthKeyRef.current = null;
+      pendingLoadoutRef.current = null;
+      loadoutSnapshotRef.current = null;
+      pickerTaskRef.current?.cancel();
+      pickerTaskRef.current = null;
+      setLoadoutSnapshot(null);
+      setRawGuns([]);
+      setRawSprays([]);
+      setRawActiveExpressions([]);
+      setIdentity(null);
+      setOwnedSkinItemIds([]);
+      setOwnedSprayItemIds([]);
+      setOwnedFlexItemIds([]);
+      setOwnedPlayerCardItemIds([]);
+      setOwnedPlayerTitleItemIds([]);
+      setCompetitiveRank(null);
+      setPickerState(null);
+      setActiveWeaponChroma(null);
+      setIdentityPickerQuery("");
+      setPickerLoading(false);
+      setPickerError(null);
+      setUpdatingLoadout(false);
+      setRefreshing(false);
+      setStatsRefreshing(false);
+      setError(null);
+      setLoading(!cachedLoadoutSnapshot);
+    }
+    if (!hasAuth || !cachedLoadoutSnapshot || !cachedProfile) {
       return;
     }
 
@@ -126,7 +164,7 @@ export function useProfileFetch({
     setCompetitiveRank(cachedCompetitiveRank);
     setError(null);
     setLoading(false);
-  }, [cachedCompetitiveRank, cachedLoadoutSnapshot, cachedProfile, hasAuth, hydrationGeneration, pendingLoadoutRef, setCompetitiveRank, setError, setLoading, setOwnedFlexItemIds, setOwnedPlayerCardItemIds, setOwnedPlayerTitleItemIds, setOwnedSkinItemIds, setOwnedSprayItemIds, syncLoadoutState, user]);
+  }, [cachedCompetitiveRank, cachedLoadoutSnapshot, cachedProfile, fetchLoadoutInFlightRef, hasAuth, hydrationGeneration, loadoutSnapshotRef, pendingLoadoutRef, pickerTaskRef, rankRefreshAuthKeyRef, setActiveWeaponChroma, setCompetitiveRank, setError, setIdentity, setIdentityPickerQuery, setLoading, setLoadoutSnapshot, setOwnedFlexItemIds, setOwnedPlayerCardItemIds, setOwnedPlayerTitleItemIds, setOwnedSkinItemIds, setOwnedSprayItemIds, setPickerError, setPickerLoading, setPickerState, setRawActiveExpressions, setRawGuns, setRawSprays, setRefreshing, setStatsRefreshing, setUpdatingLoadout, syncLoadoutState, user]);
 
   /**
    * fetchLoadoutData — Fetch profile (loadout + ownership + rank), có
@@ -137,8 +175,6 @@ export function useProfileFetch({
    * @param showSpinner - Hiển thị spinner loading?
    * @param forceRefresh - Bỏ qua cache kết quả đã resolve?
    */
-  const requestSequenceRef = React.useRef(0);
-  const attemptedFetchAuthKeyRef = React.useRef<string | null>(null);
   React.useEffect(() => () => { requestSequenceRef.current += 1; }, []);
 
   const fetchLoadoutData = React.useCallback(
@@ -212,6 +248,7 @@ export function useProfileFetch({
           };
           const displayLoadout = resolveLoadoutForDisplay();
           if (displayLoadout) syncLoadoutState(displayLoadout);
+          else setError(t("equip_page.error_loading"));
           if (showSpinner) setLoading(false);
 
           const [ownership, rankOutcome] = await Promise.all([
@@ -263,6 +300,7 @@ export function useProfileFetch({
           }
         } catch (error) {
           if (isSessionChangedError(error)) throw error;
+          if (isCurrentRequest() && !loadoutSnapshotRef.current) setError(t("equip_page.error_loading"));
           if (__DEV__) console.warn("[profile] fetchLoadoutData failed", sanitizeErrorForLog(error));
         } finally {
           if (requestSequence === requestSequenceRef.current) {
@@ -274,7 +312,7 @@ export function useProfileFetch({
       [fetchLoadoutInFlightRef, loadoutMutationVersionRef, loadoutSnapshotRef, pendingLoadoutRef,
         sessionUserRef, setCompetitiveRank, setError, setLoading, setOwnedFlexItemIds,
         setOwnedPlayerCardItemIds, setOwnedPlayerTitleItemIds, setOwnedSkinItemIds,
-        setOwnedSprayItemIds, syncLoadoutState, setProfileCache, setUser]
+        setOwnedSprayItemIds, syncLoadoutState, setProfileCache, setUser, t]
   );
 
   // ── Effect: Fetch weapon metadata từ valorant-api.com ──────────────────────
@@ -384,7 +422,7 @@ export function useProfileFetch({
         initialFetchTimeoutRef.current = null;
       }
     };
-  }, [authKey, cachedLoadoutSnapshot, cachedProfile, fetchLoadoutData, hasAuth, initialFetchTaskRef, initialFetchTimeoutRef, isProfileDemo, rankRefreshAuthKeyRef, setCompetitiveRank, setError, setIdentity, setIdentityPickerQuery, setLoading, setLoadoutSnapshot, setOwnedFlexItemIds, setOwnedPlayerCardItemIds, setOwnedPlayerTitleItemIds, setOwnedSkinItemIds, setOwnedSprayItemIds, setPickerError, setPickerLoading, setPickerState, setRawActiveExpressions, setRawGuns, setRawSprays, t]);
+  }, [authKey, cachedLoadoutSnapshot, cachedProfile, fetchLoadoutData, hasAuth, hydrationGeneration, initialFetchTaskRef, initialFetchTimeoutRef, isProfileDemo, rankRefreshAuthKeyRef, setCompetitiveRank, setError, setIdentity, setIdentityPickerQuery, setLoading, setLoadoutSnapshot, setOwnedFlexItemIds, setOwnedPlayerCardItemIds, setOwnedPlayerTitleItemIds, setOwnedSkinItemIds, setOwnedSprayItemIds, setPickerError, setPickerLoading, setPickerState, setRawActiveExpressions, setRawGuns, setRawSprays, t, user.accessToken, user.entitlementsToken]);
 
   /**
    * handleRefresh — Pull-to-refresh: gọi fetchLoadoutData không spinner.
@@ -393,18 +431,21 @@ export function useProfileFetch({
     if (!hasAuth) return;
 
     setRefreshing(true);
+    const request = fetchLoadoutData(false, true);
+    const requestSequence = requestSequenceRef.current;
     try {
-      await fetchLoadoutData(false, true);
+      await request;
     } catch (error) {
       if (!isSessionChangedError(error)) throw error;
     } finally {
-      setRefreshing(false);
+      if (requestSequence === requestSequenceRef.current) setRefreshing(false);
     }
   }, [fetchLoadoutData, hasAuth, setRefreshing]);
   // handleStatsRefresh: pull-to-refresh dashboard → force fetch matches + season stats.
   const handleStatsRefresh = React.useCallback(async (seasonId?: string) => {
     if (isProfileDemo || !hasAuth) return;
 
+    const refreshOwner = hydrationOwnerRef.current;
     setStatsRefreshing(true);
     try {
       await Promise.all([
@@ -412,7 +453,7 @@ export function useProfileFetch({
         fetchSeasonStats(user, true, seasonId),
       ]);
     } finally {
-      setStatsRefreshing(false);
+      if (refreshOwner === hydrationOwnerRef.current) setStatsRefreshing(false);
     }
   }, [fetchMatches, fetchSeasonStats, hasAuth, isProfileDemo, setStatsRefreshing, user]);
   const handleSeasonChange = React.useCallback(

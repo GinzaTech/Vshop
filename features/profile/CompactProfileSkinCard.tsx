@@ -1,9 +1,9 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { CachedImage as Image } from "~/components/CachedImage";
-import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
-import { GLASS_MATERIAL, RADIUS, SHADOWS } from "~/constants/DesignSystem";
+import { CachedImage as Image, type CachedImageProps } from "~/components/CachedImage";
+import ContentCardTouchable from "~/components/ui/ContentCardTouchable";
+import { COLORS, GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { FALLBACK_IMAGE, type EquippedWeapon } from "~/components/GalleryProfile";
 import { styles } from "~/features/profile/profile-screen.styles";
 import { formatUpgradeLevel } from "~/features/profile/profile-loadout";
@@ -14,6 +14,7 @@ export interface CompactProfileSkinCardProps {
   width: number;            // Chiều rộng của card
   disabled?: boolean;       // Disable tương tác?
   onPress?: () => void;     // Callback khi nhấn
+  imagePriority?: CachedImageProps["priority"];
 }
 
 /**
@@ -27,7 +28,7 @@ export interface CompactProfileSkinCardProps {
  * - Ảnh skin.
  * - Tên vũ khí + tên skin.
  *
- * Nếu có onPress, bọc trong TouchableOpacity. Nếu không, dùng View có accessibility.
+ * Nếu có onPress, dùng ContentCardTouchable. Nếu không, dùng View có accessibility.
  *
  * @returns {JSX.Element} Card skin nhỏ gọn.
  */
@@ -36,6 +37,7 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
                                                                             width,
                                                                             disabled = false,
                                                                             onPress,
+                                                                            imagePriority = "low",
                                                                           }: CompactProfileSkinCardProps) {
   const tier = getContentTierVisual(
       weapon.contentTierUuid,
@@ -44,17 +46,14 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
   const upgradeLabel = formatUpgradeLevel(weapon);
   const cardStyle = [
     styles.profileSkinCard,
-    presentationStyles.glassCard,
-    SHADOWS.xs,
+    presentationStyles.contentCard,
     {
       width,
       borderColor: tier.border,
-      opacity: disabled ? 0.72 : 1,
     },
   ];
   const content = (
       <>
-        <LiquidGlassDecoration radius={RADIUS.sm} density="dense" tone="light" />
         <View
             style={[
               styles.profileSkinVisual,
@@ -92,7 +91,7 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
               style={styles.profileSkinImage}
               contentFit="contain"
               cachePolicy="memory-disk"
-              priority="low"
+              priority={imagePriority}
               recyclingKey={weapon.skinId || weapon.weaponId}
           />
         </View>
@@ -102,7 +101,7 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
           <Text style={styles.profileSkinWeaponName} numberOfLines={1}>
             {weapon.weaponName}
           </Text>
-          <Text style={styles.profileSkinName} numberOfLines={2}>
+          <Text style={[styles.profileSkinName, disabled && presentationStyles.disabledName]}>
             {weapon.skinName}
           </Text>
         </View>
@@ -111,17 +110,16 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
 
   if (onPress) {
     return (
-        <TouchableOpacity
+        <ContentCardTouchable
             accessibilityRole="button"
             accessibilityLabel={`${weapon.weaponName}, ${weapon.skinName}`}
             accessibilityState={{ disabled }}
-            activeOpacity={0.86}
             disabled={disabled}
             onPress={onPress}
             style={cardStyle}
         >
           {content}
-        </TouchableOpacity>
+        </ContentCardTouchable>
     );
   }
 
@@ -137,11 +135,12 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
 });
 
 const presentationStyles = StyleSheet.create({
-  glassCard: {
+  contentCard: {
+    minHeight: 48,
     backgroundColor: GLASS_MATERIAL.surface,
     borderColor: GLASS_MATERIAL.border,
-    minHeight: 48,
   },
+  disabledName: { color: COLORS.TEXT_TERTIARY },
 });
 
 /**

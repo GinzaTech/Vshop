@@ -1,8 +1,20 @@
 {
+  "skin_preview": { "video": "Video", "image": "Ảnh", "variants": "Biến thể" },
   "common": {
-    "close": "Đóng"
+    "close": "Đóng",
+    "media_load_failed": "Không tải được nội dung xem trước. Chọn mục khác để thử lại."
+  },
+  "startup_launch": {
+    "prepare": "Đang chuẩn bị ứng dụng",
+    "session": "Đang khôi phục phiên đăng nhập",
+    "data": "Đang đồng bộ dữ liệu",
+    "ready": "Sẵn sàng",
+    "progress": "Tiến trình khởi động",
+    "stages": "{{completed}} / {{total}} bước hoàn tất"
   },
   "startup_recovery": {
+    "unavailable": "Dịch vụ Riot tạm thời không truy cập được. VShop sẽ tự thử lại.",
+    "retry": "Thử lại ngay",
     "maintenance": "VALORANT đang bảo trì hoặc tạm thời không khả dụng. Bạn có thể tiếp tục bằng dữ liệu gần nhất đã lưu trên thiết bị.",
     "use_cache": "Xem dữ liệu đã lưu",
     "cache_hint": "Dữ liệu đã lưu có thể không còn mới",
@@ -67,6 +79,7 @@
   "invalid_amount": "Số lượng tối thiểu là {{amount}}.",
   "kc": "KC",
   "language": "Ngôn ngữ",
+  "language_change_failed": "Không thể đổi ngôn ngữ. Vui lòng thử lại.",
   "languages": {
     "ar": "Tiếng Ả Rập",
     "de": "Tiếng Đức",

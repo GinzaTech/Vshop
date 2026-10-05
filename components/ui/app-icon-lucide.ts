@@ -48,6 +48,7 @@ export { default as History } from "lucide/dist/esm/icons/rotate-ccw-clock.mjs";
 export { default as Hourglass } from "lucide/dist/esm/icons/hourglass.mjs";
 export { default as ImageOff } from "lucide/dist/esm/icons/image-off.mjs";
 export { default as Images } from "lucide/dist/esm/icons/images.mjs";
+export { default as Play } from "lucide/dist/esm/icons/play.mjs";
 export { default as Info } from "lucide/dist/esm/icons/info.mjs";
 export { default as Languages } from "lucide/dist/esm/icons/languages.mjs";
 export { default as Layers3 } from "lucide/dist/esm/icons/layers.mjs";

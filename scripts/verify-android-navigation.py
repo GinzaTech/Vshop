@@ -11,7 +11,10 @@ import subprocess
 import time
 import xml.etree.ElementTree as ET
 import uiautomator2
-from lib.android_ui_guard import DeviceNotReady, assert_vshop_ready
+from lib.android_ui_guard import (
+    ALLOWED_VSHOP_PACKAGES, DEFAULT_VSHOP_PACKAGE, DeviceNotReady,
+    assert_vshop_ready, read_vshop_package_info, validate_vshop_package,
+)
 
 ROUTES = ("bundles", "shop", "profile", "night_market", "settings")
 
@@ -21,9 +24,12 @@ def main():
     parser.add_argument("--serial", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--adb", default="adb")
+    parser.add_argument("--package", choices=ALLOWED_VSHOP_PACKAGES, default=DEFAULT_VSHOP_PACKAGE,
+                        help="Exact app target; startupqa requires explicit opt-in")
     parser.add_argument("--allow-physical", action="store_true", help="Only use after explicit human physical-device authorization")
     parser.add_argument("--verify-collapse", action="store_true", help="Exercise the verified Settings hold and expand controls")
     args = parser.parse_args()
+    validate_vshop_package(args.package)
     if not re.fullmatch(r"emulator-\d+", args.serial) and not args.allow_physical:
         raise RuntimeError("Physical device requires explicit --allow-physical authorization")
     output = Path(args.output).resolve()
@@ -37,12 +43,13 @@ def main():
                               capture_output=True, timeout=15).stdout
 
     def foreground():
-        assert_vshop_ready(adb)
+        assert_vshop_ready(adb, package=args.package)
 
     emulator = adb("shell", "getprop", "ro.kernel.qemu").decode().strip() == "1"
     if not emulator and not args.allow_physical:
         raise RuntimeError("Target is not an authorized physical device")
-    report = {"serial": args.serial, "isEmulator": emulator, "scope": "navigation only; no live mutations", "routes": []}
+    report = {"serial": args.serial, "package": args.package, "isEmulator": emulator,
+              "scope": "navigation only; no live mutations", "routes": []}
 
     def tree():
         foreground()
@@ -123,6 +130,7 @@ def main():
 
     try:
         foreground()
+        report.update(read_vshop_package_info(adb, package=args.package))
         device = uiautomator2.connect(args.serial)
         nodes = tree()
         initial_expand = next((n for n in nodes if n.get("resource-id") == "primary-navigation-expand"), None)
@@ -163,13 +171,14 @@ def main():
 
         # Warm interrupt sequence; frame metrics include DEV/instrumentation overhead.
         foreground()
-        adb("shell", "dumpsys", "gfxinfo", "com.android.vshop", "reset")
+        adb("shell", "dumpsys", "gfxinfo", args.package, "reset")
         sequence = ["bundles", "settings", "shop", "profile", "night_market", "shop", "settings", "profile"]
         for route in sequence:
             press(tabs[route], delay=0.04)
         selected("profile")
         time.sleep(0.7)
-        gfx = adb("shell", "dumpsys", "gfxinfo", "com.android.vshop", "framestats").decode(errors="replace")
+        foreground()
+        gfx = adb("shell", "dumpsys", "gfxinfo", args.package, "framestats").decode(errors="replace")
         (output / "warm-navigation-framestats.txt").write_text(gfx, encoding="utf-8")
         report["frameSummary"] = [line.strip() for line in gfx.splitlines()
                                   if re.search(r"Total frames|Janky frames|percentile:", line)]

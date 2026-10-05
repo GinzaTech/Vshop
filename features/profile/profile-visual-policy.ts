@@ -10,12 +10,11 @@ type ProfileChromeTone = {
 };
 
 /**
- * Màu dùng riêng cho vùng dữ liệu. Canvas tối tách thông tin khỏi màn trang bị
- * nhưng mọi giá trị vẫn trỏ về token chung của ứng dụng.
+ * Data cards retain their dark material on the shared gray page background.
  */
 export const PROFILE_INFO_COLORS = {
   accent: COLORS.VALORANT_VIOLET,
-  background: COLORS.PURE_BLACK,
+  background: COLORS.BACKGROUND,
   border: COLORS.ON_DARK_BORDER,
   borderSubtle: COLORS.ON_DARK_BORDER,
   card: COLORS.ACCENT_DEEP,
@@ -50,11 +49,11 @@ export const PROFILE_INFO_TYPOGRAPHY = {
  * Player info dùng chrome tối để canvas dữ liệu phủ liền mạch tới status bar.
  */
 export function getProfileChromeTone(
-  mode: ProfileVisualMode
+  _mode: ProfileVisualMode
 ): ProfileChromeTone {
   return {
     primaryNavigation: "dark",
-    topInset: mode === "player-info" ? "dark" : "light",
+    topInset: "light",
   };
 }
 

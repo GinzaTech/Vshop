@@ -8,7 +8,7 @@ import Animated, {
     ReduceMotion,
 } from "react-native-reanimated";
 import { COLORS, GLASS_MATERIAL, RADIUS } from "~/constants/DesignSystem";
-import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "./LiquidGlassSurface";
+import { FLAT_CARD_STYLE, LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "./LiquidGlassSurface";
 import { MOTION_DURATION } from "~/constants/Motion";
 
 // CARD_ENTRANCE: Animation entrance FadeInDown dùng khi animated=true;
@@ -31,6 +31,7 @@ interface GlassCardProps extends ViewProps {
     contentStyle?: StyleProp<ViewStyle>;
     children: React.ReactNode;
     animated?: boolean;
+    variant?: "glass" | "flat";
 }
 
 /**
@@ -49,6 +50,7 @@ export default function GlassCard({
     contentStyle,
     children,
     animated = false,
+    variant = "glass",
     ...props
 }: GlassCardProps) {
     const outer = StyleSheet.flatten(style);
@@ -58,12 +60,14 @@ export default function GlassCard({
         outer?.backgroundColor === COLORS.VALORANT_DARK_BLUE ? "dark" : "light";
     const isLegacyLight = (color: ViewStyle["backgroundColor"]) =>
         color === COLORS.SURFACE || color === COLORS.BACKGROUND || color === COLORS.SURFACE_MUTED;
-    const surfaceStyle = [styles.container, style,
-        isLegacyLight(outer?.backgroundColor) && { backgroundColor: GLASS_MATERIAL.surface }];
+    const flat = variant === "flat";
+    const surfaceStyle = [styles.container, flat && FLAT_CARD_STYLE, style,
+        !flat && isLegacyLight(outer?.backgroundColor) && { backgroundColor: GLASS_MATERIAL.surface },
+        flat && { shadowOpacity: 0, shadowRadius: 0, elevation: 0, boxShadow: "none" }];
     const childrenContent = <>
-        <LiquidGlassDecoration radius={typeof outer?.borderRadius === "number" ? outer.borderRadius : RADIUS.card} tone={tone} />
+        {!flat && <LiquidGlassDecoration radius={typeof outer?.borderRadius === "number" ? outer.borderRadius : RADIUS.card} tone={tone} />}
         <View style={[styles.content, contentStyle,
-            isLegacyLight(inner?.backgroundColor) && { backgroundColor: GLASS_MATERIAL.clear }]}>{children}</View>
+            !flat && isLegacyLight(inner?.backgroundColor) && { backgroundColor: GLASS_MATERIAL.clear }]}>{children}</View>
     </>;
     if (animated) {
         return (

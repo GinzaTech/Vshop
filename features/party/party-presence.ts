@@ -5,6 +5,7 @@ export type PartyPresence = {
   playerCardId?: string;
   accountLevel?: number;
   sessionLoopState?: string;
+  isIdle?: boolean;
 };
 
 export function presenceShow(stanza: string, show: string): string {
@@ -29,7 +30,9 @@ function displayFields(data: Record<string, unknown>): PartyPresence {
   const playerCardId = typeof data.playerCardId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(data.playerCardId.trim()) ? data.playerCardId.trim() : undefined;
   const accountLevel = typeof data.accountLevel === "number" && Number.isSafeInteger(data.accountLevel) && data.accountLevel >= 0 ? data.accountLevel : undefined;
   const sessionLoopState = typeof data.sessionLoopState === "string" && /^[A-Z_]{1,40}$/.test(data.sessionLoopState) ? data.sessionLoopState : undefined;
-  return { ...(playerCardId ? { playerCardId } : {}), ...(accountLevel !== undefined ? { accountLevel } : {}), ...(sessionLoopState ? { sessionLoopState } : {}) };
+  const isIdle = typeof data.isIdle === "boolean" ? data.isIdle : undefined;
+  return { ...(playerCardId ? { playerCardId } : {}), ...(accountLevel !== undefined ? { accountLevel } : {}),
+    ...(sessionLoopState ? { sessionLoopState } : {}), ...(isIdle !== undefined ? { isIdle } : {}) };
 }
 
 function readMetadata(payload: string, nestedPresence: boolean): PartyPresence | undefined {

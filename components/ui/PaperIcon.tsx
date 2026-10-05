@@ -57,6 +57,11 @@ export function PaperClearIcon({ color, size }: { color: string; size: number })
   return <AppIcon name="close" size={size} color={color ?? COLORS.TEXT_PRIMARY} decorative />;
 }
 
+/** Appbar.BackAction hardcodes its own font icon; use this with Appbar.Action. */
+export function PaperBackIcon({ color, size }: { color: string; size: number }) {
+  return <AppIcon name="back" size={size} color={color ?? COLORS.TEXT_PRIMARY} decorative />;
+}
+
 const styles = StyleSheet.create({
   // Paper đo icon theo size; bọc View để nhận style paper mà AppIcon không hỗ trợ.
   icon: { alignItems: "center", justifyContent: "center" },

@@ -3,7 +3,10 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
+import type { StartupPhase } from "~/constants/Startup";
 import ValorantButton from "~/components/ui/ValorantButton";
+import LoadingScreen from "~/components/LoadingScreen";
+import { RecoveryUpdateActionsView } from "~/components/ui/RecoveryUpdateActions";
 import SkinShowcaseCard from "~/components/SkinShowcaseCard";
 import type { EquippedWeapon } from "~/components/GalleryProfile";
 import { useProfileState } from "~/features/profile/useProfileState";
@@ -20,9 +23,29 @@ const palette = { accent: COLORS.VALORANT_RED, background: COLORS.BACKGROUND, ca
   cardBorder: COLORS.BORDER, chipBackground: COLORS.SURFACE_MUTED, textPrimary: COLORS.TEXT_PRIMARY, textSecondary: COLORS.TEXT_SECONDARY };
 
 /** DEV route selects this module; production Metro substitutes ui-qa.production.js. */
-export default function LocalUiQaScreen() {
+export default function LocalUiQaScreen({ teamPreview = false, startupPreview = false, recoveryPreview = false, startupPhase = "prepare" }: {
+  teamPreview?: boolean; startupPreview?: boolean; recoveryPreview?: boolean; startupPhase?: StartupPhase;
+}) {
   const [epoch, reset] = React.useReducer((value: number) => value + 1, 0);
+  if (startupPreview) return <LocalStartupPreview key={recoveryPreview ? "recovery" : "normal"} recovery={recoveryPreview} phase={startupPhase} />;
+  if (teamPreview) {
+    // Load Team dependencies only in this isolated branch; preserve QA startup.
+    const PartyUiQaScreen = (require("./party-ui-qa") as typeof import("./party-ui-qa")).default;
+    return <PartyUiQaScreen />;
+  }
   return <LocalQaSession key={epoch} onReset={reset} />;
+}
+
+function LocalStartupPreview({ recovery, phase }: { recovery: boolean; phase: StartupPhase }) {
+  const [recovering, setRecovering] = React.useState(recovery);
+  const [checked, setChecked] = React.useState(false);
+  return <View testID="startup-preview-screen" style={styles.screen}>
+    <LoadingScreen phase={phase} showRecoveryActions={recovering} canUseCachedData={recovering}
+      showUpdateRecovery={recovering} recoveryUpdateActions={<RecoveryUpdateActionsView
+        state={{ kind: checked ? "up-to-date" : "idle" }} checkAndApply={() => setChecked(true)} />}
+      cachedDataUpdatedAt={Date.UTC(2026, 9, 3, 0, 0)}
+      onRetry={() => setRecovering(false)} onUseCachedData={() => setRecovering(false)} />
+  </View>;
 }
 
 function LocalQaSession({ onReset }: { onReset: () => void }) {
@@ -88,7 +111,12 @@ function LocalQaSession({ onReset }: { onReset: () => void }) {
     pending: state.updatingLoadout, picker: state.pickerState?.type ?? null, error };
   const json = JSON.stringify(evidence);
 
-  return <ScrollView testID="ui-qa-screen" style={styles.screen}
+  return <View testID="ui-qa-route" collapsable={false} style={styles.screen}
+    aria-hidden={Boolean(state.pickerState)} accessibilityElementsHidden={Boolean(state.pickerState)}
+    importantForAccessibility={state.pickerState ? "no-hide-descendants" : "auto"}><ScrollView testID="ui-qa-screen" style={styles.screen}
+    accessibilityElementsHidden={Boolean(state.pickerState)}
+    aria-hidden={Boolean(state.pickerState)}
+    importantForAccessibility={state.pickerState ? "no-hide-descendants" : "auto"}
     contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.sm, paddingBottom: insets.bottom + SPACING.lg }]}>
     <Text accessibilityRole="header" style={styles.heading}>Local QA (no Riot)</Text>
     <Text testID="ui-qa-latency-note" style={styles.note}>Synthetic local ownership. Every write waits {QA_WRITE_DELAY_MS}ms. Public art only; demo prices are not shop data.</Text>
@@ -115,11 +143,11 @@ function LocalQaSession({ onReset }: { onReset: () => void }) {
     <View testID="ui-qa-glass-previews" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.previews}>
       {QA_PREVIEW_CARDS.map((item) => <SkinShowcaseCard key={item.uuid} item={item} variant="store" />)}
     </View>
-    <ProfilePickerModal {...actions} activeWeaponChroma={state.activeWeaponChroma} setActiveWeaponChroma={state.setActiveWeaponChroma}
+    <ProfilePickerModal {...actions} testID="ui-qa-picker" activeWeaponChroma={state.activeWeaponChroma} setActiveWeaponChroma={state.setActiveWeaponChroma}
       handleDismissPicker={dismiss} handleOpenExpressionPicker={openExpression} identityDetails={null} identityPickerQuery={state.identityPickerQuery}
       setIdentityPickerQuery={state.setIdentityPickerQuery} palette={palette} pickerError={state.pickerError} pickerLoading={state.pickerLoading}
       pickerState={state.pickerState} updatingLoadout={state.updatingLoadout} />
-  </ScrollView>;
+  </ScrollView></View>;
 }
 
 const styles = StyleSheet.create({

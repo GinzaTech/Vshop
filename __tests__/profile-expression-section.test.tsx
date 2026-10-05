@@ -1,11 +1,12 @@
 import React from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View, type ScaledSize } from "react-native";
+import { RefractiveGlassCard } from "~/components/ui/refractive-glass";
+import { Platform, StyleSheet, Text, TouchableOpacity, type ScaledSize } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 import i18next from "i18next";
 
 import { CachedImage } from "~/components/CachedImage";
 import { FALLBACK_IMAGE, formatSpraySlot, type EquippedSpray } from "~/components/GalleryProfile";
-import { GLASS_MATERIAL, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from "~/constants/DesignSystem";
+import { GLASS_MATERIAL, SPACING, TYPOGRAPHY } from "~/constants/DesignSystem";
 import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
 import { ProfileExpressionSection, ProfileIdentitySection } from "~/features/profile/ProfileEquipmentSections";
 import type { EquippedExpression } from "~/features/profile/profile-loadout";
@@ -58,16 +59,18 @@ function renderSection(overrides: Partial<Props> = {}) {
 afterEach(() => { act(() => { renderers.forEach((renderer) => renderer.unmount()); }); renderers.length = 0; });
 
 describe("Profile compact expression row", () => {
-  it("decorates each slot behind its clear artwork without introducing a layout wrapper", () => {
+  it("keeps mounted slots opaque and shadowless with outline-only press feedback", () => {
     const { root } = renderSection();
+    expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
     root.findAllByType(TouchableOpacity).forEach((cell) => {
-      expect(cell.props.children[0].type).toBe(LiquidGlassDecoration);
-      expect(cell.findByType(LiquidGlassDecoration).props).toMatchObject({ radius: RADIUS.md, density: "dense", tone: "light" });
-      const layer = cell.findByType(LiquidGlassDecoration).findAllByType(View)[0];
-      expect(layer.props).toMatchObject({ pointerEvents: "none", accessible: false, accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" });
-      expect(StyleSheet.flatten(layer.props.style).position).toBe("absolute");
-      expect(StyleSheet.flatten(cell.props.style)).toMatchObject({ ...SHADOWS.xs, overflow: "hidden" });
-      expect(cell.props.children[1].type).toBe(CachedImage);
+      const initial = StyleSheet.flatten(cell.props.style);
+      expect(initial).toMatchObject({ backgroundColor: GLASS_MATERIAL.surface, minHeight: 48 });
+      expect(cell.props.activeOpacity).toBe(1);
+      act(() => cell.props.onPressIn());
+      expect(StyleSheet.flatten(cell.props.style)).toEqual(initial);
+      expect(StyleSheet.flatten(cell.findByProps({ testID: "content-card-press-outline" }).props.style).opacity).toBe(1);
+      act(() => cell.props.onPressOut());
+      expect(StyleSheet.flatten(cell.findByProps({ testID: "content-card-press-outline" }).props.style).opacity).toBe(0);
     });
   });
   it("keeps four supplied slots in original order and invokes their exact callbacks", () => {
@@ -97,6 +100,7 @@ describe("Profile compact expression row", () => {
     const available = Math.min(width, 430) - 2 * 20;
     const cellWidth = (available - 3 * row.gap) / 4;
     expect(cellWidth).toBeGreaterThanOrEqual(48);
+    expect(root.findAllByType(RefractiveGlassCard)).toHaveLength(0);
     root.findAllByType(TouchableOpacity).forEach((cell) => {
       const style = StyleSheet.flatten(cell.props.style);
       expect(style).toMatchObject({ flex: 1, minWidth: 0, minHeight: 48, backgroundColor: GLASS_MATERIAL.surface, borderColor: GLASS_MATERIAL.border });
@@ -112,7 +116,7 @@ describe("Profile compact expression row", () => {
   it("reserves compact contained artwork and uses fallback only for missing images", () => {
     const { root } = renderSection();
     root.findAllByType(CachedImage).forEach((image, index) => {
-      expect(StyleSheet.flatten(image.props.style)).toMatchObject({ width: "100%", maxWidth: 48, height: 48 });
+      expect(StyleSheet.flatten(image.props.style)).toMatchObject({ width: "100%", maxWidth: 28, height: 28 });
       expect(image.props.contentFit).toBe("contain");
       expect(image.props.cachePolicy).toBe("memory-disk");
       expect(image.props.source).toEqual(expressions[index].icon ? { uri: expressions[index].icon } : FALLBACK_IMAGE);
@@ -176,14 +180,26 @@ describe("identity section remains intact", () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     act(() => { renderer = TestRenderer.create(<ProfileIdentitySection t={t} onOpenIdentityPicker={onOpenIdentityPicker} identityDetails={{ cardId: "card", level: 42, hideLevel: false, cardArt: withArt ? "https://example.com/card.png" : undefined, cardName: withArt ? "Card" : undefined, titleName: withArt ? "Title" : undefined }} />); });
     renderers.push(renderer);
-    const decoration = renderer.root.findByType(LiquidGlassDecoration);
-    expect(renderer.root.findByType(LiquidGlassBackdrop).props).toMatchObject({
-      artworkUri: withArt ? "https://example.com/card.png" : undefined, cacheId: "player-card:card:display-icon",
-    });
-    expect(decoration.props).toMatchObject({ radius: RADIUS.card, tone: "light" });
-    expect(StyleSheet.flatten(decoration.parent?.props.style)).toMatchObject({ backgroundColor: GLASS_MATERIAL.surface, borderColor: GLASS_MATERIAL.border, ...SHADOWS.xs });
+    expect(renderer.root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
+    expect(renderer.root.findAllByType(LiquidGlassBackdrop)).toHaveLength(0);
+    const image = renderer.root.findByType(CachedImage);
+    const imageButton = renderer.root.findAllByType(TouchableOpacity)[0];
+    const portrait = StyleSheet.flatten(imageButton.props.style);
+    expect(portrait).toMatchObject({ width: "33.333333%", height: 120 });
+    expect(Number.parseFloat(portrait.width) / 100).toBeCloseTo(1 / 3, 6);
+    expect(renderer.root.findAllByType(RefractiveGlassCard)).toHaveLength(0);
+    const container = imageButton.parent!.parent!;
+    expect(StyleSheet.flatten(container.props.style)).toMatchObject({ backgroundColor: GLASS_MATERIAL.surface, borderColor: GLASS_MATERIAL.border, borderWidth: 1 });
+    expect(image.props.cacheId).toBe("player-card:card:display-icon");
+    expect(imageButton.props.activeOpacity).toBe(1);
     expect(renderer.root.findByType(CachedImage).props.source).toEqual(withArt ? { uri: "https://example.com/card.png" } : FALLBACK_IMAGE);
     const buttons = renderer.root.findAllByType(TouchableOpacity);
+    const renderedText = renderer.root.findAllByType(Text).map(node => String(node.props.children));
+    expect(renderedText.some(text => text.includes("Cấp tài khoản"))).toBe(false);
+    expect(renderedText).toContain("42"); // Artwork's level badge remains.
+    expect(StyleSheet.flatten(buttons[2].parent!.props.style).justifyContent).toBe("space-between");
+    expect(StyleSheet.flatten(buttons[2].props.style).marginTop).toBe(SPACING.xs);
+    expect(StyleSheet.flatten(buttons[2].props.style).minHeight).toBeGreaterThanOrEqual(48);
     expect(buttons[1].props.accessibilityLabel).toBeTruthy();
     expect(buttons[2].props.accessibilityLabel).toBeTruthy();
     if (withArt) {
@@ -200,4 +216,14 @@ describe("identity section remains intact", () => {
     renderers.push(renderer);
     expect(renderer.toJSON()).toBeNull();
   });
+});
+
+// Profile integration owns wrappers; shader lifecycle is covered by the core owner.
+jest.mock("~/components/ui/refractive-glass", () => {
+  const ReactModule = require("react") as typeof React;
+  const Native = require("react-native") as typeof import("react-native");
+  return {
+    RefractiveGlassCard: ({ children, compact: _compact, ...props }: React.PropsWithChildren<Record<string, unknown>>) => ReactModule.createElement(Native.View, props, children),
+    GlassScrollView: ReactModule.forwardRef((props: Record<string, unknown>, ref: React.Ref<import("react-native").ScrollView>) => ReactModule.createElement(Native.ScrollView, { ...props, ref })),
+  };
 });

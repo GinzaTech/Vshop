@@ -14,11 +14,13 @@ import {
   MatchStatePanel,
 } from "~/components/matches/MatchStates";
 import type { EconomyPoint, ScoreboardPlayer } from "~/types/match-ui";
+jest.mock("~/components/ui/refractive-glass", () => jest.requireActual("./helpers/refractive-glass-mock"));
 
 const mockGetItemUpgrades = jest.fn();
 const mockRefreshShopAndBalances = jest.fn();
 const weaponSkinTypeId = "e7c63390-eda7-46e0-bb7a-a6abdacd2433";
 const mockCommerceUser = {
+  id: "synthetic-account",
   accessToken: "access-token",
   entitlementsToken: "entitlements-token",
   region: "ap",
@@ -98,8 +100,10 @@ jest.mock("~/components/ui/AppIcon", () => ({
   default: MockAppIcon,
 }));
 jest.mock("~/hooks/useUserStore", () => ({
-  useUserStore: (selector: (state: { user: typeof mockCommerceUser }) => unknown) =>
-    selector({ user: mockCommerceUser }),
+  useUserStore: Object.assign(
+    (selector: (state: { user: typeof mockCommerceUser }) => unknown) => selector({ user: mockCommerceUser }),
+    { getState: () => ({ user: mockCommerceUser }) },
+  ),
 }));
 jest.mock("~/hooks/useWishlistStore", () => ({
   useWishlistStore: (selector: (state: { skinIds: string[] }) => unknown) =>

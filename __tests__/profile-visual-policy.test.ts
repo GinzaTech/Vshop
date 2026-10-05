@@ -8,20 +8,20 @@ import {
 } from "~/features/profile/profile-visual-policy";
 
 describe("profile visual policy", () => {
-  it("uses a light shell for equipment and a fully dark shell for player data", () => {
+  it("uses a shared light shell for equipment and player data", () => {
     expect(getProfileChromeTone("profile")).toEqual({
       primaryNavigation: "dark",
       topInset: "light",
     });
     expect(getProfileChromeTone("player-info")).toEqual({
       primaryNavigation: "dark",
-      topInset: "dark",
+      topInset: "light",
     });
   });
 
-  it("uses a dark, readable data canvas backed by shared design tokens", () => {
+  it("retains readable dark data cards on the common gray page", () => {
     expect(PROFILE_INFO_COLORS).toMatchObject({
-      background: COLORS.PURE_BLACK,
+      background: COLORS.BACKGROUND,
       card: COLORS.ACCENT_DEEP,
       surfaceSubtle: COLORS.VALORANT_DARK_BLUE,
       textPrimary: COLORS.PURE_WHITE,

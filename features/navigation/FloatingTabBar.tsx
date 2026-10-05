@@ -6,15 +6,16 @@ import Animated, { interpolate, useAnimatedStyle, type SharedValue } from "react
 import AppIcon, { type AppIconHandle } from "~/components/ui/AppIcon";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import PressFeedback from "~/components/ui/PressFeedback";
-import { COLORS, GLASS_MATERIAL, GLASS_TAB_BAR } from "~/constants/DesignSystem";
+import { COLORS, GLASS_MATERIAL, NAV_GLASS_MATERIAL, GLASS_TAB_BAR } from "~/constants/DesignSystem";
 import { NAV_MOTION } from "~/constants/Motion";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
 import { usePrimaryTabPreload, type TabTransitionNavigation } from "~/hooks/usePrimaryTabPreload";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { flowTracer } from "~/utils/flow-tracer";
+import { recordNavigationResponse } from "./navigation-response-profile";
 import { getGlassNavigationMetrics, getNavigationContentMetrics, isPrimaryRoute, PRIMARY_ROUTES, PRIMARY_ROUTE_ORDER, type PrimaryRouteName } from "./navigation-model";
 import { useLiquidLens } from "./useLiquidLens";
-import { NavigationBarBackdrop, type NavigationBlurTarget } from "./NavigationBarBackdrop";
+import { NavigationBarBackdrop, supportsNavigationBlur, type NavigationBlurTarget } from "./NavigationBarBackdrop";
 import { NavigationLensMaterial } from "./NavigationLensMaterial";
 import { getNavigationOptics } from "./navigation-optics";
 import { RefractionLens } from "./NativeRefraction";
@@ -30,12 +31,13 @@ export type FloatingTabBarProps = {
     emit: (event: { type: "tabPress"; target: string; canPreventDefault: true }) => { defaultPrevented: boolean };
     navigate: (name: string) => void;
     preload?: (name: string) => void;
+    addListener?: TabTransitionNavigation["addListener"];
   };
 };
 
-const TabVisual = memo(function TabVisual({ name, label, index, slotWidth, lensWidth, labelHeight, x, pressed, insideLens }: {
+const TabVisual = memo(function TabVisual({ name, label, index, slotWidth, lensWidth, labelHeight, x, pressed, insideLens, ink }: {
   name: PrimaryRouteName; label: string; index: number; slotWidth: number; lensWidth: number;
-  labelHeight: number; x: SharedValue<number>; pressed: boolean; insideLens: boolean;
+  labelHeight: number; x: SharedValue<number>; pressed: boolean; insideLens: boolean; ink: string;
 }) {
   const iconVisibility = useAnimatedStyle(() => {
     const distance = Math.abs((index + 0.5) * slotWidth - (x.value + lensWidth / 2));
@@ -47,18 +49,18 @@ const TabVisual = memo(function TabVisual({ name, label, index, slotWidth, lensW
       <Animated.View style={[styles.icon, insideLens && iconVisibility]}>
         <PressFeedback pressed={pressed}>
         <AppIcon name={PRIMARY_ROUTES[name].icon} size={GLASS_TAB_BAR.iconSize}
-          color={insideLens ? GLASS_MATERIAL.active : GLASS_MATERIAL.inactive} decorative />
+          color={insideLens ? NAV_GLASS_MATERIAL.activeIcon : ink} decorative />
         </PressFeedback>
       </Animated.View>
       <View style={[styles.labelStack, { height: labelHeight }]}>
         <Text numberOfLines={1} maxFontSizeMultiplier={GLASS_TAB_BAR.labelMaxFontSizeMultiplier}
-          style={[styles.label, insideLens && styles.activeLabel]}>{label}</Text>
+          style={[styles.label, insideLens && styles.activeLabel, { color: ink }]}>{label}</Text>
       </View>
     </View>
   );
 });
 
-/** One stable AppIcon changes name on accepted intent: retain the original path morph and 500ms repair. */
+/** One stable AppIcon changes name on accepted intent: retain the path morph and 500ms repair. */
 export const FloatingTabBar = memo(function FloatingTabBar({ state, descriptors, navigation, blurTarget, refractionTargetTag = null }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useAppWindowDimensions();
@@ -78,6 +80,11 @@ export const FloatingTabBar = memo(function FloatingTabBar({ state, descriptors,
   const slotWidth = Math.max(1, contentWidth / 5);
   const lensWidth = Math.max(GLASS_TAB_BAR.lensMinWidth, Math.min(slotWidth * GLASS_TAB_BAR.lensWidthRatio, GLASS_TAB_BAR.lensMaxWidth));
   const pending = useRef<string | null>(null);
+  const intentRevision = useRef(0);
+  const mounted = useRef(false);
+  const interactionReady = useRef(!tabsHidden);
+  const acceptedRoutes = useRef<readonly string[]>([]);
+  const committedRoute = useRef(active);
   const [intent, setIntent] = useState<string | null>(null);
   const [pressedRoute, setPressedRoute] = useState<string | null>(null);
   const previousActive = useRef(active?.key);
@@ -102,28 +109,54 @@ export const FloatingTabBar = memo(function FloatingTabBar({ state, descriptors,
   }));
 
   useLayoutEffect(() => {
+    committedRoute.current = active;
+    interactionReady.current = !tabsHidden;
+  }, [active, tabsHidden]);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; intentRevision.current += 1; };
+  }, []);
+
+  useLayoutEffect(() => {
     if (visible) {
       lastPrimaryGlyph.current = routeName;
     } else {
       pending.current = null;
+      intentRevision.current += 1;
+      acceptedRoutes.current = [];
       setIntent(null);
       setPressedRoute(null);
     }
   }, [routeName, visible]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previousActive.current === active?.key) return;
     previousActive.current = active?.key;
-    if (!visible || pending.current === active.name || !pending.current) {
+    if (!visible || pending.current === active.name || !pending.current || !acceptedRoutes.current.includes(active.name)) {
       pending.current = null;
+      intentRevision.current += 1;
+      acceptedRoutes.current = [];
       setIntent(null);
     }
   }, [active?.key, active?.name, visible]);
 
+  useEffect(() => navigation.addListener?.("transitionEnd", (event) => {
+    const confirmed = committedRoute.current;
+    if (!confirmed || event.target !== confirmed.key || !pending.current ||
+        acceptedRoutes.current.includes(confirmed.name)) return;
+    // An intermediate accepted press is a stale confirmation. A settled route
+    // outside that sequence is authoritative (e.g. an account-switch redirect).
+    pending.current = null;
+    intentRevision.current += 1;
+    acceptedRoutes.current = [];
+    setIntent(null);
+  }), [navigation]);
+
   useEffect(() => {
-    if (previousIcon.current === routeName) return;
+    const iconChanged = previousIcon.current !== routeName;
     previousIcon.current = routeName;
     if (reduceMotion) { iconRef.current?.settle(); return; }
+    if (!iconChanged) return;
     const timer = setTimeout(() => iconRef.current?.settle(), NAV_MOTION.iconRepairMs);
     return () => clearTimeout(timer);
   }, [routeName, reduceMotion]);
@@ -155,9 +188,11 @@ export const FloatingTabBar = memo(function FloatingTabBar({ state, descriptors,
 
   // Red lives exclusively inside the moving clip, never in stale overlays on
   // the neutral base row. The clip itself controls the tint during travel.
+  const clearBackdrop = !NAV_GLASS_MATERIAL.opaque && supportsNavigationBlur() && blurTarget?.current != null;
+  const ink = clearBackdrop ? NAV_GLASS_MATERIAL.clearText : NAV_GLASS_MATERIAL.text;
   const row = (insideLens: boolean) => routes.map((route, routeIndex) => (
     <TabVisual key={route.key} name={route.name as PrimaryRouteName} label={descriptors[route.key]?.options?.title ?? PRIMARY_ROUTES[route.name as PrimaryRouteName].label}
-      index={routeIndex} slotWidth={slotWidth} lensWidth={lensWidth} labelHeight={contentMetrics.labelHeight} x={lens.x} pressed={pressedRoute === route.name} insideLens={insideLens} />
+      index={routeIndex} slotWidth={slotWidth} lensWidth={lensWidth} labelHeight={contentMetrics.labelHeight} x={lens.x} pressed={pressedRoute === route.name} insideLens={insideLens} ink={ink} />
   ));
   return (
     <View testID="primary-tab-bar" pointerEvents={navigationHidden ? "none" : "box-none"}
@@ -169,8 +204,8 @@ export const FloatingTabBar = memo(function FloatingTabBar({ state, descriptors,
         if (measurement.viewportWidth !== width || Math.abs(next - measurement.width) > 0.5) setMeasurement({ viewportWidth: width, width: next });
       }}>
         <Animated.View testID="primary-navigation-frame" style={[styles.shadow, collapseFrameStyle]}>
-        <View testID="primary-tab-capsule" style={styles.surface}>
-          <NavigationBarBackdrop blurTarget={blurTarget} />
+        <View testID="primary-tab-capsule" style={[styles.surface, { backgroundColor: clearBackdrop ? GLASS_MATERIAL.clear : NAV_GLASS_MATERIAL.fallback }]}>
+          <NavigationBarBackdrop blurTarget={blurTarget} enabled={!tabsHidden} />
           <Animated.View testID="primary-navigation-expanded" pointerEvents={tabsHidden ? "none" : "auto"}
             aria-hidden={tabsHidden} accessibilityElementsHidden={tabsHidden}
             importantForAccessibility={tabsHidden ? "no-hide-descendants" : "auto"}
@@ -178,12 +213,12 @@ export const FloatingTabBar = memo(function FloatingTabBar({ state, descriptors,
           <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.visuals}>
             <View testID="primary-tab-base-row" style={styles.row}>{row(false)}</View>
             <Animated.View pointerEvents="none" testID="primary-tab-indicator" style={[styles.lens, { width: lensWidth }, lensStyle]}>
-              <RefractionLens targetTag={refractionTargetTag} enabled={!reduceMotion && !tabsHidden} />
+              <RefractionLens targetTag={refractionTargetTag} enabled={!NAV_GLASS_MATERIAL.opaque && !reduceMotion && !tabsHidden} />
               <NavigationLensMaterial progress={lens.progress} reduceMotion={reduceMotion} />
               <Animated.View testID="primary-tab-magnified-row" style={[styles.row, styles.cloneRow, { width: contentWidth }, cloneStyle]}>{row(true)}</Animated.View>
               <Animated.View style={[styles.glyph, { left: (lensWidth - GLASS_TAB_BAR.iconSize) / 2, top: contentMetrics.glyphTop }, glyphStyle]}>
                 <PressFeedback pressed={pressedRoute === routeName}>
-                  <AppIcon ref={iconRef} name={PRIMARY_ROUTES[routeName].icon} size={GLASS_TAB_BAR.iconSize} color={GLASS_MATERIAL.active} decorative spring="bouncy" testID="primary-tab-active-icon" />
+                  <AppIcon ref={iconRef} name={PRIMARY_ROUTES[routeName].icon} size={GLASS_TAB_BAR.iconSize} color={NAV_GLASS_MATERIAL.activeIcon} decorative spring="bouncy" testID="primary-tab-active-icon" />
                 </PressFeedback>
               </Animated.View>
             </Animated.View>
@@ -200,21 +235,35 @@ export const FloatingTabBar = memo(function FloatingTabBar({ state, descriptors,
                   setPressedRoute(null);
                   collapse.collapse();
                 } : undefined}
-                onPressIn={() => { if (collapse.canPress()) setPressedRoute(route.name); }} onPressOut={() => setPressedRoute(null)}
+                onPressIn={() => { recordNavigationResponse("press-in", route.name); if (collapse.canPress()) setPressedRoute(route.name); }} onPressOut={() => setPressedRoute(null)}
                 onPress={() => {
                   if (!collapse.canPress()) return;
                   const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
                   if (event.defaultPrevented || (pending.current ?? active.name) === route.name) return;
+                  recordNavigationResponse("press", route.name);
                   pending.current = route.name;
-                  setIntent(route.name);
+                  acceptedRoutes.current = [...acceptedRoutes.current, route.name];
+                  const revision = ++intentRevision.current;
                   pausePreload(route.key);
-                  lens.move(PRIMARY_ROUTE_ORDER.indexOf(route.name as PrimaryRouteName));
-                  if (Platform.OS !== "web") {
-                    void Haptics.selectionAsync().catch((error: unknown) => console.warn("Tab selection haptic failed", error));
+                  const kicked = lens.move(PRIMARY_ROUTE_ORDER.indexOf(route.name as PrimaryRouteName), false, () => {
+                    if (!mounted.current || !interactionReady.current || intentRevision.current !== revision || pending.current !== route.name) return;
+                    recordNavigationResponse("ui-kick", route.name);
+                    navigation.navigate(route.name);
+                    recordNavigationResponse("dispatch", route.name);
+                    if (Platform.OS !== "web") {
+                      void Haptics.selectionAsync().catch((error: unknown) => console.warn("Tab selection haptic failed", error));
+                    }
+                    flowTracer.startTrace(`Vshop Tab Navigation: ${active.name} to ${route.name}`);
+                    flowTracer.track({ type: "NAVIGATION", label: `navigation.navigate('${route.name}')`, source: { file: "features/navigation/FloatingTabBar.tsx", functionName: "onPress" }, input: { from: active.name, to: route.name }, tool: "React Navigation" });
+                  }, true);
+                  recordNavigationResponse("kick-return", route.name);
+                  if (kicked === false) {
+                    pending.current = null;
+                    acceptedRoutes.current = [];
+                    intentRevision.current += 1;
+                    return;
                   }
-                  flowTracer.startTrace(`Vshop Tab Navigation: ${active.name} to ${route.name}`);
-                  flowTracer.track({ type: "NAVIGATION", label: `navigation.navigate('${route.name}')`, source: { file: "features/navigation/FloatingTabBar.tsx", functionName: "onPress" }, input: { from: active.name, to: route.name }, tool: "React Navigation" });
-                  navigation.navigate(route.name);
+                  setIntent(route.name);
                 }}>
               </Pressable>
             ))}
@@ -227,7 +276,7 @@ export const FloatingTabBar = memo(function FloatingTabBar({ state, descriptors,
             <Pressable testID="primary-navigation-expand" accessibilityRole="button"
               accessibilityLabel="Expand navigation" accessibilityState={{ expanded: !collapse.collapsed }}
               disabled={!collapse.collapsed || navigationHidden} onPress={collapse.expand} style={styles.expandButton}>
-              <AppIcon name="navMore" size={GLASS_TAB_BAR.iconSize} color={GLASS_MATERIAL.inactive} decorative />
+              <AppIcon name="navMore" size={GLASS_TAB_BAR.iconSize} color={ink} decorative />
             </Pressable>
           </Animated.View>
         </View>
@@ -241,9 +290,9 @@ const styles = StyleSheet.create({
   positioner: { position: "absolute", left: 0, right: 0, alignItems: "center", zIndex: 1000 },
   measurement: { height: GLASS_TAB_BAR.height },
   shadow: { position: "absolute", right: 0, bottom: 0, height: GLASS_TAB_BAR.height, borderRadius: GLASS_TAB_BAR.radius, backgroundColor: "transparent",
-    shadowColor: COLORS.PURE_BLACK, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 5 },
-  surface: { flex: 1, borderRadius: GLASS_TAB_BAR.radius, overflow: "hidden", backgroundColor: "transparent",
-    borderColor: GLASS_MATERIAL.border, borderWidth: StyleSheet.hairlineWidth },
+    shadowColor: COLORS.PURE_BLACK, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0, shadowRadius: 0, elevation: 0, boxShadow: "none" },
+  surface: { flex: 1, borderRadius: GLASS_TAB_BAR.radius, overflow: "hidden", backgroundColor: NAV_GLASS_MATERIAL.fallback,
+    borderColor: NAV_GLASS_MATERIAL.border, borderWidth: 0 },
   expanded: { position: "absolute", left: 0, top: 0, height: GLASS_TAB_BAR.height },
   collapsed: { ...StyleSheet.absoluteFill },
   expandButton: { flex: 1, alignItems: "center", justifyContent: "center", minWidth: 48, minHeight: 48 },
@@ -253,10 +302,10 @@ const styles = StyleSheet.create({
   slot: { height: GLASS_TAB_BAR.height, alignItems: "center", justifyContent: "center" },
   icon: { width: GLASS_TAB_BAR.iconSize, height: GLASS_TAB_BAR.iconSize },
   labelStack: { width: "100%", marginTop: GLASS_TAB_BAR.labelGap },
-  label: { fontSize: GLASS_TAB_BAR.labelSize, lineHeight: GLASS_TAB_BAR.labelLineHeight, fontWeight: "500", letterSpacing: -0.15, textAlign: "center", color: GLASS_MATERIAL.inactive },
-  activeLabel: { color: GLASS_MATERIAL.active, fontWeight: "600" },
+  label: { fontSize: GLASS_TAB_BAR.labelSize, lineHeight: GLASS_TAB_BAR.labelLineHeight, fontWeight: "500", letterSpacing: -0.15, textAlign: "center", color: NAV_GLASS_MATERIAL.text },
+  activeLabel: { color: NAV_GLASS_MATERIAL.selectedText, fontWeight: "600" },
   lens: { position: "absolute", left: 0, top: GLASS_TAB_BAR.insetVertical, height: GLASS_TAB_BAR.lensHeight, borderRadius: GLASS_TAB_BAR.lensRadius,
-    overflow: "hidden", backgroundColor: Platform.OS === "android" ? GLASS_MATERIAL.lensFallback : GLASS_MATERIAL.lens, borderColor: GLASS_MATERIAL.border, borderWidth: StyleSheet.hairlineWidth },
+    overflow: "hidden", backgroundColor: NAV_GLASS_MATERIAL.lens, borderColor: NAV_GLASS_MATERIAL.border, borderWidth: 0 },
   glyph: { position: "absolute", width: GLASS_TAB_BAR.iconSize, height: GLASS_TAB_BAR.iconSize },
   touchRow: { ...StyleSheet.absoluteFill, marginHorizontal: GLASS_TAB_BAR.insetHorizontal, flexDirection: "row" },
   touchSlot: { flex: 1, minHeight: 48, minWidth: 44, alignItems: "center", justifyContent: "center" },

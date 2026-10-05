@@ -1,8 +1,12 @@
 import React from "react";
-import { Modal, Text } from "react-native";
+import { Modal, StyleSheet, Text, View } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 import AgentSelectModal from "~/features/party/AgentSelectModal";
 import type { AgentSelectModalProps } from "~/features/party/party-types";
+import EmptyStateCard from "~/components/ui/EmptyStateCard";
+import { FLAT_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
+import { COLORS, GLASS_MATERIAL, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
+import { PARTY_ACCENT } from "~/features/party/party.styles";
 
 let mockReduceMotion = false;
 jest.mock("react-i18next", () => ({ useTranslation: () => ({
@@ -37,6 +41,29 @@ async function press(label: string) { await act(async () => { await button(label
 afterEach(() => { act(() => renderer?.unmount()); mockReduceMotion = false; });
 
 describe("Pregame-only agent modal", () => {
+  it("flattens only repeated inner tiles while preserving geometry and deliberate dialog depth", () => {
+    mount({ selectedAgentId: "a" });
+    const available = button("A very long real agent name");
+    const unavailable = button("Other agent");
+    expect(StyleSheet.flatten(unavailable.props.style)).toMatchObject({ ...FLAT_CARD_STYLE,
+      flex: 1, maxWidth: "33.333%", minWidth: 0, padding: SPACING.xs, gap: SPACING.xxs,
+      borderRadius: RADIUS.md, alignItems: "center", minHeight: 112, opacity: 0.5 });
+    expect(StyleSheet.flatten(available.props.style)).toMatchObject({ shadowOpacity: 0, shadowRadius: 0,
+      elevation: 0, boxShadow: "none", backgroundColor: COLORS.WARNING_SURFACE, borderColor: PARTY_ACCENT });
+    for (const tile of [available, unavailable]) expect(tile.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
+    const dialog = renderer.root.findAllByType(View).find(node => node.props.accessibilityViewIsModal)!;
+    expect(StyleSheet.flatten(dialog.props.style)).toMatchObject({ ...SHADOWS.sm,
+      backgroundColor: GLASS_MATERIAL.denseSurface, borderRadius: RADIUS.screen, maxWidth: 520 });
+    expect(dialog.findAllByType(LiquidGlassDecoration)).toHaveLength(1);
+  });
+  it("flattens the inline empty card while retaining the modal decoration and disabled Lock", () => {
+    mount({ agents: [] });
+    const empty = renderer.root.findByType(EmptyStateCard);
+    expect(empty.props.variant).toBe("flat");
+    expect(empty.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
+    expect(renderer.root.findAllByType(LiquidGlassDecoration)).toHaveLength(1);
+    expect(button("Lock agent").props.accessibilityState.disabled).toBe(true);
+  });
   it("does not render a closed modal", () => { mount({ visible: false }); expect(renderer.toJSON()).toBeNull(); });
   it("renders a grid without role filters and marks unavailable agents disabled", () => {
     mount(); expect(button("Other agent").props.accessibilityState.disabled).toBe(true);

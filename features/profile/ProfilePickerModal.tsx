@@ -5,16 +5,23 @@
 
 import React from "react";
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
-import { Modal, Portal, Searchbar } from "react-native-paper";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
+import { Modal, Searchbar } from "react-native-paper";
 import { PaperClearIcon, PaperSearchIcon } from "~/components/ui/PaperIcon";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { CachedImage as Image } from "~/components/CachedImage";
 import AppIcon from "~/components/ui/AppIcon";
+import ContentCardTouchable from "~/components/ui/ContentCardTouchable";
+import { ProfilePickerSkinMetadata, pickerGlassStyles } from "./ProfilePickerGlassUI";
+import { getProfilePickerGeometry } from "./profile-picker-geometry";
 import { COLORS } from "~/constants/DesignSystem";
 import { FALLBACK_IMAGE, formatSpraySlot, type EquippedSpray, type EquippedWeapon, type IdentityDetails } from "~/components/GalleryProfile";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { styles } from "~/features/profile/profile-screen.styles";
+import { usePickerModalFocus } from "~/features/profile/usePickerModalFocus";
+import { ProfilePickerHost } from "~/features/profile/ProfilePickerHost";
+import { ProfilePickerOptionBusy } from "~/features/profile/ProfilePickerOptionBusy";
 import type { EquippedExpression, ExpressionKind, OwnedExpressionOption, OwnedSkinOption, OwnedSprayOption, PickerState } from "~/features/profile/profile-loadout";
 
 /** ProfilePalette – Bộ màu truyền vào từ ProfileScreen (đã tính theo theme). */
@@ -48,6 +55,7 @@ export interface ProfilePalette {
  * @param {boolean} updatingLoadout - Đang có mutation loadout chạy?
  */
 interface ProfilePickerModalProps {
+  testID?: string;
   activeWeaponChroma: { weapon: EquippedWeapon; option: OwnedSkinOption } | null;
   handleDismissPicker: () => void;
   handleEquipExpression: (expression: EquippedExpression, option: OwnedExpressionOption) => void | Promise<unknown>;
@@ -73,6 +81,7 @@ interface ProfilePickerModalProps {
  * @returns {JSX.Element | null} Modal content (Portal) hoặc null khi pickerState null.
  */
 export function ProfilePickerModal({
+  testID,
   activeWeaponChroma,
   handleDismissPicker,
   handleEquipExpression,
@@ -91,6 +100,8 @@ export function ProfilePickerModal({
   updatingLoadout,
 }: ProfilePickerModalProps) {
     const { t } = useTranslation();
+    const geometry = getProfilePickerGeometry(useAppWindowDimensions(), pickerState?.type);
+    const { closeButtonRef, sheetRef, handleNativeShow } = usePickerModalFocus(Boolean(pickerState), handleDismissPicker);
 
   // pickerState null → picker đang đóng, không render gì cả.
   if (!pickerState) {
@@ -158,17 +169,21 @@ export function ProfilePickerModal({
             )
             : [];
 
-    return (
-        <Portal>
+    const content = (
           <Modal
               visible
               onDismiss={handleDismissPicker}
               contentContainerStyle={styles.pickerModalContainer}
           >
+            <View style={[pickerGlassStyles.viewport, { height: geometry.viewportHeight }]}>
             <View
+                ref={sheetRef}
+                testID={testID}
+                accessibilityViewIsModal
                 style={[
                   styles.pickerSheet,
                   { backgroundColor: palette.card, borderColor: palette.cardBorder },
+                  pickerGlassStyles.sheet,
                 ]}
             >
               <View style={styles.pickerHandle} />
@@ -187,6 +202,7 @@ export function ProfilePickerModal({
                     <ActivityIndicator animating color={palette.accent} />
                 ) : null}
                 <TouchableOpacity
+                    ref={closeButtonRef}
                     accessibilityLabel={t("common.close", { defaultValue: "Đóng" })}
                     accessibilityRole="button"
                     activeOpacity={0.8}
@@ -222,6 +238,7 @@ export function ProfilePickerModal({
                       onChangeText={setIdentityPickerQuery}
                       style={[
                         styles.identityPickerSearch,
+                        pickerGlassStyles.target,
                         {
                           backgroundColor: palette.background,
                           borderColor: palette.cardBorder,
@@ -235,13 +252,14 @@ export function ProfilePickerModal({
                   />
               ) : null}
 
-              {/* Nhánh 1: picker skin vũ khí — grid 2 cột, long-press mở panel chroma */}
+              {/* Nhánh 1: picker skin vũ khí — grid responsive, long-press mở panel chroma */}
               {pickerState.type === "weapon" ? (
                   <FlatList
                       data={pickerState.options}
                       keyExtractor={(option) => option.id}
-                      numColumns={2}
-                      style={styles.pickerList}
+                      key={`${pickerState.type}-${geometry.columns}`}
+                      numColumns={geometry.columns}
+                      style={[styles.pickerList, pickerGlassStyles.list]}
                       contentContainerStyle={styles.pickerListContent}
                       columnWrapperStyle={styles.pickerGridRow}
                       showsVerticalScrollIndicator={false}
@@ -273,8 +291,10 @@ export function ProfilePickerModal({
                         );
 
                         return (
-                            <TouchableOpacity
-                                activeOpacity={0.9}
+                            <ContentCardTouchable
+                                accessibilityRole="button"
+                                accessibilityLabel={option.name}
+                                accessibilityState={{ selected: option.selected, disabled: pickerBusy }}
                                 disabled={pickerBusy}
                                 onPress={() => handleEquipWeapon(pickerState.weapon, option)}
                                 onLongPress={() =>
@@ -287,16 +307,19 @@ export function ProfilePickerModal({
                                 }
                                 style={[
                                   styles.pickerOptionCard,
+                                  pickerGlassStyles.option,
+                                  { width: geometry.cardWidth },
                                   {
                                     backgroundColor: tier.cardBackground,
                                     borderColor: option.selected ? palette.accent : tier.border,
-                                    opacity: pickerBusy ? 0.72 : 1,
                                   },
                                 ]}
                             >
                               <View
                                   style={[
                                     styles.pickerOptionVisual,
+                                    pickerGlassStyles.visual,
+                                    { height: geometry.artHeight },
                                     {
                                       backgroundColor: tier.visualBackground,
                                       borderColor: tier.border,
@@ -311,104 +334,20 @@ export function ProfilePickerModal({
                                     style={styles.pickerOptionImage}
                                     contentFit="contain"
                                     cachePolicy="memory-disk"
-                                    transition={90}
+                                    transition={0}
                                 />
                               </View>
                               <Text
                                   style={[
                                     styles.pickerOptionTitle,
+                                  pickerGlassStyles.name,
                                     { color: palette.textPrimary },
                                   ]}
-                                  numberOfLines={2}
+
                               >
                                 {option.name}
                               </Text>
-                              {option.chromas.length > 0 ? (
-                                  <View style={styles.pickerChipHintRow}>
-                                    {option.chromas.slice(0, 3).map((chroma) => (
-                                        <View key={chroma.id} style={styles.pickerChipHint}>
-                                          <Image
-                                              cacheId={`skin-chroma:${chroma.id}:swatch`}
-                                              source={
-                                                chroma.swatch
-                                                    ? { uri: chroma.swatch }
-                                                    : chroma.image
-                                                        ? { uri: chroma.image }
-                                                        : FALLBACK_IMAGE
-                                              }
-                                              style={styles.pickerChipHintImage}
-                                              contentFit="cover"
-                                          />
-                                        </View>
-                                    ))}
-                                    {option.chromas.length > 3 ? (
-                                        <View style={styles.pickerChipHintMore}>
-                                          <Text
-                                              style={[
-                                                styles.pickerChipHintMoreText,
-                                                { color: palette.textPrimary },
-                                              ]}
-                                          >
-                                            +{option.chromas.length - 3}
-                                          </Text>
-                                        </View>
-                                    ) : null}
-                                  </View>
-                              ) : null}
-                              <View style={styles.pickerOptionMeta}>
-                                <View
-                                    style={[
-                                      styles.pickerOptionBadge,
-                                      {
-                                        backgroundColor: tier.badgeBackground,
-                                        borderColor: tier.border,
-                                      },
-                                    ]}
-                                >
-                                  <View
-                                      style={[
-                                        styles.pickerOptionDot,
-                                        { backgroundColor: tier.accent },
-                                      ]}
-                                  />
-                                  <Text
-                                      style={[
-                                        styles.pickerOptionBadgeText,
-                                        { color: tier.text },
-                                      ]}
-                                  >
-                                    {option.contentTierName || tier.label}
-                                  </Text>
-                                </View>
-                                {option.upgradeLevel ? (
-                                    <View
-                                        style={[
-                                          styles.pickerOptionBadge,
-                                          {
-                                            backgroundColor: tier.badgeBackground,
-                                            borderColor: tier.border,
-                                          },
-                                        ]}
-                                    >
-                                      <AppIcon
-                                          decorative
-                                          name="chevronUp"
-                                          size={12}
-                                          color={tier.text}
-                                      />
-                                      <Text
-                                          style={[
-                                            styles.pickerOptionBadgeText,
-                                            { color: tier.text },
-                                          ]}
-                                      >
-                                        {option.maxUpgradeLevel && option.maxUpgradeLevel > 1
-                                            ? t("profile_page.level", { level: `${option.upgradeLevel}/${option.maxUpgradeLevel}` })
-                                            : t("profile_page.level", { level: option.upgradeLevel })}
-                                      </Text>
-                                    </View>
-                                ) : null}
-                              </View>
+                              <ProfilePickerSkinMetadata option={option} tier={tier} textColor={palette.textPrimary} />
                               {option.selected ? (
                                   <Text
                                       style={[
@@ -419,14 +358,16 @@ export function ProfilePickerModal({
                                     {t("equip_page.tabs.skins")}
                                   </Text>
                               ) : null}
-                            </TouchableOpacity>
+                              <ProfilePickerOptionBusy busy={pickerBusy} color={palette.accent} />
+                            </ContentCardTouchable>
                         );
                       }}
                   />
               ) : pickerState.type === "expression" ? (
-                  // Nhánh 2: picker graffiti/flex — tab đổi kind + grid 2 cột
+                  // Nhánh 2: picker graffiti/flex — tab đổi kind + grid responsive
                   <>
                     <View
+                        accessibilityRole="tablist"
                         style={[
                           styles.expressionPickerTabs,
                           {
@@ -441,6 +382,8 @@ export function ProfilePickerModal({
                         return (
                             <TouchableOpacity
                                 key={mode}
+                                accessibilityRole="tab"
+                                accessibilityState={{ selected: active }}
                                 activeOpacity={0.85}
                                 onPress={() =>
                                     handleOpenExpressionPicker(
@@ -450,6 +393,7 @@ export function ProfilePickerModal({
                                 }
                                 style={[
                                   styles.expressionPickerTab,
+                                  pickerGlassStyles.target,
                                   {
                                     backgroundColor: active
                                         ? COLORS.PURE_BLACK
@@ -484,8 +428,9 @@ export function ProfilePickerModal({
                         keyExtractor={(option) =>
                             `${pickerState.mode}-${option.id}`
                         }
-                        numColumns={2}
-                        style={styles.pickerList}
+                        key={`${pickerState.type}-${geometry.columns}`}
+                      numColumns={geometry.columns}
+                        style={[styles.pickerList, pickerGlassStyles.list]}
                         contentContainerStyle={styles.pickerListContent}
                         columnWrapperStyle={styles.pickerGridRow}
                         showsVerticalScrollIndicator={false}
@@ -518,8 +463,10 @@ export function ProfilePickerModal({
                           </View>
                         }
                         renderItem={({ item: option }) => (
-                            <TouchableOpacity
-                                activeOpacity={0.9}
+                            <ContentCardTouchable
+                                accessibilityRole="button"
+                                accessibilityLabel={option.name}
+                                accessibilityState={{ selected: option.selected, disabled: pickerBusy }}
                                 disabled={pickerBusy}
                                 onPress={() =>
                                     handleEquipExpression(
@@ -529,18 +476,21 @@ export function ProfilePickerModal({
                                 }
                                 style={[
                                   styles.pickerOptionCard,
+                                  pickerGlassStyles.option,
+                                  { width: geometry.cardWidth, minHeight: geometry.optionMinHeight, paddingVertical: geometry.optionPaddingVertical },
                                   {
                                     backgroundColor: COLORS.SURFACE_MUTED,
                                     borderColor: option.selected
                                         ? palette.accent
                                         : palette.cardBorder,
-                                    opacity: pickerBusy ? 0.72 : 1,
                                   },
                                 ]}
                             >
                               <View
                                   style={[
                                     styles.pickerOptionVisual,
+                                    pickerGlassStyles.visual,
+                                    { height: geometry.artHeight },
                                     {
                                       backgroundColor: palette.chipBackground,
                                       borderColor: palette.cardBorder,
@@ -555,9 +505,12 @@ export function ProfilePickerModal({
                                     style={styles.pickerOptionImage}
                                     contentFit="contain"
                                     cachePolicy="memory-disk"
-                                    transition={90}
+                                    transition={0}
                                 />
                               </View>
+                              <Text style={[styles.pickerOptionTitle, pickerGlassStyles.name, { color: palette.textPrimary }]}>
+                                {option.name}
+                              </Text>
                               {option.selected ? (
                                   <Text
                                       style={[
@@ -570,7 +523,8 @@ export function ProfilePickerModal({
                                     })}
                                   </Text>
                               ) : null}
-                            </TouchableOpacity>
+                              <ProfilePickerOptionBusy busy={pickerBusy} color={palette.accent} />
+                            </ContentCardTouchable>
                         )}
                     />
                   </>
@@ -579,8 +533,9 @@ export function ProfilePickerModal({
                   <FlatList
                       data={filteredPlayerCardOptions}
                       keyExtractor={(option) => option.id}
-                      numColumns={2}
-                      style={styles.pickerList}
+                      key={`${pickerState.type}-${geometry.columns}`}
+                      numColumns={geometry.columns}
+                      style={[styles.pickerList, pickerGlassStyles.list]}
                       contentContainerStyle={styles.pickerListContent}
                       columnWrapperStyle={styles.pickerGridRow}
                       showsVerticalScrollIndicator={false}
@@ -603,20 +558,20 @@ export function ProfilePickerModal({
                         </View>
                       }
                       renderItem={({ item: option }) => (
-                          <TouchableOpacity
+                          <ContentCardTouchable
                               accessibilityRole="button"
-                              accessibilityState={{ selected: option.selected }}
-                              activeOpacity={0.86}
+                              accessibilityState={{ selected: option.selected, disabled: pickerBusy }}
                               disabled={pickerBusy}
                               onPress={() => handleEquipIdentity("player-card", option.id)}
                               style={[
                                 styles.identityPlayerCardOption,
+                                pickerGlassStyles.option,
+                                { width: geometry.cardWidth },
                                 {
                                   backgroundColor: palette.background,
                                   borderColor: option.selected
                                       ? palette.accent
                                       : palette.cardBorder,
-                                  opacity: pickerBusy ? 0.68 : 1,
                                 },
                               ]}
                           >
@@ -653,13 +608,15 @@ export function ProfilePickerModal({
                             <Text
                                 style={[
                                   styles.identityPlayerCardName,
+                                  pickerGlassStyles.cardName,
                                   { color: palette.textPrimary },
                                 ]}
-                                numberOfLines={2}
+
                             >
                               {option.name}
                             </Text>
-                          </TouchableOpacity>
+                            <ProfilePickerOptionBusy busy={pickerBusy} color={palette.accent} />
+                          </ContentCardTouchable>
                       )}
                   />
               ) : pickerState.type === "player-title" ? (
@@ -667,7 +624,7 @@ export function ProfilePickerModal({
                   <FlatList
                       data={filteredPlayerTitleOptions}
                       keyExtractor={(option) => option.id}
-                      style={styles.pickerList}
+                      style={[styles.pickerList, pickerGlassStyles.list]}
                       contentContainerStyle={styles.identityTitleListContent}
                       showsVerticalScrollIndicator={false}
                       removeClippedSubviews
@@ -689,18 +646,19 @@ export function ProfilePickerModal({
                         </View>
                       }
                       renderItem={({ item: option }) => (
+                          <View style={{ marginBottom: 8, borderRadius: styles.identityTitleOption.borderRadius }}>
                           <TouchableOpacity
                               accessibilityRole="button"
-                              accessibilityState={{ selected: option.selected }}
+                              accessibilityState={{ selected: option.selected, disabled: pickerBusy }}
                               activeOpacity={0.78}
                               disabled={pickerBusy}
                               onPress={() => handleEquipIdentity("player-title", option.id)}
                               style={[
                                 styles.identityTitleOption,
+                                pickerGlassStyles.title,
                                 {
-                                  backgroundColor: option.selected
-                                      ? palette.chipBackground
-                                      : palette.card,
+                                  backgroundColor: option.selected ? palette.chipBackground : palette.card,
+                                  marginBottom: 0,
                                   borderColor: option.selected
                                       ? palette.accent
                                       : palette.cardBorder,
@@ -713,7 +671,7 @@ export function ProfilePickerModal({
                                   styles.identityTitleOptionText,
                                   { color: palette.textPrimary },
                                 ]}
-                                numberOfLines={2}
+
                             >
                               {option.name}
                             </Text>
@@ -726,15 +684,17 @@ export function ProfilePickerModal({
                                 }
                             />
                           </TouchableOpacity>
+                          </View>
                       )}
                   />
               ) : (
-                  // Nhánh 5 (mặc định): picker spray — grid 2 cột
+                  // Nhánh 5 (mặc định): picker spray — grid responsive
                   <FlatList
                       data={pickerState.options}
                       keyExtractor={(option) => option.id}
-                      numColumns={2}
-                      style={styles.pickerList}
+                      key={`${pickerState.type}-${geometry.columns}`}
+                      numColumns={geometry.columns}
+                      style={[styles.pickerList, pickerGlassStyles.list]}
                       contentContainerStyle={styles.pickerListContent}
                       columnWrapperStyle={styles.pickerGridRow}
                       showsVerticalScrollIndicator={false}
@@ -760,24 +720,29 @@ export function ProfilePickerModal({
                         </View>
                       }
                       renderItem={({ item: option }) => (
-                          <TouchableOpacity
-                              activeOpacity={0.9}
+                          <ContentCardTouchable
+                              accessibilityRole="button"
+                              accessibilityLabel={option.name}
+                              accessibilityState={{ selected: option.selected, disabled: pickerBusy }}
                               disabled={pickerBusy}
                               onPress={() => handleEquipSpray(pickerState.spray, option)}
                               style={[
                                 styles.pickerOptionCard,
+                                pickerGlassStyles.option,
+                                { width: geometry.cardWidth, minHeight: geometry.optionMinHeight, paddingVertical: geometry.optionPaddingVertical },
                                 {
                                   backgroundColor: COLORS.SURFACE_MUTED,
                                   borderColor: option.selected
                                       ? palette.accent
                                       : palette.cardBorder,
-                                  opacity: pickerBusy ? 0.72 : 1,
                                 },
                               ]}
                           >
                             <View
                                 style={[
                                   styles.pickerOptionVisual,
+                                    pickerGlassStyles.visual,
+                                    { height: geometry.artHeight },
                                   {
                                     backgroundColor: palette.chipBackground,
                                     borderColor: palette.cardBorder,
@@ -790,15 +755,16 @@ export function ProfilePickerModal({
                                   style={styles.pickerOptionImage}
                                   contentFit="contain"
                                   cachePolicy="memory-disk"
-                                  transition={90}
+                                  transition={0}
                               />
                             </View>
                             <Text
                                 style={[
                                   styles.pickerOptionTitle,
+                                  pickerGlassStyles.name,
                                   { color: palette.textPrimary },
                                 ]}
-                                numberOfLines={2}
+
                             >
                               {option.name}
                             </Text>
@@ -812,7 +778,8 @@ export function ProfilePickerModal({
                                   {t("equip_page.sections.sprays")}
                                 </Text>
                             ) : null}
-                          </TouchableOpacity>
+                            <ProfilePickerOptionBusy busy={pickerBusy} color={palette.accent} />
+                          </ContentCardTouchable>
                       )}
                   />
               )}
@@ -848,13 +815,14 @@ export function ProfilePickerModal({
                       />
                     </TouchableOpacity>
                     <Text
-                        style={[styles.chromaPanelTitle, { color: palette.textPrimary }]}
+                        style={[styles.chromaPanelTitle, pickerGlassStyles.chromaHeading, { color: palette.textPrimary }]}
                     >
                       Chọn màu
                     </Text>
                     <Text
                         style={[
                           styles.chromaPanelSubtitle,
+                          pickerGlassStyles.chromaHeading,
                           { color: palette.textSecondary },
                         ]}
                     >
@@ -864,6 +832,9 @@ export function ProfilePickerModal({
                       {activeWeaponChroma.option.chromas.map((chroma) => (
                           <TouchableOpacity
                               key={chroma.id}
+                              accessibilityRole="button"
+                              accessibilityLabel={chroma.name}
+                              accessibilityState={{ selected: chroma.selected, disabled: pickerBusy }}
                               activeOpacity={0.85}
                               disabled={pickerBusy}
                               onPress={() =>
@@ -877,6 +848,7 @@ export function ProfilePickerModal({
                               }
                               style={[
                                 styles.chromaChip,
+                                pickerGlassStyles.chromaChip,
                                 {
                                   backgroundColor: chroma.selected
                                       ? palette.accent
@@ -905,6 +877,7 @@ export function ProfilePickerModal({
                             <Text
                                 style={[
                                   styles.chromaChipText,
+                                  pickerGlassStyles.chromaText,
                                   {
                                     color: chroma.selected
                                         ? COLORS.PURE_WHITE
@@ -920,7 +893,8 @@ export function ProfilePickerModal({
                   </View>
               ) : null}
             </View>
+            </View>
           </Modal>
-        </Portal>
     );
+    return <ProfilePickerHost onDismiss={handleDismissPicker} onShow={handleNativeShow}>{content}</ProfilePickerHost>;
   }

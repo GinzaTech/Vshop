@@ -4,13 +4,27 @@ import MatchDetailsScreen from "~/app/(authenticated)/match_details/[id]";
 import type { MatchDetailsData } from "~/types/match-ui";
 import { defaultUser } from "~/utils/valorant-user";
 import { invalidateSessionOperations } from "~/utils/session-operations";
+import type { LayoutChangeEvent } from "react-native";
 
 const mockT = (key: string) => key;
-const mockParams: { id: string; demo?: string } = { id: "match-a" };
+const mockParams: { id: string; demo?: string; tab?: string } = { id: "match-a" };
 const mockUserState = { user: defaultUser };
 const mockFetch = jest.fn();
 const mockNames = jest.fn();
 const mockMerge = jest.fn();
+const mockScrollTo = jest.fn();
+const mockFrames = new Map<number, FrameRequestCallback>();
+let mockFrameId = 0;
+let mockReduceMotion = false;
+jest.mock("~/hooks/useMotionPreference", () => ({ useMotionPreference: () => mockReduceMotion }));
+jest.mock("react-native/Libraries/Components/ScrollView/ScrollView", () => {
+  const Runtime = jest.requireActual<typeof import("react")>("react");
+  const Scroll = Runtime.forwardRef((props: React.PropsWithChildren<Record<string, unknown> & { refreshControl?: React.ReactNode }>, ref) => {
+    Runtime.useImperativeHandle(ref, () => ({ scrollTo: mockScrollTo }));
+    return Runtime.createElement("ScrollView", props, props.refreshControl, props.children);
+  });
+  return { __esModule: true, default: Scroll };
+});
 const mockCache = { authKey: "ap|a", detailsById: {} as Record<string, MatchDetailsData>, fetchMatchDetails: mockFetch, mergeMatchDetails: mockMerge };
 jest.mock("expo-router", () => ({ useLocalSearchParams: () => mockParams, useRouter: () => ({ back: jest.fn() }) }));
 jest.mock("react-native-reanimated", () => ({
@@ -37,6 +51,10 @@ jest.mock("~/components/match-detail/EconomyChart", () => ({ EconomyChart: "Econ
 jest.mock("~/components/match-detail/MatchDetailHeader", () => ({ MatchDetailHeader: "MatchDetailHeader" }));
 jest.mock("~/components/match-detail/MatchDetailTabs", () => ({ MatchDetailTabs: "MatchDetailTabs" }));
 jest.mock("~/components/match-detail/PerformanceTab", () => ({ PerformanceTab: "PerformanceTab" }));
+jest.mock("~/components/match-detail/PerformanceStats", () => ({ RoundDetailPanel: "RoundDetailPanel", SideStatsGrid: "SideStatsGrid", OpponentBreakdownTable: "OpponentBreakdownTable", WeaponStatsTable: "WeaponStatsTable" }));
+jest.mock("~/components/match-detail/PlayerPerformanceSummary", () => ({ PlayerPerformanceSummary: "PlayerPerformanceSummary" }));
+jest.mock("~/components/match-detail/RoundTimeline", () => ({ RoundTimeline: "RoundTimeline" }));
+jest.mock("~/components/match-detail/TeamAgentStrip", () => ({ TeamAgentStrip: "TeamAgentStrip" }));
 jest.mock("~/components/match-detail/ScoreboardTable", () => ({ ScoreboardTable: "ScoreboardTable" }));
 jest.mock("~/components/match-detail/StickyShareBar", () => ({ StickyShareBar: "StickyShareBar" }));
 jest.mock("~/components/matches/MatchStates", () => ({ MatchDetailSkeleton: "MatchDetailSkeleton", MatchStatePanel: "MatchStatePanel" }));
@@ -58,10 +76,20 @@ describe("match details route request ownership", () => {
   const mount = async () => { await act(async () => { renderer = TestRenderer.create(<MatchDetailsScreen />); }); };
   const rerender = async () => { await act(async () => { renderer!.update(<MatchDetailsScreen />); }); };
   const displayedNames = (): string[] => renderer!.root.findAll((node) => String(node.type) === "ScoreboardTable").flatMap((node) => node.props.players.map((player: { name: string }) => player.name));
+  const layout = (y: number) => ({ nativeEvent: { layout: { x: 0, y, width: 320, height: 200 } } }) as LayoutChangeEvent;
+  const flushFrames = () => act(() => {
+    const queued = [...mockFrames.values()]; mockFrames.clear(); queued.forEach((callback) => callback(0));
+  });
   beforeEach(() => {
     jest.resetAllMocks();
     mockParams.id = "match-a";
     delete mockParams.demo;
+    delete mockParams.tab;
+    mockFrames.clear(); mockFrameId = 0; mockReduceMotion = false;
+    jest.spyOn(global, "requestAnimationFrame").mockImplementation((callback) => {
+      const id = ++mockFrameId; mockFrames.set(id, callback); return id;
+    });
+    jest.spyOn(global, "cancelAnimationFrame").mockImplementation((id) => { if (typeof id === "number") mockFrames.delete(id); });
     mockUserState.user = { ...defaultUser, id: "a", region: "ap", accessToken: "access-a", entitlementsToken: "ent-a" };
     mockCache.authKey = "ap|a";
     mockCache.detailsById = { "match-a": detail() };
@@ -227,14 +255,108 @@ describe("match details route request ownership", () => {
     expect(displayedNames()).toEqual(["returned-a"]);
   });
 
-  it("handles rejected detail refresh without leaking upstream errors", async () => {
+  it("keeps cached details and refresh reachable after a rejected refresh without leaking upstream errors", async () => {
     await mount();
     mockFetch.mockRejectedValueOnce(new Error("private-detail-token"));
     const refresh = renderer!.root.find((node) => String(node.type) === "AppRefreshControl");
     await act(async () => { await refresh.props.onRefresh(); });
     expect(mockFetch.mock.calls[0][2]).toBe(true);
-    expect(renderer!.root.find((node) => String(node.type) === "MatchStatePanel").props.body).toBe("match_ui.states.error_body");
+    expect(renderer!.root.findAll((node) => String(node.type) === "MatchStatePanel")).toHaveLength(0);
+    expect(displayedNames()).toEqual(["current"]);
+    expect(renderer!.root.find((node) => String(node.type) === "MatchDetailHeader").props.match.id).toBe("match-a");
+    const notice = renderer!.root.findByProps({ testID: "match-detail-refresh-error" });
+    expect(notice.props.children).toBe("match_ui.states.error_body");
+    expect(notice.props.accessibilityLiveRegion).toBe("polite");
+    const retry = renderer!.root.find((node) => String(node.type) === "AppRefreshControl");
+    await act(async () => { await retry.props.onRefresh(); });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(renderer!.root.findAllByProps({ testID: "match-detail-refresh-error" })).toHaveLength(0);
     expect(JSON.stringify(jest.mocked(console.warn).mock.calls)).not.toContain("private-detail-token");
+  });
+
+  it("keeps the full retry state for a cold detail failure", async () => {
+    mockCache.detailsById = {};
+    mockFetch.mockRejectedValueOnce(new Error("offline"));
+    await mount();
+    const panel = renderer!.root.find((node) => String(node.type) === "MatchStatePanel");
+    expect(displayedNames()).toEqual([]);
+    expect(panel.props.body).toBe("match_ui.states.error_body");
+    await act(async () => { await panel.props.onPrimaryPress(); });
+    expect(mockFetch.mock.calls[1][2]).toBe(true);
+    expect(displayedNames()).toEqual(["current"]);
+  });
+
+  it.each([false, true])("scrolls to measured round detail offsets and updated font/layout sizes (reduced motion: %s)", async (reduced) => {
+    mockParams.tab = "performance"; mockReduceMotion = reduced;
+    await mount();
+    const performance = () => renderer!.root.find((node) => String(node.type) === "PerformanceTab");
+    act(() => {
+      renderer!.root.findByProps({ testID: "match-detail-performance-content" }).props.onLayout(layout(75));
+      performance().props.onRoundDetailLayout(layout(812));
+      performance().props.onSelectRound(2);
+    });
+    flushFrames();
+    expect(mockScrollTo).toHaveBeenLastCalledWith({ y: 887, animated: !reduced });
+    act(() => { performance().props.onRoundDetailLayout(layout(1100)); performance().props.onSelectRound(3); });
+    flushFrames();
+    expect(mockScrollTo).toHaveBeenLastCalledWith({ y: 1175, animated: !reduced });
+  });
+
+  it("waits for the first layout before scrolling a newly selected round", async () => {
+    mockParams.tab = "performance";
+    await mount();
+    const performance = renderer!.root.find((node) => String(node.type) === "PerformanceTab");
+    act(() => { performance.props.onSelectRound(2); });
+    flushFrames();
+    expect(mockScrollTo).not.toHaveBeenCalled();
+    act(() => {
+      renderer!.root.findByProps({ testID: "match-detail-performance-content" }).props.onLayout(layout(0));
+      performance.props.onRoundDetailLayout(layout(640));
+    });
+    flushFrames();
+    expect(mockScrollTo).toHaveBeenCalledWith({ y: 640, animated: true });
+  });
+
+  it("cancels old round scrolling and ignores retired layout callbacks when the route changes", async () => {
+    mockParams.tab = "performance";
+    await mount();
+    const oldPerformance = renderer!.root.find((node) => String(node.type) === "PerformanceTab");
+    const oldParentLayout = renderer!.root.findByProps({ testID: "match-detail-performance-content" }).props.onLayout;
+    const oldDetailLayout = oldPerformance.props.onRoundDetailLayout;
+    act(() => { oldParentLayout(layout(40)); oldPerformance.props.onRoundDetailLayout(layout(610)); oldPerformance.props.onSelectRound(2); });
+    const oldFrame = [...mockFrames.values()][0];
+    mockParams.id = "match-b"; mockCache.detailsById = { "match-b": detail("match-b") };
+    await rerender();
+    act(() => { oldFrame(0); oldParentLayout(layout(999)); oldDetailLayout(layout(999)); });
+    expect(mockScrollTo).not.toHaveBeenCalled();
+    const current = renderer!.root.find((node) => String(node.type) === "PerformanceTab");
+    act(() => {
+      renderer!.root.findByProps({ testID: "match-detail-performance-content" }).props.onLayout(layout(20));
+      current.props.onRoundDetailLayout(layout(730)); current.props.onSelectRound(3);
+    });
+    flushFrames();
+    expect(mockScrollTo).toHaveBeenLastCalledWith({ y: 750, animated: true });
+  });
+
+  it("cancels round scroll frames on unmount", async () => {
+    mockParams.tab = "performance";
+    await mount();
+    act(() => { renderer!.root.find((node) => String(node.type) === "PerformanceTab").props.onSelectRound(2); });
+    expect(mockFrames.size).toBe(1);
+    act(() => { renderer!.unmount(); });
+    expect(mockFrames.size).toBe(0);
+    expect(mockScrollTo).not.toHaveBeenCalled();
+  });
+
+  it("forwards the actual round detail wrapper's measured layout from PerformanceTab", () => {
+    const ActualPerformanceTab = jest.requireActual<typeof import("~/components/match-detail/PerformanceTab")>("~/components/match-detail/PerformanceTab").PerformanceTab;
+    const data = jest.requireActual<typeof import("~/mocks/match-ui")>("~/mocks/match-ui").mockMatchDetail;
+    const onRoundDetailLayout = jest.fn();
+    act(() => { renderer = TestRenderer.create(<ActualPerformanceTab data={data} selectedPlayerId={data.currentPlayerId}
+      selectedRoundNumber={data.rounds[0]?.roundNumber ?? null} onSelectPlayer={jest.fn()} onSelectRound={jest.fn()} onRoundDetailLayout={onRoundDetailLayout} />); });
+    const measured = layout(814);
+    act(() => { renderer!.root.findByProps({ testID: "match-detail-round-anchor" }).props.onLayout(measured); });
+    expect(onRoundDetailLayout).toHaveBeenCalledWith(measured);
   });
 
   it.each(["matchId", "credentials"])("does not request with missing %s", async (missing) => {

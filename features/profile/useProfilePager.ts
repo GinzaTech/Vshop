@@ -25,6 +25,17 @@ export function useProfilePager({
   profileExpandedHeroHeight, pageModeProgress, activeTab, isPlayerInfoMode,
   skinWhitespacePagerOriginRef,
 }: Props) {
+  const previousViewportWidth = React.useRef(viewportWidth);
+  // Profile remounts its native pager when width changes. Restore the selected
+  // page after refs attach, without replaying a transition or changing intent.
+  React.useLayoutEffect(() => {
+    if (previousViewportWidth.current === viewportWidth) return;
+    previousViewportWidth.current = viewportWidth;
+    const index = PROFILE_TAB_KEYS.indexOf(activeTab);
+    if (viewportWidth > 0 && index >= 0) {
+      profilePagerRef.current?.scrollTo({ x: index * viewportWidth, y: 0, animated: false });
+    }
+  }, [activeTab, profilePagerRef, viewportWidth]);
 
   // handleTabChange: đóng picker + scroll pager đến tab (đổi state ngay nếu reduce motion).
   const handleTabChange = React.useCallback(

@@ -31,10 +31,10 @@ function deferred<T>() {
   const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
   return { promise, resolve, reject };
 }
-function Probe({ subjects = "one", matchId = "match", match = false }: { subjects?: string; matchId?: string; match?: boolean }) {
+function Probe({ subjects = "one", matchId = "match", match = false, refreshRevision = 0 }: { subjects?: string; matchId?: string; match?: boolean; refreshRevision?: number }) {
   const session = useRiotScreenSession(mockUser);
   const activity = { isActive: mockActive, isActiveNow };
-  const intel = useCombatPlayerIntel(session, subjects, matchId, activity);
+  const intel = useCombatPlayerIntel(session, subjects, matchId, activity, refreshRevision);
   const performance = useCombatMatchPerformance(session, subjects, matchId, match, activity);
   return <Text>{JSON.stringify({ ...intel, performance })}</Text>;
 }
@@ -65,6 +65,42 @@ describe("combat data hook results", () => {
     mockCompetitive.mockRejectedValue(new Error("temporary"));
     mockActive = true;
     await update();
+    expect(value().playerIntel.one.currentRr).toBe(55);
+    expect(value().competitivePerformance.one.kd).toBe(2);
+  });
+
+  it("recovers unavailable intel on an explicit same-match retry and preserves ready values on a later failure", async () => {
+    mockMMR.mockRejectedValueOnce(new Error("temporary"));
+    mockCompetitive.mockRejectedValueOnce(new Error("temporary"));
+    await mount();
+    expect(value().playerIntel.one.status).toBe("private");
+    expect(value().competitivePerformance.one.status).toBe("private");
+    await update({ refreshRevision: 1 });
+    expect(mockMMR).toHaveBeenCalledTimes(2);
+    expect(mockCompetitive).toHaveBeenCalledTimes(2);
+    expect(value().playerIntel.one.currentRr).toBe(55);
+    mockMMR.mockRejectedValueOnce(new Error("temporary again"));
+    mockCompetitive.mockRejectedValueOnce(new Error("temporary again"));
+    await update({ refreshRevision: 2 });
+    expect(value().playerIntel.one.currentRr).toBe(55);
+    expect(value().competitivePerformance.one.kd).toBe(2);
+  });
+
+  it("serializes explicit retry behind a pending batch and ignores its retired completion", async () => {
+    const oldRank = deferred<{ LatestCompetitiveUpdate: { TierAfterUpdate: number; RankedRatingAfterUpdate: number } }>();
+    const oldComp = deferred<{ one: typeof readyPerformance }>();
+    mockMMR.mockReturnValueOnce(oldRank.promise);
+    mockCompetitive.mockReturnValueOnce(oldComp.promise);
+    await mount();
+    await update({ refreshRevision: 1 });
+    expect(mockMMR).toHaveBeenCalledTimes(1);
+    expect(mockCompetitive).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      oldRank.resolve({ LatestCompetitiveUpdate: { TierAfterUpdate: 15, RankedRatingAfterUpdate: 99 } });
+      oldComp.resolve({ one: { ...readyPerformance, kd: 99 } });
+    });
+    expect(mockMMR).toHaveBeenCalledTimes(2);
+    expect(mockCompetitive).toHaveBeenCalledTimes(2);
     expect(value().playerIntel.one.currentRr).toBe(55);
     expect(value().competitivePerformance.one.kd).toBe(2);
   });

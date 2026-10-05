@@ -34,7 +34,7 @@ import { useUserStore } from "~/hooks/useUserStore";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import AppIcon from "~/components/ui/AppIcon";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { sanitizeErrorForLog } from "~/utils/log-redaction";
 
 const COMPOSER_MIN_HEIGHT = 48;

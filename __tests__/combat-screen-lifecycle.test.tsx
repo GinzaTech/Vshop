@@ -1,6 +1,6 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import { AppState, Text, type AppStateStatus } from "react-native";
+import { AppState, BackHandler, Text, type AppStateStatus } from "react-native";
 import CombatSessionScreen from "~/features/combat/CombatSessionScreen";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 
@@ -231,6 +231,45 @@ describe("Combat mounted screen lifecycle", () => {
     const refresh = renderer.root.findByType(AppRefreshControl).props.onRefresh;
     await act(async () => { await refresh(); });
     expect(mockFetchSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("releases modal Back handling when the selected player leaves and does not reopen on their return", async () => {
+    const backHandlers = new Set<Parameters<typeof BackHandler.addEventListener>[1]>();
+    jest.spyOn(BackHandler, "addEventListener").mockImplementation((_event, listener) => {
+      backHandlers.add(listener);
+      return { remove: () => { backHandlers.delete(listener); } };
+    });
+    await mountMatch();
+    act(() => { renderer.root.findByProps({ accessibilityLabel: "combat_session_page.player_details: Player One" }).props.onPress(); });
+    expect(backHandlers.size).toBe(1);
+    const oldBack = [...backHandlers][0];
+    mockSnapshot = { ...snapshot(), currentGameMatch: { ...snapshot().currentGameMatch, Players: [] } };
+    await update();
+    expect(backHandlers.size).toBe(0);
+    expect(oldBack({ type: "hardwareBackPress", timeStamp: 0 })).toBe(false);
+    mockSnapshot = snapshot();
+    await update();
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "match_ui.actions.close_details" })).toHaveLength(0);
+    expect(backHandlers.size).toBe(0);
+  });
+
+  it.each(["pull", "button"] as const)("retries unavailable intel for the same roster/match through %s refresh", async (action) => {
+    jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    mockMMR.mockRejectedValueOnce(new Error("temporary"));
+    mockCompetitive.mockRejectedValueOnce(new Error("temporary"));
+    await mountMatch();
+    expect(mockMMR).toHaveBeenCalledTimes(1);
+    expect(mockCompetitive).toHaveBeenCalledTimes(1);
+    mockMMR.mockResolvedValue({ LatestCompetitiveUpdate: { TierAfterUpdate: 15, RankedRatingAfterUpdate: 55 } });
+    mockCompetitive.mockResolvedValue({ one: { status: "ready", kd: 2, matches: 5, recentResults: [] } });
+    await act(async () => {
+      if (action === "pull") await renderer.root.findByType(AppRefreshControl).props.onRefresh();
+      else await renderer.root.findByProps({ accessibilityLabel: "combat_page.actions.refresh" }).props.onPress();
+    });
+    expect(mockMMR).toHaveBeenCalledTimes(2);
+    expect(mockCompetitive).toHaveBeenCalledTimes(2);
+    expect(mockFetchSession).toHaveBeenCalledTimes(2);
+    expect(visibleText()).toContain("55 RR");
   });
 
   it("updates the live score in COMP mode and shares each request with MATCH stats", async () => {

@@ -4,7 +4,7 @@
 
 import { Banner } from "react-native-paper";
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { isBatteryOptimizationEnabledAsync } from "expo-battery";
 import { startActivityAsync, ActivityAction } from "expo-intent-launcher";
 import { useWishlistStore } from "~/hooks/useWishlistStore";

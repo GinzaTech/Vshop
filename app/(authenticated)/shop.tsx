@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Countdown from "~/components/Countdown";
@@ -30,6 +30,7 @@ import { getPrimaryTabContentBottomPadding } from "~/constants/Layout";
 
 const CONTENT_PADDING = 20;
 const GRID_GAP = 12;
+const TABLET_MIN_CARD_WIDTH = 180;
 
 /**
  * Shop – Component chính hiển thị cửa hàng hàng ngày
@@ -38,7 +39,7 @@ const GRID_GAP = 12;
  */
 function Shop() {
   const { t } = useTranslation();
-  const { width } = useAppWindowDimensions();
+  const { width, fontScale } = useAppWindowDimensions();
   const insets = useSafeAreaInsets();
   const user = useUserStore((state) => state.user);
   const [mode, setMode] = React.useState<"all" | "wishlist">("all");
@@ -66,8 +67,12 @@ function Shop() {
     );
   }, [mode, skinIds, user.shops.main]);
 
-  // Số cột grid: 3 nếu màn hình rộng >= 700, ngược lại 2
-  const columnCount = width >= 700 ? 3 : 2;
+  // Bốn offer hằng ngày thành 2x2 trên phone; tablet tối đa bốn cột.
+  const columnCount = width >= 700 && fontScale < 1.3
+    ? Math.min(4, Math.max(2, Math.floor(
+        (width - CONTENT_PADDING * 2 + GRID_GAP) / (TABLET_MIN_CARD_WIDTH + GRID_GAP)
+      )))
+    : 2;
   // Chiều rộng mỗi card = (width - padding - gap*(n-1)) / n (làm tròn xuống)
   const cardWidth = Math.floor(
     (width - CONTENT_PADDING * 2 - GRID_GAP * (columnCount - 1)) / columnCount
@@ -164,7 +169,7 @@ function Shop() {
 
       {/* Empty state khi không có item */}
       {filteredItems.length === 0 ? (
-        <EmptyStateCard
+        <EmptyStateCard variant="flat"
           title={t("shop_page.empty_title")}
           subtitle={t("shop_page.empty_subtitle")}
           style={styles.emptyState}
@@ -245,11 +250,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
-    shadowColor: COLORS.PURE_BLACK,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
   },
   // headerBalanceText – Số dư VP
   headerBalanceText: {
@@ -344,11 +344,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     gap: 4,
     borderRadius: 999,
-    shadowColor: COLORS.PURE_BLACK,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
   },
   countdownText: {
     fontSize: 11,

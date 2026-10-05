@@ -1,11 +1,13 @@
 import React from "react";
+import { RefractiveGlassCard } from "~/components/ui/refractive-glass";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import { CachedImage } from "~/components/CachedImage";
 import { FALLBACK_IMAGE, type EquippedWeapon } from "~/components/GalleryProfile";
 import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
-import { GLASS_MATERIAL, RADIUS, SHADOWS } from "~/constants/DesignSystem";
+import ContentCardTouchable from "~/components/ui/ContentCardTouchable";
+import { COLORS, GLASS_MATERIAL, RADIUS } from "~/constants/DesignSystem";
 import { CompactProfileSkinCard } from "~/features/profile/CompactProfileSkinCard";
 import { getContentTierVisual } from "~/utils/content-tier";
 
@@ -26,34 +28,33 @@ function renderCard(props: Partial<React.ComponentProps<typeof CompactProfileSki
 }
 afterEach(() => { act(() => renderers.forEach((renderer) => renderer.unmount())); renderers.length = 0; });
 
-describe("compact equipped skin glass presentation", () => {
+describe("compact equipped skin crisp presentation", () => {
   it.each([72, 96, 136])("keeps supplied width %s, tier border and clear contained artwork", (width) => {
     const root = renderCard({ width }).root;
-    const decoration = root.findByType(LiquidGlassDecoration);
-    const card = decoration.parent!;
+    expect(root.findAllByType(RefractiveGlassCard)).toHaveLength(0);
+    const card = root.findAllByType(View).find(node => node.props.accessible)!;
     expect(StyleSheet.flatten(card.props.style)).toMatchObject({
-      width, backgroundColor: GLASS_MATERIAL.surface,
+      backgroundColor: GLASS_MATERIAL.surface, width,
       borderColor: getContentTierVisual(undefined, "Premium").border,
-      borderRadius: RADIUS.sm, minHeight: 48, ...SHADOWS.xs,
+      borderRadius: RADIUS.sm, minHeight: 48,
     });
-    expect(root.findAll((node) => node.type === LiquidGlassDecoration || node.type === CachedImage).map((node) => node.type)).toEqual([LiquidGlassDecoration, CachedImage]);
-    expect(decoration.props).toMatchObject({ radius: RADIUS.sm, density: "dense", tone: "light" });
-    const opticalLayer = decoration.findAllByType(View)[0];
-    expect(opticalLayer.props).toMatchObject({ pointerEvents: "none", accessible: false, accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" });
-    expect(StyleSheet.flatten(opticalLayer.props.style).position).toBe("absolute");
+    expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
     const image = root.findByType(CachedImage);
     expect(image.props).toMatchObject({ cacheId: "skin-image:chroma:display", source: { uri: weapon.image }, contentFit: "contain", recyclingKey: weapon.skinId });
-    expect(StyleSheet.flatten(image.parent!.props.style).aspectRatio).toBe(1.45);
+    expect(StyleSheet.flatten(image.parent!.props.style).aspectRatio).toBe(2.25);
     expect(root.findAllByType(Text).map((node) => node.props.children)).toEqual(["PREMIUM", "2/4", weapon.weaponName, weapon.skinName]);
   });
 
   it.each([false, true])("preserves press handler and announces disabled=%s", (disabled) => {
     const onPress = jest.fn();
-    const button = renderCard({ disabled, onPress }).root.findByType(TouchableOpacity);
+    const root = renderCard({ disabled, onPress }).root;
+    const button = root.findByType(TouchableOpacity);
     expect(button.props).toMatchObject({ accessibilityRole: "button", accessibilityLabel: `${weapon.weaponName}, ${weapon.skinName}`, accessibilityState: { disabled }, disabled });
-    expect(button.props.onPress).toBe(onPress);
-    expect(StyleSheet.flatten(button.props.style).opacity).toBe(disabled ? 0.72 : 1);
-    if (!disabled) act(() => button.props.onPress());
+    expect(root.findByType(ContentCardTouchable).props.onPress).toBe(onPress);
+    expect(button.props.activeOpacity).toBe(1);
+    expect(StyleSheet.flatten(button.props.style).opacity ?? 1).toBe(1);
+    expect(StyleSheet.flatten(root.findAllByType(Text).at(-1)!.props.style).color).toBe(disabled ? COLORS.TEXT_TERTIARY : COLORS.TEXT_PRIMARY);
+    act(() => button.props.onPress());
     expect(onPress).toHaveBeenCalledTimes(disabled ? 0 : 1);
   });
 
@@ -65,4 +66,24 @@ describe("compact equipped skin glass presentation", () => {
     expect(root.findByType(CachedImage).props).toMatchObject({ source: FALLBACK_IMAGE, cacheId: "skin-image:skin:display" });
     expect(root.findAllByType(Text).map((node) => node.props.children)).not.toContain("2/4");
   });
+
+  it("delivers visible collection artwork at high priority without changing URI, cache ID, sizing or labels", () => {
+    const root = renderCard({ imagePriority: "high" }).root;
+    expect(root.findByType(CachedImage).props).toMatchObject({
+      priority: "high", cachePolicy: "memory-disk", cacheId: "skin-image:chroma:display",
+      source: { uri: weapon.image }, contentFit: "contain",
+    });
+    expect(StyleSheet.flatten(root.findByType(CachedImage).parent!.props.style).aspectRatio).toBe(2.25);
+    expect(root.findAllByType(Text).at(-1)!.props.children).toBe(weapon.skinName);
+  });
+});
+
+// Profile integration owns wrappers; shader lifecycle is covered by the core owner.
+jest.mock("~/components/ui/refractive-glass", () => {
+  const ReactModule = require("react") as typeof React;
+  const Native = require("react-native") as typeof import("react-native");
+  return {
+    RefractiveGlassCard: ({ children, compact: _compact, ...props }: React.PropsWithChildren<Record<string, unknown>>) => ReactModule.createElement(Native.View, props, children),
+    GlassScrollView: ReactModule.forwardRef((props: Record<string, unknown>, ref: React.Ref<import("react-native").ScrollView>) => ReactModule.createElement(Native.ScrollView, { ...props, ref })),
+  };
 });

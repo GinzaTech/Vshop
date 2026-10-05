@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import GlassCard from "~/components/ui/GlassCard";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
@@ -102,7 +102,7 @@ export default function PartyInviteControls(props: Props) {
   </Pressable>;
   return <>
     <View accessibilityElementsHidden={!!form} importantForAccessibility={form ? "no-hide-descendants" : "auto"}>
-      <GlassCard style={[s.card, s.codePanel]} contentStyle={s.codePanelContent}>
+      <GlassCard variant="flat" style={[s.card, s.codePanel]} contentStyle={s.codePanelContent}>
         <View style={s.codeHeader} testID="party-code-header">
           <View style={s.codeHeaderLabel} testID="party-code-header-label">
             <AppIcon name="connected" size={18} color={COLORS.TEXT_SECONDARY} decorative />

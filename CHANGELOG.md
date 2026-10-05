@@ -6,12 +6,166 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [4.2.1] - 2026-10-05
+
+### Changed
+
+- Redesign commerce skin preview as a centered, bounded white popup for Store,
+  Bundle and Night Market: image-first hero, real rarity icon, opt-in Video,
+  red level selector and catalog variant swatches. Preserve decoder lifetimes,
+  Back/close, legacy generic previews and existing wishlist/ownership behavior.
+- Make weapon cells inside an opened Bundle previewable while accessories remain
+  read-only. Clamp vertical overscroll for all three Profile tabs without removing
+  pull-to-refresh or the floating-navigation clearance.
+- Reduce the visible Profile equipment-mode pill to144x36dp at normal Vietnamese
+  text while retaining a48dp native hit target and adaptive long-label fitting.
+- Restore white Liquid Glass navigation after the opaque-white change removed
+  its effect: translucent capsule underlay, light page-only blur and white native
+  refraction tint, with sharp dark labels and retained lens/glyph motion.
+  Respect shared Reduce Transparency and retire backdrop blur when hidden or
+  collapsed. Preserve white fallbacks without reintroducing outer rim/shadow.
+- Remove the account-level footer under the equipped Profile card's motto.
+  Place the motto lower with an8dp minimum gap and separate rank headings from
+  their values by4dp, preserving the one-third artwork, image level badge and
+  all picker owners.
+- Restore the equipped Profile player-card artwork to120dp height and expand
+  its width to one third of the identity card after the clarified request, retaining title,
+  motto, level, cached art and picker owners. Make Bundle previews50% taller
+  at unchanged width (3.2 aspect ratio instead of4.8).
+- Resolve both Night Market artwork dimensions explicitly: the native measured
+  frame still narrowed under the former percentage-width/aspect-ratio layout.
+  Main Expo after screenshots now show full-width art and complete tier labels.
+- The earlier opaque-white navigation is superseded by restored white glass.
+  Set shared page and source splash backgrounds to neutral gray #eceef0, with
+  a matching plain More sampling texture. Approved launcher artwork stays separate.
+- Fill Night Market artwork frames across the complete card width while keeping
+  the six-card fit budget and contained weapon images. Allocate complete Profile
+  region text and a responsive two-line equipment/info label with space reserved
+  for both slider endpoints. Before screenshots were saved on the PC before the
+  phone was unplugged; native after-render verification remains pending.
+- Use gray page backgrounds throughout; retire the decorative pearl wallpaper.
+  Enlarge the four daily Store cards into a two-by-two phone grid. Show a wider
+  Bundle preview banner with ending time below and budget Night Market's six
+  offers into a measured two-column/three-row layout on normal phones.
+- Grow graffiti/Flex picker artwork and representative card area by20%; warm
+  at most12 public Profile collection thumbnails with the matching managed cache
+  keys and visible-image priority, canceling stale queued work.
+- Show only the current saved account inline in More. The accessible account
+  count opens a gray selection popup for other accounts, reusing existing switch
+  and removal-confirmation owners. Mask and dismiss the popup on route blur.
+- Remove white navigation borders and its outer shadow; retain lens motion and
+  existing glyph animations under the latest white glass material.
+- Retain unchanged Profile presentation and More content/rim owners on focus
+  updates, with complete data/callback dependencies and fresh locale/account
+  updates. Expo device measurements distinguish React commit from first paint.
+- Adopt the approved sculpted startup cart as the application launcher icon.
+  Prepare an opaque1024px common icon and a padded transparent Android adaptive
+  foreground from the same high-resolution source, with the startup background.
+  Installed launcher changes require a new native build.
+- Restore the previous Profile, Store, Night Market and Bundle content materials
+  after device review. Keep their reduced responsive card sizes and readable
+  native text; remove the decorative patterned wallpaper from all runtime pages.
+  More retains glass cards on the shared gray page background.
+- Reduce representative normal-phone item-card areas to about45–60% of their
+  previous size. Use responsive three-column compact grids, two columns with
+  narrow/large-font layouts, and a smaller Bundle summary/disclosed carousel.
+  Preserve real prices, rarity/ownership, selected states and48dp interaction.
+- Keep source-qualified image ownership and compiled glass program reuse for
+  More's neutral material; earlier patterned artwork is retained as a historical
+  source asset and is no longer displayed as the application background.
+- Make navigation's black tint more transparent with18-intensity native blur,
+  an18% black veil and12% lens tint. Dark labels stay readable over the clear
+  light-page material; the opaque fallback retains light labels.
+- Collapse Bundle item details initially. Tap the accessible summary control
+  to reveal a compact horizontal carousel below; tap again to close. Retain
+  item instances, scroll position, prices/ownership and live Reduce Motion.
+- Consolidate Combat members into one flat Team panel with smaller portraits,
+  rank icons, labels and spacing. Keep all roster members and metadata, with
+  the self-only ready switch inline and its48dp minimum touch target retained.
+  Show rank as an icon at the right edge; retain rank/RR as screen-reader text.
+- Render all fourteen More cards over an original white pearl wallpaper through
+  one viewport-sized image-refraction canvas. Keep More pure white; update lens
+  positions on the UI thread while scrolling and retire hidden/image owners.
+  Keep native labels and controls sharp above the material, with opaque
+  Reduce Transparency and lightweight web fallbacks.
+  Increase white pearl wallpaper transmission to make glass card boundaries
+  visible while retaining the white More background.
+- Use black Liquid Glass for the navbar, with native backdrop blur, reflection,
+  white labels, a red selected glyph and the existing magnification/navigation.
+- Replace normal startup with an original sculpted VShop cart mark, app name,
+  localized status and progress based on actual completed bootstrap stages.
+  Match the native and React mark and background. Animate entrance and stage
+  changes with shared motion tokens and live Reduce Motion; preserve retry,
+  cached-data and update controls for actual recovery states.
+- Fade the startup overlay after the requested route commits, release its input
+  and accessibility interception immediately, and settle instantly with live
+  Reduce Motion. Optional startup-cache metadata persistence no longer delays
+  core synchronization; session and queued-write guards remain in place.
+- Add original launch and connection-recovery illustrations with generation
+  provenance. Native splash changes require a new APK.
+
 ### Fixed
 
-- Make the OpenCode worker tests portable across Windows and Linux and restore
-  the versioned worker configuration required by clean checkouts.
-- Align Expo SDK patch versions and include authored local native modules in
-  EAS source packaging while excluding top-level prebuild outputs.
+- Make the OpenCode worker tests portable across Windows and Linux and align
+  Expo SDK patch versions. Include authored local native modules in EAS source
+  packaging while excluding top-level prebuild outputs.
+- Start the tiny lens worklet synchronously on supported native runtimes before
+  immediate route dispatch. Preserve guarded async web/error fallback and
+  reject older queued lens commands; avoid replay on a confirmed reduced-motion
+  destination.
+- Flatten remaining ordinary About/Contracts/Upgrades/Setup/Reauth cards and
+  repeated agent-picker tiles. Remove Profile identity/skin/expression optical
+  edges, whole-content press fades and picker image reveals; retain local busy
+  indicators and permissions. Keep the breakdown table sharp when its tab changes.
+  Item-card material in the five named commerce/profile areas is superseded by
+  the unified More-standard glass above; ordinary form/info surfaces remain flat.
+- Keep Shop and Night Market content geometry/artwork stable on press, with
+  local border feedback and no repeated optical blur or whole-card fading.
+- Configure the navbar lens on the UI thread before routing via a guarded RN
+  acknowledgement; retire stale intents at authoritative layout commits.
+- Stop blending primary page contents during tab changes; retain mounted scene
+  state while committing one opaque destination. Commit settled MorphIcon paths
+  as React SVG props so native paint cannot retain the old declared glyph.
+- Dismiss retained Profile pickers on focus loss without resetting account,
+  collection, pager or queued loadout work.
+- Reduce Profile rank names to 13sp with two-line fitting; match the Level pill's
+  light gray material across the three balance and two rank cards.
+- Remove whole-content press fades/scales and outer halos from affected
+  More-linked equipment, accessories, gallery, agent, history, crosshair,
+  leaderboard and friend content. Use inset feedback; retain tap/long-press,
+  media identity, account permissions and the existing flat Combat content.
+  Clear held feedback before navigation callbacks. The language picker stays flat.
+- Prioritize closing the language picker and share the language subscription.
+  Update the visible tab first; retained hidden tabs adopt the current locale
+  on focus without remounting or losing their state. Commit locale snapshots
+  only after completed renders, including interrupted transitions.
+- Remove optical rims and card shadows from Night Market and repeated Combat
+  sections. Increase Combat friend-card width to 96dp and give status two lines.
+- Refresh friend art when the public card catalog becomes ready, normalize known
+  card identities and preserve an honest placeholder when presence has no card.
+  Combat excludes offline, away, do-not-disturb and validated idle friends; main list policy and
+  invite permissions remain unchanged.
+
+- Harden Profile cache ownership and stale request cleanup, picker focus and
+  accessibility, viewport restoration and collection exports beyond 48 items.
+- Preserve navigation intent and live motion preferences, cached match details
+  on refresh failure, account ownership in upgrades and season ownership in
+  leaderboards; isolate media callbacks by preview lifetime and restore explicit
+  retry paths. Detailed findings are in `markdown/ui-quality/UI_BUG_REPORT.md`.
+
+### Development
+
+- Add opt-in DEV roster/presence response capture for player-card diagnostics:
+  `EXPO_PUBLIC_VSHOP_CARD_RESPONSE_DEBUG=1`. Preserve ordinary response fields
+  and card UUIDs while stripping credentials; no auth-stream or chat-message
+  capture. Keep logs outside Git and disable the flag after diagnostics.
+
+- Add an opt-in `VSHOP_NATIVE_QA=1` native identity for side-by-side physical
+  testing when the installed application's signer differs. It uses isolated
+  package/storage and disables OTA; default builds retain the VShop identity.
+  QA builds and debug frame samples are not production release evidence.
 
 ### Security
 

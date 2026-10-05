@@ -12,11 +12,16 @@ type LeaderboardState = {
   totalPlayers: number;
   seasons: LeaderboardSeasonOption[];
   selectedSeason: string | null;
+  boardsBySeason: Record<string, {
+    players: LeaderboardResponse["Players"];
+    totalPlayers: number;
+  } | undefined>;
   loading: boolean;
 };
 
 const emptyState = (session: RiotScreenSession): LeaderboardState => ({
   session, players: [], totalPlayers: 0, seasons: [], selectedSeason: null,
+  boardsBySeason: {},
   loading: hasRiotScreenSession(session),
 });
 
@@ -32,11 +37,31 @@ export function useLeaderboardData(user: RiotScreenSession) {
     const generation = getSessionGeneration();
     const isCurrent = () => generation === getSessionGeneration() && activeSession.current === session && requestId === boardRequest.current && isCurrentRiotScreenSession(session);
     if (!hasRiotScreenSession(session) || !isCurrent()) return;
-    if (showLoading) setState((current) => ({ ...current, loading: true }));
+    if (showLoading) {
+      setState((current) => {
+        const cached = current.boardsBySeason[seasonId];
+        return {
+          ...current,
+          players: cached?.players ?? [],
+          totalPlayers: cached?.totalPlayers ?? 0,
+          loading: true,
+        };
+      });
+    }
     try {
       const data = await getLeaderboard(session.accessToken, session.entitlementsToken, session.region, seasonId, { startIndex: 0, size: 100 });
       if (isCurrent() && data) {
-        setState((current) => ({ ...current, players: data.Players ?? [], totalPlayers: data.totalPlayers ?? 0 }));
+        const players = data.Players ?? [];
+        const totalPlayers = data.totalPlayers ?? 0;
+        setState((current) => ({
+          ...current,
+          boardsBySeason: {
+            ...current.boardsBySeason,
+            [seasonId]: { players, totalPlayers },
+          },
+          players: current.selectedSeason === seasonId ? players : current.players,
+          totalPlayers: current.selectedSeason === seasonId ? totalPlayers : current.totalPlayers,
+        }));
       }
     } catch (error) {
       if (isCurrent() && __DEV__) console.error("Failed to fetch leaderboard:", sanitizeErrorForLog(error));
@@ -79,8 +104,16 @@ export function useLeaderboardData(user: RiotScreenSession) {
   const data = state.session === session ? state : emptyState(session);
   const selectSeason = React.useCallback((seasonId: string) => {
     if (activeSession.current !== session || !isCurrentRiotScreenSession(session)) return;
-    setState((current) => ({ ...current, selectedSeason: seasonId }));
-    void fetchBoard(seasonId);
+    setState((current) => {
+      const cached = current.boardsBySeason[seasonId];
+      return {
+        ...current,
+        selectedSeason: seasonId,
+        players: cached?.players ?? [],
+        totalPlayers: cached?.totalPlayers ?? 0,
+      };
+    });
+    void fetchBoard(seasonId, false);
   }, [fetchBoard, session]);
   const refresh = React.useCallback(async () => {
     if (data.selectedSeason) await fetchBoard(data.selectedSeason, false);

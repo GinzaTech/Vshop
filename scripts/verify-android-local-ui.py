@@ -14,7 +14,10 @@ import time
 import xml.etree.ElementTree as ET
 
 import uiautomator2
-from lib.android_ui_guard import DeviceNotReady, assert_vshop_ready
+from lib.android_ui_guard import (
+    ALLOWED_VSHOP_PACKAGES, DEFAULT_VSHOP_PACKAGE, DeviceNotReady,
+    assert_vshop_ready, read_vshop_package_info, validate_vshop_package,
+)
 
 
 def main():
@@ -22,8 +25,11 @@ def main():
     parser.add_argument("--serial", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--adb", default="adb")
+    parser.add_argument("--package", choices=ALLOWED_VSHOP_PACKAGES, default=DEFAULT_VSHOP_PACKAGE,
+                        help="Exact app target; startupqa requires explicit opt-in")
     parser.add_argument("--allow-physical", action="store_true", help="Only use after explicit human physical-device authorization")
     args = parser.parse_args()
+    validate_vshop_package(args.package)
     if not re.fullmatch(r"emulator-\d+", args.serial) and not args.allow_physical:
         raise RuntimeError("Physical device requires explicit --allow-physical authorization")
     output = Path(args.output).resolve()
@@ -39,9 +45,6 @@ def main():
     emulator = adb("shell", "getprop", "ro.kernel.qemu").decode().strip() == "1"
     if not emulator and not args.allow_physical:
         raise RuntimeError("Target is not an authorized physical device")
-    package = adb("shell", "dumpsys", "package", "com.android.vshop").decode(errors="replace")
-    if not re.search(r"pkgFlags=\[[^\]]*DEBUGGABLE", package):
-        raise RuntimeError("Local fixture testing requires the verified development package")
     # ARTEMIS exploration establishes the real controls. UIAutomator2 supplies
     # fresh runtime trees here; the helper backend was observed retaining stale
     # nodes after modal changes on this Android 16 emulator.
@@ -49,11 +52,12 @@ def main():
     last_snapshot_at = 0.0
     trace = []
     started = time.monotonic()
-    report = {"serial": args.serial, "isEmulator": emulator, "scope": "local fixture, no Riot", "checks": []}
+    report = {"serial": args.serial, "package": args.package, "isEmulator": emulator,
+              "scope": "local fixture, no Riot", "checks": []}
 
     def snapshot():
         nonlocal latest_nodes, last_snapshot_at
-        assert_vshop_ready(adb)
+        assert_vshop_ready(adb, package=args.package)
         root = ET.fromstring(client.dump_hierarchy(compressed=False))
         nodes = list(root.iter("node"))
         marker = next((n for n in nodes if n.get("text") == "Local QA (no Riot)"), None)
@@ -96,7 +100,7 @@ def main():
         return [(bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2]
 
     def tap(value, attribute="resource-id", nodes=None):
-        assert_vshop_ready(adb)
+        assert_vshop_ready(adb, package=args.package)
         current = nodes if nodes is not None else (
             latest_nodes if time.monotonic() - last_snapshot_at < 0.75 else snapshot()[0])
         x, y = locate(current, value, attribute)
@@ -114,7 +118,7 @@ def main():
     def capture(name):
         # Foreground and fixture guard immediately precede every capture.
         snapshot()
-        assert_vshop_ready(adb)
+        assert_vshop_ready(adb, package=args.package)
         (output / f"{name}.png").write_bytes(adb("exec-out", "screencap", "-p"))
 
     def open_picker(control, kind):
@@ -134,7 +138,10 @@ def main():
                  f"selected {name} rendered and picker closed")
 
     try:
-        assert_vshop_ready(adb)
+        assert_vshop_ready(adb, package=args.package)
+        report.update(read_vshop_package_info(adb, package=args.package))
+        if not report["debuggable"]:
+            raise RuntimeError("Local fixture testing requires the verified development package")
         client = uiautomator2.connect(args.serial)
         nodes, state = wait_for(lambda _state: True, "local QA screen ready")
         if state["picker"] is not None:

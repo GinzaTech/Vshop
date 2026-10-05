@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import {
   ABOUT_TOGGLES_STORAGE_KEY,
@@ -190,7 +190,7 @@ export default function AboutScreen() {
       {playerInfo && (
         <>
           <Text style={styles.sectionTitle}>{t("about_page.player_info_title")}</Text>
-          <GlassCard style={styles.card}>
+          <GlassCard variant="flat" style={styles.card}>
             {renderInfoRow(
               t("about_page.profile"),
               `${playerInfo.acct.game_name}#${playerInfo.acct.tag_line}`
@@ -214,7 +214,7 @@ export default function AboutScreen() {
       {(activeEpisode || activeAct) && (
         <>
           <Text style={styles.sectionTitle}>{t("about_page.current_season_title")}</Text>
-          <GlassCard style={styles.card}>
+          <GlassCard variant="flat" style={styles.card}>
             {activeEpisode && renderInfoRow(t("about_page.episode"), activeEpisode.Name)}
             {activeAct && renderInfoRow(t("about_page.act"), activeAct.Name)}
             {activeAct &&
@@ -257,7 +257,7 @@ export default function AboutScreen() {
             </Text>
           </View>
 
-          <GlassCard style={styles.card}>
+          <GlassCard variant="flat" style={styles.card}>
             {boolEntries.map(([k, v]) => renderToggleRow(k, v as boolean))}
           </GlassCard>
         </>
@@ -265,7 +265,7 @@ export default function AboutScreen() {
 
       {/* Empty */}
       {!playerInfo && !riotConfig && !content && (
-        <GlassCard style={styles.emptyCard}>
+        <GlassCard variant="flat" style={styles.emptyCard}>
           <Text style={styles.emptyText}>{t("about_page.loading")}</Text>
         </GlassCard>
       )}

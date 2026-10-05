@@ -9,7 +9,9 @@ import {
   ScrollView,
   Share,
   StyleSheet,
+  Text,
   View,
+  type LayoutChangeEvent,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -17,7 +19,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { EconomyChart } from "~/components/match-detail/EconomyChart";
 import { MatchDetailHeader } from "~/components/match-detail/MatchDetailHeader";
@@ -47,6 +49,7 @@ import { buildMatchDetailViewModel } from "~/utils/match-ui";
 import { MOTION_TIMING } from "~/constants/Motion";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
+import { useMotionPreference } from "~/hooks/useMotionPreference";
 
 /**
  * firstParam – Lấy phần tử đầu tiên nếu value là mảng, nếu không thì trả về nguyên value
@@ -96,6 +99,49 @@ export default function MatchDetailsScreen() {
 
   // Ref: tham chiếu đến ScrollView để scroll
   const scrollRef = React.useRef<ScrollView>(null);
+  const reduceMotion = useMotionPreference();
+  const roundScrollOwner = React.useMemo(() => ({
+    matchId, activeTab, selectedPlayerId, userId: user.id, region: user.region,
+  }), [activeTab, matchId, selectedPlayerId, user.id, user.region]);
+  const currentRoundScrollOwner = React.useRef<typeof roundScrollOwner | null>(roundScrollOwner);
+  currentRoundScrollOwner.current = roundScrollOwner;
+  const roundAnchorRef = React.useRef<{
+    owner: typeof roundScrollOwner; parentY: number | null; detailY: number | null; pending: boolean;
+  }>({ owner: roundScrollOwner, parentY: null, detailY: null, pending: false });
+  if (roundAnchorRef.current.owner !== roundScrollOwner) {
+    roundAnchorRef.current = { owner: roundScrollOwner, parentY: null, detailY: null, pending: false };
+  }
+  const roundScrollFrameRef = React.useRef<number | null>(null);
+  const cancelRoundScroll = React.useCallback(() => {
+    if (roundScrollFrameRef.current !== null) cancelAnimationFrame(roundScrollFrameRef.current);
+    roundScrollFrameRef.current = null;
+  }, []);
+  React.useLayoutEffect(() => () => {
+    cancelRoundScroll();
+    if (currentRoundScrollOwner.current === roundScrollOwner) currentRoundScrollOwner.current = null;
+  }, [cancelRoundScroll, roundScrollOwner]);
+  const queueRoundScroll = React.useCallback(() => {
+    cancelRoundScroll();
+    const frame = requestAnimationFrame(() => {
+      if (roundScrollFrameRef.current === frame) roundScrollFrameRef.current = null;
+      const anchor = roundAnchorRef.current;
+      if (currentRoundScrollOwner.current !== roundScrollOwner || !anchor.pending ||
+          anchor.parentY === null || anchor.detailY === null) return;
+      roundAnchorRef.current = { ...anchor, pending: false };
+      scrollRef.current?.scrollTo({ y: anchor.parentY + anchor.detailY, animated: !reduceMotion });
+    });
+    roundScrollFrameRef.current = frame;
+  }, [cancelRoundScroll, reduceMotion, roundScrollOwner]);
+  const handlePerformanceLayout = React.useCallback((event: LayoutChangeEvent) => {
+    if (currentRoundScrollOwner.current !== roundScrollOwner) return;
+    roundAnchorRef.current = { ...roundAnchorRef.current, parentY: event.nativeEvent.layout.y };
+    if (roundAnchorRef.current.pending) queueRoundScroll();
+  }, [queueRoundScroll, roundScrollOwner]);
+  const handleRoundDetailLayout = React.useCallback((event: LayoutChangeEvent) => {
+    if (currentRoundScrollOwner.current !== roundScrollOwner) return;
+    roundAnchorRef.current = { ...roundAnchorRef.current, detailY: event.nativeEvent.layout.y };
+    if (roundAnchorRef.current.pending) queueRoundScroll();
+  }, [queueRoundScroll, roundScrollOwner]);
   // Ref: giá trị opacity cho animation chuyển tab
   const contentOpacity = useSharedValue(1);
   const contentAnimatedStyle = useAnimatedStyle(() => ({
@@ -168,11 +214,11 @@ export default function MatchDetailsScreen() {
    * @param roundNumber – Số vòng đấu
    */
   const selectRound = React.useCallback((roundNumber: number) => {
+    if (activeTab !== "performance" || currentRoundScrollOwner.current !== roundScrollOwner) return;
     setSelectedRoundNumber(roundNumber);
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({ y: 430, animated: true });
-    });
-  }, []);
+    roundAnchorRef.current = { ...roundAnchorRef.current, pending: true };
+    queueRoundScroll();
+  }, [activeTab, queueRoundScroll, roundScrollOwner]);
 
   /**
    * shareMatch – Chia sẻ kết quả trận đấu qua native Share sheet
@@ -206,8 +252,8 @@ export default function MatchDetailsScreen() {
     );
   }
 
-  // Hiển thị error state nếu có lỗi hoặc không có viewModel
-  if (!viewModel || error) {
+  // A transient refresh failure must not replace usable cached details.
+  if (!viewModel) {
     return (
       <SafeAreaView style={styles.screen} edges={["bottom"]}>
         <MatchStatePanel
@@ -253,6 +299,15 @@ export default function MatchDetailsScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.contentWidth}>
+            {error ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                testID="match-detail-refresh-error"
+                style={styles.refreshError}
+              >
+                {error}
+              </Text>
+            ) : null}
             {activeTab === "scoreboard" ? (
               <>
                 <EconomyChart points={viewModel.economy} />
@@ -262,13 +317,20 @@ export default function MatchDetailsScreen() {
                 />
               </>
             ) : (
-              <PerformanceTab
-                data={viewModel}
-                selectedPlayerId={selectedPlayerId}
-                selectedRoundNumber={selectedRoundNumber}
-                onSelectPlayer={setSelectedPlayerId}
-                onSelectRound={selectRound}
-              />
+              <View
+                key={`${matchId}:${user.id}:${user.region}:${selectedPlayerId}`}
+                onLayout={handlePerformanceLayout}
+                testID="match-detail-performance-content"
+              >
+                <PerformanceTab
+                  data={viewModel}
+                  selectedPlayerId={selectedPlayerId}
+                  selectedRoundNumber={selectedRoundNumber}
+                  onSelectPlayer={setSelectedPlayerId}
+                  onSelectRound={selectRound}
+                  onRoundDetailLayout={handleRoundDetailLayout}
+                />
+              </View>
             )}
           </View>
         </ScrollView>
@@ -305,5 +367,10 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: MATCH_LAYOUT.maxContentWidth,
     paddingBottom: MATCH_SPACING.lg,
+  },
+  refreshError: {
+    color: MATCH_COLORS.textSecondary,
+    paddingHorizontal: MATCH_SPACING.lg,
+    paddingVertical: MATCH_SPACING.md,
   },
 });

@@ -86,9 +86,9 @@ describe("GPU-friendly profile motion policy", () => {
 
     expect(motionSource).not.toContain("profileBodyBackgroundAnimatedStyle");
     expect(motionSource).not.toContain("profilePageBackgroundAnimatedStyle");
-    expect(screenSource).toMatch(
-      /isPlayerInfoMode\s*\?\s*PROFILE_INFO_COLORS\.background\s*:\s*COLORS\.PURE_WHITE/
-    );
+    expect(screenSource).toContain("backgroundColor: isPlayerInfoMode ? PROFILE_INFO_COLORS.background : COLORS.BACKGROUND");
+    expect(screenSource).not.toContain("RefractiveGlassViewport");
+    expect(screenSource).not.toContain("interpolateColor");
   });
 
   it("uses the shared standard duration instead of a delayed 420ms morph", () => {

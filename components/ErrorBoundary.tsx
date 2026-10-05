@@ -8,7 +8,7 @@ import * as Sentry from "@sentry/react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import RecoveryUpdateActions from "~/components/ui/RecoveryUpdateActions";

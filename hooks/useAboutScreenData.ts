@@ -3,6 +3,7 @@ import React from "react";
 import { useAccountScreenData, type AccountScreenSession } from "~/hooks/useAccountScreenData";
 import { getContent, getPlayerInfo, getRiotClientConfig } from "~/utils/valorant-api";
 import { getStoredItem } from "~/utils/storage";
+import { isCurrentRiotScreenSession } from "~/hooks/useRiotScreenSession";
 
 export type ToggleOverrides = Record<string, boolean>;
 export const ABOUT_TOGGLES_STORAGE_KEY = "about:feature_toggle_overrides";
@@ -47,9 +48,30 @@ async function loadAboutData(session: AccountScreenSession) {
 }
 
 export function useAboutScreenData() {
-  const { data, updateData, ...request } = useAccountScreenData(loadAboutData, EMPTY_DATA, "[about] fetch error:");
-  const setToggleOverrides = React.useCallback((toggleOverrides: ToggleOverrides) => {
-    updateData((previous) => ({ ...previous, toggleOverrides }));
+  const editRevision = React.useRef(0);
+  const load = React.useCallback(async (session: AccountScreenSession) => {
+    const revision = editRevision.current;
+    const result = await loadAboutData(session);
+    const { toggleOverrides, ...remoteData } = result.data;
+    // A refresh may read storage before a local toggle is saved. Its Riot data
+    // is still useful, but that override snapshot no longer owns the choice.
+    return {
+      ...result,
+      data: revision === editRevision.current
+        ? { ...remoteData, ...(toggleOverrides ? { toggleOverrides } : {}) }
+        : remoteData,
+    };
+  }, []);
+  const { data, updateData, ...request } = useAccountScreenData(load, EMPTY_DATA, "[about] fetch error:");
+  const activeUpdate = React.useRef<typeof updateData | null>(null);
+  React.useEffect(() => {
+    activeUpdate.current = updateData;
+    return () => { activeUpdate.current = null; };
   }, [updateData]);
+  const setToggleOverrides = React.useCallback((toggleOverrides: ToggleOverrides) => {
+    if (activeUpdate.current !== updateData || !isCurrentRiotScreenSession(request.session)) return;
+    editRevision.current += 1;
+    updateData((previous) => ({ ...previous, toggleOverrides }));
+  }, [request.session, updateData]);
   return { ...data, ...request, setToggleOverrides };
 }

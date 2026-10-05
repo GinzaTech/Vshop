@@ -4,7 +4,7 @@ import React from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { DailyMatchSummaryCard } from "~/components/matches/DailyMatchSummaryCard";
 import { MatchCard } from "~/components/matches/MatchCard";

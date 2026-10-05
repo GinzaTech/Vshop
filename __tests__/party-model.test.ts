@@ -1,6 +1,6 @@
 import { buildPartyViewModel } from "~/features/party/party-model";
 import type { CombatSessionSnapshot } from "~/hooks/useCombatStore";
-import type { ChatFriend } from "~/utils/chat-store";
+import { useChatStore, type ChatFriend } from "~/utils/chat-store";
 
 const session = { id: "self", region: "ap", accessToken: "test", entitlementsToken: "test" };
 const makeSnapshot = (party: CombatSessionSnapshot["party"]): CombatSessionSnapshot => ({ state: "idle", partyId: party?.ID ?? null, party, matchId: null, pregameMatch: null, currentGameMatch: null, namesBySubject: { self: "Me#AP", friend: "Teammate#VN" } });
@@ -83,12 +83,78 @@ describe("party view model", () => {
     expect(build(p, { selfCache }).members[1].rankName).toBeUndefined();
     expect(build(p, { selfCache: { ...selfCache, authKey: "ap|other" } }).members[0].rankName).toBeUndefined();
   });
-  it("uses connected presence, excludes self/party/offline, and disables unresolved Riot IDs", () => {
+  it("uses connected presence, excludes self/party/offline/away/DND, and disables unresolved Riot IDs", () => {
     const friends = { self: friend("self"), friend: friend("friend"), offline: friend("offline", "offline"), online: { ...friend("online"), presence: { playerCardId: "card", sessionLoopState: "INGAME" } }, away: friend("away", "away"), busy: friend("busy", "dnd"), unknown: { ...friend("unknown"), gameName: "Unknown", tagLine: "" } };
     const model = build(party, { friends });
-    expect(model.friends.map((f) => f.id).sort()).toEqual(["away", "busy", "online", "unknown"]);
+    expect(model.friends.map((f) => f.id).sort()).toEqual(["online", "unknown"]);
     expect(model.friends.find((f) => f.id === "online")).toMatchObject({ avatarUrl: "https://example.com/card.png", canInvite: true });
     expect(model.friends.find((f) => f.id === "unknown")?.canInvite).toBe(false);
     expect(build(party, { friends, friendConnectionStatus: "disconnected" }).friends).toEqual([]);
+  });
+
+  it.each(["offline", " OFFLINE ", "away", " AWAY ", "dnd", "DND", " DnD "])("excludes %s even with known card/activity metadata", (show) => {
+    const candidate = { ...friend("candidate", show), presence: { playerCardId: "card", sessionLoopState: "MENUS" } };
+    expect(build(party, { friends: { candidate } }).friends).toEqual([]);
+  });
+  it.each(["chat", "online", "dnd", "mobile"])("excludes current %s when confirmed Valorant isIdle is true", (show) => {
+    const candidate = { ...friend("candidate", show), presence: { playerCardId: "card", sessionLoopState: "MENUS", isIdle: true } };
+    expect(build(party, { friends: { candidate } }).friends).toEqual([]);
+  });
+  it.each([false, undefined])("keeps current non-away friends with isIdle=%s and preserves permissions", (isIdle) => {
+    const candidate = { ...friend("candidate", "chat"), presence: { playerCardId: "card", isIdle } };
+    expect(build(party, { friends: { candidate } }).friends[0]).toMatchObject({ id: "candidate", canInvite: true });
+    expect(build(null, { friends: { candidate } }).friends[0]?.canInvite).toBe(false);
+  });
+
+  it.each(["chat", "online", "mobile", " MOBILE "])("keeps current %s without changing invite permissions", (show) => {
+    const friends = { candidate: friend("candidate", show), unresolved: { ...friend("unresolved", show), tagLine: "" } };
+    const model = build(party, { friends });
+    expect(model.friends.map((entry) => entry.id)).toEqual(["candidate", "unresolved"]);
+    expect(model.friends[0].canInvite).toBe(true);
+    expect(model.friends[1].canInvite).toBe(false);
+    expect(model.friends[0].presence).toBe("available");
+    expect(build(null, { friends }).friends.every((entry) => !entry.canInvite)).toBe(true);
+  });
+
+  it.each(["connecting", "disconnected", "error"])("does not display cached current-looking friends while %s", (friendConnectionStatus) => {
+    expect(build(party, { friends: { candidate: friend("candidate", "dnd") }, friendConnectionStatus }).friends).toEqual([]);
+  });
+
+  it("drops and restores the rail on live status changes and never revives a reset account's friends", () => {
+    const store = useChatStore.getState();
+    const current = () => {
+      const chat = useChatStore.getState();
+      return build(party, { friends: chat.friends, friendConnectionStatus: chat.status });
+    };
+    try {
+      store.resetChatSession();
+      store.setStatus("authenticated");
+      store.setFriends([friend("candidate", "chat")]);
+      const roster = useChatStore.getState().friends;
+      expect(current().friends.map((entry) => entry.id)).toEqual(["candidate"]);
+      expect(useChatStore.getState().friends).toBe(roster);
+      for (const show of ["away", "offline", "dnd"]) {
+        store.updateFriendPresence("candidate", "", show);
+        expect(current().friends).toEqual([]);
+        store.updateFriendPresence("candidate", "", "mobile");
+        expect(current().friends.map((entry) => entry.id)).toEqual(["candidate"]);
+      }
+      store.setStatus("connecting");
+      store.setStatus("authenticated");
+      expect(current().friends).toEqual([]);
+      store.updateFriendPresence("candidate", "", "dnd");
+      expect(current().friends).toEqual([]);
+      store.updateFriendPresence("candidate", "", "dnd", { isIdle: true });
+      expect(current().friends).toEqual([]);
+      store.updateFriendPresence("candidate", "", "dnd", { isIdle: false });
+      expect(current().friends).toEqual([]);
+      store.updateFriendPresence("candidate", "", "chat", { isIdle: false });
+      expect(current().friends[0]).toMatchObject({ id: "candidate", presence: "available", canInvite: true });
+      store.resetChatSession();
+      store.setStatus("authenticated");
+      expect(current().friends).toEqual([]);
+      store.setFriends([friend("other-account", "chat")]);
+      expect(current().friends.map((entry) => entry.id)).toEqual(["other-account"]);
+    } finally { store.resetChatSession(); }
   });
 });

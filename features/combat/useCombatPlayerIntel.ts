@@ -16,11 +16,15 @@ function preserveReady<T extends { status: string }>(next: T, previous?: T): T {
   return next.status === "ready" || previous?.status !== "ready" ? next : previous;
 }
 
-export function useCombatPlayerIntel(session: RiotScreenSession, subjectKey: string, matchId: string | null, activity: ReturnType<typeof useCombatScreenActivity>) {
+export function useCombatPlayerIntel(session: RiotScreenSession, subjectKey: string, matchId: string | null, activity: ReturnType<typeof useCombatScreenActivity>, refreshRevision = 0) {
   const [state, setState] = React.useState<ScopedIntelData>({ session, matchId, playerIntel: {}, competitivePerformance: {} });
   const subjects = React.useMemo(() => subjectKey ? subjectKey.split("|") : [], [subjectKey]);
   const { isActive, isActiveNow } = activity;
-  const isCurrent = React.useCallback(() => isActiveNow() && isCurrentRiotScreenSession(session), [isActiveNow, session]);
+  const owner = React.useMemo(() => ({ session, matchId, refreshRevision }), [session, matchId, refreshRevision]);
+  const currentOwner = React.useRef(owner);
+  currentOwner.current = owner;
+  const isCurrent = React.useCallback(() => currentOwner.current === owner &&
+    isActiveNow() && isCurrentRiotScreenSession(session), [isActiveNow, owner, session]);
   const scopeState = React.useCallback((current: ScopedIntelData): ScopedIntelData =>
     current.session === session && current.matchId === matchId ? current
       : { session, matchId, playerIntel: {}, competitivePerformance: {} }, [matchId, session]);

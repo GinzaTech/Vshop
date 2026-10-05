@@ -1,6 +1,7 @@
 import type { CombatSessionSnapshot } from "~/hooks/useCombatStore";
 import type { RiotScreenSession } from "~/hooks/useRiotScreenSession";
 import type { ChatFriend } from "~/utils/chat-store";
+import { isOnlineFriend } from "~/utils/friend-presence";
 import type { PartyMemberView, PartyQueueOption, PartyViewModel } from "./party-types";
 
 type PartyAssets = {
@@ -92,12 +93,13 @@ export function buildPartyViewModel(input: PartyModelInput): Omit<PartyViewModel
   queueOptions.push({ id: "custom", label: "Custom", enabled: canManage });
   const occupied = new Set([key(input.session.id), ...members.map((member) => key(member.id))]);
   const friends = input.friendConnectionStatus === "authenticated" ? Object.values(input.friends)
-    .filter((friend) => !occupied.has(key(friend.id)) && ["chat", "online", "mobile", "dnd", "away"].includes(friend.show))
+    .filter((friend) => !occupied.has(key(friend.id)) && isOnlineFriend(friend, input.friendConnectionStatus) &&
+      !["away", "dnd"].includes(friend.show.trim().toLowerCase()) && friend.presence?.isIdle !== true)
     .map((friend) => ({
       id: friend.id, name: text(friend.gameName) ?? friend.id.slice(0, 8),
       avatarUrl: avatar(friend.presence?.playerCardId, input.assets),
-      presence: friend.show === "dnd" ? "busy" as const : friend.show === "away" ? "away" as const : "available" as const,
-      activityLabel: friend.presence?.sessionLoopState ? label(friend.presence.sessionLoopState) : label(friend.show),
+      presence: friend.show.trim().toLowerCase() === "dnd" ? "busy" as const : "available" as const,
+      activityLabel: friend.presence?.sessionLoopState ? label(friend.presence.sessionLoopState) : label(friend.show.trim().toLowerCase()),
       canInvite: canManage && Boolean(text(friend.gameName) && friend.gameName !== "Unknown" && text(friend.tagLine)),
     })) : [];
   return {

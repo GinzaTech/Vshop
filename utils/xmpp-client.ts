@@ -4,6 +4,7 @@ import TcpSocket from "react-native-tcp-socket";
 import { NativeModules, Platform } from "react-native";
 import { trimXmppBuffer } from "./xmpp-buffer";
 import { presenceShow } from "~/features/party/party-presence";
+import { captureFriendCardResponse } from "~/utils/friend-card-response-log";
 
 // Kiểu trạng thái kết nối XMPP: disconnected (ngắt kết nối) | connecting (đang kết nối) | authenticated (đã xác thực) | error (lỗi)
 type ConnectionState = "disconnected" | "connecting" | "authenticated" | "error";
@@ -443,6 +444,9 @@ export class XMPPClient {
     let rosterMatch = rosterRegex.exec(this.buffer);
 
     while (rosterMatch) {
+      if (__DEV__ && process.env.EXPO_PUBLIC_VSHOP_CARD_RESPONSE_DEBUG === "1") {
+        console.info("[friend-card-response]", JSON.stringify(captureFriendCardResponse("roster", { raw: rosterMatch[0] })));
+      }
       const itemRegex = /<item\s+([^>]+?)\/?>/g;
       const friends: RosterFriend[] = [];
       let itemMatch: RegExpExecArray | null;

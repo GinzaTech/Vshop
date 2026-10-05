@@ -1,12 +1,13 @@
 // ===== Import thư viện =====
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import TouchableOpacity from "~/components/ui/ContentCardTouchable";
 import * as Clipboard from "expo-clipboard";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import AppIcon from "~/components/ui/AppIcon";
 import GlassCard from "~/components/ui/GlassCard";
-import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import { CROSSHAIR_DB, type CrosshairData } from "~/constants/CrosshairData";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
@@ -156,7 +157,7 @@ export default function CrosshairDatabase() {
                 accessibilityRole="tab"
                 accessibilityLabel={category.label}
                 accessibilityState={{ selected: activeCategory === category.value }}
-                style={[styles.tab, LIQUID_GLASS_CHIP_STYLE, activeCategory === category.value && styles.tabActive]}>
+                style={[styles.tab, FLAT_CARD_STYLE, activeCategory === category.value && styles.tabActive]}>
                 <Text style={[styles.tabText, activeCategory === category.value && styles.tabTextActive]}>{category.label}</Text>
               </TouchableOpacity>
             ))}
@@ -179,7 +180,7 @@ export default function CrosshairDatabase() {
                 accessibilityLabel={`${item.name}, ${item.team}`}
                 accessibilityState={{ selected: isSelected }}
               >
-                <GlassCard style={[styles.card, isSelected && styles.cardSelected]}>
+                <GlassCard variant="flat" style={[styles.card, isSelected && styles.cardSelected]}>
                   <View style={styles.cardTop}>
                     <Text style={styles.cardName}>{item.name}</Text>
                     <Text style={[styles.cardTeam, { color: isSelected ? COLORS.PURE_BLACK : COLORS.TEXT_SECONDARY }]}>{item.team}</Text>

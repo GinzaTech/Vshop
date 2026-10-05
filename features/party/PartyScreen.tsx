@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, Pressable, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppIcon from "~/components/ui/AppIcon";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
-import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import GlassCard from "~/components/ui/GlassCard";
 import ValorantButton from "~/components/ui/ValorantButton";
 import { COLORS, SPACING } from "~/constants/DesignSystem";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
-import PartyMemberCard from "./PartyMemberCard";
+import PartyTeamPanel from "./PartyTeamPanel";
 import PartyFriendRail from "./PartyFriendRail";
 import PartyInviteControls from "./PartyInviteControls";
 import PartySelectors, { usePartyActionGuard } from "./PartySelectors";
@@ -59,7 +58,7 @@ export function PartyScreen({ model, refreshing, busyAction, errorMessage, actio
         </Pressable>
       </View>
       {!!displayError && <Text style={s.error} accessibilityRole="alert" accessibilityLiveRegion="polite">{displayError}</Text>}
-      <GlassCard style={s.card} contentStyle={s.cardContent}>
+      <GlassCard variant="flat" style={s.card} contentStyle={s.cardContent}>
         <View style={s.spread}>
           <Text style={s.queueTitle} numberOfLines={2}>{queueLabel}</Text>
           <ValorantButton title={t("party_page.leave", { defaultValue: "Leave" })} variant="glass"
@@ -73,9 +72,6 @@ export function PartyScreen({ model, refreshing, busyAction, errorMessage, actio
           disabled={queueDisabled} loading={pending === queueAction} style={s.primary} textStyle={s.primaryText}
           icon={<AppIcon name={model.isQueueing ? "close" : "combatPregame"} size={22} color={COLORS.PURE_WHITE} decorative />} />
       </GlassCard>
-      <View style={s.row}>
-        <Text style={s.sectionTitle} accessibilityRole="header">{t("party_page.members", { defaultValue: "Members" })}</Text>
-      </View>
     </>
   );
   const footer = (
@@ -99,15 +95,13 @@ export function PartyScreen({ model, refreshing, busyAction, errorMessage, actio
   );
   return (
     <View style={s.sheet}>
-      <FlatList data={model.members} keyExtractor={member => member.id} showsVerticalScrollIndicator={false}
+      <FlatList data={[model.members]} keyExtractor={() => "team"} showsVerticalScrollIndicator={false}
         accessibilityElementsHidden={confirmLeave || inviteFormOpen} importantForAccessibility={confirmLeave || inviteFormOpen ? "no-hide-descendants" : "auto"}
         contentContainerStyle={[s.content, { paddingBottom: insets.bottom + SPACING.xl }]}
         refreshControl={<AppRefreshControl refreshing={refreshing || pending === "refresh"}
           enabled={!locked} onRefresh={() => { void guard.run("refresh", actions.onRefresh); }} />}
         ListHeaderComponent={<View style={s.section}>{header}</View>} ListFooterComponent={footer}
-        ItemSeparatorComponent={() => <View style={{ height: SPACING.sm }} />}
-        ListEmptyComponent={<EmptyStateCard style={s.card} title={t("party_page.members_unavailable", { defaultValue: "Members unavailable" })} />}
-        renderItem={({ item }) => <PartyMemberCard member={item} disabled={locked || !model.canReady}
+        renderItem={({ item }) => <PartyTeamPanel members={item} disabled={locked || !model.canReady}
           busy={pending === "ready"} onReady={ready => guard.run("ready", () => actions.onReady(ready))} />} />
       {confirmLeave && <Modal transparent visible animationType={reduceMotion ? "none" : "fade"}
         onRequestClose={() => { if (pending !== "leave") setConfirmLeave(false); }}>

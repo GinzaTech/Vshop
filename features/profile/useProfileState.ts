@@ -1,13 +1,15 @@
 import React from "react";
 import { type IdleTask } from "~/utils/idle-task";
 import { PlayerLoadoutExpression, PlayerLoadoutResponse } from "~/utils/valorant-api";
-import { CompetitiveRankSummary } from "~/utils/profile-cache";
+import { CompetitiveRankSummary, type ProfileWarmCache } from "~/utils/profile-cache";
 import { PlayerLoadoutGun, PlayerLoadoutSpray, PlayerLoadoutIdentity, WeaponMetadataMap, EquippedWeapon } from "~/components/GalleryProfile";
 import { type OwnedSkinOption, type PendingLoadoutUpdate, type PickerState } from "~/features/profile/profile-loadout";
 import { PROFILE_DEMO_RANK } from "~/mocks/profile-ui";
 import type { useProfileSession } from "./useProfileSession";
 
-type Props = Pick<ReturnType<typeof useProfileSession>, "cachedLoadoutSnapshot" | "cachedProfile" | "user" | "isProfileDemo" | "cachedCompetitiveRank">;
+type Props = Pick<ReturnType<typeof useProfileSession>, "cachedLoadoutSnapshot" | "user" | "isProfileDemo" | "cachedCompetitiveRank"> & {
+  cachedProfile: ProfileWarmCache | null;
+};
 
 export function useProfileState({ cachedLoadoutSnapshot, cachedProfile, user, isProfileDemo, cachedCompetitiveRank }: Props) {
 

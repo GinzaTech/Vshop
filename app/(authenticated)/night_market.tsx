@@ -8,8 +8,9 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
 } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppIcon from "~/components/ui/AppIcon";
@@ -23,11 +24,12 @@ import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
 import { refreshShopAndBalances } from "~/utils/app-sync";
 import { getGlassNavigationMetrics } from "~/features/navigation/navigation-model";
-
-// Khoảng cách padding cho nội dung
-const CONTENT_PADDING = 20;
-// Khoảng cách giữa các item trong grid
-const GRID_GAP = 12;
+import {
+  getNightMarketGridLayout,
+  NIGHT_MARKET_CONTENT_PADDING as CONTENT_PADDING,
+  NIGHT_MARKET_GRID_GAP as GRID_GAP,
+  NIGHT_MARKET_GRID_BOTTOM_GAP,
+} from "~/utils/night-market-layout";
 
 /**
  * NightMarket – Component chính hiển thị Chợ đêm
@@ -36,7 +38,7 @@ const GRID_GAP = 12;
 function NightMarket() {
   const { t } = useTranslation();
   // Kích thước màn hình để tính số cột và chiều rộng card
-  const { width } = useAppWindowDimensions();
+  const { width, fontScale = 1 } = useAppWindowDimensions();
   const { bottom } = useSafeAreaInsets();
   // Thông tin user từ store
   const user = useUserStore(({ user }) => user);
@@ -54,18 +56,35 @@ function NightMarket() {
     () => new Date().getTime() + user.shops.remainingSecs.nightMarket * 1000,
     [user.shops.remainingSecs.nightMarket]
   );
-  // Số cột: 3 nếu màn hình rộng >= 700, ngược lại 2
-  const columnCount = width >= 700 ? 3 : 2;
-  // Tính chiều rộng mỗi card dựa trên kích thước màn hình, padding, gap
-  const cardWidth = Math.floor(
-    (width - CONTENT_PADDING * 2 - GRID_GAP * (columnCount - 1)) /
-      columnCount
-  );
+  const [viewport, setViewport] = React.useState({ width: 0, height: 0 });
+  const [gridPosition, setGridPosition] = React.useState({ width: 0, fontScale: 0, top: 0 });
+  const [footer, setFooter] = React.useState({ width: 0, fontScale: 0, height: 0 });
+  const bottomClearance = getGlassNavigationMetrics(width, bottom).contentBottomPadding;
+  const { cardWidth, cardHeight } = getNightMarketGridLayout({
+    width, fontScale, itemCount: user.shops.nightMarket.length,
+    viewportHeight: Math.abs(viewport.width - width) < 1 ? viewport.height : 0,
+    gridTop: gridPosition.width === width && gridPosition.fontScale === fontScale ? gridPosition.top : 0,
+    footerHeight: footer.width === width && footer.fontScale === fontScale ? footer.height : 0,
+    bottomClearance,
+  });
+  const measureViewport = React.useCallback(({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    setViewport((current) => current.width === layout.width && current.height === layout.height
+      ? current : { width: layout.width, height: layout.height });
+  }, []);
+  const measureGrid = React.useCallback(({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    setGridPosition((current) => current.width === width && current.fontScale === fontScale && current.top === layout.y
+      ? current : { width, fontScale, top: layout.y });
+  }, [width, fontScale]);
+  const measureFooter = React.useCallback(({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    setFooter((current) => current.width === width && current.fontScale === fontScale && current.height === layout.height
+      ? current : { width, fontScale, height: layout.height });
+  }, [width, fontScale]);
 
   return (
     <ScrollView
+      onLayout={measureViewport}
       style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: getGlassNavigationMetrics(width, bottom).contentBottomPadding }]}
+      contentContainerStyle={[styles.content, { paddingBottom: bottomClearance }]}
       refreshControl={
         <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
@@ -116,14 +135,14 @@ function NightMarket() {
       </View>
 
       {/* Items List: grid các item Night Market */}
-      <View style={styles.list}>
+      <View testID="night-market-grid" onLayout={measureGrid} style={styles.list}>
         {user.shops.nightMarket.map((item) => (
-          <NightMarketItem item={item} key={item.uuid} width={cardWidth} />
+          <NightMarketItem item={item} key={item.uuid} width={cardWidth} cardHeight={cardHeight} />
         ))}
       </View>
 
       {/* Bottom Info Note: thông tin phụ */}
-      <View style={styles.infoNoteCard}>
+      <View testID="night-market-info" onLayout={measureFooter} style={styles.infoNoteCard}>
         <View style={{ marginRight: 12 }}>
           <AppIcon name="info" size={20} color={COLORS.TEXT_SECONDARY} decorative />
         </View>
@@ -156,8 +175,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
-    paddingTop: 10,
+    marginBottom: 12,
+    paddingTop: 6,
   },
   // headerLeft – Bên trái header (logo + badge)
   headerLeft: {
@@ -227,7 +246,7 @@ const styles = StyleSheet.create({
   },
   // countdownContainer – Container cho pill countdown
   countdownContainer: {
-    marginBottom: 20,
+    marginBottom: 12,
     alignItems: "flex-start",
   },
   // countdownPill – Pill đen chứa countdown
@@ -250,13 +269,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: GRID_GAP,
-    marginBottom: 24,
+    marginBottom: NIGHT_MARKET_GRID_BOTTOM_GAP,
   },
   // infoNoteCard – Card thông tin phụ cuối trang
   infoNoteCard: {
     flexDirection: "row",
     backgroundColor: COLORS.SURFACE,
-    padding: 16,
+    padding: 12,
     borderRadius: 16,
     borderColor: COLORS.BORDER,
     borderWidth: 1,

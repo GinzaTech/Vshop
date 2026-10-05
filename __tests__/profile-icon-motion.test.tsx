@@ -67,6 +67,7 @@ jest.mock("react-native-reanimated", () => {
       output: string[],
     ) => (value <= input[0] ? output[0] : output.at(-1)),
     useAnimatedStyle: (factory: () => unknown) => factory(),
+    useDerivedValue: (factory: () => number) => ({ get value() { return factory(); } }),
   };
 });
 
@@ -223,7 +224,7 @@ describe("Profile semantic icon state motion", () => {
       );
     const row = findPickerRow(false);
     expect(row.props.accessibilityRole).toBe("button");
-    expect(row.props.accessibilityState).toEqual({ selected: false });
+    expect(row.props.accessibilityState).toEqual({ selected: false, disabled: false });
     expect(row.props.disabled).toBe(false);
     expect(row.findByType(MockAppIcon).props).toMatchObject({
       decorative: true,
@@ -236,7 +237,7 @@ describe("Profile semantic icon state motion", () => {
 
     const updatedRow = findPickerRow(true);
     expect(updatedRow).toBe(row);
-    expect(updatedRow.props.accessibilityState).toEqual({ selected: true });
+    expect(updatedRow.props.accessibilityState).toEqual({ selected: true, disabled: false });
     expect(updatedRow.props.disabled).toBe(false);
     expect(updatedRow.findByType(MockAppIcon).props).toMatchObject({
       decorative: true,
@@ -297,4 +298,17 @@ describe("Profile semantic icon state motion", () => {
     expect(updatedIcons[1]).toBe(initialIcons[1]);
     act(() => renderer!.unmount());
   });
+});
+
+// Profile integration owns wrappers; shader lifecycle is covered by the core owner.
+jest.mock("~/components/ui/refractive-glass", () => {
+  const ReactModule = require("react") as typeof React;
+  const Native = require("react-native") as typeof import("react-native");
+  return {
+    GlassClip: ({ children, height: _height, ...props }: React.PropsWithChildren<Record<string, unknown>>) => ReactModule.createElement(Native.View, props, children),
+    RefractiveGlassViewport: ({ children, enabled: _enabled, ...props }: React.PropsWithChildren<Record<string, unknown>>) => ReactModule.createElement(Native.View, props, children),
+    GlassFlatList: Native.FlatList,
+    RefractiveGlassCard: ({ children, compact: _compact, ...props }: React.PropsWithChildren<Record<string, unknown>>) => ReactModule.createElement(Native.View, props, children),
+    GlassScrollView: ReactModule.forwardRef((props: Record<string, unknown>, ref: React.Ref<import("react-native").ScrollView>) => ReactModule.createElement(Native.ScrollView, { ...props, ref })),
+  };
 });

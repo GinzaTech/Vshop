@@ -1,6 +1,6 @@
 import React from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import AppIcon from "~/components/ui/AppIcon";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
@@ -33,8 +33,15 @@ function statusCopy(
 }
 
 export default function RecoveryUpdateActions() {
-  const { t } = useTranslation();
   const { checkAndApply, state } = useRecoveryUpdate();
+  return <RecoveryUpdateActionsView state={state} checkAndApply={checkAndApply} />;
+}
+
+/** Shared presentation permits DEV QA to supply local, non-network callbacks. */
+export function RecoveryUpdateActionsView({ state, checkAndApply }: {
+  state: RecoveryUpdateState; checkAndApply: () => void;
+}) {
+  const { t } = useTranslation();
   const busy =
     state.kind === "checking" ||
     state.kind === "downloading" ||

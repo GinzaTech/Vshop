@@ -7,7 +7,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import {
   ActivityIndicator,
   BackHandler,
@@ -34,7 +34,7 @@ import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import AppIcon from "~/components/ui/AppIcon";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
-import { useRiotScreenSession } from "~/hooks/useRiotScreenSession";
+import { hasRiotScreenSession, isCurrentRiotScreenSession, useRiotScreenSession } from "~/hooks/useRiotScreenSession";
 import { useCombatScreenActivity } from "~/features/combat/useCombatScreenActivity";
 import { useCombatSessionPolling } from "~/features/combat/useCombatSessionPolling";
 import { useCombatPlayerIntel } from "~/features/combat/useCombatPlayerIntel";
@@ -85,19 +85,15 @@ export default function CombatSessionScreen() {
   const [statsViewMode, setStatsViewMode] =
     React.useState<StatsViewMode>("competitive");
   const activity = useCombatScreenActivity();
+  const { isActiveNow } = activity;
   const loadSnapshot = useCombatSessionPolling(session, snapshot.state !== "idle", activity);
-  const { refreshing, onRefresh } = useAsyncRefresh(loadSnapshot, session);
-
-  // Back hardware khi modal đang mở → chỉ đóng modal, không thoát màn hình.
-  React.useEffect(() => {
-    if (!selectedSubject) return;
-
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-      setSelectedSubject(null);
-      return true;
-    });
-    return () => subscription.remove();
-  }, [selectedSubject]);
+  const [intelRefreshRevision, setIntelRefreshRevision] = React.useState(0);
+  const refreshSession = React.useCallback(async () => {
+    if (!isActiveNow() || !hasRiotScreenSession(session) || !isCurrentRiotScreenSession(session)) return;
+    setIntelRefreshRevision((revision) => revision + 1);
+    return loadSnapshot();
+  }, [isActiveNow, loadSnapshot, session]);
+  const { refreshing, onRefresh } = useAsyncRefresh(refreshSession, session);
 
   /**
    * tierLookup – Map tier number → asset rank (icon/tên) từ set tier mới nhất
@@ -238,7 +234,7 @@ export default function CombatSessionScreen() {
   );
 
   const { playerIntel, competitivePerformance } = useCombatPlayerIntel(
-    session, playerSubjectKey, snapshot.matchId, activity
+    session, playerSubjectKey, snapshot.matchId, activity, intelRefreshRevision
   );
   // Score ownership requires the actual self player's team, never the roster's Blue fallback.
   const selfTeamId = teams.allies.find((player) => player.isCurrentUser)?.teamId;
@@ -293,6 +289,20 @@ export default function CombatSessionScreen() {
   const selectedPlayer = allPlayers.find(
     (player) => player.subject === selectedSubject
   ) || null;
+  const selectedPlayerRef = React.useRef(selectedPlayer);
+  selectedPlayerRef.current = selectedPlayer;
+  React.useEffect(() => {
+    if (selectedSubject && !selectedPlayer) setSelectedSubject(null);
+  }, [selectedPlayer, selectedSubject]);
+  React.useEffect(() => {
+    if (!selectedPlayer || !activity.isActive) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (!isActiveNow() || !selectedPlayerRef.current) return false;
+      setSelectedSubject(null);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [activity.isActive, isActiveNow, selectedPlayer]);
   const selectedPresentation = selectedPlayer
     ? getPlayerPresentation(selectedPlayer)
     : null;
@@ -796,18 +806,18 @@ export default function CombatSessionScreen() {
               accessibilityLabel={t("combat_page.actions.refresh", {
                 defaultValue: "Refresh",
               })}
-              accessibilityState={{ busy: loading, disabled: loading }}
-              disabled={loading}
-              onPress={() => void loadSnapshot()}
+              accessibilityState={{ busy: loading || refreshing, disabled: loading || refreshing }}
+              disabled={loading || refreshing}
+              onPress={onRefresh}
               style={({ pressed }) => [
                 styles.headerAction,
                 pressed && styles.headerActionPressed,
               ]}
             >
               <AppIcon
-                name={loading ? "loading" : "refresh"}
+                name={loading || refreshing ? "loading" : "refresh"}
                 size={19}
-                color={loading ? TRACKER_COLORS.cyan : TRACKER_COLORS.text}
+                color={loading || refreshing ? TRACKER_COLORS.cyan : TRACKER_COLORS.text}
                 decorative
               />
             </Pressable>

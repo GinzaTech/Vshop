@@ -32,7 +32,7 @@ export function NavigationLensMaterial({ progress, reduceMotion }: {
 
 const styles = StyleSheet.create({
   innerRim: { ...StyleSheet.absoluteFill, margin: 1, borderRadius: GLASS_TAB_BAR.lensRadius,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: GLASS_MATERIAL.innerBorder },
+    borderWidth: 0, borderColor: GLASS_MATERIAL.clear },
   edge: { ...StyleSheet.absoluteFill, margin: 1, borderRadius: GLASS_TAB_BAR.lensRadius,
     borderWidth: GLASS_NAV_OPTICS.fringeWidth, borderColor: GLASS_MATERIAL.clear },
   leftEdge: { borderLeftColor: GLASS_NAV_OPTICS.fringeLeft },

@@ -1,11 +1,12 @@
 // ===== Import thư viện =====
 import React from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
+import TouchableOpacity from "~/components/ui/ContentCardTouchable";
 import { Searchbar } from "react-native-paper";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import GalleryEquip from "~/components/GalleryEquip";
-import { LIQUID_GLASS_CHIP_STYLE } from "~/components/ui/LiquidGlassSurface";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { PaperClearIcon, PaperSearchIcon } from "~/components/ui/PaperIcon";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
@@ -121,7 +122,7 @@ const Equip = () => {
               testID={`equipment-tab-${section.key}`}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
-              style={[styles.tabButton, LIQUID_GLASS_CHIP_STYLE, isActive && styles.tabButtonActive]}
+              style={[styles.tabButton, FLAT_CARD_STYLE, isActive && styles.tabButtonActive]}
               onPress={() => handleSectionPress(section.key)} activeOpacity={0.85}>
               <Text
                 numberOfLines={2}
@@ -152,7 +153,7 @@ const Equip = () => {
         }
         alwaysBounceVertical
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyStateCard title={t("equipment_page.empty_title")} subtitle={t("equipment_page.empty_subtitle")} style={styles.emptyState} />}
+        ListEmptyComponent={<EmptyStateCard variant="flat" title={t("equipment_page.empty_title")} subtitle={t("equipment_page.empty_subtitle")} style={styles.emptyState} />}
         removeClippedSubviews
         initialNumToRender={6}
         maxToRenderPerBatch={6}

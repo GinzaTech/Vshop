@@ -1,13 +1,14 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import TestRenderer, {
   act,
   type ReactTestInstance,
 } from "react-test-renderer";
 
+import { RefractiveGlassCard } from "~/components/ui/refractive-glass";
 import BundleImage from "~/components/BundleImage";
 import CurrencyIcon from "~/components/CurrencyIcon";
-import { COLORS, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
+import { BUNDLE_SURFACE_BORDER, COLORS, RADIUS, MORE_GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
 import LiquidGlassBackdrop from "~/components/ui/LiquidGlassBackdrop";
 import { createBundleOwnershipLookup } from "~/utils/bundle-ownership";
@@ -20,7 +21,16 @@ import {
   getBundleItemWidth,
 } from "~/utils/bundle-display";
 
+jest.mock("~/components/popups/MediaPopup", () => ({ useMediaPopupStore: () => jest.fn() }));
+
 // i18n: trả key gốc, riêng items_count nội suy count để kiểm tra meta row.
+jest.mock("~/components/ui/refractive-glass", () => {
+  const native = require("react-native");
+  const react = require("react") as typeof React;
+  function GlassCard(props: React.ComponentProps<typeof View>) { return react.createElement(native.View, props); }
+  return { RefractiveGlassCard: GlassCard, GlassClip: native.View, GlassFlatList: native.FlatList };
+});
+
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, options?: { count?: number }) =>
@@ -41,6 +51,21 @@ jest.mock("~/components/ui/AppIcon", () => ({
   __esModule: true,
   default: "AppIcon",
 }));
+
+// Animation calls are mocked here; live motion events are covered in the disclosure suite.
+jest.mock("~/hooks/useMotionPreference", () => ({ useMotionPreference: () => false }));
+jest.mock("react-native-reanimated", () => {
+  const react = require("react") as typeof React;
+  return {
+    __esModule: true, default: { View: require("react-native").View },
+    ReduceMotion: { System: "system" },
+    Easing: { out: () => undefined, inOut: () => undefined, cubic: () => undefined, bezier: () => undefined },
+    useDerivedValue: (factory: () => number) => Object.defineProperty({}, "value", { get: factory }),
+    useSharedValue: (value: number) => react.useRef({ value }).current,
+    useAnimatedStyle: (factory: () => object) => factory(),
+    cancelAnimation: jest.fn(), withTiming: (value: number) => value,
+  };
+});
 
 // BundleImage lấy viewport qua useAppWindowDimensions (AppViewport): mock
 // hook để kiểm geometry theo viewport/font scale mà không cần provider.
@@ -173,7 +198,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe("BundleImage white detail card", () => {
+describe("BundleImage compact native card", () => {
   it.each([VItemTypes.PlayerCard, VItemTypes.PlayerTitle, VItemTypes.Spray, VItemTypes.Flex, VItemTypes.Buddy])(
     "uses real type-specific ownership for accessory overlay/check (%s)", (itemTypeId) => {
       const owned = makeItem({ uuid: "display-root", displayName: "Owned accessory", itemTypeId, entitlementItemIds: ["owned-grant"] });
@@ -190,37 +215,33 @@ describe("BundleImage white detail card", () => {
       } finally { act(() => renderer.unmount()); }
     },
   );
-  it("keeps subtle glass decoration on a white card without adding a carousel layout wrapper", () => {
+  it("restores the summary and retained carousel to crisp native light materials", () => {
     const renderer = renderCard(makeBundle());
     try {
       const root = renderer.root;
+      expect(root.findAllByType(RefractiveGlassCard)).toHaveLength(0);
       const card = findAllByTestId(root, "bundle-card")[0];
       expect(StyleSheet.flatten(card.props.style)).toMatchObject({
         backgroundColor: COLORS.SURFACE,
-        borderColor: COLORS.BORDER_STRONG,
-        borderWidth: 1.5,
-        ...SHADOWS.xs,
+        borderRadius: MORE_GLASS_MATERIAL.radius,
+        borderColor: BUNDLE_SURFACE_BORDER.color, borderWidth: BUNDLE_SURFACE_BORDER.width,
+        shadowOpacity: 0, elevation: 0, boxShadow: "none",
       });
       const decorations = root.findAllByType(LiquidGlassDecoration);
-      // Chỉ card bundle giữ lớp kính; tile item phải sạch (artwork sắc nét).
-      expect(decorations).toHaveLength(1);
-      decorations.forEach((decoration) => {
-        const layer = decoration.findAllByType(View)[0];
-        expect(layer.props).toMatchObject({ pointerEvents: "none", accessible: false, accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" });
-        expect(StyleSheet.flatten(layer.props.style).position).toBe("absolute");
-      });
-      expect(decorations[0].props).toMatchObject({ radius: RADIUS.card, tone: "light" });
+      expect(decorations).toHaveLength(0);
+      expect(StyleSheet.flatten(card.props.style).shadowOpacity ?? 0).toBe(0);
+      expect(StyleSheet.flatten(card.props.style).elevation ?? 0).toBe(0);
       const cells = findAllByTestId(root, "bundle-item-cell");
       cells.forEach((cell) => {
         expect(StyleSheet.flatten(cell.props.style)).toMatchObject({
           backgroundColor: COLORS.SURFACE,
-          borderColor: COLORS.BORDER,
-          borderWidth: 1,
-          ...SHADOWS.xs,
+          borderRadius: MORE_GLASS_MATERIAL.radius,
+          minHeight: 48, minWidth: 48,
         });
         expect(cell.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
+        expect(StyleSheet.flatten(cell.props.style).shadowOpacity ?? 0).toBe(0);
+        expect(StyleSheet.flatten(cell.props.style).elevation ?? 0).toBe(0);
       });
-      expect(card.props.children[0].type).toBe(LiquidGlassDecoration);
       expect(root.findByProps({ testID: "bundle-item-carousel" }).props.data).toEqual(makeBundle().items);
     } finally {
       act(() => renderer.unmount());
@@ -242,13 +263,13 @@ describe("BundleImage white detail card", () => {
     }
   });
 
-  it("uses opaque white tokens for the information body and title row", () => {
+  it("keeps information and title sharp on opaque native light layers", () => {
     const renderer = renderCard(makeBundle());
     try {
       const views = renderer.root.findAllByType(View);
       const content = views.find((node) => {
         const style = StyleSheet.flatten(node.props.style ?? {});
-        return style.paddingHorizontal === SPACING.sm && style.paddingTop === SPACING.sm;
+        return style.width === "100%" && style.paddingHorizontal === 0 && style.paddingTop === 0;
       });
       const titleRow = views.find((node) =>
         StyleSheet.flatten(node.props.style ?? {}).justifyContent === "space-between"
@@ -301,7 +322,8 @@ describe("BundleImage white detail card", () => {
       expect(findAllByText(root, "5.310")).toHaveLength(1); // giá bundle hiện tại
       expect(findAllByText(root, "6.640")).toHaveLength(1); // giá gốc bị gạch
       expect(findAllByText(root, "21d 06:04:27")).toHaveLength(1);
-      expect(findAllByText(root, "2 items")).toHaveLength(1);
+      // Count remains in the summary and also labels the compact disclosure.
+      expect(findAllByText(root, "2 items")).toHaveLength(2);
       expect(findAllByText(root, "bundles_page.estimate")).toHaveLength(0);
 
       const card = findAllByTestId(root, "bundle-card")[0];
@@ -310,7 +332,7 @@ describe("BundleImage white detail card", () => {
         COLORS.SURFACE
       );
       expect(StyleSheet.flatten(card.props.style).borderRadius).toBe(
-        RADIUS.card
+        MORE_GLASS_MATERIAL.radius
       );
       expect(StyleSheet.flatten(card.props.style).overflow).toBe("hidden");
     } finally {
@@ -320,7 +342,7 @@ describe("BundleImage white detail card", () => {
     }
   });
 
-  it("reserves hero space at the reference 2.40 aspect ratio", () => {
+  it("reserves a 50 percent taller hero at unchanged width with a 3.20 aspect ratio", () => {
     const renderer = renderCard(makeBundle());
     try {
       const hero = renderer.root.findByProps({
@@ -328,7 +350,8 @@ describe("BundleImage white detail card", () => {
         priority: "high",
       });
       const frameStyle = StyleSheet.flatten(hero.parent?.props.style ?? {});
-      expect(frameStyle.aspectRatio).toBe(2.4);
+      expect(frameStyle.aspectRatio).toBe(3.2);
+      expect((320 / frameStyle.aspectRatio) / (320 / 4.8)).toBeCloseTo(1.5);
       expect(frameStyle.backgroundColor).toBe(COLORS.SURFACE_MUTED);
     } finally {
       act(() => {
@@ -397,7 +420,7 @@ describe("BundleImage white detail card", () => {
       );
       // Khung hero giữ chỗ cố định qua aspectRatio dù ảnh thiếu.
       const frameStyle = StyleSheet.flatten(hero.parent?.props.style ?? {});
-      expect(frameStyle.aspectRatio).toBe(2.4);
+      expect(frameStyle.aspectRatio).toBe(3.2);
 
       // Item thiếu ảnh cũng dùng fallback và giữ khung artwork.
       const itemImage = root.findByProps({
@@ -531,10 +554,11 @@ describe("BundleImage white detail card", () => {
     }
   });
 
-  it("renders a horizontal non-wrapping carousel with three full compact tiles plus a fourth peek", () => {
+  it("opens a horizontal non-wrapping carousel with three full compact tiles plus a fourth peek", () => {
     const renderer = renderCard(makeBundle());
     try {
       const root = renderer.root;
+      act(() => root.findByProps({ testID: "bundle-item-toggle" }).props.onPress());
       const carousel = root.findByProps({
         testID: "bundle-item-carousel",
       });
@@ -589,7 +613,7 @@ describe("BundleImage white detail card", () => {
 
       const cellStyle = StyleSheet.flatten(cell.props.style);
       expect(cellStyle.backgroundColor).toBe(COLORS.SURFACE);
-      expect(cellStyle.borderRadius).toBe(RADIUS.md);
+      expect(cellStyle.borderRadius).toBe(MORE_GLASS_MATERIAL.radius);
 
       // Artwork band: landscape, contain, không divider/viền ngăn cách.
       const itemImage = cell.findByProps({
@@ -693,7 +717,7 @@ describe("BundleImage white detail card", () => {
         testID: "bundle-item-carousel",
       });
       expect(carousel.props.data).toHaveLength(0);
-      expect(findAllByText(empty.root, "0 items")).toHaveLength(1);
+      expect(findAllByText(empty.root, "0 items")).toHaveLength(2);
       expect(findAllByTestId(empty.root, "bundle-item-cell")).toHaveLength(0);
     } finally {
       act(() => {
@@ -702,10 +726,11 @@ describe("BundleImage white detail card", () => {
     }
   });
 
-  it("keeps the FlatList ungrouped and exposes one concise summary per item", () => {
+  it("opens an ungrouped FlatList and exposes one concise summary per item", () => {
     const renderer = renderCard(makeBundle());
     try {
       const root = renderer.root;
+      act(() => root.findByProps({ testID: "bundle-item-toggle" }).props.onPress());
       const carousel = root.findByProps({
         testID: "bundle-item-carousel",
       });
@@ -848,4 +873,78 @@ describe("BundleImage white detail card", () => {
       });
     }
   });
+});
+
+it("stacks a long original price too and keeps every summary price digit available", () => {
+  mockWindowDimensions.width = 390;
+  const renderer = renderCard(makeBundle({ originalPrice: 100_000_000 }));
+  try {
+    const original = findAllByText(renderer.root, "100.000.000")[0];
+    expect(original.props.numberOfLines).toBeUndefined();
+    const row = renderer.root.findAllByType(View).find((node) => {
+      const style = StyleSheet.flatten(node.props.style ?? {});
+      return style.justifyContent === "space-between" && style.alignItems === "flex-start";
+    })!;
+    expect(StyleSheet.flatten(row.props.style).flexDirection).toBe("column");
+  } finally { act(() => renderer.unmount()); }
+});
+
+it.each([[320, 1], [390, 1], [390, 1.6], [700, 1], [1024, 1]])(
+  "uses a full-width horizontal banner above Bundle details at %sdp/font %s", (width, fontScale) => {
+  mockWindowDimensions.width = width;
+  mockWindowDimensions.fontScale = fontScale;
+  const renderer = renderCard(makeBundle());
+  try {
+    const summary = findAllByTestId(renderer.root, "bundle-summary")[0];
+    const hero = renderer.root.findByProps({ priority: "high" });
+    expect(StyleSheet.flatten(summary.props.style).flexDirection).toBe("column");
+    expect(StyleSheet.flatten(hero.parent!.props.style)).toMatchObject({ width: "100%", aspectRatio: 3.2 });
+    const details = renderer.root.findAllByType(View).find((node) => {
+      const style = StyleSheet.flatten(node.props.style ?? {});
+      return style.width === "100%" && style.paddingHorizontal === 0 && style.paddingTop === 0
+        && node.findAllByType(Text).some((text) => text.props.children === "Champions 2026");
+    });
+    expect(details).toBeDefined();
+    expect(summary.findByProps({ priority: "high" })).toBe(hero);
+  } finally { act(() => renderer.unmount()); }
+});
+
+it.each([5310, 100_000_000])("places the full-width ending countdown below title and both prices for %s VP", (price) => {
+  mockWindowDimensions.width = 390;
+  const renderer = renderCard(makeBundle({ price, originalPrice: price + 1000 }));
+  try {
+    const views = renderer.root.findAllByType(View);
+    const detailsRow = views.find((node) => {
+      const style = StyleSheet.flatten(node.props.style ?? {});
+      return style.justifyContent === "space-between" && style.alignItems === "flex-start";
+    })!;
+    const endingRow = views.find((node) => {
+      const style = StyleSheet.flatten(node.props.style ?? {});
+      return style.flexWrap === "wrap" && style.marginTop === 4;
+    })!;
+    expect(detailsRow.findAllByType(Text).some((node) => node.props.children === "bundles_page.ends_in")).toBe(false);
+    expect(endingRow.parent).toBe(detailsRow.parent);
+    expect(StyleSheet.flatten(endingRow.props.style).width).toBe("100%");
+    expect(hostTextIndex(renderer.root, "Champions 2026")).toBeLessThan(hostTextIndex(renderer.root, "bundles_page.ends_in"));
+    const summary = findAllByTestId(renderer.root, "bundle-summary")[0];
+    const priceTexts = summary.findAllByType(Text).filter((node) =>
+      typeof node.props.accessibilityLabel !== "string" && /^\d[\d.]*$/.test(String(node.props.children)));
+    expect(priceTexts).toHaveLength(2);
+    priceTexts.forEach((node) => {
+      expect(node.props.numberOfLines).toBeUndefined();
+      expect(hostTextIndex(renderer.root, String(node.props.children))).toBeLessThan(hostTextIndex(renderer.root, "bundles_page.ends_in"));
+    });
+  } finally { act(() => renderer.unmount()); }
+});
+
+it("bounds long carousel price rows to their glass tile so digits wrap without clipping", () => {
+  const renderer = renderCard(makeBundle({ items: [makeItem({ price: 1_000_000, originalPrice: 100_000_000 })] }));
+  try {
+    const cell = findAllByTestId(renderer.root, "bundle-item-cell")[0];
+    for (const value of ["1.000.000", "100.000.000"]) {
+      const text = cell.findAllByType(Text).find((node) => node.props.children === value)!;
+      expect(text.props.numberOfLines).toBeUndefined();
+      expect(StyleSheet.flatten(text.parent!.props.style).maxWidth).toBe("100%");
+    }
+  } finally { act(() => renderer.unmount()); }
 });

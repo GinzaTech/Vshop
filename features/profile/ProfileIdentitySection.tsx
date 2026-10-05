@@ -2,10 +2,9 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CachedImage as Image } from "~/components/CachedImage";
 import AppIcon from "~/components/ui/AppIcon";
-import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
-import LiquidGlassBackdrop from "~/components/ui/LiquidGlassBackdrop";
+import ContentCardTouchable from "~/components/ui/ContentCardTouchable";
 import { FALLBACK_IMAGE } from "~/components/GalleryProfile";
-import { COLORS, GLASS_MATERIAL, RADIUS, SHADOWS } from "~/constants/DesignSystem";
+import { COLORS, GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { styles } from "./profile-screen.styles";
 import type { ProfileEquipmentSectionsProps } from "./ProfileEquipmentSections";
 
@@ -16,7 +15,7 @@ const presentationStyles = StyleSheet.create({
 
 /**
  * ProfileIdentitySection – Section danh tính: ảnh player card (bấm mở picker),
- * tên card (sửa), khẩu hiệu/title (sửa) và cấp tài khoản.
+ * tên card (sửa) và khẩu hiệu/title (sửa).
  * @param {IdentityDetails | null} identityDetails - Dữ liệu identity đã enrich;
  *   null → section ẩn hoàn toàn.
  * @param {Function} onOpenIdentityPicker - Mở picker "player-card"|"player-title".
@@ -35,26 +34,12 @@ export function ProfileIdentitySection({
 
   return (
     <View style={styles.section}>
-      <View
-        style={[
-          styles.identityContainer,
-          SHADOWS.xs,
-          {
-            backgroundColor: GLASS_MATERIAL.surface,
-            borderColor: GLASS_MATERIAL.border,
-            borderWidth: 1,
-          },
-        ]}
-      >
-        <LiquidGlassBackdrop radius={RADIUS.card} artworkUri={identityDetails.cardArt}
-          cacheId={`player-card:${identityDetails.cardId}:display-icon`} />
-        <LiquidGlassDecoration radius={RADIUS.card} tone="light" />
-        <TouchableOpacity
+      <View style={[styles.identityContainer, { backgroundColor: GLASS_MATERIAL.surface, borderColor: GLASS_MATERIAL.border }]}>
+        <ContentCardTouchable
           accessibilityRole="button"
           accessibilityLabel={t("equip_page.identity.card_picker_title", {
             defaultValue: "Chọn ảnh đại diện",
           })}
-          activeOpacity={0.86}
           onPress={() => onOpenIdentityPicker("player-card")}
           style={styles.identityImageFrame}
         >
@@ -80,7 +65,7 @@ export function ProfileIdentitySection({
             />
             <Text style={styles.identityLevelText}>{identityDetails.level}</Text>
           </View>
-        </TouchableOpacity>
+        </ContentCardTouchable>
         <View style={[styles.identityInfo, presentationStyles.featuredInfo]}>
           <TouchableOpacity
             accessibilityRole="button"
@@ -138,17 +123,6 @@ export function ProfileIdentitySection({
               color={COLORS.TEXT_SECONDARY}
             />
           </TouchableOpacity>
-          <Text
-            style={[
-              styles.identityAccountLevel,
-              { color: COLORS.TEXT_SECONDARY },
-            ]}
-          >
-            {t("equip_page.identity.account_level", {
-              level: identityDetails.level,
-              defaultValue: "Cấp tài khoản: {{level}}",
-            })}
-          </Text>
         </View>
       </View>
     </View>

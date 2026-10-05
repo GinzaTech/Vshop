@@ -21,9 +21,15 @@ describe("transition-aware tab preload", () => {
     }]));
     let pause!: (key: string) => void;
     const preload = jest.fn();
-    function Harness({ activeKey, enabled = true }: { activeKey: string; enabled?: boolean }) {
+    function Harness({ activeKey, enabled = true, immediateTransition = false }: { activeKey: string; enabled?: boolean; immediateTransition?: boolean }) {
       pause = usePrimaryTabPreload({ routes, activeKey, enabled,
         preload: (name) => preload(name), descriptors: { ...descriptors } });
+      React.useLayoutEffect(() => {
+        if (!immediateTransition) return;
+        for (const type of ["transitionStart", "transitionEnd"]) {
+          listeners.get(`${activeKey}:${type}`)?.forEach((listener) => listener({ target: activeKey }));
+        }
+      }, [activeKey, immediateTransition]);
       return null;
     }
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -35,6 +41,9 @@ describe("transition-aware tab preload", () => {
       pause: (key: string) => act(() => pause(key)),
       update: (activeKey: string, enabled = true) => act(() => {
         renderer.update(<Harness activeKey={activeKey} enabled={enabled} />);
+      }),
+      returnImmediately: (activeKey: string) => act(() => {
+        renderer.update(<Harness activeKey={activeKey} immediateTransition />);
       }),
     };
   }
@@ -96,5 +105,19 @@ describe("transition-aware tab preload", () => {
     act(() => jest.runAllTimers());
     expect(h.preload.mock.calls).toEqual([["b"], ["c"]]);
     act(() => h.renderer.unmount());
+  });
+
+  it("resumes remaining preloads when secondary return ends in the commit layout phase", () => {
+    const h = setup();
+    try {
+      h.update("secondary", false);
+      h.returnImmediately("b");
+      act(() => jest.runAllTimers());
+      expect(h.preload.mock.calls).toEqual([["c"]]);
+    } finally {
+      act(() => h.renderer.unmount());
+    }
+    expect([...h.listeners.values()].every((bucket) => bucket.size === 0)).toBe(true);
+    expect(jest.getTimerCount()).toBe(0);
   });
 });

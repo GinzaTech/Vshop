@@ -1,7 +1,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { AppState, Platform, StyleSheet, View, type ViewProps } from "react-native";
 import { requireNativeViewManager, requireOptionalNativeModule } from "expo-modules-core";
-import { GLASS_MATERIAL, GLASS_NAV_OPTICS, GLASS_TAB_BAR } from "~/constants/DesignSystem";
+import { NAV_GLASS_MATERIAL, GLASS_NAV_OPTICS, GLASS_TAB_BAR } from "~/constants/DesignSystem";
 import { useNativeGlassPreferences } from "~/components/ui/liquid-glass-native-policy";
 import { canUseNativeRefraction, validRefractionTarget } from "./native-refraction-policy";
 import type { RefractionLensProps, RefractionTargetProps } from "./native-refraction.types";
@@ -46,7 +46,7 @@ export function RefractionLens({ targetTag, enabled }: RefractionLensProps) {
   if (preferences.reduceTransparency) return null;
   const Lens = lensView ??= requireNativeViewManager<NativeLensProps>("VShopLiquidGlass", "RefractionLens");
   return <Lens testID="navigation-native-refraction" targetTag={targetTag} enabled
-    tint={GLASS_MATERIAL.lensFallback} magnification={GLASS_TAB_BAR.magnify} edgeDp={GLASS_NAV_OPTICS.refractionOffset}
+    tint={NAV_GLASS_MATERIAL.nativeLensTint} magnification={GLASS_TAB_BAR.magnify} edgeDp={GLASS_NAV_OPTICS.refractionOffset}
     style={StyleSheet.absoluteFill} pointerEvents="none" accessible={false} aria-hidden
     accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { runIdleSequence, type IdleTask } from "~/utils/idle-task";
 import { MOTION_DURATION } from "~/constants/Motion";
 
@@ -86,7 +86,9 @@ export function usePrimaryTabPreload({
     }, MOTION_DURATION.standard);
   }, [schedule]);
 
-  useEffect(() => {
+  // Child layout effects commit this snapshot before the retained host can emit
+  // an immediate transitionEnd on return from a secondary route.
+  useLayoutEffect(() => {
     latest.current = { routes, activeKey, enabled, preload };
     loaded.current.add(activeKey);
   }, [routes, activeKey, enabled, preload]);

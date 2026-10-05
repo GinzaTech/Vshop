@@ -1,6 +1,6 @@
 import React from "react";
 import { FlatList, Modal, Pressable, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CachedImage } from "~/components/CachedImage";
 import AppIcon from "~/components/ui/AppIcon";
@@ -42,7 +42,7 @@ export function AgentSelectModal({ visible, agents, selectedAgentId, unavailable
           {!!displayError && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={s.error}>{displayError}</Text>}
           <FlatList data={agents} keyExtractor={agent => agent.uuid} numColumns={3} style={s.agentGrid}
             contentContainerStyle={s.agentContent} columnWrapperStyle={s.agentColumns}
-            ListEmptyComponent={<EmptyStateCard style={s.card} title={t("party_page.agents_unavailable", { defaultValue: "Agents unavailable" })} />}
+            ListEmptyComponent={<EmptyStateCard variant="flat" style={s.card} title={t("party_page.agents_unavailable", { defaultValue: "Agents unavailable" })} />}
             renderItem={({ item }) => {
               const unavailable = unavailableAgentIds.includes(item.uuid);
               const disabled = busy || unavailable;
@@ -52,7 +52,6 @@ export function AgentSelectModal({ visible, agents, selectedAgentId, unavailable
                   : t("party_page.select_agent_hint", { defaultValue: "Selects this agent. Use Lock agent to confirm." })}
                 accessibilityState={{ disabled, selected, busy }} disabled={disabled}
                 onPress={() => { if (!disabled) onSelect(item.uuid); }} style={[s.agentTile, selected && s.selected, disabled && s.disabled]}>
-                <LiquidGlassDecoration radius={RADIUS.md} />
                 {item.displayIcon ? <CachedImage source={{ uri: item.displayIcon }} cacheId={`agent:${item.uuid}:icon`}
                   style={s.agentPortrait} contentFit="contain" accessible={false} />
                   : <View style={[s.agentPortrait, s.avatarFallback]}><AppIcon name="account" size={28} color={COLORS.TEXT_SECONDARY} decorative /></View>}

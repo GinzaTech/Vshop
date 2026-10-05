@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FlatList, Modal, Pressable, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import GlassCard from "~/components/ui/GlassCard";
 import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";
@@ -80,7 +80,7 @@ export default function PartySelectors({ model, disabled, errorMessage, onQueueC
   };
   return (
     <>
-      <GlassCard style={s.card} contentStyle={s.flush}>
+      <GlassCard variant="flat" style={s.card} contentStyle={s.flush}>
         <Pressable accessibilityRole="button" accessibilityLabel={t("party_page.queue_control", { defaultValue: "Queue: {{queue}}", queue: queueLabel })}
           accessibilityState={{ disabled: blocked, expanded: selector === "queue" }} disabled={blocked}
           onPress={() => setSelector("queue")} style={[s.settingsRow, blocked && s.disabled]}>

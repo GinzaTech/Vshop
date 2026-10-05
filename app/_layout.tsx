@@ -30,6 +30,7 @@ import {
   ThemeProvider,
 } from "expo-router/react-navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { AppLanguageProvider } from "~/components/AppLanguageProvider";
 import {
   AppState,
   Platform,
@@ -40,13 +41,15 @@ import {
 import * as SystemUI from "expo-system-ui";
 import Animated, {
   interpolateColor,
+  ReduceMotion,
+  ReducedMotionConfig,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SplashScreen } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { initBackgroundFetch, stopBackgroundFetch } from "~/utils/wishlist";
 import { useWishlistStore } from "~/hooks/useWishlistStore";
 import PlausibleProvider from "~/components/PlausibleProvider";
@@ -67,7 +70,7 @@ import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import LoadingScreen from "~/components/LoadingScreen";
 import AppViewport from "~/components/ui/AppViewport";
-import PaperIcon from "~/components/ui/PaperIcon";
+import PaperIcon, { PaperBackIcon } from "~/components/ui/PaperIcon";
 import { syncAllData } from "~/utils/data-sync";
 import {
   getScreenOrientationForPathname,
@@ -81,11 +84,16 @@ import { MOTION_DURATION, MOTION_TIMING } from "~/constants/Motion";
 import { useMotionPreference } from "~/hooks/useMotionPreference";
 import { markAppInteractive } from "~/utils/startup-performance";
 import { useStartupRecoveryWatchdog } from "~/hooks/useStartupRecoveryWatchdog";
+import { useStartupHandoff } from "~/hooks/useStartupHandoff";
+import StartupOverlay from "~/components/ui/StartupOverlay";
+import { useNativeSplashHandoff } from "~/hooks/useNativeSplashHandoff";
+import type { StartupPhase } from "~/constants/Startup";
 import { getStartupCacheFallback } from "~/utils/startup-cache";
 import { renewSavedAccountSession } from "~/services/accounts/session";
 import { isSessionChangedError } from "~/utils/session-operations";
 import {
   captureRootBootstrapRoute,
+  resolveRootBootstrapHandoffPath,
   type RootBootstrapRouteSnapshot,
 } from "~/utils/root-bootstrap-route";
 import { isMobileHandoffRouteAllowed } from "~/services/mobile-handoff/policy";
@@ -152,17 +160,20 @@ SplashScreen.preventAutoHideAsync();
  * @param {Object} options - Options từ expo-router (chứa title).
  * @param {Object} navigation - Đối tượng navigation (chứa goBack).
  */
-const CustomHeader = ({ options, navigation }: CustomHeaderProps) => (
+const CustomHeader = ({ options, navigation }: CustomHeaderProps) => {
+  const { t } = useTranslation();
+  return (
   <Appbar.Header
     style={{ backgroundColor: CombinedAppTheme.colors.background, elevation: 0 }}
   >
-    <Appbar.BackAction color={CombinedAppTheme.colors.text} onPress={navigation.goBack} />
+    <Appbar.Action icon={PaperBackIcon} isLeading accessibilityLabel={t("back")} color={CombinedAppTheme.colors.text} onPress={navigation.goBack} />
     <Appbar.Content
       title={options.title ?? ""}
       titleStyle={{ color: CombinedAppTheme.colors.text }}
     />
   </Appbar.Header>
-);
+  );
+};
 
 /**
  * RootLayout — Component layout gốc.
@@ -189,11 +200,13 @@ const CustomHeader = ({ options, navigation }: CustomHeaderProps) => (
  *
  * @returns {JSX.Element} Root layout.
  */
-function RootLayout() {
+function RootLayoutContent() {
   const reduceMotionEnabled = useMotionPreference();
   const router = useRouter();
   const pathname = usePathname();
-  const { demo } = useGlobalSearchParams<{ demo?: string | string[] }>();
+  const { demo, startup } = useGlobalSearchParams<{ demo?: string | string[]; startup?: string | string[] }>();
+  const startupPreview = __DEV__ && pathname === "/ui-qa" && startup === "1"
+    && (demo === "1" || (Array.isArray(demo) && demo[0] === "1"));
   const { t } = useTranslation();
   const hydrated = useUserStore((state) => state.hydrated);
   const accountsHydrated = useAccountStore((state) => state.hydrated);
@@ -202,17 +215,43 @@ function RootLayout() {
   const topInsetProgress = useSharedValue(topInsetTone === "dark" ? 1 : 0);
   const bootstrappedRef = useRef(false);
   const bootstrapRouteRef = useRef<RootBootstrapRouteSnapshot | null>(null);
-  const nativeSplashHiddenRef = useRef(false);
   const touchSequenceRef = useRef(0);
   const startupWaitResolverRef = useRef<
     ((action: "retry" | "cache") => void) | null
   >(null);
   const [isPreloading, setIsPreloading] = useState(true);
+  const [startupPhase, setStartupPhase] = useState<StartupPhase>("prepare");
   const [startupMessage, setStartupMessage] = useState("Preparing your VShop");
   const [startupRecovery, setStartupRecovery] = useState<StartupRecoveryState>(
     HIDDEN_STARTUP_RECOVERY
   );
   const startupWatchdogExpired = useStartupRecoveryWatchdog(isPreloading);
+  const { destination: startupDestination, committed: startupCommitted, requestHandoff } = useStartupHandoff(pathname);
+  const { hideNativeSplash, nativeSplashReleased } = useNativeSplashHandoff();
+  const startupSurfaceReady = useRef(false);
+  const acknowledgeStartupSurface = useCallback(() => {
+    startupSurfaceReady.current = true;
+    hideNativeSplash();
+  }, [hideNativeSplash]);
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" && !nativeSplashReleased && startupSurfaceReady.current) hideNativeSplash();
+    });
+    return () => subscription.remove();
+  }, [hideNativeSplash, nativeSplashReleased]);
+  const completeStartup = useCallback((target: "/profile" | "/reauth" | "/setup", metricRoute: string) => {
+    setStartupPhase("ready");
+    requestHandoff(target, metricRoute);
+    router.replace(target);
+  }, [requestHandoff, router]);
+  useEffect(() => {
+    if (!startupCommitted) return;
+    hideNativeSplash();
+    if (nativeSplashReleased) setIsPreloading(false);
+  }, [hideNativeSplash, nativeSplashReleased, startupCommitted]);
+  const recordStartupHandoff = useCallback(() => {
+    if (nativeSplashReleased && startupCommitted && startupDestination) markAppInteractive(startupDestination.metricRoute);
+  }, [nativeSplashReleased, startupCommitted, startupDestination]);
   if (hydrated && accountsHydrated) {
     bootstrapRouteRef.current = captureRootBootstrapRoute(
       bootstrapRouteRef.current,
@@ -226,6 +265,7 @@ function RootLayout() {
     platform: Platform.OS,
     publicFlag: process.env.EXPO_PUBLIC_VSHOP_DESKTOP_HANDOFF,
   });
+  const bootstrapHandoffPathname = resolveRootBootstrapHandoffPath(bootstrapPathname, pathname, allowMobileHandoffRoute);
   const requiredScreenOrientation = getScreenOrientationForPathname(pathname);
 
   /**
@@ -235,8 +275,9 @@ function RootLayout() {
    * (reset backoff delay về 1.5s).
    */
   const requestStartupRetry = useCallback(() => {
+    if (startupSurfaceReady.current) hideNativeSplash();
     startupWaitResolverRef.current?.("retry");
-  }, []);
+  }, [hideNativeSplash]);
 
   /**
    * requestCachedStartup — Yêu cầu bootstrap dùng dữ liệu cache đã lưu.
@@ -253,29 +294,18 @@ function RootLayout() {
   // khi Reduce Motion bật/tắt (duration = 0 nếu reduce motion).
   useEffect(() => {
     const topInsetColor =
-      topInsetTone === "dark"
+      !isPreloading && topInsetTone === "dark"
         ? COLORS.PURE_BLACK
         : CombinedAppTheme.colors.background;
     void SystemUI.setBackgroundColorAsync(topInsetColor);
     topInsetProgress.value = withTiming(
-      topInsetTone === "dark" ? 1 : 0,
+      !isPreloading && topInsetTone === "dark" ? 1 : 0,
       { ...MOTION_TIMING.standard, duration: reduceMotionEnabled ? 0 : MOTION_TIMING.standard.duration },
     );
-  }, [reduceMotionEnabled, topInsetProgress, topInsetTone]);
+  }, [isPreloading, reduceMotionEnabled, topInsetProgress, topInsetTone]);
 
-  // The native splash is only a launch hand-off. Once persisted state is
-  // ready, reveal the branded React shell immediately instead of holding the
-  // user on a static grey icon while AsyncStorage/bootstrap work continues.
-  useEffect(() => {
-    if (!hydrated || nativeSplashHiddenRef.current) return;
-
-    const hideTimer = setTimeout(() => {
-      nativeSplashHiddenRef.current = true;
-      void SplashScreen.hideAsync();
-    }, 0);
-
-    return () => clearTimeout(hideTimer);
-  }, [hydrated]);
+  // LoadingScreen acknowledges both icon decode and layout before replacing
+  // the native icon. Successful destinations also release a failed decoder.
 
   // Animated style: nội suy màu nền SafeAreaView giữa background app và đen
   // theo tiến độ topInsetProgress (chạy trên UI thread bằng Reanimated).
@@ -357,21 +387,21 @@ function RootLayout() {
     bootstrappedRef.current = true;
 
     if (allowDemoRoute || allowMobileHandoffRoute) {
-      setIsPreloading(false);
-      markAppInteractive(
+      setStartupPhase("ready");
+      requestHandoff(bootstrapHandoffPathname,
         allowMobileHandoffRoute
           ? "mobile-session-handoff"
           : bootstrapPathname === "/profile"
             ? "profile-demo"
             : "match-demo"
       );
-      void SplashScreen.hideAsync();
       return;
     }
 
     let cancelled = false;
 
     const bootstrap = async () => {
+      setStartupPhase("prepare");
       const sessionUser = useUserStore.getState().user;
       // Đọc region từ AsyncStorage hoặc từ store
       const storedRegion = await AsyncStorage.getItem("region");
@@ -385,11 +415,8 @@ function RootLayout() {
       // Không có region => chưa setup lần đầu
       if (!region) {
         if (!cancelled) {
-          router.replace("/setup");
-          setIsPreloading(false);
-          markAppInteractive("setup");
+          completeStartup("/setup", "setup");
         }
-        await SplashScreen.hideAsync();
         return;
       }
 
@@ -433,9 +460,7 @@ function RootLayout() {
           setStartupRecovery(HIDDEN_STARTUP_RECOVERY);
 
           if (action === "cache" && canUseCachedData) {
-            router.replace("/profile");
-            setIsPreloading(false);
-            markAppInteractive("profile-cached");
+            completeStartup("/profile", "profile-cached");
             return true;
           }
           if (action === "retry") {
@@ -448,20 +473,19 @@ function RootLayout() {
 
         while (!cancelled) {
           try {
+            setStartupPhase("session");
             syncUser = useUserStore.getState().user;
             if (!canResumeUserSession(syncUser, region)) {
               if (!cancelled) setStartupMessage("Restoring your Riot session");
               syncUser = await renewSavedAccountSession({ ...syncUser, region });
             }
 
-            if (!cancelled) setStartupMessage("Loading your VShop data");
+            if (!cancelled) { setStartupMessage("Loading your VShop data"); setStartupPhase("data"); }
             await syncAllData(syncUser, syncUser.region || region);
             setStartupRecovery(HIDDEN_STARTUP_RECOVERY);
 
             if (!cancelled) {
-              router.replace("/profile");
-              setIsPreloading(false);
-              markAppInteractive("profile");
+              completeStartup("/profile", "profile");
             }
             return;
           } catch (error) {
@@ -470,6 +494,7 @@ function RootLayout() {
             if (isSessionChangedError(error)) {
               if (!useUserStore.getState().user.id) return;
               setStartupMessage("Restoring your Riot session");
+              setStartupPhase("session");
               if (await waitForRecovery(error)) return;
               continue;
             }
@@ -479,6 +504,7 @@ function RootLayout() {
               silentRecoveryAttempted = true;
               try {
                 setStartupMessage("Refreshing your Riot session");
+                setStartupPhase("session");
                 syncUser = await renewSavedAccountSession(
                   useUserStore.getState().user
                 );
@@ -490,9 +516,7 @@ function RootLayout() {
 
             if (isReauthenticationRequiredError(recoveryError)) {
               // Preserve account identity and cache while the user signs in.
-              router.replace("/reauth");
-              setIsPreloading(false);
-              markAppInteractive("reauth");
+              completeStartup("/reauth", "reauth");
               return;
             }
 
@@ -509,11 +533,8 @@ function RootLayout() {
       // Có region nhưng không có session => đăng nhập
       if (!cancelled) {
         setUser({ ...defaultUser, region });
-        router.replace("/reauth");
-        setIsPreloading(false);
-        markAppInteractive("reauth");
+        completeStartup("/reauth", "reauth");
       }
-      await SplashScreen.hideAsync();
     };
 
     void bootstrap();
@@ -533,7 +554,10 @@ function RootLayout() {
     allowDemoRoute,
     allowMobileHandoffRoute,
     bootstrapPathname,
+    bootstrapHandoffPathname,
+    completeStartup,
     hydrated,
+    requestHandoff,
     router,
     setUser,
   ]);
@@ -574,29 +598,33 @@ function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <ReducedMotionConfig mode={reduceMotionEnabled ? ReduceMotion.Always : ReduceMotion.Never} />
       <AppViewport orientation={requiredScreenOrientation}>
       <ErrorBoundary>
       <View
         style={{ flex: 1 }}
         onStartShouldSetResponderCapture={handleGlobalTouchStart}
       >
+        <View style={{ flex: 1 }} pointerEvents={isPreloading ? "none" : "auto"}
+          aria-hidden={isPreloading} accessibilityElementsHidden={isPreloading}
+          importantForAccessibility={isPreloading ? "no-hide-descendants" : "auto"}>
         <PlausibleProvider>
           {/* SafeAreaView phía trên (status bar) */}
           <StatusBar
             animated={!reduceMotionEnabled}
             backgroundColor={
-              topInsetTone === "dark"
+              !isPreloading && topInsetTone === "dark"
                 ? COLORS.PURE_BLACK
                 : CombinedAppTheme.colors.background
             }
             barStyle={
-              topInsetTone === "dark" ? "light-content" : "dark-content"
+              !isPreloading && topInsetTone === "dark" ? "light-content" : "dark-content"
             }
           />
-          <AnimatedSafeAreaView
+          {!startupPreview && <AnimatedSafeAreaView
             edges={["top"]}
             style={topInsetAnimatedStyle}
-          />
+          />}
           <PaperProvider theme={CombinedAppTheme} settings={{ icon: PaperIcon }}>
             <ThemeProvider value={CombinedAppTheme}>
               <Stack
@@ -605,7 +633,7 @@ function RootLayout() {
                     backgroundColor: CombinedAppTheme.colors.background,
                   },
                   headerTintColor: CombinedAppTheme.colors.text,
-                  header: CustomHeader,
+                  header: (props) => <CustomHeader {...props} />,
                   gestureEnabled: true,
                   animation: reduceMotionEnabled ? "none" : "slide_from_right",
                   animationDuration: MOTION_DURATION.standard,
@@ -632,19 +660,12 @@ function RootLayout() {
             </ThemeProvider>
           </PaperProvider>
         </PlausibleProvider>
-        {isPreloading ? (
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              zIndex: 1000,
-            }}
-          >
+        </View>
+        <StartupOverlay active={isPreloading} onHidden={recordStartupHandoff}>
             <LoadingScreen
-              message={startupMessage}
+              onReady={acknowledgeStartupSurface}
+              phase={startupPhase}
+              message={startupRecovery.visible ? startupMessage : undefined}
               showRecoveryActions={startupRecovery.visible}
               canUseCachedData={startupRecovery.canUseCachedData}
               recoveryKind={startupRecovery.kind}
@@ -655,13 +676,16 @@ function RootLayout() {
                 startupWatchdogExpired || startupRecovery.visible
               }
             />
-          </View>
-        ) : null}
+        </StartupOverlay>
       </View>
       </ErrorBoundary>
       </AppViewport>
     </GestureHandlerRootView>
   );
+}
+
+function RootLayout() {
+  return <AppLanguageProvider><RootLayoutContent /></AppLanguageProvider>;
 }
 
 export default RootLayout;

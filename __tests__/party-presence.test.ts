@@ -11,6 +11,37 @@ describe("safe party presence", () => {
   it("retains only validated display fields, never the raw blob or tokens", () => {
     expect(parsePartyPresence(raw({ playerCardId: "card", accountLevel: 23, sessionLoopState: "MENUS", accessToken: "sensitive", nested: { token: "sensitive" } }))).toEqual({ playerCardId: "card", accountLevel: 23, sessionLoopState: "MENUS" });
   });
+  it.each([true, false])("retains the observed Valorant root isIdle=%s as a strict current boolean", (isIdle) => {
+    expect(parsePartyPresence(raw({ isIdle, playerPresenceData: { playerCardId: "card", accountLevel: 23 },
+      matchPresenceData: { sessionLoopState: "MENUS" }, accessToken: "private-token" })))
+      .toEqual({ playerCardId: "card", accountLevel: 23, sessionLoopState: "MENUS", isIdle });
+  });
+  it.each([null, 0, 1, "true", "false", {}, []])("does not coerce unvalidated isIdle (%#)", (isIdle) => {
+    expect(parsePartyPresence(raw({ isIdle, playerPresenceData: { playerCardId: "card" } }))).toEqual({ playerCardId: "card" });
+  });
+  it("does not infer idle from nested aliases or another game's payload", () => {
+    expect(parsePartyPresence(raw({ playerPresenceData: { playerCardId: "card", isIdle: true }, private: { isIdle: true } })))
+      .toEqual({ playerCardId: "card" });
+    expect(parsePartyPresence('<games><keystone><p>{"isIdle":true}</p></keystone><valorant><p>{"playerCardId":"card"}</p></valorant></games>'))
+      .toEqual({ playerCardId: "card" });
+  });
+  it("keeps false and clears idle on new unavailable metadata, offline and reconnect while retaining static card identity", () => {
+    const store = useChatStore.getState();
+    store.setFriends([{ id: "friend", gameName: "Name", tagLine: "AP", status: "", show: "chat" }]);
+    store.updateFriendPresence("friend", "", "chat", { playerCardId: "card", isIdle: true });
+    expect(useChatStore.getState().friends.friend.presence?.isIdle).toBe(true);
+    store.updateFriendPresence("friend", "", "chat", { isIdle: false });
+    expect(useChatStore.getState().friends.friend.presence).toEqual({ playerCardId: "card", isIdle: false });
+    store.updateFriendPresence("friend", "", "chat");
+    expect(useChatStore.getState().friends.friend.presence).toEqual({ playerCardId: "card" });
+    store.updateFriendPresence("friend", "", "chat", { isIdle: true });
+    store.updateFriendPresence("friend", "", "offline", { isIdle: true });
+    expect(useChatStore.getState().friends.friend.presence).toEqual({ playerCardId: "card" });
+    store.updateFriendPresence("friend", "", "chat", { isIdle: true });
+    store.setStatus("connecting");
+    store.setStatus("authenticated");
+    expect(useChatStore.getState().friends.friend.presence).toEqual({ playerCardId: "card" });
+  });
   it.each(["", "<valorant><p>!</p></valorant>", raw(null), raw([]), raw({ playerCardId: 1, accountLevel: -1, sessionLoopState: {} })])("rejects malformed or empty metadata", (xml) => {
     expect(parsePartyPresence(xml)).toBeUndefined();
   });

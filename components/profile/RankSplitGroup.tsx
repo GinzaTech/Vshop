@@ -12,13 +12,14 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { CachedImage as Image } from "~/components/CachedImage";
+import { PROFILE_METRIC_CARD_STYLE } from "~/components/profile/profile-metric.styles";
 import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
 import AppIcon from "~/components/ui/AppIcon";
 import {
   resolveAppIconName,
   type AppIconName,
 } from "~/components/ui/app-icon-registry";
-import { COLORS } from "~/constants/DesignSystem";
+import { COLORS, SPACING } from "~/constants/DesignSystem";
 
 /**
  * RankSplitContentMode – Chế độ nội dung hiển thị:
@@ -172,10 +173,10 @@ function RankSplitGroup({
       <View style={styles.container}>
         <View pointerEvents="none" style={styles.mergedSurface} />
         <View style={styles.staticRankContent}>
-          <Text numberOfLines={1} style={styles.rankLabel}>
+          <Text style={[styles.rankLabel, styles.staticRankLabel]}>
             {rankLabel}
           </Text>
-          <View style={styles.rankValueRow}>
+          <View style={[styles.rankValueRow, styles.staticRankValueRow]}>
             {rankIconUrl ? (
               <Image
                 cacheId={rankIconCacheId}
@@ -194,7 +195,12 @@ function RankSplitGroup({
                 size={18}
               />
             )}
-            <Text numberOfLines={1} style={styles.rankValue}>
+            <Text
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              numberOfLines={2}
+              style={[styles.rankValue, styles.staticRankValue]}
+            >
               {rankValue}
             </Text>
           </View>
@@ -258,15 +264,14 @@ function RankSplitGroup({
               size={18}
             />
           )}
-          <TypewriterSwapText
-            animate={animateText}
-            text={rankTextTarget}
-            showCursor={false}
-            typingSpeed={34}
-            deletingSpeed={22}
-            initialDelay={60}
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            numberOfLines={2}
             style={styles.rankValue}
-          />
+          >
+            {rankTextTarget}
+          </Text>
         </View>
       </Animated.View>
 
@@ -333,9 +338,9 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   mergedSurface: {
+    ...PROFILE_METRIC_CARD_STYLE,
     ...StyleSheet.absoluteFill,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
   },
   surface: {
     flex: 1,
@@ -359,13 +364,26 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     justifyContent: "center",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   staticRankContent: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  // Keep the active rank branch compact without changing the animated layers.
+  staticRankLabel: {
+    lineHeight: 14,
+    textTransform: "none",
+    letterSpacing: 0,
+  },
+  staticRankValueRow: {
+    marginTop: SPACING.xxs,
+    gap: 4,
+  },
+  staticRankValue: {
+    marginLeft: 0,
   },
   rankLabel: {
     fontSize: 11,
@@ -385,9 +403,11 @@ const styles = StyleSheet.create({
     height: 22,
   },
   rankValue: {
+    minWidth: 0,
     flexShrink: 1,
     marginLeft: 8,
-    fontSize: 15,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: "700",
     color: COLORS.PURE_WHITE,
   },

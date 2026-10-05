@@ -10,7 +10,7 @@ import Animated, {
   type SharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import CurrencyIcon from "~/components/CurrencyIcon";
 import type { IdentityDetails } from "~/components/GalleryProfile";
@@ -21,6 +21,7 @@ import RankSplitGroup, {
 } from "~/components/profile/RankSplitGroup";
 import TypewriterSwapText from "~/components/profile/TypewriterSwapText";
 import AppIcon from "~/components/ui/AppIcon";
+import { useAppWindowDimensions } from "~/components/ui/AppViewport";
 import { COLORS } from "~/constants/DesignSystem";
 import { styles } from "~/features/profile/profile-screen.styles";
 import {
@@ -89,6 +90,20 @@ export function ProfileHeroCard({
   tagLine,
 }: ProfileHeroCardProps) {
   const { t } = useTranslation();
+  const { width, fontScale } = useAppWindowDimensions();
+  const statRowHeight = Math.max(64, Math.ceil(64 * fontScale));
+  const equipmentModeLabel = t("profile_page.hero_badge");
+  const infoModeLabel = t("profile_page.player_info");
+  const modeLabelReserve = styles.heroModeLabelEquipmentSlot.paddingLeft + styles.heroModeLabelEquipmentSlot.paddingRight;
+  // Estimate two lines for both labels so the width stays stable during the morph.
+  const localizedModeWidth = Math.max(equipmentModeLabel.length, infoModeLabel.length) * styles.heroModeLabel.fontSize * Math.max(1, fontScale) * 0.55 / 2 + modeLabelReserve;
+  const modeWidth = Math.min(
+    Math.max(48, width - 64),
+    Math.ceil(Math.max(styles.heroModeToggle.width * Math.max(1, Math.min(fontScale, 1.25)), localizedModeWidth)),
+  );
+  const modeVisualHeight = Math.max(styles.heroModeSurface.height, Math.ceil(2 * styles.heroModeLabel.lineHeight * fontScale + 8));
+  const modeHeight = Math.max(styles.heroModeToggle.height, modeVisualHeight);
+  const regionTextMinWidth = Math.ceil(regionLabel.length * styles.heroRegionText.fontSize * 0.8 * Math.max(1, fontScale)) + 3;
   const [heroLayoutHeight, setHeroLayoutHeight] = React.useState(
     PROFILE_HERO_EXPANDED_FALLBACK_HEIGHT
   );
@@ -106,29 +121,6 @@ export function ProfileHeroCard({
     [expandedHeroHeight]
   );
 
-  const cardMorphStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        scale: interpolate(
-          pageModeProgress.value,
-          [0, 0.46, 1],
-          [1, 0.985, 1]
-        ),
-      },
-    ],
-  }));
-  const expandedSurfaceStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pageModeProgress.value, [0, 0.58, 1], [1, 0, 0]),
-    transform: [
-      { scaleY: interpolate(pageModeProgress.value, [0, 1], [1, 0.94]) },
-    ],
-  }));
-  const compactSurfaceStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pageModeProgress.value, [0, 0.42, 1], [0, 0, 1]),
-    transform: [
-      { scale: interpolate(pageModeProgress.value, [0, 1], [0.985, 1]) },
-    ],
-  }));
   const expandedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       pageModeProgress.value,
@@ -136,7 +128,6 @@ export function ProfileHeroCard({
       [1, 1, 0, 0]
     ),
     transform: [
-      { scale: interpolate(pageModeProgress.value, [0, 1], [1, 0.96]) },
       { translateY: interpolate(pageModeProgress.value, [0, 1], [0, -8]) },
     ],
   }));
@@ -147,13 +138,6 @@ export function ProfileHeroCard({
       [0, 0, 0.45, 1]
     ),
     transform: [
-      {
-        scale: interpolate(
-          pageModeProgress.value,
-          [0, 0.56, 1],
-          [0.96, 0.96, 1]
-        ),
-      },
       { translateY: interpolate(pageModeProgress.value, [0, 1], [8, 0]) },
     ],
   }));
@@ -164,7 +148,7 @@ export function ProfileHeroCard({
   }));
   const centerStatSplitStyle = useAnimatedStyle(() => ({
     transform: [
-      { scale: interpolate(pageModeProgress.value, [0, 1], [1, 0.82]) },
+      { translateY: interpolate(pageModeProgress.value, [0, 1], [0, -4]) },
     ],
   }));
   const rightStatSplitStyle = useAnimatedStyle(() => ({
@@ -191,7 +175,7 @@ export function ProfileHeroCard({
   }));
   const modeThumbStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: interpolate(heroModeProgress.value, [0, 1], [0, 86]) },
+      { translateX: interpolate(heroModeProgress.value, [0, 1], [0, modeWidth - 2 * styles.heroModeThumb.left - styles.heroModeThumb.width]) },
     ],
   }));
   const modeLabelStyle = useAnimatedStyle(() => ({
@@ -200,9 +184,6 @@ export function ProfileHeroCard({
       [0, 1],
       [COLORS.SUCCESS, COLORS.VALORANT_RED]
     ),
-    transform: [
-      { translateX: interpolate(heroModeProgress.value, [0, 1], [7, -7]) },
-    ],
   }));
   const balanceStatsStyle = useAnimatedStyle(() => ({
     opacity: interpolate(heroModeProgress.value, [0, 0.46, 1], [1, 0, 0]),
@@ -217,7 +198,7 @@ export function ProfileHeroCard({
     ],
   }));
   const statsVisibilityStyle = useAnimatedStyle(() => ({
-    height: interpolate(statsVisibilityProgress.value, [0, 1], [0, 64]),
+    height: interpolate(statsVisibilityProgress.value, [0, 1], [0, statRowHeight]),
     marginTop: interpolate(statsVisibilityProgress.value, [0, 1], [0, 12]),
     opacity: statsVisibilityProgress.value,
     overflow: "hidden" as const,
@@ -226,23 +207,15 @@ export function ProfileHeroCard({
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={[styles.heroCard, { height: heroLayoutHeight }, cardMorphStyle]}
+      style={[styles.heroCard, { height: heroLayoutHeight }]}
     >
       <Animated.View
         pointerEvents="none"
-        style={[
-          styles.heroSurface,
-          styles.heroExpandedSurface,
-          expandedSurfaceStyle,
-        ]}
+        style={[styles.heroSurface, styles.heroExpandedSurface, expandedStyle]}
       />
       <Animated.View
         pointerEvents="none"
-        style={[
-          styles.heroSurface,
-          styles.heroCompactSurface,
-          compactSurfaceStyle,
-        ]}
+        style={[styles.heroSurface, styles.heroCompactSurface, compactStyle]}
       />
       <Animated.View
         accessibilityElementsHidden={isPlayerInfoMode}
@@ -254,7 +227,7 @@ export function ProfileHeroCard({
         style={[styles.heroExpandedLayer, expandedStyle]}
       >
         <View style={styles.heroTopRow}>
-          <Animated.View style={[styles.heroModeToggle, modeToggleStyle]}>
+          <Animated.View style={[styles.heroModeToggle, { width: modeWidth, height: modeHeight }]}>
             <Pressable
               accessibilityHint={t("profile_page.switch_info_hint")}
               accessibilityLabel={t("profile_page.player_info")}
@@ -273,7 +246,16 @@ export function ProfileHeroCard({
             >
               <Animated.View
                 pointerEvents="none"
-                style={[styles.heroModeThumb, modeThumbStyle]}
+                testID="profile-mode-pill-surface"
+                style={[
+                  styles.heroModeSurface,
+                  { height: modeVisualHeight, top: (modeHeight - modeVisualHeight) / 2 },
+                  modeToggleStyle,
+                ]}
+              />
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.heroModeThumb, { top: (modeHeight - styles.heroModeThumb.height) / 2 }, modeThumbStyle]}
               >
                 <AppIcon
                   color={COLORS.PURE_WHITE}
@@ -286,15 +268,21 @@ export function ProfileHeroCard({
                   size={14}
                 />
               </Animated.View>
-              <View pointerEvents="none" style={styles.heroModeLabelViewport}>
+              <View pointerEvents="none" style={[
+                styles.heroModeLabelViewport,
+                isPlayerInfoMode ? styles.heroModeLabelInfoSlot : styles.heroModeLabelEquipmentSlot,
+              ]}>
                 <TypewriterSwapText
                   animate={!profileModeTransitioning}
                   charactersPerStep={1}
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
                   style={[styles.heroModeLabel, modeLabelStyle]}
                   text={
                     isPlayerInfoMode
-                      ? t("profile_page.player_info")
-                      : t("profile_page.hero_badge")
+                      ? infoModeLabel
+                      : equipmentModeLabel
                   }
                 />
               </View>
@@ -316,7 +304,7 @@ export function ProfileHeroCard({
               name="region"
               size={13}
             />
-            <Text style={styles.heroRegionText}>{regionLabel}</Text>
+            <Text numberOfLines={1} style={[styles.heroRegionText, { minWidth: regionTextMinWidth }]}>{regionLabel}</Text>
           </Pressable>
         </View>
 
@@ -422,7 +410,7 @@ export function ProfileHeroCard({
           </View>
         </Animated.View>
 
-        <View style={styles.heroRankRow}>
+        <View style={[styles.heroRankRow, { height: statRowHeight }]}>
           <Animated.View style={[styles.heroRankHalf, leftRankSplitStyle]}>
             <RankSplitGroup
               animateText={!profileModeTransitioning}

@@ -8,19 +8,26 @@ import {
   getPrimaryTabNavigatorPolicy,
   PRIMARY_TAB_REDUCED_MOTION_OPTIONS,
 } from "~/utils/primary-tab-motion";
-import { COLORS, GLASS_MATERIAL, GLASS_TAB_BAR } from "~/constants/DesignSystem";
+import { COLORS, GLASS_MATERIAL, GLASS_TAB_BAR, NAV_GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { useSystemChromeStore } from "~/hooks/useSystemChromeStore";
 import { withSpring, withTiming } from "react-native-reanimated";
+import { runOnUISync } from "react-native-worklets";
 import PrimaryTabScene from "~/components/ui/PrimaryTabScene";
 import SecondaryTabScene from "~/components/ui/SecondaryTabScene";
 import AppIcon from "~/components/ui/AppIcon";
 import { BlurView } from "expo-blur";
 import { NavigationBarBackdrop } from "~/features/navigation/NavigationBarBackdrop";
 import PressFeedback from "~/components/ui/PressFeedback";
+import { LiquidNavigationShell, type LiquidNavigationShellProps } from "~/features/navigation/LiquidNavigationShell";
+import type { PrimaryRouteName } from "~/features/navigation/navigation-model";
+import { useLiquidLens } from "~/features/navigation/useLiquidLens";
 
 let mockReduceMotion = false;
 let mockNightMarket: object[] = [];
 let mockSceneFocused = true;
+let mockDeferredUi = false;
+const mockUiWorklets: (() => void)[] = [];
+const mockRnCallbacks: (() => void)[] = [];
 let mockMediaPopupOpen = false;
 let mockViewportWidth = 360;
 let mockFontScale = 1;
@@ -69,6 +76,10 @@ jest.mock("react-i18next", () => ({
 }));
 
 jest.mock("~/hooks/useMotionPreference", () => ({ useMotionPreference: () => mockReduceMotion }));
+jest.mock("~/components/ui/liquid-glass-native-policy", () => ({
+  ...jest.requireActual<typeof import("~/components/ui/liquid-glass-native-policy")>("~/components/ui/liquid-glass-native-policy"),
+  useNativeGlassPreferences: () => ({ reduceTransparency: false, reduceMotion: mockReduceMotion }),
+}));
 jest.mock("~/components/ui/AppViewport", () => ({ useAppWindowDimensions: () => ({ width: mockViewportWidth, height: 800, fontScale: mockFontScale }) }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -104,11 +115,25 @@ jest.mock("react-native-reanimated", () => {
 });
 
 jest.mock("react-native-worklets", () => ({
-  scheduleOnUI: (callback: () => void) => callback(),
+  runOnUISync: jest.fn(<Args extends unknown[], ReturnValue>(
+    callback: (...args: Args) => ReturnValue,
+    ...args: Args
+  ) => {
+    const Native = require("react-native") as typeof import("react-native");
+    if (Native.Platform.OS === "web") throw new Error("runOnUISync is unsupported on web");
+    return callback(...args);
+  }),
+  scheduleOnUI: (callback: () => void) => {
+    if (mockDeferredUi) mockUiWorklets.push(callback);
+    else callback();
+  },
   scheduleOnRN: (
     callback: (...args: unknown[]) => unknown,
     ...args: unknown[]
-  ) => callback(...args),
+  ) => {
+    if (mockDeferredUi) mockRnCallbacks.push(() => callback(...args));
+    else callback(...args);
+  },
 }));
 
 jest.mock("~/components/AppWarmup", () =>
@@ -165,8 +190,10 @@ const getTab = (renderer: TestRenderer.ReactTestRenderer, label: string) =>
 
 describe("FloatingTabBar", () => {
   const renderers: TestRenderer.ReactTestRenderer[] = [];
+  const platformOsDescriptor = Object.getOwnPropertyDescriptor(Platform, "OS")!;
   afterEach(() => {
     act(() => renderers.splice(0).forEach((renderer) => renderer.unmount()));
+    Object.defineProperty(Platform, "OS", platformOsDescriptor);
     jest.restoreAllMocks();
     jest.clearAllMocks();
     useSystemChromeStore.getState().setPrimaryNavigationAccessibilityHidden(false);
@@ -177,6 +204,9 @@ describe("FloatingTabBar", () => {
     mockViewportWidth = 360;
     mockFontScale = 1;
     latestTabsProps = null;
+    mockDeferredUi = false;
+    mockUiWorklets.splice(0);
+    mockRnCallbacks.splice(0);
   });
   it("keeps Android primary scenes attached after preload", () => {
     expect(getPrimaryTabNavigatorPolicy("android")).toEqual({
@@ -304,6 +334,19 @@ describe("FloatingTabBar", () => {
     return { navigation, renderer };
   };
 
+  const renderLens = () => {
+    let lens!: ReturnType<typeof useLiquidLens>;
+    function LensProbe() {
+      const current = useLiquidLens(2, 65.2, 82.152, false, true);
+      React.useLayoutEffect(() => { lens = current; }, [current]);
+      return <View />;
+    }
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<LensProbe />); });
+    renderers.push(renderer);
+    return { lens, renderer };
+  };
+
   it.each([1, 1.5, 2])("reserves the scaled navigation text line at font scale %s without growing the capsule", (fontScale) => {
     mockFontScale = fontScale;
     const { renderer } = renderTabBar();
@@ -331,9 +374,9 @@ describe("FloatingTabBar", () => {
       const base = renderer.root.findByProps({ testID: "primary-tab-base-row" });
       const icons = base.findAllByType(AppIcon);
       expect(icons).toHaveLength(5);
-      expect(icons.every((icon) => icon.props.color === GLASS_MATERIAL.inactive)).toBe(true);
+      expect(icons.every((icon) => icon.props.color === NAV_GLASS_MATERIAL.text)).toBe(true);
       const clone = renderer.root.findByProps({ testID: "primary-tab-magnified-row" });
-      expect(clone.findAllByType(AppIcon).every((icon) => icon.props.color === GLASS_MATERIAL.active)).toBe(true);
+      expect(clone.findAllByType(AppIcon).every((icon) => icon.props.color === NAV_GLASS_MATERIAL.activeIcon)).toBe(true);
     }
   });
   it("exposes expanded primary navigation as a tablist with stable tab selectors", () => {
@@ -346,6 +389,31 @@ describe("FloatingTabBar", () => {
     expect(profileTab.props.accessibilityRole).toBe("tab");
     expect(profileTab.props.accessibilityState).toEqual({ selected: true });
     expect(shopTab.props.accessibilityState).toEqual({ selected: false });
+  });
+
+  it("keeps the glass capsule and moving lens free of white edge strokes and outer shadows", () => {
+    const { renderer } = renderTabBar();
+    const frame = StyleSheet.flatten(renderer.root.findByProps({ testID: "primary-navigation-frame" }).props.style);
+    expect(frame).toMatchObject({ shadowOpacity: 0, shadowRadius: 0, elevation: 0, boxShadow: "none" });
+    expect(StyleSheet.flatten(renderer.root.findByProps({ testID: "primary-tab-capsule" }).props.style).borderWidth).toBe(0);
+    expect(StyleSheet.flatten(renderer.root.findByProps({ testID: "primary-tab-indicator" }).props.style).borderWidth).toBe(0);
+    const whiteStrokes = renderer.root.findAllByType(View).filter((node) => {
+      const style = StyleSheet.flatten(node.props.style);
+      return style?.borderWidth > 0 && typeof style.borderColor === "string" && /255.*255.*255/.test(style.borderColor)
+        && !/[, ]0\)$/.test(style.borderColor);
+    });
+    expect(whiteStrokes).toHaveLength(0);
+  });
+
+  it("uses the opaque white fallback with dark readable text until a page target is ready", () => {
+    const { renderer } = renderTabBar();
+    expect(renderer.root.findAllByType(BlurView)).toHaveLength(0);
+    const veil = renderer.root.findByProps({ testID: "primary-tab-glass-veil" });
+    expect(StyleSheet.flatten(veil.props.style).backgroundColor).toBe(COLORS.PURE_WHITE);
+    expect(StyleSheet.flatten(renderer.root.findByProps({ testID: "primary-tab-capsule" }).props.style).backgroundColor).toBe(COLORS.PURE_WHITE);
+    const labels = renderer.root.findByProps({ testID: "primary-tab-base-row" }).findAllByType(Text);
+    expect(labels).toHaveLength(5);
+    labels.forEach(label => expect(StyleSheet.flatten(label.props.style).color).toBe(COLORS.TEXT_PRIMARY));
   });
 
   it("keeps the active glyph mounted through morph then settles its native shape", () => {
@@ -408,6 +476,29 @@ describe("FloatingTabBar", () => {
     expect(navigation.navigate).not.toHaveBeenCalled();
   });
 
+  it("settles the active glyph immediately when Reduce Motion changes during its repair window", () => {
+    jest.useFakeTimers();
+    try {
+      const { navigation, renderer } = renderTabBar();
+      act(() => getTab(renderer, "shop").props.onPress());
+      act(() => jest.advanceTimersByTime(200));
+      expect(mockMorphSet).not.toHaveBeenCalled();
+      const icon = renderer.root.findByProps({ testID: "primary-tab-active-icon" });
+      mockReduceMotion = true;
+      act(() => renderer.update(<FloatingTabBar state={{ index: 2, routes }} descriptors={descriptors} navigation={navigation} />));
+      expect(mockMorphSet).toHaveBeenCalledTimes(1);
+      expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" })).toBe(icon);
+      act(() => jest.advanceTimersByTime(500));
+      expect(mockMorphSet).toHaveBeenCalledTimes(1);
+      mockReduceMotion = false;
+      act(() => renderer.update(<FloatingTabBar state={{ index: 2, routes }} descriptors={descriptors} navigation={navigation} />));
+      act(() => jest.runAllTimers());
+      expect(mockMorphSet).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("replaces an in-flight destination with the latest accepted press", () => {
     const { renderer } = renderTabBar();
 
@@ -436,6 +527,74 @@ describe("FloatingTabBar", () => {
     act(() => jest.advanceTimersByTime(300));
     expect(mockMorphSet).toHaveBeenCalledTimes(1);
     jest.useRealTimers();
+  });
+
+  it("reconciles a superseded intent after the real TabRouter settles another route without consuming a stale confirmation", () => {
+    // Load the installed router implementation without the unrelated URL parser barrel.
+    const { TabRouter, CommonActions } = jest.requireActual<typeof import("expo-router/react-navigation")>("expo-router/build/react-navigation/routers");
+    const router = TabRouter({ initialRouteName: "profile", backBehavior: "history" });
+    const options = { routeNames: routes.map((route) => route.name), routeParamList: {}, routeGetIdList: {} };
+    let state = router.getInitialState(options);
+    type Event = { type: string; target?: string };
+    const listeners = new Map<string, Set<(event: Event) => void>>();
+    const actions: ReturnType<typeof CommonActions.navigate>[] = [];
+    const navigation = {
+      addListener: (type: string, listener: (event: Event) => void) => {
+        const bucket = listeners.get(type) ?? new Set();
+        bucket.add(listener);
+        listeners.set(type, bucket);
+        return () => { bucket.delete(listener); };
+      },
+      emit: jest.fn((event: Event) => {
+        listeners.get(event.type)?.forEach((listener) => listener(event));
+        return { defaultPrevented: false };
+      }),
+      navigate: jest.fn((name: string) => { actions.push(CommonActions.navigate(name)); }),
+      preload: jest.fn(),
+    };
+    const input = (): LiquidNavigationShellProps => ({
+      state,
+      navigation,
+      descriptors: Object.fromEntries(state.routes.map((route) => [route.key, {
+        route,
+        options: { headerShown: false, tabBarAccessibilityLabel: route.name },
+        navigation: { addListener: (type: string, listener: (event: Event) => void) =>
+          navigation.addListener(type, (event) => { if (event.target === route.key) listener(event); }) },
+        render: () => <PrimaryTabScene routeName={route.name as PrimaryRouteName}><View /></PrimaryTabScene>,
+      }])),
+    } as unknown as LiquidNavigationShellProps);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<LiquidNavigationShell {...input()} />); });
+    renderers.push(renderer);
+    const commit = (action: ReturnType<typeof CommonActions.navigate>) => {
+      const next = router.getStateForAction(state, action, options);
+      expect(next).not.toBeNull();
+      if (!next || next.stale !== false) throw new Error("Expected a complete TabRouter state");
+      state = next;
+      act(() => renderer.update(<LiquidNavigationShell {...input()} />));
+    };
+    const assertCommitted = () => {
+      // Primary content now commits once; route confirmation is synchronous,
+      // while the accepted indicator intent still reconciles through TabRouter.
+      expect(jest.mocked(withTiming).mock.calls.filter(([value]) => Array.isArray(value))).toHaveLength(0);
+      const active = state.routes[state.index];
+      expect(renderer.root.findByProps({ testID: `navigation-host-${active.name}` }).props).toMatchObject({
+        pointerEvents: "auto", accessibilityElementsHidden: false, importantForAccessibility: "auto",
+      });
+    };
+    act(() => getTab(renderer, "shop").props.onPress());
+    act(() => getTab(renderer, "settings").props.onPress());
+    commit(actions[0]);
+    assertCommitted();
+    expect(getTab(renderer, "settings").props.accessibilityState.selected).toBe(true);
+    commit(CommonActions.navigate("profile")); // Account-switch redirect supersedes the queued Settings action.
+    assertCommitted();
+    expect(getTab(renderer, "profile").props.accessibilityState.selected).toBe(true);
+    expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.name).toBe("navProfile");
+    act(() => getTab(renderer, "settings").props.onPress());
+    expect(navigation.navigate.mock.calls).toEqual([["shop"], ["settings"], ["settings"]]);
+    act(() => renderer.unmount());
+    expect([...listeners.values()].every((bucket) => bucket.size === 0)).toBe(true);
   });
 
   it("isolates the authenticated background while the media popup is open", () => {
@@ -505,6 +664,375 @@ describe("FloatingTabBar", () => {
       descriptors={descriptors} navigation={navigation} />));
     expect(withSpring).toHaveBeenCalledTimes(2);
     expect(navigation.navigate.mock.calls).toEqual([["shop"], ["settings"]]);
+  });
+
+  describe("WEB fallback with deferred UI/RN acknowledgements", () => {
+    beforeEach(() => {
+      Object.defineProperty(Platform, "OS", { configurable: true, value: "web" });
+    });
+
+    it("kicks the UI lens before routing when worklets are batched behind the current JS event", () => {
+      const { navigation, renderer } = renderTabBar();
+      const frames: FrameRequestCallback[] = [];
+      const springCountAtNavigate: number[] = [];
+      jest.spyOn(global, "requestAnimationFrame").mockImplementation((callback) => {
+        frames.push(callback);
+        return frames.length;
+      });
+      navigation.navigate.mockImplementation(() => { springCountAtNavigate.push(jest.mocked(withSpring).mock.calls.length); });
+      jest.mocked(withSpring).mockClear();
+      mockDeferredUi = true;
+      act(() => { getTab(renderer, "shop").props.onPress(); });
+      // Installed worklets dispatch this queue from a JS microtask. Scheduling a
+      // request before navigate is insufficient if navigate starts hot route work.
+      expect(mockUiWorklets.length).toBeGreaterThan(0);
+      expect(withSpring).not.toHaveBeenCalled();
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      expect(withSpring).toHaveBeenCalledTimes(1);
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      act(() => { frames.splice(0).forEach((callback) => callback(16)); });
+      act(() => { mockRnCallbacks.splice(0).forEach((callback) => callback()); });
+      expect(navigation.navigate).toHaveBeenCalledTimes(1);
+      expect(navigation.navigate).toHaveBeenCalledWith("shop");
+      expect(springCountAtNavigate).toEqual([1]);
+      expect(runOnUISync).not.toHaveBeenCalled();
+      act(() => { renderer.update(<FloatingTabBar state={{ index: 1, routes }} descriptors={descriptors} navigation={navigation} />); });
+      expect(withSpring).toHaveBeenCalledTimes(1);
+      expect(mockUiWorklets).toHaveLength(0);
+    });
+
+    it("dispatches only the latest rapid intent after queued UI kickoffs acknowledge", () => {
+      const { navigation, renderer } = renderTabBar();
+      mockDeferredUi = true;
+      act(() => {
+        getTab(renderer, "shop").props.onPress();
+        getTab(renderer, "settings").props.onPress();
+        getTab(renderer, "bundles").props.onPress();
+      });
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      act(() => { mockRnCallbacks.splice(0).forEach((callback) => callback()); });
+      expect(navigation.navigate.mock.calls).toEqual([["bundles"]]);
+      expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.name).toBe("navStore");
+    });
+
+    it("does not queue a UI kickoff or navigation when the press is prevented", () => {
+      const { navigation, renderer } = renderTabBar({ prevented: true });
+      mockDeferredUi = true;
+      act(() => { getTab(renderer, "shop").props.onPress(); });
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+      expect(navigation.navigate).not.toHaveBeenCalled();
+    });
+
+    it("acknowledges a Reduce Motion jump before dispatching the route without a spring", () => {
+      mockReduceMotion = true;
+      const { navigation, renderer } = renderTabBar();
+      jest.mocked(withSpring).mockClear();
+      mockDeferredUi = true;
+      act(() => { getTab(renderer, "shop").props.onPress(); });
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      expect(withSpring).not.toHaveBeenCalled();
+      act(() => { mockRnCallbacks.splice(0).forEach((callback) => callback()); });
+      expect(navigation.navigate.mock.calls).toEqual([["shop"]]);
+    });
+
+    it("retires an already queued RN acknowledgement when the bar unmounts", () => {
+      const { navigation, renderer } = renderTabBar();
+      mockDeferredUi = true;
+      act(() => { getTab(renderer, "shop").props.onPress(); });
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      expect(mockRnCallbacks.length).toBeGreaterThan(0);
+      act(() => { renderer.unmount(); });
+      act(() => { mockRnCallbacks.splice(0).forEach((callback) => callback()); });
+      expect(navigation.navigate).not.toHaveBeenCalled();
+    });
+
+    it("retires an acknowledged intent when an authoritative secondary route commits", () => {
+      const { navigation, renderer } = renderTabBar();
+      mockDeferredUi = true;
+      act(() => { getTab(renderer, "shop").props.onPress(); });
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      const secondaryRoutes = [...routes, { key: "history-key", name: "history" }];
+      act(() => {
+        renderer.update(<FloatingTabBar state={{ index: 5, routes: secondaryRoutes }} descriptors={descriptors} navigation={navigation} />);
+      });
+      act(() => { mockRnCallbacks.splice(0).forEach((callback) => callback()); });
+      expect(navigation.navigate).not.toHaveBeenCalled();
+    });
+
+    it("retires a queued acknowledgement at an authoritative primary commit before passive effects", () => {
+      const navigation = { emit: jest.fn(() => ({ defaultPrevented: false })), navigate: jest.fn(), preload: jest.fn() };
+      function CommitBoundary({ index }: { index: number }) {
+        React.useLayoutEffect(() => {
+          if (index === 0) mockRnCallbacks.splice(0).forEach((callback) => callback());
+        }, [index]);
+        return <FloatingTabBar state={{ index, routes }} descriptors={descriptors} navigation={navigation} />;
+      }
+      let renderer!: TestRenderer.ReactTestRenderer;
+      act(() => { renderer = TestRenderer.create(<CommitBoundary index={2} />); });
+      renderers.push(renderer);
+      mockDeferredUi = true;
+      act(() => { getTab(renderer, "shop").props.onPress(); });
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      expect(mockRnCallbacks.length).toBeGreaterThan(0);
+      // Child layout effects have published Bundles as the committed primary.
+      // A queued RN acknowledgement must not revive Shop before passive cleanup.
+      act(() => { renderer.update(<CommitBoundary index={0} />); });
+      expect(navigation.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("native immediate UI kickoff", () => {
+    beforeEach(() => {
+      Object.defineProperty(Platform, "OS", { configurable: true, value: "android" });
+    });
+
+    it.each(["android", "ios"] as const)("starts the lens before navigating in the same accepted %s press handler", (platform) => {
+      Object.defineProperty(Platform, "OS", { configurable: true, value: platform });
+      const { navigation, renderer } = renderTabBar();
+      jest.mocked(withSpring).mockClear();
+      jest.mocked(runOnUISync).mockClear();
+      mockDeferredUi = true;
+
+      act(() => {
+        getTab(renderer, "shop").props.onPress();
+        // Inspect before act flushes effects or either asynchronous queue runs.
+        expect(withSpring).toHaveBeenCalledTimes(1);
+        expect(navigation.navigate.mock.calls).toEqual([["shop"]]);
+        expect(jest.mocked(withSpring).mock.invocationCallOrder[0]).toBeLessThan(
+          navigation.navigate.mock.invocationCallOrder[0],
+        );
+        expect(runOnUISync).toHaveBeenCalledTimes(1);
+        expect(mockUiWorklets).toHaveLength(0);
+        expect(mockRnCallbacks).toHaveLength(0);
+      });
+
+      act(() => {
+        renderer.update(<FloatingTabBar state={{ index: 1, routes }} descriptors={descriptors} navigation={navigation} />);
+      });
+      expect(withSpring).toHaveBeenCalledTimes(1);
+      expect(runOnUISync).toHaveBeenCalledTimes(1);
+      expect(navigation.navigate).toHaveBeenCalledTimes(1);
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+    });
+
+    it("jumps under native Reduce Motion and navigates immediately without replay on commit", () => {
+      mockReduceMotion = true;
+      const { navigation, renderer } = renderTabBar();
+      jest.mocked(withSpring).mockClear();
+      jest.mocked(runOnUISync).mockClear();
+      mockDeferredUi = true;
+
+      act(() => {
+        getTab(renderer, "shop").props.onPress();
+        expect(navigation.navigate.mock.calls).toEqual([["shop"]]);
+        expect(withSpring).not.toHaveBeenCalled();
+        expect(runOnUISync).toHaveBeenCalledTimes(1);
+        expect(mockUiWorklets).toHaveLength(0);
+        expect(mockRnCallbacks).toHaveLength(0);
+      });
+
+      act(() => {
+        renderer.update(<FloatingTabBar state={{ index: 1, routes }} descriptors={descriptors} navigation={navigation} />);
+      });
+      expect(withSpring).not.toHaveBeenCalled();
+      expect(runOnUISync).toHaveBeenCalledTimes(1);
+      expect(navigation.navigate).toHaveBeenCalledTimes(1);
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+    });
+
+    it("dispatches every accepted native A/B/C intent immediately and retains C on its commit", () => {
+      const { navigation, renderer } = renderTabBar();
+      jest.mocked(withSpring).mockClear();
+      jest.mocked(runOnUISync).mockClear();
+      mockDeferredUi = true;
+      const destinations = ["shop", "settings", "bundles"];
+
+      act(() => {
+        destinations.forEach((destination, index) => {
+          getTab(renderer, destination).props.onPress();
+          expect(navigation.navigate.mock.calls).toEqual(destinations.slice(0, index + 1).map((name) => [name]));
+          expect(withSpring).toHaveBeenCalledTimes(index + 1);
+          expect(jest.mocked(withSpring).mock.invocationCallOrder[index]).toBeLessThan(
+            navigation.navigate.mock.invocationCallOrder[index],
+          );
+          expect(runOnUISync).toHaveBeenCalledTimes(index + 1);
+          expect(mockUiWorklets).toHaveLength(0);
+          expect(mockRnCallbacks).toHaveLength(0);
+        });
+      });
+
+      expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.name).toBe("navStore");
+      act(() => {
+        renderer.update(<FloatingTabBar state={{ index: 0, routes }} descriptors={descriptors} navigation={navigation} />);
+      });
+      expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.name).toBe("navStore");
+      expect(withSpring).toHaveBeenCalledTimes(3);
+      expect(runOnUISync).toHaveBeenCalledTimes(3);
+      expect(navigation.navigate.mock.calls).toEqual(destinations.map((name) => [name]));
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+    });
+
+    it("never runs a native UI kickoff or navigation for a prevented press", () => {
+      const { navigation, renderer } = renderTabBar({ prevented: true });
+      jest.mocked(withSpring).mockClear();
+      jest.mocked(runOnUISync).mockClear();
+      mockDeferredUi = true;
+
+      act(() => { getTab(renderer, "shop").props.onPress(); });
+      expect(navigation.emit).toHaveBeenCalledTimes(1);
+      expect(runOnUISync).not.toHaveBeenCalled();
+      expect(withSpring).not.toHaveBeenCalled();
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+    });
+
+    it("uses the native exception fallback only after the queued UI kickoff acknowledges and logs the error name", () => {
+      const { navigation, renderer } = renderTabBar();
+      const warning = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const failure = new Error("private runtime details must not appear in the warning");
+      failure.name = "NativeKickoffError";
+      jest.mocked(runOnUISync).mockImplementationOnce(() => { throw failure; });
+      jest.mocked(withSpring).mockClear();
+      mockDeferredUi = true;
+
+      act(() => {
+        getTab(renderer, "shop").props.onPress();
+        expect(runOnUISync).toHaveBeenCalledTimes(1);
+        expect(navigation.navigate).not.toHaveBeenCalled();
+        expect(withSpring).not.toHaveBeenCalled();
+        expect(mockUiWorklets).toHaveLength(1);
+        expect(mockRnCallbacks).toHaveLength(0);
+      });
+      expect(warning.mock.calls).toEqual([[
+        "[navigation] Immediate lens kickoff unavailable; scheduling fallback",
+        "NativeKickoffError",
+      ]]);
+
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      expect(withSpring).toHaveBeenCalledTimes(1);
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      expect(mockRnCallbacks).toHaveLength(1);
+      act(() => { mockRnCallbacks.splice(0).forEach((callback) => callback()); });
+      expect(navigation.navigate.mock.calls).toEqual([["shop"]]);
+      expect(jest.mocked(withSpring).mock.invocationCallOrder[0]).toBeLessThan(navigation.navigate.mock.invocationCallOrder[0]);
+      act(() => {
+        renderer.update(<FloatingTabBar state={{ index: 1, routes }} descriptors={descriptors} navigation={navigation} />);
+      });
+      expect(withSpring).toHaveBeenCalledTimes(1);
+      expect(navigation.navigate).toHaveBeenCalledTimes(1);
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+    });
+
+    it("does not publish a rejected native kickoff and accepts a retry without replaying the current route", () => {
+      const { navigation, renderer } = renderTabBar();
+      jest.mocked(withSpring).mockClear();
+      jest.mocked(runOnUISync).mockReturnValueOnce(false);
+      mockDeferredUi = true;
+
+      act(() => { getTab(renderer, "shop").props.onPress(); });
+      expect(runOnUISync).toHaveBeenCalledTimes(1);
+      expect(withSpring).not.toHaveBeenCalled();
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      expect(getTab(renderer, "profile").props.accessibilityState.selected).toBe(true);
+      expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.name).toBe("navProfile");
+      act(() => {
+        renderer.update(<FloatingTabBar state={{ index: 2, routes }} descriptors={descriptors} navigation={navigation} />);
+      });
+      expect(runOnUISync).toHaveBeenCalledTimes(1);
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+
+      act(() => {
+        getTab(renderer, "shop").props.onPress();
+        expect(navigation.navigate.mock.calls).toEqual([["shop"]]);
+        expect(withSpring).toHaveBeenCalledTimes(1);
+      });
+      expect(runOnUISync).toHaveBeenCalledTimes(2);
+      expect(getTab(renderer, "shop").props.accessibilityState.selected).toBe(true);
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+    });
+
+    it("retires an older queued default move after a later synchronous native kick", () => {
+      const { lens } = renderLens();
+      const olderStarted = jest.fn();
+      const latestStarted = jest.fn();
+      mockDeferredUi = true;
+
+      act(() => { lens.move(1, false, olderStarted); });
+      expect(mockUiWorklets).toHaveLength(1);
+      expect(runOnUISync).not.toHaveBeenCalled();
+      expect(withSpring).not.toHaveBeenCalled();
+      act(() => { expect(lens.move(4, false, latestStarted, true)).toBe(true); });
+      const latestX = lens.x.value;
+      expect(lens.to.value).toBe(4);
+      expect(latestStarted).toHaveBeenCalledTimes(1);
+      expect(withSpring).toHaveBeenCalledTimes(1);
+      expect(mockRnCallbacks).toHaveLength(0);
+
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      expect(lens.x.value).toBe(latestX);
+      expect(lens.to.value).toBe(4);
+      expect(olderStarted).not.toHaveBeenCalled();
+      expect(latestStarted).toHaveBeenCalledTimes(1);
+      expect(withSpring).toHaveBeenCalledTimes(1);
+      expect(mockRnCallbacks).toHaveLength(0);
+    });
+
+    it("keeps default native moves asynchronous and applies their queued revisions in order", () => {
+      const { lens } = renderLens();
+      const started = jest.fn();
+      mockDeferredUi = true;
+      act(() => { lens.move(1, false, () => started("shop")); lens.move(4, false, () => started("settings")); });
+      expect(runOnUISync).not.toHaveBeenCalled();
+      expect(mockUiWorklets).toHaveLength(2);
+      expect(withSpring).not.toHaveBeenCalled();
+      expect(started).not.toHaveBeenCalled();
+
+      act(() => { mockUiWorklets.splice(0).forEach((callback) => callback()); });
+      expect(withSpring).toHaveBeenCalledTimes(2);
+      expect(lens.to.value).toBe(4);
+      expect(mockRnCallbacks).toHaveLength(2);
+      expect(started).not.toHaveBeenCalled();
+      act(() => { mockRnCallbacks.splice(0).forEach((callback) => callback()); });
+      expect(started.mock.calls).toEqual([["shop"], ["settings"]]);
+    });
+
+    it.each(["hidden", "secondary", "unmounted"] as const)("rejects a retired native handler when %s", (condition) => {
+      const { navigation, renderer } = renderTabBar();
+      const stalePress = getTab(renderer, "shop").props.onPress;
+      if (condition === "hidden") {
+        act(() => { useSystemChromeStore.getState().setPrimaryNavigationAccessibilityHidden(true); });
+      } else if (condition === "secondary") {
+        const allRoutes = [...routes, { key: "history-key", name: "history" }];
+        act(() => {
+          renderer.update(<FloatingTabBar state={{ index: 5, routes: allRoutes }} descriptors={descriptors} navigation={navigation} />);
+        });
+      } else {
+        act(() => { renderer.unmount(); });
+      }
+      jest.mocked(withSpring).mockClear();
+      jest.mocked(runOnUISync).mockClear();
+      mockDeferredUi = true;
+
+      act(() => { stalePress(); });
+      expect(navigation.emit).not.toHaveBeenCalled();
+      expect(runOnUISync).not.toHaveBeenCalled();
+      expect(withSpring).not.toHaveBeenCalled();
+      expect(navigation.navigate).not.toHaveBeenCalled();
+      expect(mockUiWorklets).toHaveLength(0);
+      expect(mockRnCallbacks).toHaveLength(0);
+    });
   });
 
   it("allows returning to the current route before a pending navigation commits", () => {
@@ -627,11 +1155,11 @@ describe("FloatingTabBar", () => {
 
   it("uses a red morph glyph and frosted lens independently of screen chrome tone", () => {
     const { renderer } = renderTabBar();
-    expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.color).toBe(GLASS_MATERIAL.active);
+    expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.color).toBe(NAV_GLASS_MATERIAL.activeIcon);
     expect(renderer.root.findByProps({ testID: "primary-tab-indicator" }).props.pointerEvents).toBe("none");
     expect(StyleSheet.flatten(renderer.root.findByProps({ testID: "primary-tab-indicator" }).props.style).height).toBe(50);
     act(() => useSystemChromeStore.getState().setPrimaryNavigationTone("light"));
-    expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.color).toBe(GLASS_MATERIAL.active);
+    expect(renderer.root.findByProps({ testID: "primary-tab-active-icon" }).props.color).toBe(NAV_GLASS_MATERIAL.activeIcon);
   });
 
   it("corrects layout without springing from a stale viewport and preserves the active glyph", () => {
@@ -658,19 +1186,36 @@ describe("FloatingTabBar", () => {
     expect(mockHaptic).toHaveBeenCalledTimes(Platform.OS === "web" ? 0 : 1);
   });
 
-  it("keeps the actual bar blur static beneath its visuals and hit layer through rapid retarget", () => {
-    const { navigation, renderer } = renderTabBar({ blurTarget: { current: {} as View } });
+  it("keeps white glass on the committed page target through rapid retarget", () => {
+    Object.defineProperty(Platform, "OS", { configurable: true, value: "ios" });
+    const blurTarget = { current: {} as View };
+    const { navigation, renderer } = renderTabBar({ blurTarget });
     const capsule = renderer.root.findAllByProps({ testID: "primary-tab-capsule" }).at(-1)!;
     expect(capsule.children.indexOf(capsule.findByType(NavigationBarBackdrop))).toBe(0);
-    expect(StyleSheet.flatten(capsule.props.style)).toMatchObject({ overflow: "hidden", backgroundColor: "transparent" });
+    expect(renderer.root.findAllByType(BlurView)).toHaveLength(1);
     const blur = renderer.root.findByType(BlurView);
+    expect(blur.props.blurTarget).toBe(blurTarget);
+    expect(blur.props.tint).toBe("systemUltraThinMaterialLight");
+    expect(StyleSheet.flatten(capsule.props.style)).toMatchObject({ overflow: "hidden", backgroundColor: GLASS_MATERIAL.clear });
+    const expectDarkLabels = () => {
+      for (const rowId of ["primary-tab-base-row", "primary-tab-magnified-row"]) {
+        const labels = renderer.root.findByProps({ testID: rowId }).findAllByType(Text);
+        expect(labels).toHaveLength(5);
+        labels.forEach(label => expect(StyleSheet.flatten(label.props.style).color).toBe(COLORS.TEXT_PRIMARY));
+      }
+    };
+    expectDarkLabels();
     const glyph = renderer.root.findAllByType(AppIcon).find((icon) => icon.props.testID === "primary-tab-active-icon");
     act(() => {
       getTab(renderer, "shop").props.onPress();
       getTab(renderer, "settings").props.onPress();
     });
-    expect(renderer.root.findByType(BlurView) === blur).toBe(true);
-    expect(blur.props).toMatchObject({ intensity: 55, blurMethod: "dimezisBlurViewSdk31Plus", pointerEvents: "none", importantForAccessibility: "no-hide-descendants" });
+    expect(renderer.root.findAllByType(BlurView)).toHaveLength(1);
+    expect(renderer.root.findByType(BlurView)).toBe(blur);
+    expect(blur.props.blurTarget).toBe(blurTarget);
+    expect(blur.props.tint).toBe("systemUltraThinMaterialLight");
+    expect(StyleSheet.flatten(capsule.props.style).backgroundColor).toBe(GLASS_MATERIAL.clear);
+    expectDarkLabels();
     expect(renderer.root.findAllByType(AppIcon).find((icon) => icon.props.testID === "primary-tab-active-icon") === glyph).toBe(true);
     expect(glyph?.props.name).toBe("navMore");
     expect(navigation.navigate.mock.calls).toEqual([["shop"], ["settings"]]);

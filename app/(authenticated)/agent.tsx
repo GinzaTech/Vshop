@@ -4,9 +4,9 @@ import {
   View,
   StyleSheet,
   Text,
-  TouchableOpacity,
 } from "react-native";
-import { useTranslation } from "react-i18next";
+import TouchableOpacity from "~/components/ui/ContentCardTouchable";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { CachedImage as Image } from "~/components/CachedImage";
 import { AgentGrid, AgentModal } from "~/components/GalleryAgent";
 import useAgentGallery from "~/components/GalleryAgent";
@@ -64,6 +64,9 @@ const Agent = () => {
             // Mỗi nút role: TouchableOpacity, khi chọn sẽ có gạch chân trắng
             <TouchableOpacity
               key={role.id}
+              accessibilityRole="button"
+              accessibilityLabel={t(role.labelKey)}
+              accessibilityState={{ selected: selectedRole === role.id }}
               style={[styles.roleBtn, selectedRole === role.id && styles.roleBtnSelected]}
               onPress={() => filterByRole(role.id)}
             >

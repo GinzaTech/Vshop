@@ -11,11 +11,10 @@ import {
   View,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { CachedImage as Image } from "~/components/CachedImage";
 
 import AppIcon from "~/components/ui/AppIcon";
-import { useUserStore } from "~/hooks/useUserStore";
 import { getItemUpgrades } from "~/utils/valorant-api";
 import { getAssetLookups } from "~/utils/valorant-assets";
 import CurrencyIcon from "~/components/CurrencyIcon";
@@ -23,7 +22,7 @@ import GlassCard from "~/components/ui/GlassCard";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
-import { sanitizeErrorForLog } from "~/utils/log-redaction";
+import { useAccountScreenData, type AccountScreenSession } from "~/hooks/useAccountScreenData";
 
 // Hằng số ID loại skin vũ khí (weapon skin type)
 const WEAPON_SKIN_TYPE_ID = "e7c63390-eda7-46e0-bb7a-a6abdacd2433";
@@ -55,19 +54,22 @@ const shortId = (value?: string) => (value ? `${value.substring(0, 8)}...` : "--
 const sumWalletCost = (costs?: { AmountToDeduct: number }[]) =>
   costs?.reduce((total, cost) => total + (cost.AmountToDeduct || 0), 0) ?? 0;
 
+const EMPTY_UPGRADE_DATA = { upgrades: null as ItemUpgradesResponse | null };
+
+async function loadUpgradeData(session: AccountScreenSession) {
+  const upgrades = await getItemUpgrades(session.accessToken, session.entitlementsToken, session.region);
+  return { data: upgrades ? { upgrades } : {}, errors: [] };
+}
+
 /**
  * ItemUpgradesScreen – Component chính hiển thị danh sách nâng cấp trang bị
  * Gồm: header thống kê, thanh tìm kiếm, danh sách skin có thể nâng cấp (dạng FlatList)
  */
 export default function ItemUpgradesScreen() {
   const { t } = useTranslation();
-  // Lấy thông tin user từ store (token, region, ...)
-  const user = useUserStore((state) => state.user);
-
-  // State: dữ liệu nâng cấp từ API (ItemUpgradesResponse)
-  const [upgrades, setUpgrades] = React.useState<ItemUpgradesResponse | null>(null);
-  // State: trạng thái đang tải dữ liệu
-  const [loading, setLoading] = React.useState(true);
+  const { data: { upgrades }, loading, reload, session } = useAccountScreenData(
+    loadUpgradeData, EMPTY_UPGRADE_DATA, "Failed to fetch item upgrades:",
+  );
   // State: ID của định nghĩa đang được mở rộng (xem chi tiết), null = không mở
   const [expandedDef, setExpandedDef] = React.useState<string | null>(null);
   // State: lưu lựa chọn sidegrade cho từng sidegrade ID (key = sidegradeId, value = optionId)
@@ -75,34 +77,13 @@ export default function ItemUpgradesScreen() {
   // State: từ khóa tìm kiếm
   const [query, setQuery] = React.useState("");
 
-  /**
-   * fetchData – Gọi API lấy danh sách nâng cấp item
-   * Được gọi khi component mount, phụ thuộc vào thông tin user
-   */
-  const fetchData = React.useCallback(async () => {
-    if (!user.accessToken || !user.entitlementsToken || !user.region) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const data = await getItemUpgrades(
-        user.accessToken,
-        user.entitlementsToken,
-        user.region
-      );
-      setUpgrades(data);
-    } catch (err) {
-      if (__DEV__) console.error("Failed to fetch item upgrades:", sanitizeErrorForLog(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [user.accessToken, user.entitlementsToken, user.region]);
-
-  // Effect: gọi fetchData khi component mount
+  // UI choices belong to the same account credentials as their displayed rows.
   React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-  const { refreshing, onRefresh } = useAsyncRefresh(fetchData);
+    setExpandedDef(null);
+    setSelectedSidegrade({});
+    setQuery("");
+  }, [session]);
+  const { refreshing, onRefresh } = useAsyncRefresh(reload, session);
 
   // useMemo: Trích xuất danh sách Definitions từ response, memoized theo upgrades.Definitions
   const definitions = React.useMemo(
@@ -348,7 +329,7 @@ export default function ItemUpgradesScreen() {
     const progressionCost = levels.reduce((total, amount) => total + amount, 0);
 
     return (
-      <GlassCard style={styles.defCard}>
+      <GlassCard variant="flat" style={styles.defCard}>
         {/* Dải ảnh skin lớn phía trên card */}
         <View style={styles.skinImageBand}>
           {itemMeta.icon ? (
@@ -589,7 +570,7 @@ export default function ItemUpgradesScreen() {
       }
       ListEmptyComponent={
         // Empty state: hiển thị khi không có dữ liệu hoặc không có kết quả tìm kiếm
-        <GlassCard style={styles.emptyCard}>
+        <GlassCard variant="flat" style={styles.emptyCard}>
           <AppIcon name="upgrade" size={30} color={COLORS.TEXT_SECONDARY} decorative />
           <Text style={styles.emptyTitle}>
             {definitions.length === 0

@@ -1,7 +1,7 @@
 // ===== Import các thư viện =====
 import React from "react";
 import { Platform, ScrollView, StyleSheet, Text } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BundleImage from "~/components/BundleImage";
@@ -48,38 +48,6 @@ function Bundles() {
   );
   const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
 
-  // Nếu không có bundle nào, hiển thị EmptyStateCard thông báo trống
-  if (user.shops.bundles.length === 0) {
-    return (
-      <ScrollView
-        removeClippedSubviews={Platform.OS === "android"}
-        style={styles.screen}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: getPrimaryTabContentBottomPadding(insets.bottom) },
-        ]}
-        refreshControl={
-          <AppRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        alwaysBounceVertical
-      >
-        <EmptyStateCard
-          centered
-          icon={
-            <AppIcon
-              name="bundle"
-              size={38}
-              color={COLORS.TEXT_PRIMARY}
-              decorative
-            />
-          }
-          title={t("bundles_page.empty_title")}
-          subtitle={t("bundles_page.empty_subtitle")}
-        />
-      </ScrollView>
-    );
-  }
-
   return (
     <ScrollView
       removeClippedSubviews={Platform.OS === "android"}
@@ -94,6 +62,22 @@ function Bundles() {
       alwaysBounceVertical
       showsVerticalScrollIndicator={false}
     >
+      {user.shops.bundles.length === 0 ? (
+        <EmptyStateCard
+          centered
+          icon={
+            <AppIcon
+              name="bundle"
+              size={38}
+              color={COLORS.TEXT_PRIMARY}
+              decorative
+            />
+          }
+          title={t("bundles_page.empty_title")}
+          subtitle={t("bundles_page.empty_subtitle")}
+        />
+      ) : (
+      <>
       {/* Tiêu đề trang */}
       <PageIntro
         title={t("bundles_page.title")}
@@ -117,16 +101,18 @@ function Bundles() {
           isOwned={isOwned}
         />
       ))}
+      </>
+      )}
     </ScrollView>
   );
 }
 
 // ===== StyleSheet định nghĩa giao diện (chỉ token sáng) =====
 const styles = StyleSheet.create({
-  // Màn hình chính: nền trắng theo yêu cầu trực tiếp của thiết kế Bundle.
+  // Shared gray page background; compact cards retain their own materials.
   screen: {
     flex: 1,
-    backgroundColor: COLORS.SURFACE,
+    backgroundColor: COLORS.BACKGROUND,
   },
   // Nội dung ScrollView: padding 20, bottom chừa chỗ cho tab bar
   content: {

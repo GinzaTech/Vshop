@@ -9,10 +9,14 @@ import ShopAccessoryItem from "~/components/ShopAccessoryItem";
 import GalleryEquip from "~/components/GalleryEquip";
 import { AgentGrid } from "~/components/GalleryAgent";
 import { CachedImage } from "~/components/CachedImage";
-import { GLASS_MATERIAL } from "~/constants/DesignSystem";
+import { COLORS, MORE_GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
 import LiquidGlassBackdrop from "~/components/ui/LiquidGlassBackdrop";
+import { RefractiveGlassCard } from "~/components/ui/refractive-glass";
+import { withSpring } from "react-native-reanimated";
+
+jest.mock("~/components/ui/refractive-glass", () => ({ RefractiveGlassCard: "RefractiveGlassCard" }));
 
 const mockPreview = jest.fn();
 const mockToggle = jest.fn();
@@ -29,7 +33,7 @@ jest.mock("react-native-reanimated", () => {
   const { View, Easing } = jest.requireActual("react-native");
   return { __esModule: true, default: { View }, Easing, ReduceMotion: { System: "system" },
     useSharedValue: (value: number) => ({ value }), useAnimatedStyle: (callback: () => unknown) => callback(),
-    withSpring: (value: number) => value, withTiming: (value: number) => value, withSequence: (...values: number[]) => values.at(-1) };
+    withSpring: jest.fn((value: number) => value), withTiming: (value: number) => value, withSequence: (...values: number[]) => values.at(-1) };
 });
 jest.mock("~/hooks/useMotionPreference", () => ({ useMotionPreference: () => mockReduceMotion }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -70,14 +74,44 @@ it("actual Shop/Gallery weapon wrappers retain price vs chroma count, rarity and
   expect(texts(shop)).toContain("1775");
   expect(texts(gallery)).toContain("chromas 1");
   expect(texts(gallery)).not.toContain("1775");
-  expect(shop.findByType(LiquidGlassBackdrop).props).toMatchObject({ artworkUri: skin.displayIcon, cacheId: "skin:skin-1:display" });
+  expect(shop.findAllByType(LiquidGlassBackdrop)).toHaveLength(0);
   expect(gallery.findAllByType(LiquidGlassBackdrop)).toHaveLength(0);
   [shop, gallery].forEach((root) => {
-    expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(1);
-    expect(StyleSheet.flatten(button(root).props.style)).toMatchObject({ backgroundColor: GLASS_MATERIAL.surface, borderColor: getContentTierVisual(skin.contentTierUuid).border });
+    expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
+    expect(StyleSheet.flatten(button(root).props.style)).toMatchObject({ backgroundColor: COLORS.SURFACE,
+      borderColor: getContentTierVisual(skin.contentTierUuid).border });
     expect(root.findByType(CachedImage).props).toMatchObject({ source: { uri: skin.displayIcon }, contentFit: "contain", cacheId: "skin:skin-1:display" });
     expect(texts(root)).toContain(skin.displayName);
   });
+});
+
+it("store content remains flat and sharp during press without scale, art blur or reveal", () => {
+  mockReduceMotion = false;
+  const renderer = render(<ShopItem item={skin} />);
+  const image = renderer.root.findByType(CachedImage);
+  const source = image.props.source;
+  const card = button(renderer.root);
+  expect(renderer.root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
+  expect(renderer.root.findAllByType(LiquidGlassBackdrop)).toHaveLength(0);
+  jest.mocked(withSpring).mockClear();
+  act(() => card.props.onPressIn());
+  expect(renderer.root.findByType(CachedImage)).toBe(image);
+  expect(image.props.source).toBe(source);
+  expect(image.props.transition).toBe(0);
+  expect(jest.mocked(withSpring).mock.calls.some(([value]) => value === 0.97)).toBe(false);
+  expect(StyleSheet.flatten(button(renderer.root).props.style)).toMatchObject({ shadowOpacity: 0, elevation: 0, boxShadow: "none" });
+  act(() => card.props.onPressOut());
+});
+
+it("Night Market press changes only its border and does not fade text or artwork", () => {
+  mockReduceMotion = false;
+  const root = render(<NightMarketCard item={{ ...skin, discountedPrice: 1000, discountPercent: 35 }} width={180} />).root;
+  const card = button(root);
+  const resting = StyleSheet.flatten(card.props.style({ pressed: false }));
+  const pressed = StyleSheet.flatten(card.props.style({ pressed: true }));
+  expect(pressed.opacity ?? 1).toBe(resting.opacity ?? 1);
+  expect(pressed.transform).toEqual(resting.transform);
+  expect(root.findByType(CachedImage).props.transition).toBe(0);
 });
 
 it("preserves timed preview, double-tap wishlist and cancellation on unmount", () => {
@@ -113,7 +147,7 @@ it("keeps saved state, screenshot fallback and missing price/media honest", () =
 it.each(["buddies", "sprays", "cards", "titles"] as const)("%s equipment keeps art/text on its own clear content layer", (section) => {
   const root = render(<GalleryEquip screenshotModeEnabled={false} data={{ id: "equip-1", displayName: "Real item", subtitle: "Real subtitle", section,
     item: { uuid: "equip-1", displayName: "Real item", displayIcon: "https://example.com/equip.png", smallArt: "https://example.com/card.png" } }} />).root;
-  expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(1);
+  expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
   expect(texts(root)).toContain("Real item");
   expect(texts(root)).toContain("Real subtitle");
   if (section !== "titles") expect(root.findByType(CachedImage).props.contentFit).toBe(section === "cards" ? "cover" : "contain");
@@ -131,6 +165,7 @@ it("preserves press feedback with motion enabled and preview video/media filteri
   act(() => { card.props.onPressIn(); card.props.onPressOut(); card.props.onPress(); jest.advanceTimersByTime(220); });
   expect(mockPreview).toHaveBeenCalledWith([
     expect.objectContaining({ uri: "https://example.com/level.mp4", kind: "video" }),
+    expect.objectContaining({ label: "Unavailable", kind: "image", imageUri: skin.levels[0].displayIcon }),
     expect.objectContaining({ uri: "https://example.com/chroma.mp4", kind: "video" }),
   ], item.displayName);
   mockSaved = ["level-1"];
@@ -180,7 +215,7 @@ it("retains virtualized agent gallery, refresh, selected state and exact item ca
   expect(list.props).toMatchObject({ data: [agent], numColumns: 5, extraData: agent.uuid, alwaysBounceVertical: true });
   expect(list.props.refreshControl.props).toMatchObject({ refreshing: true, onRefresh });
   const tile = render(list.props.renderItem({ item: agent })).root;
-  expect(tile.findAllByType(LiquidGlassDecoration)).toHaveLength(1);
+  expect(tile.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
   const button = tile.findByType(TouchableOpacity);
   expect(button.props.accessibilityState).toEqual({ selected: true });
   act(() => button.props.onPress());
@@ -188,13 +223,17 @@ it("retains virtualized agent gallery, refresh, selected state and exact item ca
   expect(tile.findByType(CachedImage).props).toMatchObject({ cacheId: "agent:agent:display-icon", contentFit: "contain" });
 });
 
-it.each(["Knife", "Classic", "Spectre", "Bucky", "Vandal", "Operator", "Odin", "Artifact"])("Night Market %s retains discount/price/preview over glass", (name) => {
+it.each(["Knife", "Classic", "Spectre", "Bucky", "Vandal", "Operator", "Odin", "Artifact"])("Night Market %s retains discount/price/preview with one crisp flat edge", (name) => {
   const item: NightMarketItem = { ...skin, displayName: `Special ${name}`, discountedPrice: 1000, discountPercent: 35 };
   const root = render(<NightMarketCard item={item} width={150} />).root;
-  expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(1);
+  expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
   expect(texts(root)).toEqual(expect.arrayContaining([item.displayName, "-35%", 1000, 1775]));
   const card = button(root);
-  expect(StyleSheet.flatten(card.props.style({ pressed: true }))).toMatchObject({ width: 150, backgroundColor: GLASS_MATERIAL.surface, opacity: 0.86 });
+  expect(StyleSheet.flatten(card.props.style({ pressed: true }))).toMatchObject({ width: 150, backgroundColor: COLORS.SURFACE,
+    borderColor: COLORS.VALORANT_RED,
+    elevation: 0, shadowOpacity: 0, boxShadow: "none" });
+  expect(StyleSheet.flatten(card.props.style({ pressed: false })).borderColor).toBe(getContentTierVisual(item.contentTierUuid).border);
+  expect(StyleSheet.flatten(card.props.style({ pressed: true })).opacity ?? 1).toBe(1);
   expect(card.props.accessibilityState).toEqual({ disabled: false });
   act(() => card.props.onPress());
   expect(mockPreview).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ uri: skin.levels[0].displayIcon })]), item.displayName);
@@ -204,19 +243,86 @@ it.each(["Knife", "Classic", "Spectre", "Bucky", "Vandal", "Operator", "Odin", "
 it("Night Market unavailable media stays disabled and keeps fallback artwork/price", () => {
   mockScreenshot = true;
   mockReduceMotion = false;
-  const root = render(<NightMarketCard item={{ ...skin, levels: [], discountedPrice: 0, discountPercent: 100 }} width={150} />).root;
+  const root = render(<NightMarketCard item={{ ...skin, levels: [], chromas: [], discountedPrice: 0, discountPercent: 100 }} width={150} />).root;
   expect(button(root).props).toMatchObject({ disabled: true, accessibilityState: { disabled: true } });
   expect(root.findByType(CachedImage).props.source).not.toHaveProperty("uri");
-  expect(root.findByType(CachedImage).props.transition).toBe(120);
+  expect(root.findByType(CachedImage).props.transition).toBe(0);
   expect(texts(root)).toContain(0);
 });
 
-it.each([false, true])("accessory shop keeps KC price and screenshot fallback=%s on glass", (screenshot) => {
+it.each([false, true])("accessory shop keeps KC price and screenshot fallback=%s on a crisp flat surface", (screenshot) => {
   mockScreenshot = screenshot;
   const root = render(<ShopAccessoryItem item={{ uuid: "buddy", displayName: "Real Buddy", price: 4500, displayIcon: "https://example.com/buddy.png" }} />).root;
-  expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(1);
+  expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
   expect(texts(root)).toEqual(expect.arrayContaining(["Real Buddy", 4500]));
   expect(root.findByType(CachedImage).props).toMatchObject({ cacheId: "accessory:buddy:display", contentFit: "contain", transition: 0 });
   if (screenshot) expect(root.findByType(CachedImage).props.source).not.toHaveProperty("uri");
   else expect(root.findByType(CachedImage).props.source).toEqual({ uri: "https://example.com/buddy.png" });
+});
+
+it("gallery keeps the same art instance/source sharp during press, with no whole-card shrink or replayed reveal", () => {
+  mockReduceMotion = false;
+  const renderer = render(<GalleryWeapon item={{ ...skin, onWishlist: false }} />);
+  const image = renderer.root.findByType(CachedImage);
+  const source = image.props.source;
+  const card = button(renderer.root);
+  jest.mocked(withSpring).mockClear();
+  act(() => card.props.onPressIn());
+  expect(renderer.root.findByType(CachedImage)).toBe(image);
+  expect(renderer.root.findByType(CachedImage).props.source).toBe(source);
+  expect(jest.mocked(withSpring).mock.calls.some(([value]) => value === 0.97)).toBe(false);
+  expect(image.props.transition).toBe(0);
+  expect(renderer.root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
+  expect(StyleSheet.flatten(button(renderer.root).props.style)).toMatchObject({ shadowOpacity: 0, elevation: 0, boxShadow: "none" });
+  act(() => card.props.onPressOut());
+});
+
+it("restores compact Store/Night flat native materials and tier art with sharp contents and 48dp targets", () => {
+  const shop = render(<ShopItem item={skin} />).root;
+  const night = render(<NightMarketCard item={{ ...skin, discountedPrice: 1000, discountPercent: 35 }} width={108} />).root;
+  [shop, night].forEach((root, index) => {
+    expect(root.findAllByType(RefractiveGlassCard)).toHaveLength(0);
+    const card = button(root);
+    const style = StyleSheet.flatten(typeof card.props.style === "function" ? card.props.style({ pressed: false }) : card.props.style);
+    expect(style.minHeight).toBeGreaterThanOrEqual(48);
+    expect(style.minWidth).toBeGreaterThanOrEqual(48);
+    expect(style).toMatchObject({ backgroundColor: COLORS.SURFACE, borderRadius: MORE_GLASS_MATERIAL.radius,
+      shadowOpacity: 0, shadowRadius: 0, elevation: 0, boxShadow: "none" });
+    const frame = StyleSheet.flatten(root.findByType(CachedImage).parent!.props.style);
+    expect(frame).toMatchObject({ backgroundColor: getContentTierVisual(skin.contentTierUuid).cardBackground, padding: 8 });
+    if (index === 0) expect(frame.aspectRatio).toBe(1.5);
+    else {
+      expect(frame).toMatchObject({ width: 106, height: 106 / 1.5 });
+      expect(frame.aspectRatio).toBeUndefined();
+    }
+    expect(root.findAllByType(Text).filter((node) => node.props.children === "1775" || node.props.children === 1000)
+      .every((node) => node.props.numberOfLines === undefined)).toBe(true);
+  });
+});
+
+it.each([360, 390, 430].flatMap((width) => [["store", width], ["night", width]] as const))(
+  "compact %s geometry targets approximately 45–60 percent of former two-column area at %sdp", (kind, width) => {
+  const root = render(kind === "store" ? <ShopItem item={skin} /> :
+    <NightMarketCard item={{ ...skin, discountedPrice: 1000, discountPercent: 35 }} width={Math.floor((width - 64) / 3)} />).root;
+  const art = StyleSheet.flatten(root.findByType(CachedImage).parent!.props.style);
+  const title = root.findAllByType(Text).find((node) => node.props.children === skin.displayName)!;
+  const titleStyle = StyleSheet.flatten(title.props.style);
+  const content = StyleSheet.flatten(title.parent!.props.style);
+  const price = root.findAllByType(Text).find((node) => node.props.children === (kind === "store" ? "1775" : 1000))!;
+  const priceStyle = StyleSheet.flatten(price.props.style);
+  const priceChip = StyleSheet.flatten(price.parent!.props.style);
+  const compactWidth = Math.floor((width - 40 - 24) / 3);
+  const previousWidth = Math.floor((width - 40 - 12) / 2);
+  // Source geometry estimate with normal fonts; device layout remains main's gate.
+  const previousHeight = previousWidth / 1.45 + 29 + 13 + 34 + 8 + 28;
+  const artworkHeight = kind === "night" ? art.height : compactWidth / art.aspectRatio;
+  const compactHeight = artworkHeight + content.paddingTop + content.paddingBottom
+    + 13 + titleStyle.minHeight + titleStyle.marginBottom + priceStyle.fontSize * 1.2 + priceChip.paddingVertical * 2 + 2;
+  const ratio = compactWidth * compactHeight / (previousWidth * previousHeight);
+  // Report this normal-font geometry estimate at whole-percent precision;
+  // the explicit Night frame excludes its two 1dp card borders.
+  expect(Math.round(ratio * 100)).toBeGreaterThanOrEqual(45);
+  expect(ratio).toBeLessThanOrEqual(0.60);
+  expect(titleStyle.fontSize).toBeGreaterThanOrEqual(12);
+  expect(priceStyle.fontSize).toBeGreaterThanOrEqual(14);
 });

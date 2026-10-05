@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 import GlassCard from "~/components/ui/GlassCard";
 import LiquidGlassSurface, { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
@@ -23,6 +23,33 @@ function render(element: React.ReactElement) {
   return renderer.root;
 }
 afterEach(() => { act(() => renderers.splice(0).forEach((renderer) => renderer.unmount())); });
+
+it("flat cards remove every shadow and optical rim while preserving content and press actions", () => {
+  const onPress = jest.fn();
+  const root = render(<GlassCard variant="flat" testID="flat-card"
+    style={{ elevation: 8, shadowOpacity: 0.4, backgroundColor: COLORS.SURFACE_MUTED }}>
+    <TouchableOpacity onPress={onPress}><Text>Content</Text></TouchableOpacity>
+  </GlassCard>);
+  const host = root.findAll((node) => typeof node.type === "string" && node.props.testID === "flat-card")[0];
+  expect(StyleSheet.flatten(host.props.style)).toMatchObject({ elevation: 0, shadowOpacity: 0, shadowRadius: 0,
+    boxShadow: "none", backgroundColor: COLORS.SURFACE_MUTED, borderWidth: 1 });
+  expect(root.findAllByType(LiquidGlassDecoration)).toHaveLength(0);
+  act(() => root.findByType(TouchableOpacity).props.onPress());
+  expect(onPress).toHaveBeenCalledTimes(1);
+});
+
+it("uses DOM-compatible decorative SVG semantics on web without a boolean native accessible attribute", () => {
+  const descriptor = Object.getOwnPropertyDescriptor(Platform, "OS")!;
+  Object.defineProperty(Platform, "OS", { configurable: true, value: "web" });
+  try {
+    const root = render(<LiquidGlassDecoration />);
+    const svg = root.findByType(Svg);
+    expect(svg.props.accessible).toBeUndefined();
+    expect(svg.props["aria-hidden"]).toBe(true);
+  } finally {
+    Object.defineProperty(Platform, "OS", descriptor);
+  }
+});
 
 it.each([false, true])("GlassCard forwards View props and content geometry (animated=%s)", (animated) => {
   const onLayout = jest.fn();

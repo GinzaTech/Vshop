@@ -3,8 +3,8 @@
 // người chơi đang chọn, timeline vòng, chi tiết vòng, chỉ số theo bên,
 // bảng đối đầu và bảng vũ khí.
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import {
   OpponentBreakdownTable,
@@ -33,6 +33,7 @@ type PerformanceTabProps = {
   selectedRoundNumber: number | null;
   onSelectPlayer: (playerId: string) => void;
   onSelectRound: (roundNumber: number) => void;
+  onRoundDetailLayout?: (event: LayoutChangeEvent) => void;
 };
 
 /**
@@ -53,6 +54,7 @@ export const PerformanceTab = React.memo(function PerformanceTab({
   selectedRoundNumber,
   onSelectPlayer,
   onSelectRound,
+  onRoundDetailLayout,
 }: PerformanceTabProps) {
   const { t } = useTranslation();
   const performance = data.playerPerformance[selectedPlayerId];
@@ -78,11 +80,13 @@ export const PerformanceTab = React.memo(function PerformanceTab({
             selectedRoundNumber={selectedRoundNumber}
             onSelectRound={onSelectRound}
           />
-          <RoundDetailPanel
-            round={selectedRound}
-            selectedPlayerTeam={selectedPlayer?.team ?? "A"}
-            players={data.playerRefs}
-          />
+          <View collapsable={false} onLayout={onRoundDetailLayout} testID="match-detail-round-anchor">
+            <RoundDetailPanel
+              round={selectedRound}
+              selectedPlayerTeam={selectedPlayer?.team ?? "A"}
+              players={data.playerRefs}
+            />
+          </View>
           <SideStatsGrid stats={performance.sideStats} />
           <OpponentBreakdownTable opponents={performance.opponents} />
           <WeaponStatsTable weapons={performance.weapons} />

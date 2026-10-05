@@ -4,7 +4,7 @@
 
 import React from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import Countdown from "~/components/Countdown";
 import ShopAccessoryItem from "~/components/ShopAccessoryItem";
@@ -48,9 +48,17 @@ function AccessoryShop() {
   );
   const { refreshing, onRefresh } = useAsyncRefresh(refreshShop);
 
-  // Thời gian refresh shop = bây giờ + số giây còn lại
-  const timestamp =
-    new Date().getTime() + user.shops.remainingSecs.accessory * 1000;
+  const accessoryRemainingSecs = user.shops.remainingSecs.accessory;
+  const accountDeadlineOwner = `${user.region}:${user.id}`;
+  // Thời gian refresh shop = bây giờ + số giây còn lại. Giữ mốc ổn định qua
+  // rerender UI cục bộ; chỉ đổi khi source timer hoặc tài khoản đổi.
+  const { timestamp } = React.useMemo(
+    () => ({
+      owner: accountDeadlineOwner,
+      timestamp: new Date().getTime() + accessoryRemainingSecs * 1000,
+    }),
+    [accessoryRemainingSecs, accountDeadlineOwner]
+  );
 
   // Lọc accessories theo query
   const items = React.useMemo(() => {
@@ -102,7 +110,7 @@ function AccessoryShop() {
 
       {/* ── Danh sách items hoặc empty state ── */}
       {items.length === 0 ? (
-        <EmptyStateCard
+        <EmptyStateCard variant="flat"
           title={t("accessories_page.empty_title")}
           subtitle={t("accessories_page.empty_subtitle")}
         />

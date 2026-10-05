@@ -67,7 +67,7 @@ describe("Party callback-only sheet", () => {
 
   it("renders the white Party hierarchy, real identity, unavailable data and supplied chat without agents", () => {
     mount({ chat: <Text>Existing party chat</Text> });
-    ["Party", "Members", "Online friends", "Settings", "Invite", "Level unavailable", "Ping unavailable", "Rank unavailable",
+    ["Party", "Members", "Online friends", "Settings", "Invite", "Level unavailable", "Ping unavailable",
       "Existing party chat"].forEach(label => expect(text(label).length).toBeGreaterThan(0));
     expect(text("A very long real player name")[0].props.numberOfLines).toBe(1);
     expect(text("A real friend with a long name")[0].props.numberOfLines).toBe(1);
@@ -138,7 +138,8 @@ describe("Party callback-only sheet", () => {
     const model = makeModel({ isQueueing: true, code: "REAL-CODE", members: [{ id: "self", name: "Real name", ready: false,
       isSelf: true, isLeader: false, level: 5, pingMs: 0, rankName: "Gold 1", rr: 0 }] });
     const { actions } = mount({ model });
-    ["Level 5", "0 ms", "Gold 1 · 0 RR", "REAL-CODE", "Not ready"].forEach(label => expect(text(label).length).toBeGreaterThan(0));
+    ["Level 5", "0 ms", "REAL-CODE", "Not ready"].forEach(label => expect(text(label).length).toBeGreaterThan(0));
+    expect(text("Gold 1 · 0 RR")).toHaveLength(0);
     await press("Cancel Queue"); await press("Copy");
     expect(actions.onCancelQueue).toHaveBeenCalledTimes(1); expect(actions.onCopyCode).toHaveBeenCalledTimes(1);
   });
@@ -177,7 +178,8 @@ describe("Party callback-only sheet", () => {
       isLeader: false, avatarUrl: "https://example.com/member.png", rankIconUrl: "https://example.com/rank.png", rankName: "Gold" }],
       friends: [{ id: "a", name: "", presence: "away", activityLabel: "", canInvite: false },
         { id: "b", name: "Busy friend", avatarUrl: "https://example.com/friend.png", presence: "busy", activityLabel: "", canInvite: false }] }) });
-    ["Away", "Busy", "Gold"].forEach(label => expect(text(label)).toHaveLength(1));
+    ["Away", "Busy"].forEach(label => expect(text(label)).toHaveLength(1));
+    expect(text("Gold")).toHaveLength(0);
     expect(text("Name unavailable").length).toBe(2);
     expect(button("Invite Busy friend").props.accessibilityValue.text).toBe("Busy");
     expect(button("Invite Busy friend").props.accessibilityState.disabled).toBe(true);

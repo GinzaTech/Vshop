@@ -239,7 +239,8 @@ Trước native release:
 1. cập nhật cùng app version trong `package.json` và `app.json`;
 2. tăng `expo.android.versionCode`;
 3. tăng `expo.ios.buildNumber` nếu phát hành iOS;
-4. cập nhật `CHANGELOG.md` và release highlights trong `README.md`;
+4. cập nhật `CHANGELOG.md`; README chỉ giữ tính năng, kiến trúc và hướng dẫn,
+   không nhúng lịch sử/changelog phát hành;
 5. chạy `pnpm run check` (đã gồm Android export);
 6. commit và push source đã kiểm chứng.
 
@@ -263,7 +264,7 @@ không thay thế APK GitHub hiện tại:
 pnpm dlx eas-cli@latest build --profile production-store --platform android
 ```
 
-Để chạy không tương tác trên CI, cấu hình `EXPO_TOKEN` trong secret manager và thêm `--non-interactive`. Signing credential phải do EAS hoặc release keystore hợp lệ quản lý; không phát hành output `assembleRelease` nếu Gradle đang dùng `debug.keystore`.
+Để chạy không tương tác trên CI, cấu hình `EXPO_TOKEN` trong secret manager và thêm `--non-interactive`. Profile production dùng `credentialsSource: remote`; EAS Build cung cấp `credentials.json` và đặt `EAS_BUILD`, vì vậy guard local nhường quyền cho EAS integration. Ngoài EAS, release task vẫn fail-closed nếu thiếu bốn biến production keystore. Không phát hành output `assembleRelease` nếu Gradle đang dùng `debug.keystore`.
 
 Sau khi build:
 

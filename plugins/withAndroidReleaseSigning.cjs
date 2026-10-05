@@ -14,7 +14,10 @@ gradle.taskGraph.whenReady { graph ->
     def createsRelease = graph.allTasks.any { task ->
         task.project == project && task.name ==~ /(?i)(assemble|bundle|package|install|sign|validateSigning).*release.*/
     }
-    if (createsRelease) {
+    // EAS Build supplies remote credentials through credentials.json and its
+    // generated integration script. Keep the local guard fail-closed only when
+    // that trusted build environment is absent.
+    if (createsRelease && !System.getenv("EAS_BUILD")) {
         def missing = ["VSHOP_ANDROID_KEYSTORE_PATH", "VSHOP_ANDROID_STORE_PASSWORD", "VSHOP_ANDROID_KEY_ALIAS", "VSHOP_ANDROID_KEY_PASSWORD"].findAll { !System.getenv(it)?.trim() }
         if (!missing.isEmpty()) {
             throw new GradleException("Release signing credentials are required. Missing variables: " + missing.join(", "))

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Tabs } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { Platform, StyleSheet, View } from "react-native";
 import AppWarmup from "~/components/AppWarmup";
 import MediaPopup, { useMediaPopupStore } from "~/components/popups/MediaPopup";

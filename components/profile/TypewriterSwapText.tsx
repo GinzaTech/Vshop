@@ -25,6 +25,9 @@ type TypewriterSwapTextProps = {
   showCursor?: boolean;
   cursorCharacter?: string;
   cursorBlinkDuration?: number;
+  numberOfLines?: React.ComponentProps<typeof Animated.Text>["numberOfLines"];
+  adjustsFontSizeToFit?: React.ComponentProps<typeof Animated.Text>["adjustsFontSizeToFit"];
+  minimumFontScale?: React.ComponentProps<typeof Animated.Text>["minimumFontScale"];
 };
 
 /**
@@ -41,6 +44,9 @@ function TypewriterSwapText({
   showCursor = true,
   cursorCharacter = "|",
   cursorBlinkDuration = 360,
+  numberOfLines = 1,
+  adjustsFontSizeToFit,
+  minimumFontScale,
 }: TypewriterSwapTextProps) {
   const [displayedText, setDisplayedText] = React.useState(text);
   const [transitioning, setTransitioning] = React.useState(false);
@@ -111,7 +117,9 @@ function TypewriterSwapText({
   return (
     <Animated.Text
       accessible={false}
-      numberOfLines={1}
+      numberOfLines={numberOfLines}
+      adjustsFontSizeToFit={adjustsFontSizeToFit}
+      minimumFontScale={minimumFontScale}
       style={[style, revealAnimatedStyle]}
     >
       {displayedText}

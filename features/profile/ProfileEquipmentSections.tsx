@@ -4,18 +4,18 @@
 // Component thuần hiển thị — toàn bộ state/mutation nằm ở ProfileScreen.
 
 import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import type { TFunction } from "i18next";
 
 import { CachedImage as Image } from "~/components/CachedImage";
-import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
+import ContentCardTouchable from "~/components/ui/ContentCardTouchable";
 import {
   FALLBACK_IMAGE,
   formatSpraySlot,
   type EquippedSpray,
   type IdentityDetails,
 } from "~/components/GalleryProfile";
-import { COLORS, RADIUS, SHADOWS } from "~/constants/DesignSystem";
+import { COLORS } from "~/constants/DesignSystem";
 import type { EquippedExpression } from "~/features/profile/profile-loadout";
 import { styles } from "~/features/profile/profile-screen.styles";
 import { expressionStyles } from "~/features/profile/profile-expression.styles";
@@ -148,19 +148,13 @@ function ProfileExpressionCell({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity
+    <ContentCardTouchable
       accessible
       accessibilityRole="button"
       accessibilityLabel={`${name}, ${kind}, ${slot}`}
-      activeOpacity={0.9}
       onPress={onPress}
-      style={[
-        expressionStyles.card,
-        SHADOWS.xs,
-        overflow && expressionStyles.overflowCard,
-      ]}
+      style={[expressionStyles.card, overflow && expressionStyles.overflowCard]}
     >
-      <LiquidGlassDecoration radius={RADIUS.md} density="dense" tone="light" />
       <Image
         accessible={false}
         cacheId={cacheId}
@@ -173,6 +167,6 @@ function ProfileExpressionCell({
       />
       <Text style={expressionStyles.kind}>{kind}</Text>
       <Text style={expressionStyles.slot}>{slot}</Text>
-    </TouchableOpacity>
+    </ContentCardTouchable>
   );
 }

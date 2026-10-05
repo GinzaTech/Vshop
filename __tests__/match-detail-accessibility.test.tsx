@@ -39,7 +39,7 @@ jest.mock("react-i18next", () => ({
           "match_ui.actions.share": "Share",
           "match_ui.actions.share_match": "Share match",
           "match_ui.economy.difference": "Economy difference",
-          "match_ui.economy.loadout": "Loadout difference",
+          "match_ui.economy.loadout": "Loadout value",
           "match_ui.economy.spent": "Credits spent",
           "match_ui.economy.tap_hint": "Tap a marker",
           "match_ui.economy.title": "Economy",
@@ -305,6 +305,18 @@ describe("Match Detail accessibility contracts", () => {
         .props.accessibilityLabel,
     ).toContain("Total economy");
 
+    act(() => renderer.unmount());
+  });
+
+  it("plots absolute loadout value rather than economy difference", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<EconomyChart points={economyPoints} />); });
+    const summary = () => renderer.root.findByProps({ testID: "match-detail-economy-summary" }).props.accessibilityLabel;
+    expect(summary()).toContain("Economy difference: 1000, -2500");
+    act(() => { renderer.root.findByProps({ testID: "match-detail-economy-menu" }).props.onPress(); });
+    act(() => { renderer.root.findByProps({ testID: "match-detail-economy-metric-loadout" }).props.onPress(); });
+    expect(summary()).toContain("Loadout value: 7000, 7500");
+    expect(renderer.root.findByProps({ testID: "match-detail-economy-round-2" }).props.accessibilityLabel).toContain("7.5k");
     act(() => renderer.unmount());
   });
 

@@ -25,9 +25,9 @@ jest.mock("~/utils/valorant-api", () => ({
 }));
 jest.mock("~/utils/profile-cache", () => ({
   fetchCompetitiveRankOutcome: jest.fn(), PROFILE_LOADOUT_CACHE_VERSION: 5, PROFILE_RANK_CACHE_VERSION: 11,
-  getSessionAuthKey: () => "ap:user", hasValidCompetitiveRankCache: () => mockHasRankCache, isProfileCacheFresh: () => mockCacheFresh,
+  getSessionAuthKey: (user: typeof mockUser) => `${user.region}:${user.id}`, hasValidCompetitiveRankCache: () => mockHasRankCache, isProfileCacheFresh: () => mockCacheFresh,
 }));
-jest.mock("~/hooks/useProfileCacheStore", () => ({ useProfileCacheStore: { getState: () => ({ cacheByAuth: { "ap:user": mockCache } }) } }));
+jest.mock("~/hooks/useProfileCacheStore", () => ({ useProfileCacheStore: { getState: () => ({ cacheByAuth: { [mockCache.authKey]: mockCache } }) } }));
 jest.mock("~/hooks/useUserStore", () => ({ useUserStore: { getState: () => ({ user: mockLiveUser }) } }));
 jest.mock("~/utils/idle-task", () => ({ runWhenIdle: (callback: () => void) => {
   mockIdleTasks.push(callback);
@@ -57,13 +57,13 @@ describe("profile refresh hook", () => {
   const setUser = jest.fn();
   const fetchMatches = jest.fn();
   const fetchSeasonStats = jest.fn();
-  type HarnessProps = { hasAuth?: boolean; isProfileDemo?: boolean; snapshot?: PlayerLoadoutResponse | null; user?: typeof mockUser };
-  function Harness({ hasAuth = true, isProfileDemo = false, snapshot = mockCache.loadoutSnapshot, user = mockUser }: HarnessProps) {
-    state = useProfileState({ cachedLoadoutSnapshot: snapshot, cachedProfile: mockCache,
-      user, isProfileDemo, cachedCompetitiveRank: mockCache.competitiveRank });
+  type HarnessProps = { hasAuth?: boolean; isProfileDemo?: boolean; snapshot?: PlayerLoadoutResponse | null; user?: typeof mockUser; cache?: ProfileWarmCache | null };
+  function Harness({ hasAuth = true, isProfileDemo = false, cache = mockCache, snapshot = cache?.loadoutSnapshot ?? null, user = mockUser }: HarnessProps) {
+    state = useProfileState({ cachedLoadoutSnapshot: snapshot, cachedProfile: cache,
+      user, isProfileDemo, cachedCompetitiveRank: cache?.competitiveRank ?? null });
     actions = useProfileFetch({ ...state, hasAuth, user,
-      cachedProfile: mockCache, cachedLoadoutSnapshot: snapshot,
-      cachedCompetitiveRank: mockCache.competitiveRank, authKey: "ap:user", isProfileDemo,
+      cachedProfile: cache, cachedLoadoutSnapshot: snapshot,
+      cachedCompetitiveRank: cache?.competitiveRank ?? null, authKey: `${user.region}:${user.id}`, isProfileDemo,
       setProfileCache, setUser, t, fetchMatches, fetchSeasonStats });
     return null;
   }
@@ -89,9 +89,9 @@ describe("profile refresh hook", () => {
       ownedPlayerCardItemIds: ["card"], ownedPlayerTitleItemIds: ["title"], updatedAt: 10,
       componentUpdatedAt: { loadout: 10, rank: 20, ownership: [30, 40, 50, 60, 70, 80] },
     };
-    jest.mocked(playerLoadout).mockResolvedValue(loadout);
-    jest.mocked(ownedItems).mockResolvedValue([] as never);
-    jest.mocked(fetchCompetitiveRankOutcome).mockResolvedValue({ status: "failure" });
+    jest.mocked(playerLoadout).mockReset().mockResolvedValue(loadout);
+    jest.mocked(ownedItems).mockReset().mockResolvedValue([] as never);
+    jest.mocked(fetchCompetitiveRankOutcome).mockReset().mockResolvedValue({ status: "failure" });
     await act(async () => { renderer = TestRenderer.create(<Harness />); });
     setProfileCache.mockClear();
     mockGetPublicWeapons.mockClear();
@@ -109,6 +109,137 @@ describe("profile refresh hook", () => {
     expect(mockCache.componentUpdatedAt?.rank).toBe(20);
     expect(mockCache.componentUpdatedAt?.ownership).toEqual([30, 40, 50, 60, 70, 80]);
     expect(state.refreshing).toBe(false);
+  });
+
+  it.each(["before", "after"] as const)("isolates a deferred A read from uncached B when A finishes %s B", async (oldFinishes) => {
+    jest.useFakeTimers();
+    const nextUser = { ...mockUser, id: "user-b", accessToken: "access-b", ownedSkinIds: [] };
+    const nextLoadout = { ...loadout, Subject: nextUser.id, Identity: { ...loadout.Identity, PlayerCardID: "card-b" } };
+    let finishA!: (value: PlayerLoadoutResponse) => void;
+    let finishB!: (value: PlayerLoadoutResponse) => void;
+    const cancelPicker = jest.fn();
+    jest.mocked(playerLoadout).mockReturnValueOnce(new Promise((resolve) => { finishA = resolve; }))
+      .mockReturnValueOnce(new Promise((resolve) => { finishB = resolve; }));
+    let oldRead!: Promise<void>;
+    act(() => {
+      state.setPickerState({ type: "player-card", options: [] });
+      state.setIdentityPickerQuery("old query");
+      state.setPickerLoading(true);
+      state.setPickerError("old error");
+      state.setUpdatingLoadout(true);
+      state.pickerTaskRef.current = { cancel: cancelPicker };
+      oldRead = actions.handleRefresh();
+    });
+    mockLiveUser = nextUser;
+    await act(async () => { renderer.update(<Harness user={nextUser} cache={null} />); });
+    expect(state.loadoutSnapshot).toBeNull();
+    expect(state.loadoutSnapshotRef.current).toBeNull();
+    expect(state.identity).toBeNull();
+    expect([state.rawGuns, state.rawSprays, state.rawActiveExpressions]).toEqual([[], [], []]);
+    expect([state.ownedSkinItemIds, state.ownedSprayItemIds, state.ownedFlexItemIds,
+      state.ownedPlayerCardItemIds, state.ownedPlayerTitleItemIds]).toEqual([[], [], [], [], []]);
+    expect(state.competitiveRank).toBeNull();
+    expect(state.pickerState).toBeNull();
+    expect(state.identityPickerQuery).toBe("");
+    expect(state.pickerLoading).toBe(false);
+    expect(state.pickerError).toBeNull();
+    expect(state.updatingLoadout).toBe(false);
+    expect(cancelPicker).toHaveBeenCalledTimes(1);
+    expect(state.pickerTaskRef.current).toBeNull();
+    expect(state.refreshing).toBe(false);
+    expect(state.loading).toBe(true);
+    act(() => { mockIdleTasks[mockIdleTasks.length - 1](); });
+    await act(async () => { jest.advanceTimersByTime(260); });
+    expect(jest.mocked(playerLoadout).mock.calls.map((call) => call[3])).toEqual(["user", "user-b"]);
+    if (oldFinishes === "before") {
+      await act(async () => { finishA(loadout); await oldRead; });
+      expect(state.loading).toBe(true);
+      expect(state.fetchLoadoutInFlightRef.current).toBe(true);
+      expect(setProfileCache).not.toHaveBeenCalled();
+    }
+    await act(async () => { finishB(nextLoadout); });
+    if (oldFinishes === "after") await act(async () => { finishA(loadout); await oldRead; });
+    expect(state.loadoutSnapshot).toEqual(nextLoadout);
+    expect(state.identity).toEqual(nextLoadout.Identity);
+    expect(state.loading).toBe(false);
+    expect(state.fetchLoadoutInFlightRef.current).toBe(false);
+    expect(setProfileCache).toHaveBeenCalledTimes(1);
+    expect(mockCache.authKey).toBe("ap:user-b");
+    expect(jest.mocked(ownedItems).mock.calls.every((call) => call[3] === nextUser.id)).toBe(true);
+  });
+
+  it("keeps B's stats refresh spinner active when a retired A stats refresh finishes", async () => {
+    const nextUser = { ...mockUser, id: "user-b", accessToken: "access-b", ownedSkinIds: [] };
+    let finishA!: () => void;
+    let finishB!: () => void;
+    fetchSeasonStats.mockReturnValueOnce(new Promise<void>((resolve) => { finishA = resolve; }))
+      .mockReturnValueOnce(new Promise<void>((resolve) => { finishB = resolve; }));
+    let oldRefresh!: Promise<void>;
+    act(() => { oldRefresh = actions.handleStatsRefresh(); });
+    mockLiveUser = nextUser;
+    await act(async () => { renderer.update(<Harness user={nextUser} cache={null} />); });
+    expect(state.statsRefreshing).toBe(false);
+    let newRefresh!: Promise<void>;
+    act(() => { newRefresh = actions.handleStatsRefresh(); });
+    expect(state.statsRefreshing).toBe(true);
+    await act(async () => { finishA(); await oldRefresh; });
+    expect(state.statsRefreshing).toBe(true);
+    await act(async () => { finishB(); await newRefresh; });
+    expect(state.statsRefreshing).toBe(false);
+  });
+
+  it.each(["accessToken", "entitlementsToken", "generation"] as const)(
+    "starts a new cold read after %s changes without changing the account cache key", async (field) => {
+      jest.useFakeTimers();
+      let finishOld!: (value: PlayerLoadoutResponse) => void;
+      jest.mocked(playerLoadout).mockReturnValueOnce(new Promise((resolve) => { finishOld = resolve; }));
+      await remount({ cache: null });
+      act(() => { mockIdleTasks[mockIdleTasks.length - 1](); });
+      await act(async () => { jest.advanceTimersByTime(260); });
+      expect(playerLoadout).toHaveBeenCalledTimes(1);
+      const nextUser = field === "generation" ? mockUser : { ...mockUser, [field]: "renewed" };
+      if (field === "generation") invalidateSessionOperations();
+      mockLiveUser = nextUser;
+      await act(async () => { renderer.update(<Harness user={nextUser} cache={null} />); });
+      expect(mockIdleTasks).toHaveLength(2);
+      act(() => { mockIdleTasks[1](); });
+      await act(async () => { jest.advanceTimersByTime(260); });
+      expect(playerLoadout).toHaveBeenCalledTimes(2);
+      expect(state.loadoutSnapshot).toEqual(loadout);
+      await act(async () => { finishOld({ ...loadout, Identity: { ...loadout.Identity, PlayerCardID: "retired" } }); });
+      expect(state.identity).toEqual(loadout.Identity);
+      expect(setProfileCache).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("shows a recoverable cold loadout error and clears it after an explicit refresh succeeds", async () => {
+    jest.useFakeTimers();
+    jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    await remount({ cache: null });
+    jest.mocked(playerLoadout).mockRejectedValueOnce(new Error("offline"));
+    act(() => { mockIdleTasks[mockIdleTasks.length - 1](); });
+    await act(async () => { jest.advanceTimersByTime(260); });
+    expect(state.loadoutSnapshot).toBeNull();
+    expect(state.loading).toBe(false);
+    expect(state.error).toBe("equip_page.error_loading");
+    expect(playerLoadout).toHaveBeenCalledTimes(1);
+    await act(async () => { await actions.handleRefresh(); });
+    expect(jest.mocked(playerLoadout).mock.calls[1][4]?.force).toBe(true);
+    expect(state.loadoutSnapshot).toEqual(loadout);
+    expect(state.error).toBeNull();
+    expect(state.refreshing).toBe(false);
+  });
+
+  it("keeps a warm snapshot usable without a blocking error after a rejected loadout refresh", async () => {
+    jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    jest.mocked(playerLoadout).mockRejectedValueOnce(new Error("offline"));
+    await act(async () => { await actions.handleRefresh(); });
+    expect(state.loadoutSnapshot).toEqual(loadout);
+    expect(state.identity).toEqual(loadout.Identity);
+    expect(state.error).toBeNull();
+    expect(state.loading).toBe(false);
+    expect(state.refreshing).toBe(false);
+    expect(mockCache.componentUpdatedAt?.loadout).toBe(10);
   });
 
   it.each([{ snapshot: null, delay: 260 }, { snapshot: loadout, delay: 120 }])(

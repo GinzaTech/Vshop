@@ -1,19 +1,23 @@
 // ===== BundleItem.tsx =====
-// Item compact (không tương tác) bên trong carousel ngang của bundle card,
+// Item compact bên trong carousel ngang của bundle card; skin có media mở preview,
+// phụ kiện giữ vai trò text không tương tác.
 // theo geometry tham chiếu: tile sáng thống nhất (SURFACE, không divider
 // ngăn ảnh), artwork band contain, tên căn giữa 1 dòng, giá base bị gạch
 // nằm TRÊN giá hiện tại (icon VP trang trí ở cả hai hàng).
 // Tile đã sở hữu: phủ overlay sáng mờ (pointerEvents none) lên vùng
 // artwork + tên kèm check tròn xanh ở góc trên trái; giá vẫn nguyên vẹn.
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { CachedImage as Image } from "~/components/CachedImage";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 import AppIcon from "~/components/ui/AppIcon";
 import CurrencyIcon from "./CurrencyIcon";
-import { COLORS, RADIUS, SHADOWS, SPACING } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, SPACING, MORE_GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { formatVp, hasBundleDiscount } from "~/utils/bundle-display";
+import { buildSkinPreviewMedia } from "~/utils/skin-preview";
+import { useMediaPopupStore } from "~/components/popups/MediaPopup";
 
 // Interface định nghĩa props cho BundleItem
 // item: SkinShopItem (skin vũ khí) hoặc AccessoryShopItem (phụ kiện)
@@ -26,7 +30,7 @@ interface BundleItemProps {
 }
 
 /** Tỉ lệ artwork band (ngang:dọc) — band ≈ 45% chiều cao tile. */
-const BUNDLE_ITEM_ART_ASPECT_RATIO = 1.55;
+const BUNDLE_ITEM_ART_ASPECT_RATIO = 2.1;
 
 // BundleItem: memo hoá vì carousel render lại khi countdown tick mỗi giây;
 // item reference chỉ đổi khi storefront refresh, owned là boolean.
@@ -36,6 +40,18 @@ const BundleItem = React.memo(function BundleItem({
   owned = false,
 }: BundleItemProps) {
   const { t } = useTranslation();
+  const showMediaPopup = useMediaPopupStore((state) => state.showMediaPopup);
+  const mediaEntries = React.useMemo(
+    () => "levels" in item && Array.isArray(item.levels)
+      ? buildSkinPreviewMedia(item)
+      : [],
+    [item],
+  );
+  const handlePreviewPress = React.useCallback(() => {
+    if (mediaEntries.length > 0) {
+      showMediaPopup(mediaEntries, item.displayName);
+    }
+  }, [item.displayName, mediaEntries, showMediaPopup]);
   const discounted = hasBundleDiscount(item.originalPrice, item.price);
 
   // Tóm tắt screen reader: tên + giá hiện tại, trạng thái purchased một lần.
@@ -43,14 +59,8 @@ const BundleItem = React.memo(function BundleItem({
     owned ? `, ${t("bundles_page.purchased")}` : ""
   }`;
 
-  return (
-    <View
-      testID="bundle-item-cell"
-      accessible
-      accessibilityRole="text"
-      accessibilityLabel={accessibilitySummary}
-      style={[styles.card, SHADOWS.xs, { width }]}
-    >
+  const content = (
+    <>
       {/* Vùng artwork + tên: overlay "đã sở hữu" phủ đến đây, không chạm giá */}
       <View style={styles.topBlock}>
         <View style={styles.visualFrame}>
@@ -120,19 +130,42 @@ const BundleItem = React.memo(function BundleItem({
           <Text style={styles.priceText}>{formatVp(item.price)}</Text>
         </View>
       </View>
+    </>
+  );
+
+  return mediaEntries.length > 0 ? (
+    <Pressable
+      testID="bundle-item-cell"
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={accessibilitySummary}
+      accessibilityState={{ disabled: false }}
+      onPress={handlePreviewPress}
+      style={[styles.card, { width }]}
+    >
+      {content}
+    </Pressable>
+  ) : (
+    <View
+      testID="bundle-item-cell"
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={accessibilitySummary}
+      style={[styles.card, { width }]}
+    >
+      {content}
     </View>
   );
 });
 
 // StyleSheet: định nghĩa các style cho BundleItem (chỉ token sáng, unified)
 const styles = StyleSheet.create({
-  // card – tile item nền trắng đục thống nhất, viền mờ, bo góc RADIUS.md.
-  // Không dùng lớp kính mờ phủ: artwork phải sắc nét, hết cảm giác "milk wash".
+  // Native opaque tile keeps compact artwork and prices sharp.
   card: {
-    backgroundColor: COLORS.SURFACE,
-    borderColor: COLORS.BORDER,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
+    ...FLAT_CARD_STYLE,
+    minHeight: 48,
+    minWidth: 48,
+    borderRadius: MORE_GLASS_MATERIAL.radius,
     overflow: "hidden",
   },
   // topBlock – vùng artwork + tên; overlay ownership phủ trọn vùng này
@@ -167,12 +200,18 @@ const styles = StyleSheet.create({
   },
   // priceRow – một hàng giá: icon VP trang trí + số VP
   priceRow: {
+    width: "100%",
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
+    flexWrap: "wrap",
+    justifyContent: "center",
+    paddingHorizontal: SPACING.xxs,
   },
   // oldPrice – giá base bị gạch ngang, chỉ hiện khi > giá hiện tại
   oldPrice: {
+    flexShrink: 1, minWidth: 0,
     color: COLORS.TEXT_SECONDARY,
     fontSize: 11,
     fontWeight: "600",
@@ -192,6 +231,7 @@ const styles = StyleSheet.create({
   },
   // priceText – giá VP hiện tại, nổi bật hơn giá base
   priceText: {
+    flexShrink: 1, minWidth: 0,
     color: COLORS.TEXT_PRIMARY,
     fontSize: 16,
     fontWeight: "900",

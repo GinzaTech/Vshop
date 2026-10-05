@@ -1,0 +1,58 @@
+# UI final review — 2026-10-03
+
+## Current decision
+
+**BOUNDED STARTUP QA COMPLETE / SECURITY FAIL / FULL UI ACCEPTANCE PENDING.** Final post-typography typecheck/lint and **179 suites / 2487 tests PASS in 122.582s**; separate final Android export PASS at **9.12/12 MiB**, Hermes **7.82/8 MiB**. Physical new-design captures, local update/Retry and native picker **5/5 PASS / 10 cycles** are recorded. Overall check still fails at braces1240992; aggregate coverage and broader26-route/release acceptance remain open. See [startup ledger](STARTUP_REDESIGN_RESULTS.md) for exact source/binary boundaries.
+
+This review covers the retained audit evidence and the four documentation files assigned to this updater. Historical QA build and earlier main-reported install status are recorded separately from latest redesigned-binary/runtime acceptance. It does not certify a release, every screen or final startup behavior. No fresh tests, builds or device actions were performed.
+
+The earlier code92 installation/runner remains historical. Latest [redesign APK](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/vshop-startup-redesign-qa-4.2.0-92.apk) is83,723,412 bytes, SHA256 **00CCE1248643A07C6C10B9E7F08E2EDABB6BCB6DDDB5B51E5AD13581F07DAB97**. Main verified signer **fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c** and installed4.2.0/code92/com.android.vshop.startupqa. QA native resources plus final Metro JavaScript are not an embedded production JavaScript APK. The installed main VShop package was preserved.
+
+## Accepted startup scope
+
+[2026-10-03-startup-redesign.md](../plans/2026-10-03-startup-redesign.md) governs the current startup acceptance. It calls for an original cart mark, VShop name, localized minimal status, progress rail and completed-stage count. Progress follows actual prepare/session/core-data/ready events, can move back during retry, and must not invent elapsed-time/network progress. Smooth opacity/transform motion must respect live Reduce Motion, without added dwell/perpetual animation, while retaining recovery and native-to-JS mark/background/size alignment.
+
+The new [48,375-byte mark](../../assets/generated/production/startup/vshop-launch-mark-v1.png) and [prompt provenance](../../assets/generated/prompts/startup/launch-mark.md) exist in source. Main owns the redesign implementation/plan and startup report. Asset presence, authorization of the brief and prior source tests do not complete current device/visual/performance acceptance.
+
+## Supported conclusions
+
+- The 27 canonical defects in [UI_BUG_REPORT](UI_BUG_REPORT.md) have corresponding observed source regression suites, mapped in [UI_TEST_RESULTS](UI_TEST_RESULTS.md). Deferred account/request ordering, cache preservation, retry ownership, export batching, modal semantics, Back handling and motion policy have logged coverage with controlled mocks/source contracts.
+- Historical [web-results.json](C:/Users/kona/.codex/artifacts/vshop-ui-audit-20261003/web-results.json) records eight PASS cases: fixture interaction, modal focus/background isolation, Unicode query/clear, dismiss/restore, Back glyph, keyboard wrapping and Escape. This is not current redesigned-startup browser verification.
+- [after-host-before-focus-extraction.json](C:/Users/kona/.codex/artifacts/vshop-ui-audit-20261003/native/after-host-before-focus-extraction.json) records five PASS cases and 30 completed picker cycles on the code91 development client. Later attempts include BLOCKED results and do not prove final-source parity. Historical N02 failures and subsequent passing isolation are retained explicitly.
+- [final-check.log](C:/Users/kona/.codex/artifacts/vshop-ui-audit-20261003/final-check.log) remains a failed historical gate: 173/174 suites and 2449/2450 tests passed. The stale loading-only Combat accessibility assertion has since been corrected with a stronger same-control contract: [18/18 targeted GREEN](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/core-accessibility-green.log), [12/12 mutation proof](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/core-accessibility-mutations.log) and [independent source review](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/core-accessibility-review.md). The historical full result is not rewritten as successful.
+- [UI_PERFORMANCE_REPORT](UI_PERFORMANCE_REPORT.md) verifies p90 at **31 ms** directly in the raw dump. The observed run has 2165 frames, 450 janky (20.79%), p95 65 ms and p99 89 ms. No valid before-patch baseline or release improvement delta exists.
+- The historical [first startup integrated gate](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/final-check.log) confirms 177/177 suites and 2469/2469 tests passed, then audit failed at advisory 1240992. [Official GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), checked 2026-10-03, lists braces <=3.0.3 and no patched version. The [bounded security review](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/security-review-braces.md) found tooling paths and no scoped app-runtime import path; bundle exclusion/exploitability remain unverified. **Security audit remains FAIL**, with no remediation or policy exception.
+- Historical [new-design-final-check.log](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/new-design-final-check.log) completed FAIL: two failed/177 passed of 179 suites, one failed/2476 passed of 2477 tests. Party exceeded 5000ms and ui-qa failed initialization. Main attributes Party timeout to concurrent native build load; [party-after-build.log](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/party-after-build.log) subsequently passed 22/22 without assertion/timeout changes reported.
+- Main corrected the full inline Reanimated mock. [new-design-regression-rerun.log](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/new-design-regression-rerun.log) shows ui-qa and loading-screen PASS, with 42 passed/one failed test overall because Party still timed out in that mixed run. Neither targeted recovery is relabelled as complete full-gate success.
+- [new-design-build-retry.log](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/new-design-build-retry.log) confirms BUILD SUCCESSFUL in14m17s. Final [source gate](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/final-handoff-check.log) passes typecheck/lint/179 suites/2487 tests, then fails security audit. [Final export](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/final-android-export.log) passes. [Native-final JSON](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/native-final/after-native-results.json) has5/5 PASS and10 cycles; final typography/recovery captures are documented in the startup ledger.
+- Retained [startupqa attempt](C:/Users/kona/.codex/artifacts/vshop-startup-20261003/native-qa/after-native-results.json) records **zero PASS / one FAIL / four BLOCKED**. Main reported an app switch, guard stop and quiet-window requirement. Final stage captures/replacement guarded-native evidence remain pending. Configured cycles=30 is not completed cycles, and the interruption does not by itself establish a product defect or current UI pass.
+
+## Residual risks and closure evidence
+
+| Risk / gap | Why it remains material | Evidence required to close |
+|---|---|---|
+| Integrated security gate | Final typecheck/lint/test/export pass; audit1240992 remains unresolved. | Actual dependency remediation/security acceptance under unchanged policy; no overall green-check claim. |
+| Unresolved upstream security advisory | Official advisory lists `braces <=3.0.3`, no patched version; the gate rejects it. No VShop exploit path or remediation is proven here. | Main's evidence-based security disposition; retain failed audit and existing policy until an actual resolution is evidenced. |
+| Production startup / motion fidelity | QA source/phase/local-recovery and native resources are observed; production OS splash pixel alignment, actual first-frame TTI and all animated properties are not measured. | Embedded production binary captures and timing/frame traces; QA evidence does not substitute. |
+| Guarded device coverage beyond fixture | Replacement native-final runner passes5/5 and10 cycles; the interrupted zero-pass attempt remains historical. | Expand per-screen/configuration coverage with authorized read-only sessions or isolated fixtures. |
+| Per-screen functional and visual acceptance | Only the local QA fixture has the recorded native interaction path. Authenticated route, refresh/error, navigation and long-text behavior remain unobserved per route. | Execute the explicit 26-route gaps in the results matrix, with appropriate read-only session/fixture evidence. |
+| Accessibility outside the tested picker | XML semantics and browser keyboard focus do not establish TalkBack focus restoration/traversal across seven pickers, chroma, agent/party/media overlays or every screen. | Native assistive-technology traversal, focus and target bounds with large fonts/narrow settings. |
+| Motion/gesture/navigation interruption | Source tests cover state ordering and Reduce Motion policy; actual tab/scroll/hardware Back/landscape interruption was not measured across screens. | Device interactions and captures, including landscape-to-portrait restoration and live Reduce Motion changes. |
+| Development frame tails and memory | Latest QA10-cycle sample:9.83% jank, p95/p9977/93ms, PSS1,182,332→1,151,242KiB. Historical different-build30-cycle sample is not a valid comparison baseline. | Matched stable release runs, traces and memory recovery/plateau series. |
+| Authenticated network parity | Mocked account/credential/session ordering and retries do not establish real service/device recovery. | Authorized read-only account transitions and offline/expired-session recovery evidence; live mutations remain outside this audit. |
+| Route discoverability / suspected locale mismatch | Contracts, item upgrades and About lacked discovered in-app entry; agent role locale/cache mismatch lacks a confirmed failing fixture. | Document actual entry path and reproduce locale behavior before declaring these resolved defects. |
+| Narrow tab targets / all-screen typography | The bug report notes potential five-slot widths below 48 dp; device font scale 1.0 leaves large-font clipping untested. | Native bounds and screenshots at supported viewport/font configurations. |
+| Coverage target and scoped test omissions | Final aggregate73.12% statements/68.25% branches/69.10% functions/73.55% lines is below80%. Accessories region-only ownership has no separate case. | Additional coverage and broader audit acceptance; no80% success claim. |
+
+## Handoff state
+
+| Deliverable / acceptance | State |
+|---|---|
+| Inventory / canonical bug report | Read as existing source of scope and defect IDs; owned elsewhere. |
+| Test plan | Accepted icon/status/real-phase/motion scope documented; old icon-only criterion superseded; historical cases and current device gaps explicit. |
+| Test results | Final179/2487 source pass, export pass, redesigned physical previews and native5/5/10 cycles recorded; security FAIL and broader acceptance gaps remain. |
+| Performance report | Raw percentile and successful-cycle PSS verified; baseline delta and release guarantee not claimed. |
+| Final review | This bounded evidence review is complete; overall audit acceptance remains PENDING. |
+| Startup report, code, changelog and plans | Owned by main/other tasks; outside this updater's write scope. |
+
+Final closure requires the main task's gate/APK evidence plus the outstanding per-screen and configuration acceptance. A new green source gate alone would not close device, accessibility or release-performance gaps.

@@ -285,12 +285,17 @@ const getCachedMatchDetails = (
   const cached = matchDetailsCache.get(cacheKey);
   if (cached) return cached;
 
-  const request = matchDetails(
+  const request: Promise<MatchDetailsData | null> = matchDetails(
     accessToken,
     entitlementsToken,
     region,
     matchId
-  ).catch(() => null);
+  ).catch(() => null).then((details) => {
+    // Keep dedup while pending and cache successful immutable details. A
+    // failed/null receipt must permit the next explicit refresh to read again.
+    if (!details && matchDetailsCache.get(cacheKey) === request) matchDetailsCache.delete(cacheKey);
+    return details;
+  });
   matchDetailsCache.set(cacheKey, request);
 
   if (matchDetailsCache.size > 120) {
@@ -551,13 +556,12 @@ export const fetchCompetitivePerformanceBatch = async (
       rrDelta
     );
     resolved[subject] = performance;
-    competitivePerformanceCache.set(
-      `${credentials.region.toLocaleLowerCase("en-US")}|${subject}`,
-      {
-        value: performance,
-        expiresAt: Date.now() + COMPETITIVE_STATS_CACHE_TTL_MS,
-      }
-    );
+    if (performance.status === "ready") {
+      competitivePerformanceCache.set(
+        `${credentials.region.toLocaleLowerCase("en-US")}|${subject}`,
+        { value: performance, expiresAt: Date.now() + COMPETITIVE_STATS_CACHE_TTL_MS }
+      );
+    }
   });
 
   return resolved;

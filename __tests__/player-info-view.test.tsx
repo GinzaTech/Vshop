@@ -1,13 +1,24 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 
 import PlayerInfoView from "~/components/profile/PlayerInfoView";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
+import { COLORS } from "~/constants/DesignSystem";
+import { PROFILE_INFO_COLORS } from "~/features/profile/profile-visual-policy";
 import { useProfileDashboardTabStore } from "~/features/profile/useProfileDashboardTabStore";
 
 function MockAppIcon(props: Record<string, unknown>) {
   return React.createElement("AppIcon", props);
+}
+
+function findNativeCard(node: TestRenderer.ReactTestInstance) {
+  for (let parent = node.parent; parent; parent = parent.parent) {
+    if (parent.type === View && StyleSheet.flatten(parent.props.style)?.borderRadius === 14) {
+      return parent;
+    }
+  }
+  throw new Error("Expected a native profile card ancestor");
 }
 
 jest.mock("~/components/ui/AppIcon", () => ({
@@ -37,9 +48,17 @@ jest.mock("react-native-reanimated", () => {
     ReduceMotion: { System: "system" },
     interpolate: (value: number, input: number[], output: number[]) =>
       value <= input[0] ? output[0] : output.at(-1),
-    useAnimatedStyle: (factory: () => unknown) => factory(),
-    useSharedValue: (value: unknown) => ({ value }),
-    withSequence: (...values: unknown[]) => values.at(-1),
+    useAnimatedStyle: (factory: () => Record<string, unknown>) => {
+      const style = {};
+      Object.keys(factory()).forEach((key) => Object.defineProperty(style, key, {
+        enumerable: true, get: () => factory()[key],
+      }));
+      return style;
+    },
+    useSharedValue: (value: unknown) => ReactModule.useRef({ value }).current,
+    useDerivedValue: (factory: () => number) => ({ get value() { return factory(); } }),
+    // Hold the first sequence frame so whole-table shrink/fade is observable.
+    withSequence: (...values: unknown[]) => values[0],
     withTiming: (value: unknown) => value,
   };
 });
@@ -81,6 +100,106 @@ describe("PlayerInfoView interaction layout", () => {
     (AppRefreshControl as jest.Mock).mockClear();
     tabProgress.value = 0;
     useProfileDashboardTabStore.setState({ activeTab: "overview" });
+  });
+
+  it("keeps measured native panels mounted and accessible only when active", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<PlayerInfoView {...baseProps} />); });
+    const overview = renderer.root.findByProps({ testID: "profile-overview-panel" });
+    const details = renderer.root.findByProps({ testID: "profile-details-panel" });
+    act(() => {
+      overview.props.onLayout({ nativeEvent: { layout: { height: 420 } } });
+      details.props.onLayout({ nativeEvent: { layout: { height: 460 } } });
+    });
+    const stack = renderer.root.findByProps({ testID: "profile-tab-panel-stack" });
+    expect(StyleSheet.flatten(stack.props.style).height).toBe(460);
+    expect(overview.props.accessibilityElementsHidden).toBe(false);
+    expect(details.props.importantForAccessibility).toBe("no-hide-descendants");
+    act(() => {
+      tabProgress.value = 1;
+      useProfileDashboardTabStore.getState().setActiveTab("details");
+    });
+    expect(StyleSheet.flatten(overview.props.style).opacity).toBe(0);
+    expect(StyleSheet.flatten(details.props.style).opacity).toBe(1);
+    expect(overview.props.importantForAccessibility).toBe("no-hide-descendants");
+    expect(details.props.accessibilityElementsHidden).toBe(false);
+    expect(StyleSheet.flatten(stack.props.style).height).toBe(460);
+    expect(renderer.root.findByProps({ testID: "profile-overview-panel" })).toBe(overview);
+    expect(renderer.root.findByProps({ testID: "profile-details-panel" })).toBe(details);
+    expect(StyleSheet.flatten(overview.props.style).display).toBeUndefined();
+    act(() => renderer.unmount());
+  });
+
+  it("uses native scrolling and opaque profile materials while retaining compact cards", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<PlayerInfoView {...baseProps} />); });
+    const scrolls = renderer.root.findAllByType(ScrollView);
+    expect(scrolls).toHaveLength(2);
+    const main = scrolls.find((scroll) => !scroll.props.horizontal)!;
+    expect(main.parent!.type).toBe(PlayerInfoView);
+    expect(StyleSheet.flatten(main.props.style).backgroundColor).toBe(PROFILE_INFO_COLORS.background);
+    expect(StyleSheet.flatten(main.props.contentContainerStyle)).toMatchObject({
+      paddingHorizontal: 12, paddingTop: 10, gap: 12,
+    });
+    expect(scrolls.find((scroll) => scroll.props.horizontal)!.props).toMatchObject({
+      accessibilityRole: "tablist", directionalLockEnabled: true, nestedScrollEnabled: true,
+    });
+    const cards = renderer.root.findAll((node) =>
+      node.type === View && StyleSheet.flatten(node.props.style)?.borderRadius === 14
+    );
+    expect(cards).toHaveLength(7);
+    cards.forEach((card) => {
+      expect(StyleSheet.flatten(card.props.style)).toMatchObject({
+        backgroundColor: PROFILE_INFO_COLORS.card, borderColor: PROFILE_INFO_COLORS.border,
+      });
+    });
+    const performance = renderer.root.findByProps({ testID: "profile-match-count" });
+    const performanceCard = findNativeCard(performance);
+    expect(StyleSheet.flatten(performanceCard.props.style)).toMatchObject({ padding: 8, gap: 6 });
+    expect(StyleSheet.flatten(performance.props.style).color).toBe(PROFILE_INFO_COLORS.textSecondary);
+    const title = performanceCard.findAllByType(Text)
+      .find((text) => text.props.children === "profile_page.stats.performance")!;
+    expect(StyleSheet.flatten(title.props.style).color).toBe(PROFILE_INFO_COLORS.textPrimary);
+    const divider = renderer.root.findAllByType(View)
+      .find((node) => StyleSheet.flatten(node.props.style)?.height === 1
+        && StyleSheet.flatten(node.props.style)?.flex === 1)!;
+    expect(StyleSheet.flatten(divider.props.style).backgroundColor).toBe(COLORS.BORDER);
+    act(() => renderer.unmount());
+  });
+
+  it("keeps pull-to-refresh native and targets the selected Act", () => {
+    const onRefresh = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<PlayerInfoView {...baseProps} onRefresh={onRefresh} refreshing />); });
+    act(() => renderer.root.findByProps({ testID: "profile-season-act-old" }).props.onPress());
+    const main = renderer.root.findAllByType(ScrollView).find((scroll) => !scroll.props.horizontal)!;
+    expect(main.parent!.type).toBe(PlayerInfoView);
+    expect(main.props.refreshControl.props.refreshing).toBe(true);
+    act(() => main.props.refreshControl.props.onRefresh());
+    expect(onRefresh).toHaveBeenCalledWith("act-old");
+    act(() => renderer.unmount());
+  });
+
+  it("retains two-line rank fitting at .85 and compact text on native rank cards", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<PlayerInfoView {...baseProps} competitiveRank={{
+        currentName: "Immortal 3", currentTier: 26, currentIcon: null,
+        peakName: "Radiant", peakTier: 27, peakIcon: null,
+        actSeasonId: "act-current", actWins: null, actLosses: null, actGames: null,
+      }} />);
+    });
+    ["Immortal 3", "Radiant"].forEach((name) => {
+      const rank = renderer.root.findAllByType(Text).find((text) => text.props.children === name)!;
+      expect(rank.props).toMatchObject({ numberOfLines: 2, adjustsFontSizeToFit: true, minimumFontScale: 0.85 });
+      expect(StyleSheet.flatten(rank.props.style)).toMatchObject({ fontSize: 13, color: PROFILE_INFO_COLORS.textPrimary });
+      const label = rank.parent!.findAllByType(Text).find((text) => text !== rank)!;
+      expect(StyleSheet.flatten(label.props.style).fontSize).toBe(11);
+      const card = findNativeCard(rank);
+      expect(card.type).toBe(View);
+      expect(StyleSheet.flatten(card.props.style).backgroundColor).toBe(PROFILE_INFO_COLORS.card);
+    });
+    act(() => renderer.unmount());
   });
 
   it("keeps both dashboard panels and their semantic icons mounted while changing visibility", () => {
@@ -166,7 +285,7 @@ describe("PlayerInfoView interaction layout", () => {
 
     const chip = renderer!.root.findByProps({ testID: "profile-season-act-old" });
     const chipStyle = StyleSheet.flatten(chip.props.style({ pressed: false }));
-    expect(chipStyle.minHeight).toBeLessThanOrEqual(32);
+    expect(chipStyle.minHeight).toBeGreaterThanOrEqual(48);
     expect(chip.props.hitSlop).toEqual({
       bottom: 7,
       left: 3,
@@ -254,6 +373,30 @@ describe("PlayerInfoView interaction layout", () => {
     act(() => renderer!.unmount());
   });
 
+  it("keeps breakdown content geometry and opacity fixed while the subtab indicator moves", () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<PlayerInfoView {...baseProps} />); });
+    const tabs = renderer.root.findByProps({ testID: "profile-breakdown-tabs" });
+    const table = tabs.parent!.children[1] as TestRenderer.ReactTestInstance;
+    const expectCrispTable = () => {
+      const style = StyleSheet.flatten(table.props.style);
+      expect(style?.opacity ?? 1).toBe(1);
+      expect(style?.transform ?? []).not.toEqual(expect.arrayContaining([expect.objectContaining({ scale: expect.any(Number) })]));
+    };
+    act(() => {
+      tabs.props.onLayout({ nativeEvent: { layout: { width: 240 } } });
+      renderer.root.findByProps({ testID: "profile-breakdown-tab-maps" }).props.onPress();
+    });
+    expectCrispTable();
+    expect(renderer.root.findByProps({ testID: "profile-breakdown-tab-maps" }).props.accessibilityState.selected).toBe(true);
+    const indicator = tabs.find((node) => typeof node.type === "string" && String(node.type) === "AnimatedView");
+    expect(StyleSheet.flatten(indicator.props.style).transform).toEqual([{ translateX: 120 }]);
+    act(() => renderer.root.findByProps({ testID: "profile-breakdown-tab-agents" }).props.onPress());
+    expectCrispTable();
+    expect(StyleSheet.flatten(indicator.props.style).transform).toEqual([{ translateX: 0 }]);
+    act(() => renderer.unmount());
+  });
+
   it("does not fabricate a zero match count when season stats are unavailable", () => {
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
@@ -266,4 +409,9 @@ describe("PlayerInfoView interaction layout", () => {
     ).toBe("--");
     act(() => renderer!.unmount());
   });
+});
+
+// Native profile rendering must work without loading the glass runtime.
+jest.mock("~/components/ui/refractive-glass", () => {
+  throw new Error("PlayerInfoView must use native View/ScrollView materials");
 });

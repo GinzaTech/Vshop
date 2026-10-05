@@ -9,7 +9,7 @@ import {
   Text,
   Title,
 } from "react-native-paper";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import AppIcon from "~/components/ui/AppIcon";
 import { COLORS } from "~/constants/DesignSystem";

@@ -2,18 +2,19 @@
 // Component hiển thị một item trong Night Market (chợ đêm) - nơi bán skin giảm giá.
 // Hiển thị: ảnh, tên, loại vũ khí, badge tier, % giảm giá, giá gốc và giá đã giảm.
 import React from "react";
-import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "~/hooks/useAppTranslation";
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import { CachedImage as Image } from "~/components/CachedImage";
 
 import CurrencyIcon from "./CurrencyIcon";
 import { useMediaPopupStore } from "./popups/MediaPopup";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
+import { COLORS, RADIUS, MORE_GLASS_MATERIAL } from "~/constants/DesignSystem";
 import { useFeatureStore } from "~/hooks/useFeatureStore";
 import { getContentTierVisual } from "~/utils/content-tier";
 import { getDisplayIconUri } from "~/utils/misc";
-import { LIQUID_GLASS_CARD_STYLE, LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
-import { useMotionPreference } from "~/hooks/useMotionPreference";
+import { buildSkinPreviewMedia } from "~/utils/skin-preview";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
+import { getNightMarketArtHeight } from "~/utils/night-market-layout";
 
 // Props cho NightMarketItem
 // item: đối tượng NightMarketItem (chứa thông tin skin, giá, discount)
@@ -21,13 +22,14 @@ import { useMotionPreference } from "~/hooks/useMotionPreference";
 interface NightMarketItemProps {
   item: NightMarketItem;
   width: number;
+  cardHeight?: number;
 }
 
 /**
  * NightMarketItem – Component card một skin trong Night Market.
  * Hiển thị: khung ảnh (badge tier + badge giảm giá), loại vũ khí, tên,
  * giá đã giảm (kèm icon VP) và giá gốc gạch ngang. Nhấn card mở popup
- * preview media của các level skin (disabled nếu không có media).
+ * preview media của level và chroma skin (disabled nếu không có media).
  *
  * @param item – Dữ liệu item Night Market (skin, giá, % giảm).
  * @param width – Chiều rộng cố định của card (tính từ bên ngoài).
@@ -35,10 +37,9 @@ interface NightMarketItemProps {
  *
  * Side effects: không có timer/subscription; mở popup qua store.
  */
-export default function NightMarketItem({ item, width }: NightMarketItemProps) {
+export default function NightMarketItem({ item, width, cardHeight }: NightMarketItemProps) {
   // Hook dịch thuật i18n
   const { t } = useTranslation();
-  const reduceMotion = useMotionPreference();
   // showMediaPopup: hàm từ MediaPopup store để mở popup xem media
   const showMediaPopup = useMediaPopupStore((state) => state.showMediaPopup);
   // screenshotModeEnabled: flag chế độ screenshot từ FeatureStore
@@ -47,6 +48,15 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
   );
   // tier: thông tin visual của content tier (màu sắc, nhãn)
   const tier = getContentTierVisual(item.contentTierUuid);
+  const [contentHeight, setContentHeight] = React.useState(0);
+  const artHeight = getNightMarketArtHeight(width, cardHeight, contentHeight);
+  // Resolve both axes explicitly: Yoga can derive a narrower width from an
+  // aspect ratio when the measured fit budget reduces the frame height.
+  const artworkWidth = Math.max(0, width - 2);
+  const measureContent = React.useCallback(({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    const measuredHeight = Math.ceil(layout.height);
+    if (measuredHeight > 0) setContentHeight((current) => current === measuredHeight ? current : measuredHeight);
+  }, []);
 
   // imageSource: useMemo tính toán nguồn ảnh skin
   // Dùng getDisplayIconUri, fallback về noimage nếu không có hoặc đang screenshot mode
@@ -60,24 +70,10 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
     return require("~/assets/images/noimage.png");
   }, [item, screenshotModeEnabled]);
 
-  // mediaEntries: useMemo tính toán danh sách media entries từ levels của item
-  // Mỗi level: lấy streamedVideo hoặc displayIcon, lọc bỏ entry rỗng
-  // Dùng để mở preview popup khi nhấn vào card
+  // Helper chung giữ level/chroma thật và metadata ảnh/video của skin.
   const mediaEntries = React.useMemo(
-    () =>
-      item.levels
-        .map((level) => ({
-          cacheId: `skin-level:${level.uuid}:media`,
-          group: "level" as const,
-          kind: level.streamedVideo ? ("video" as const) : ("image" as const),
-          label: level.displayName,
-          uri: level.streamedVideo || level.displayIcon,
-        }))
-        .filter(
-          (entry): entry is typeof entry & { uri: string } =>
-            Boolean(entry.uri)
-        ),
-    [item.levels]
+    () => buildSkinPreviewMedia(item),
+    [item]
   );
 
   // weaponType: useMemo xác định loại vũ khí dựa vào tên displayName
@@ -155,15 +151,16 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
       onPress={handlePress}
       style={({ pressed }) => [
         styles.card,
+        FLAT_CARD_STYLE,
         { borderColor: tier.border, width },
         pressed && styles.cardPressed,
       ]}
     >
-      <LiquidGlassDecoration radius={RADIUS.sm} />
       {/* Khung ảnh: chứa badge tier, badge giảm giá, và ảnh skin */}
       <View
         style={[
           styles.imageFrame,
+          { width: artworkWidth, height: artHeight ?? artworkWidth / 1.5 },
           {
             backgroundColor: tier.cardBackground,
             borderBottomColor: tier.border,
@@ -188,19 +185,19 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
           contentFit="contain"
           cachePolicy="memory-disk"
           priority="normal"
-          transition={reduceMotion ? 0 : 120}
+          transition={0}
           recyclingKey={item.uuid}
         />
       </View>
 
       {/* Nội dung: loại vũ khí, tên skin, hàng giá */}
-      <View style={styles.content}>
+      <View testID="night-market-item-content" onLayout={measureContent} style={styles.content}>
         {/* Loại vũ khí */}
         <Text style={styles.weaponTypeText} numberOfLines={1}>
           {weaponType}
         </Text>
         {/* Tên skin (tối đa 2 dòng) */}
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={styles.title}>
           {item.displayName}
         </Text>
 
@@ -235,18 +232,19 @@ export default function NightMarketItem({ item, width }: NightMarketItemProps) {
 // StyleSheet: Định nghĩa các style cho NightMarketItem
 const styles = StyleSheet.create({
   card: {
-    ...LIQUID_GLASS_CARD_STYLE,
-    borderRadius: RADIUS.sm,
+    minHeight: 48,
+    minWidth: 48,
+    borderRadius: MORE_GLASS_MATERIAL.radius,
     borderWidth: 1,
     overflow: "hidden",              // Giữ bo góc cho nội dung bên trong
   },
   cardPressed: {
-    opacity: 0.86,                   // Giảm độ mờ khi nhấn
+    borderColor: COLORS.VALORANT_RED,
   },
   content: {
-    paddingHorizontal: 10,
-    paddingTop: 9,
-    paddingBottom: 10,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 8,
   },
   currencyIcon: {
     width: 13,
@@ -256,11 +254,11 @@ const styles = StyleSheet.create({
   discountBadge: {
     backgroundColor: COLORS.PURE_BLACK, // Nền đen
     borderRadius: 4,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 4,
     position: "absolute",            // Định vị góc trên bên phải
-    right: 8,
-    top: 8,
+    right: 4,
+    top: 4,
     zIndex: 1,                       // Trên layer ảnh
   },
   discountText: {
@@ -273,14 +271,16 @@ const styles = StyleSheet.create({
     height: "100%",                  // Fill khung imageFrame
   },
   imageFrame: {
-    aspectRatio: 1.45,               // Tỷ lệ khung ảnh
+    width: "100%",
+    alignSelf: "stretch",
     borderBottomWidth: 1,
-    padding: 12,
+    padding: 8,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",            // Để badge absolute định vị
   },
   originalPrice: {
+    flexShrink: 1, maxWidth: "100%",
     color: COLORS.TEXT_SECONDARY,
     fontSize: 10,
     fontWeight: "600",
@@ -289,10 +289,12 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between", // Giá sale trái, giá gốc phải
+    justifyContent: "space-between", // Wrap giá dài thay vì cắt chữ số.
+    flexWrap: "wrap",
     gap: 6,
   },
   salePrice: {
+    flexShrink: 1, minWidth: 0,
     fontSize: 14,
     fontWeight: "900",               // Siêu đậm cho giá khuyến mãi
   },
@@ -301,17 +303,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: RADIUS.chip,
     borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    maxWidth: "100%",
+    flexWrap: "wrap",
   },
   tierBadge: {
     borderRadius: 4,
-    left: 8,                         // Góc trên bên trái
-    maxWidth: "56%",
-    paddingHorizontal: 6,
+    left: 4,                         // Góc trên bên trái
+    maxWidth: "40%",
+    paddingHorizontal: 4,
     paddingVertical: 4,
     position: "absolute",
-    top: 8,
+    top: 4,
     zIndex: 1,
   },
   tierText: {
@@ -320,11 +324,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.TEXT_PRIMARY,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
-    lineHeight: 17,
-    minHeight: 34,                   // Tối thiểu 2 dòng
-    marginBottom: 8,
+    lineHeight: 16,
+    minHeight: 32,                   // Tối thiểu 2 dòng
+    marginBottom: 4,
   },
   weaponTypeText: {
     fontSize: 10,

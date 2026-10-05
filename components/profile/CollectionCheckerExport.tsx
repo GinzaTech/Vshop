@@ -817,7 +817,7 @@ export function CollectionCheckerExportProvider({
     }, EXPORT_RENDER_BATCH_DELAY_MS);
 
     return () => clearTimeout(timeout);
-  }, [allItemsRendered, exportItems.length, sheetMounted]);
+  }, [allItemsRendered, exportItems.length, renderedItemCount, sheetMounted]);
 
   // Effect: nếu ảnh chưa đủ sau khi render xong → sau 4s cho phép chụp
   // (đặt imageWaitExpired); cleanup: clearTimeout.

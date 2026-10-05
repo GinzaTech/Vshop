@@ -1,11 +1,10 @@
 import React from "react";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { CachedImage } from "~/components/CachedImage";
 import EmptyStateCard from "~/components/ui/EmptyStateCard";
 import AppIcon from "~/components/ui/AppIcon";
-import { COLORS, RADIUS } from "~/constants/DesignSystem";
-import { LiquidGlassDecoration } from "~/components/ui/LiquidGlassSurface";
+import { COLORS } from "~/constants/DesignSystem";
 import type { PartyActions, PartyFriendView } from "./party-types";
 import { PARTY_ACCENT, partyStyles as s } from "./party.styles";
 
@@ -36,7 +35,7 @@ export default function PartyFriendRail({ friends, connectionStatus, disabled, i
         <Text style={s.secondary}>{t("party_page.inviting", { defaultValue: "Sending invitation…" })}</Text></View>}
       <FlatList horizontal data={friends} keyExtractor={item => item.id} showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.friendList}
-        ListEmptyComponent={<EmptyStateCard style={s.card} title={connected
+        ListEmptyComponent={<EmptyStateCard variant="flat" style={s.card} title={connected
           ? t("party_page.no_friends", { defaultValue: "No online friends" })
           : t("party_page.friends_unavailable", { defaultValue: "Friends unavailable" })} />}
         renderItem={({ item }) => {
@@ -45,8 +44,11 @@ export default function PartyFriendRail({ friends, connectionStatus, disabled, i
           const presenceLabel = item.presence === "available" ? t("party_page.available", { defaultValue: "Available" })
             : item.presence === "busy" ? t("party_page.busy", { defaultValue: "Busy" }) : t("party_page.away", { defaultValue: "Away" });
           const presenceColor = item.presence === "available" ? COLORS.SUCCESS : item.presence === "busy" ? COLORS.STATUS_BUSY : COLORS.STATUS_AWAY;
+          const activityKey = item.activityLabel === "MENUS" ? "friends_page.in_menu"
+            : item.activityLabel === "INGAME" ? "friends_page.in_game"
+              : item.activityLabel === "PREGAME" ? "friends_page.in_pregame" : null;
+          const activityText = activityKey ? t(activityKey, { defaultValue: item.activityLabel }) : item.activityLabel || presenceLabel;
           return <View style={s.friendCard}>
-            <LiquidGlassDecoration radius={RADIUS.lg} />
             <Pressable accessibilityRole="button" accessibilityLabel={t("party_page.invite_friend", { defaultValue: "Invite {{name}}", name })}
               accessibilityHint={t("party_page.invite_hint", { defaultValue: "Sends a party invitation" })}
               accessibilityValue={{ text: presenceLabel }} accessibilityState={{ disabled: blocked, busy: inviting }} disabled={blocked}
@@ -57,7 +59,7 @@ export default function PartyFriendRail({ friends, connectionStatus, disabled, i
               <View style={[s.presence, { backgroundColor: presenceColor }]} />
             </Pressable>
             <Text style={s.friendName} numberOfLines={1}>{name}</Text>
-            <Text style={s.caption} numberOfLines={1}>{item.activityLabel || presenceLabel}</Text>
+            <Text style={s.friendStatus} numberOfLines={2}>{activityText}</Text>
           </View>;
         }} />
     </View>

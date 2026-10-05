@@ -1,6 +1,13 @@
-import { captureRootBootstrapRoute } from "~/utils/root-bootstrap-route";
+import { captureRootBootstrapRoute, resolveRootBootstrapHandoffPath } from "~/utils/root-bootstrap-route";
 
 describe("root bootstrap route snapshot", () => {
+  it("hands off to a live policy-approved mobile route after an early root snapshot", () => {
+    const early = captureRootBootstrapRoute(null, { demo: undefined, isDev: true, pathname: "/" });
+    const live = captureRootBootstrapRoute(early, { demo: undefined, isDev: true, pathname: "/session_handoff" });
+    expect(live.pathname).toBe("/");
+    expect(resolveRootBootstrapHandoffPath(live.pathname, "/session_handoff", true)).toBe("/session_handoff");
+    expect(resolveRootBootstrapHandoffPath(live.pathname, "/store", false)).toBe("/");
+  });
   it("keeps the launch route stable when authenticated navigation changes later", () => {
     const launch = captureRootBootstrapRoute(null, {
       demo: undefined,

@@ -5,10 +5,10 @@ const appJson = require("../app.json");
 
 describe("local Android release signing", () => {
   it("bumps the local native release metadata", () => {
-    expect(packageJson.version).toBe("4.2.0");
-    expect(appJson.expo.version).toBe("4.2.0");
-    expect(appJson.expo.android.versionCode).toBe(92);
-    expect(appJson.expo.ios.buildNumber).toBe("43");
+    expect(packageJson.version).toBe("4.2.1");
+    expect(appJson.expo.version).toBe("4.2.1");
+    expect(appJson.expo.android.versionCode).toBe(93);
+    expect(appJson.expo.ios.buildNumber).toBe("44");
   });
 
   it("generates release signing without a debug fallback", () => {
@@ -45,6 +45,7 @@ describe("local Android release signing", () => {
     expect(releaseBuild).not.toContain("signingConfigs.debug");
     expect(applyReleaseSigningPlugin(gradle)).toBe(gradle);
     expect(gradle).toContain("gradle.taskGraph.whenReady");
+    expect(gradle).toContain('createsRelease && !System.getenv("EAS_BUILD")');
     expect(gradle).toContain("Release signing credentials are required");
     expect(gradle).toContain("task.project == project");
   });

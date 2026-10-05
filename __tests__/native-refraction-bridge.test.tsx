@@ -1,7 +1,7 @@
 import React from "react";
 import { AppState, Platform, StyleSheet, View, type AppStateStatus } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
-import { GLASS_MATERIAL, GLASS_TAB_BAR } from "~/constants/DesignSystem";
+import { NAV_GLASS_MATERIAL, GLASS_TAB_BAR } from "~/constants/DesignSystem";
 // Android entry is intentional: the default Jest platform is iOS.
 import { RefractionLens, RefractionTarget } from "~/features/navigation/NativeRefraction.android";
 import { RefractionLens as FallbackLens, RefractionTarget as FallbackTarget } from "~/features/navigation/NativeRefraction";
@@ -43,7 +43,7 @@ describe("optional native backdrop bridge", () => {
   it("passes real page target and approved material without touching hit testing", () => {
     act(() => { renderer = TestRenderer.create(<RefractionLens targetTag={17} enabled />); });
     const lens = renderer.root.findByProps({ testID: "navigation-native-refraction" });
-    expect(lens.props).toMatchObject({ targetTag: 17, enabled: true, tint: GLASS_MATERIAL.lensFallback,
+    expect(lens.props).toMatchObject({ targetTag: 17, enabled: true, tint: NAV_GLASS_MATERIAL.nativeLensTint,
       magnification: GLASS_TAB_BAR.magnify, pointerEvents: "none", accessible: false,
       importantForAccessibility: "no-hide-descendants" });
     expect(StyleSheet.flatten(lens.props.style)).toEqual(StyleSheet.absoluteFill);

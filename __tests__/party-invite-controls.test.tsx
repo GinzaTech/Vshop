@@ -252,8 +252,9 @@ it("keeps parent errors in the form and disables form controls while globally bu
 });
 it("compacts every section while retaining touch targets and scalable minimum heights", () => {
   expect(s.heading.fontSize).toBe(22); expect(s.sectionTitle.fontSize).toBe(18); expect(s.title.fontSize).toBe(14);
-  expect(s.memberProfile.minHeight).toBe(72); expect(s.readyRow.minHeight).toBe(48); expect(s.settingsRow.minHeight).toBe(56);
-  expect(s.friendCard.width).toBe(76); expect(s.friendAvatar.width).toBe(48); expect(s.primary.minHeight).toBe(48);
+  expect(s.memberProfile.minHeight).toBe(48); expect(s.readyTouch.minHeight).toBe(48); expect(s.settingsRow.minHeight).toBe(56);
+  expect(s.friendCard.width).toBe(96); expect(s.friendAvatar.width).toBe(48); expect(s.primary.minHeight).toBe(48);
+  expect(s.friendStatus.minHeight).toBe(40); expect(s.friendStatus.lineHeight).toBe(20);
   mount(); for (const label of ["Generate", "Copy", "Share", "Join by code", "Invite by Riot ID"]) {
     expect(buttonStyle(label).minHeight).toBeGreaterThanOrEqual(48);
   }

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { ActivityIndicator, StyleSheet } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
 import { Provider as PaperProvider } from "react-native-paper";
 
@@ -7,6 +7,7 @@ import MediaPopup, {
   useMediaPopupStore,
 } from "~/components/popups/MediaPopup";
 import AppIcon from "~/components/ui/AppIcon";
+import { CachedImage } from "~/components/CachedImage";
 
 jest.mock("~/components/ui/AppIcon", () =>
   function MockAppIcon() {
@@ -20,18 +21,55 @@ jest.mock("react-i18next", () => ({
   }),
 }));
 
+const mockVideoStatus = jest.fn();
+const mockVideoRemove = jest.fn();
 jest.mock("expo-video", () => ({
-  useVideoPlayer: () => ({ play: jest.fn() }),
-  VideoView: () => null,
+  useVideoPlayer: () => ({ play: jest.fn(), status: "loading", addListener: (_type: string, callback: unknown) => {
+    mockVideoStatus(callback); return { remove: mockVideoRemove };
+  } }),
+  VideoView: "VideoView",
 }));
 
 jest.mock("~/components/CachedImage", () => ({
   CachedImage: () => null,
 }));
+jest.mock("react-native-safe-area-context", () => ({ ...jest.requireActual("react-native-safe-area-context"), useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }) }));
 
 describe("MediaPopup", () => {
   beforeEach(() => {
+    mockVideoStatus.mockClear(); mockVideoRemove.mockClear();
     act(() => useMediaPopupStore.getState().hideMediaPopup());
+  });
+  it("clears video loading on decoder failure and removes its status subscription", () => {
+    act(() => useMediaPopupStore.getState().showMediaPopup([{ cacheId: "video", group: "level", kind: "video", label: "video", uri: "https://example.com/video" }], "Video"));
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<PaperProvider><MediaPopup /></PaperProvider>); });
+    act(() => mockVideoStatus.mock.calls.at(-1)?.[0]({ status: "error" }));
+    expect(renderer.root.findByProps({ testID: "media-popup-error" })).toBeDefined();
+    expect(renderer.root.findAllByType(ActivityIndicator)).toHaveLength(0);
+    act(() => mockVideoStatus.mock.calls.at(-1)?.[0]({ status: "readyToPlay" }));
+    act(() => renderer.root.findByType("VideoView" as React.ElementType).props.onFirstFrameRender());
+    expect(renderer.root.findAllByProps({ testID: "media-popup-error" })).toHaveLength(0);
+    act(() => renderer.unmount());
+    expect(mockVideoRemove).toHaveBeenCalled();
+  });
+  it("rejects stale media completion callbacks across A to B to A and reports load errors", () => {
+    const entry = (id: string) => ({ cacheId: id, group: "level" as const, kind: "image" as const, label: id, uri: `https://example.com/${id}.png` });
+    act(() => useMediaPopupStore.getState().showMediaPopup([entry("A"), entry("B")], "Preview"));
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<PaperProvider><MediaPopup /></PaperProvider>); });
+    const firstLoad = renderer.root.findByType(CachedImage).props.onLoad;
+    const firstError = renderer.root.findByType(CachedImage).props.onError;
+    act(() => useMediaPopupStore.getState().setSelectedIndex(1));
+    act(() => firstLoad());
+    expect(renderer.root.findAllByType(ActivityIndicator)).toHaveLength(1);
+    act(() => useMediaPopupStore.getState().setSelectedIndex(0));
+    act(() => firstError());
+    expect(renderer.root.findAllByType(ActivityIndicator)).toHaveLength(1);
+    act(() => renderer.root.findByType(CachedImage).props.onError());
+    expect(renderer.root.findAllByType(ActivityIndicator)).toHaveLength(0);
+    expect(renderer.root.findByProps({ testID: "media-popup-error" }).props.accessibilityLiveRegion).toBe("polite");
+    act(() => renderer.unmount());
   });
 
   it("mounts its portal only when opened so it is above lazy screen modals", () => {

@@ -3,14 +3,14 @@ import React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { CachedImage as Image } from "~/components/CachedImage";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import AppIcon from "~/components/ui/AppIcon";
 import type { AppIconName } from "~/components/ui/app-icon-registry";
 import { useContractsScreenData } from "~/hooks/useContractsScreenData";
 import { getAgent } from "~/utils/valorant-assets";
 import GlassCard from "~/components/ui/GlassCard";
-import { LIQUID_GLASS_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
+import { FLAT_CARD_STYLE } from "~/components/ui/LiquidGlassSurface";
 import { COLORS, RADIUS } from "~/constants/DesignSystem";
 import AppRefreshControl from "~/components/ui/AppRefreshControl";
 import { useAsyncRefresh } from "~/hooks/useAsyncRefresh";
@@ -105,7 +105,7 @@ export default function ContractsScreen() {
     const portrait = agent?.fullPortraitV2 || agent?.fullPortrait || agent?.bustPortrait || definition?.displayIcon || agent?.displayIcon;
 
     return (
-      <GlassCard key={contract.ContractDefinitionID} style={[styles.contractCard, isActive && styles.contractCardActive]}>
+      <GlassCard variant="flat" key={contract.ContractDefinitionID} style={[styles.contractCard, isActive && styles.contractCardActive]}>
         <View style={styles.contractHeader}>
           {/* Ảnh/icon của contract */}
           <View style={styles.contractVisual}>
@@ -236,13 +236,13 @@ export default function ContractsScreen() {
       {missionList.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>{t("contracts_page.missions_title")}</Text>
-          <GlassCard style={styles.missionsCard}>{missionList.map(renderMission)}</GlassCard>
+          <GlassCard variant="flat" style={styles.missionsCard}>{missionList.map(renderMission)}</GlassCard>
         </>
       )}
 
       {/* Empty state */}
       {contractsList.length === 0 && (
-        <GlassCard style={styles.emptyCard}>
+        <GlassCard variant="flat" style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>{t("contracts_page.empty_title")}</Text>
           <Text style={styles.emptySubtitle}>{t("contracts_page.empty_subtitle")}</Text>
         </GlassCard>
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: 6, fontSize: 15, lineHeight: 22, color: COLORS.TEXT_SECONDARY },
   // Hàng thống kê: 2 card
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
-  statCard: { ...LIQUID_GLASS_CARD_STYLE, flex: 1, minHeight: 84, borderRadius: 18, padding: 12, justifyContent: "center" },
+  statCard: { ...FLAT_CARD_STYLE, flex: 1, minHeight: 84, borderRadius: 18, padding: 12, justifyContent: "center" },
   statValue: { marginTop: 7, color: COLORS.TEXT_PRIMARY, fontSize: 20, fontWeight: "900" },
   statLabel: { marginTop: 2, color: COLORS.TEXT_SECONDARY, fontSize: 11, fontWeight: "700" },
   // Tiêu đề section

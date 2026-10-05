@@ -237,6 +237,20 @@ describe.each(scenarios)("$name session responses", ({ Screen, request, payload,
   });
 
   if (Screen === AboutScreen) {
+    it.each([false, true])("keeps a locally chosen %s toggle when an older refresh finishes", async (chosen) => {
+      mockStorage.mockResolvedValue(JSON.stringify({ featureA: !chosen }));
+      await mount();
+      const pending = deferred<ReturnType<typeof payload>>();
+      request.mockReturnValueOnce(pending.promise);
+      let task!: Promise<void>;
+      act(() => { task = refresh(); });
+      await act(async () => { await renderer!.root.findByType(Switch).props.onValueChange(chosen); });
+      expect(renderer!.root.findByType(Switch).props.value).toBe(chosen);
+      await act(async () => { pending.resolve(payload("Refreshed")); await task; });
+      expect(renderer!.root.findByType(Switch).props.value).toBe(chosen);
+      expect(text()).toContain(displayed("Refreshed"));
+    });
+
     it("loads boolean overrides and lets a local toggle update the visible value", async () => {
       mockStorage.mockResolvedValueOnce('{"featureA":false}');
       await mount();

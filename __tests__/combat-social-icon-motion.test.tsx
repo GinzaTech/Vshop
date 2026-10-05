@@ -111,6 +111,7 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ friendId: "friend-1" }),
   useNavigation: () => mockNavigation,
   useRouter: () => mockRouter,
+  useIsFocused: () => true,
 }));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -125,7 +126,11 @@ jest.mock("react-native-reanimated", () => {
     default: {
       View: ({ children, ...props }: React.PropsWithChildren) =>
         ReactRuntime.createElement("AnimatedView", props, children),
+      ScrollView: require("react-native").ScrollView,
     },
+    useSharedValue: (value: number) => ({ value }),
+    useAnimatedScrollHandler: (handlers: { onScroll: (event: unknown) => void }) => handlers.onScroll,
+    useDerivedValue: (factory: () => unknown) => ({ value: factory() }),
     FadeInDown: mockReducedAnimation,
     FadeOut: mockReducedAnimation,
     ReduceMotion: { System: "system" },

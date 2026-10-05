@@ -1,6 +1,7 @@
 # Bộ sơ đồ kiến trúc VShop
 
-Mô tả mã nguồn **4.1.8** tại checkout VShop ngày **23-09-2026**, gồm audit logic,
+Các sơ đồ bắt đầu từ baseline mã nguồn **4.1.8** ngày **23-09-2026** và được
+đối chiếu lại trong đợt tài liệu **4.2.1** ngày **05-10-2026**, gồm audit logic,
 Profile dark canvas, mốc ghi nhận Act theo tài khoản và archive SQLite
 account-scoped. Đây là tài liệu kiến trúc, không phải chứng nhận
 mọi luồng đã được chạy trên thiết bị hoặc xác minh trên hạ tầng Riot.
@@ -64,7 +65,7 @@ Tình trạng kiểm chứng source/device được ghi riêng trong audit; các
 - [Báo cáo triển khai và giới hạn kiểm chứng](ACT_RECORDING_REPORT.md)
 - [Generated asset workspace](../assets/generated/README.md)
 
-Kiểm tra tài liệu release 4.1.8 phải parse toàn bộ khối Mermaid và đối chiếu các
+Kiểm tra tài liệu release 4.2.1 phải parse toàn bộ khối Mermaid và đối chiếu các
 liên kết file nội bộ. Đây là kiểm tra cú pháp/liên kết,
 không phải bằng chứng chạy toàn bộ luồng app. Tham khảo ký pháp
 [Mermaid](https://mermaid.js.org/config/usage.html) và

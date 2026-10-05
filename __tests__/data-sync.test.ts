@@ -1,7 +1,8 @@
 import { getCachedDataSnapshot, syncAllData } from "~/utils/data-sync";
 import { invalidateSessionOperations } from "~/utils/session-operations";
-import { markSynced } from "~/utils/app-sync";
+import { endFullSync, markSynced } from "~/utils/app-sync";
 import { defaultUser } from "~/utils/valorant-user";
+import { setStoredItem } from "~/utils/storage";
 
 const mockBuildUser = jest.fn();
 const mockFetchProfile = jest.fn();
@@ -29,6 +30,17 @@ jest.mock("~/utils/app-sync", () => ({
 }));
 jest.mock("~/utils/valorant-api", () => ({ getRiotClientConfig: (...args: unknown[]) => mockConfig(...args) }));
 jest.mock("~/utils/startup-cache", () => ({ markStartupCacheReady: (...args: unknown[]) => mockMarkReady(...args) }));
+jest.mock("~/utils/storage", () => ({
+  getStoredItem: jest.fn(), setStoredItem: jest.fn(), removeStoredItem: jest.fn(),
+}));
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+};
+const nextTurn = () => new Promise<void>((done) => setImmediate(done));
 
 const user = { ...defaultUser, id: "account-a", region: "ap", accessToken: "old-token" };
 const bundle: BundleShopItem = {
@@ -50,8 +62,11 @@ describe("core synchronization request ownership", () => {
     mockMatchState.authKey = "ap|account-a";
     mockMatchState.error = null;
     mockMatchState.lastUpdated = 1;
-    mockMarkReady.mockResolvedValue(undefined);
+    mockMarkReady.mockResolvedValue(true);
+    jest.mocked(setStoredItem).mockResolvedValue(undefined);
   });
+
+  afterEach(() => { jest.restoreAllMocks(); });
 
   it.each(["entitlements", "generation"])("rejects stale credential preparation after %s changes", async (changed) => {
     let resolve!: (value: typeof user) => void;
@@ -64,14 +79,118 @@ describe("core synchronization request ownership", () => {
     expect(mockUserState.setUser).not.toHaveBeenCalled();
   });
 
-  it("rejects a session change while writing the startup marker", async () => {
-    let resolve!: () => void;
-    mockMarkReady.mockImplementationOnce(() => new Promise<void>((done) => { resolve = done; }));
+  it("completes required core sync without waiting for optional startup metadata", async () => {
+    const marker = deferred<boolean>();
+    mockMarkReady.mockReturnValueOnce(marker.promise);
     const request = syncAllData(user, "ap");
-    await new Promise<void>((done) => setImmediate(done));
-    invalidateSessionOperations();
-    resolve();
-    await expect(request).rejects.toMatchObject({ code: "SESSION_CHANGED" });
+    try {
+      const outcome = await Promise.race([
+        request.then((report) => ({ status: "complete", report })),
+        nextTurn().then(() => ({ status: "pending", report: null })),
+      ]);
+      expect(outcome).toMatchObject({ status: "complete", report: { clientConfigLoaded: true } });
+      expect(mockMarkReady).toHaveBeenCalledWith(expect.objectContaining({ id: user.id, entitlementsToken: "fresh-entitlement" }));
+      expect(mockConfig).toHaveBeenCalledWith(user.accessToken, "fresh-entitlement");
+      expect(mockMatchState.fetchMatches).toHaveBeenCalledTimes(1);
+      expect(mockFetchProfile).toHaveBeenCalledTimes(1);
+      expect(mockSetProfile).toHaveBeenCalledWith({ authKey: "ap|account-a" });
+      expect(endFullSync).toHaveBeenCalledTimes(1);
+    } finally {
+      marker.resolve(true);
+      await request;
+    }
+  });
+
+  it.each(["account", "generation"])("rejects %s changes at final core completion before enqueueing metadata", async (changed) => {
+    mockSetProfile.mockImplementationOnce(() => {
+      if (changed === "account") mockUserState.user = { ...mockUserState.user, id: "account-b" };
+      else invalidateSessionOperations();
+    });
+    await expect(syncAllData(user, "ap")).rejects.toMatchObject({ code: "SESSION_CHANGED" });
+    expect(mockMarkReady).not.toHaveBeenCalled();
+  });
+
+  it.each(["account", "generation"])("keeps the real helper guard for a late %s change while metadata is queued", async (changed) => {
+    const realCache = jest.requireActual<typeof import("~/utils/startup-cache")>("~/utils/startup-cache");
+    const diskWrite = deferred<void>();
+    jest.mocked(setStoredItem).mockReturnValueOnce(diskWrite.promise);
+    const running = realCache.markStartupCacheReady({ id: "queue-blocker", region: "ap" });
+    await nextTurn();
+    const markerStarted = deferred<{ promise: Promise<boolean> }>();
+    mockMarkReady.mockImplementationOnce((account: { id: string; region: string }) => {
+      const writing = realCache.markStartupCacheReady(account);
+      markerStarted.resolve({ promise: writing });
+      return writing;
+    });
+    const warning = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    const request = syncAllData(user, "ap");
+    const marker = (await markerStarted.promise).promise;
+    try {
+      const outcome = await Promise.race([
+        request.then(() => "complete"), nextTurn().then(() => "pending"),
+      ]);
+      expect(outcome).toBe("complete");
+      if (changed === "account") mockUserState.user = { ...mockUserState.user, id: "account-b" };
+      invalidateSessionOperations();
+    } finally {
+      diskWrite.resolve();
+      await running;
+      await marker;
+      await request.catch(() => undefined);
+      await nextTurn();
+    }
+    await expect(marker).resolves.toBe(false);
+    expect(setStoredItem).toHaveBeenCalledTimes(1);
+    expect(warning).toHaveBeenCalledWith("[data-sync] Startup cache metadata was not persisted");
+  });
+
+  it("logs a failed optional storage result without failing core sync", async () => {
+    const realCache = jest.requireActual<typeof import("~/utils/startup-cache")>("~/utils/startup-cache");
+    mockMarkReady.mockImplementationOnce(realCache.markStartupCacheReady);
+    jest.mocked(setStoredItem).mockRejectedValueOnce(new Error("storage token=private-fixture"));
+    const warning = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    await expect(syncAllData(user, "ap")).resolves.toMatchObject({ clientConfigLoaded: true });
+    await nextTurn();
+    expect(warning).toHaveBeenCalledWith("[data-sync] Startup cache metadata was not persisted");
+    expect(JSON.stringify(warning.mock.calls)).not.toContain("private-fixture");
+  });
+
+  it("handles and sanitizes a late optional marker rejection after core completion", async () => {
+    const marker = deferred<boolean>();
+    mockMarkReady.mockReturnValueOnce(marker.promise);
+    const warning = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    const request = syncAllData(user, "ap");
+    await nextTurn();
+    marker.reject(new Error("storage token=private-fixture"));
+    await expect(request).resolves.toMatchObject({ clientConfigLoaded: true });
+    await nextTurn();
+    expect(warning).toHaveBeenCalledWith(
+      "[data-sync] Startup cache metadata persistence failed",
+      { name: "Error", message: "Operation failed" },
+    );
+    expect(JSON.stringify(warning.mock.calls)).not.toContain("private-fixture");
+  });
+
+  it.each(["authentication", "configuration", "profile", "history"])("still waits for required %s before completing core sync", async (source) => {
+    const core = deferred<unknown>();
+    const dependency = source === "authentication" ? mockBuildUser
+      : source === "configuration" ? mockConfig
+        : source === "profile" ? mockFetchProfile : mockMatchState.fetchMatches;
+    dependency.mockReturnValueOnce(core.promise);
+    const request = syncAllData(user, "ap");
+    try {
+      const outcome = await Promise.race([
+        request.then(() => "complete"), nextTurn().then(() => "pending"),
+      ]);
+      expect(outcome).toBe("pending");
+      expect(mockMarkReady).not.toHaveBeenCalled();
+      expect(endFullSync).not.toHaveBeenCalled();
+    } finally {
+      core.resolve(source === "authentication" ? { ...user, entitlementsToken: "fresh-entitlement" }
+        : source === "profile" ? { authKey: "ap|account-a" }
+          : source === "history" ? true : {});
+      await request;
+    }
   });
 
   it.each(["configuration", "profile", "history"])("does not mark startup complete without usable %s", async (source) => {

@@ -1,8 +1,20 @@
 {
+  "skin_preview": { "video": "Video", "image": "Image", "variants": "Variants" },
   "common": {
-    "close": "Close"
+    "close": "Close",
+    "media_load_failed": "Could not load preview. Select another item to retry."
+  },
+  "startup_launch": {
+    "prepare": "Preparing your app",
+    "session": "Restoring your session",
+    "data": "Syncing your data",
+    "ready": "Ready",
+    "progress": "Startup progress",
+    "stages": "{{completed}} / {{total}} steps complete"
   },
   "startup_recovery": {
+    "unavailable": "Riot services are unavailable. VShop will keep retrying automatically.",
+    "retry": "Retry now",
     "maintenance": "VALORANT is under maintenance or temporarily unavailable. You can continue with the latest data saved on this device.",
     "use_cache": "View saved data",
     "cache_hint": "Saved data may be out of date",
@@ -59,6 +71,7 @@
   "info": "Info",
   "invalid_amount": "Minimum amount is {{amount}}.",
   "language": "Language",
+  "language_change_failed": "Unable to change language. Please try again.",
   "languages": {
     "ar": "Arabic",
     "de": "German",

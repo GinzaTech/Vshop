@@ -1,7 +1,7 @@
 import React from "react";
 import { Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { formatSessionQueueLabel } from "~/utils/valorant-session";
 import { useCombatPoll } from "~/features/combat/useCombatPoll";
 import { useCombatStore, type CombatSessionSnapshot } from "~/hooks/useCombatStore";

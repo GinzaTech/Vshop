@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocalSearchParams } from "expo-router";
 import { useTheme } from "react-native-paper";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useProfileCacheStore } from "~/hooks/useProfileCacheStore";
 import { useMatchStore } from "~/hooks/useMatchStore";

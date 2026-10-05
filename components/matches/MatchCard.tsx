@@ -8,12 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "~/hooks/useAppTranslation";
 
 import { MatchImage } from "~/components/matches/MatchImage";
 import { useAppWindowDimensions } from "~/components/ui/AppViewport";
@@ -30,7 +25,6 @@ import {
   formatPercent,
   humanizeMatchMode,
 } from "~/utils/match-ui";
-import { MOTION_SPRING } from "~/constants/Motion";
 
 /**
  * MatchCardProps – Props của MatchCard.
@@ -136,27 +130,21 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
     : "";
   const accessibilityLabel = `${resultLabel}, ${match.mapName}, ${match.teamScore} to ${match.opponentScore}, ${match.kills} kills, ${match.deaths} deaths, ${match.assists} assists${rrSummary}`;
 
-  // scale: shared value điều khiển animation nhấn (thu nhỏ 0.97 khi giữ)
-  const scale = useSharedValue(1);
-  // animatedStyle: gắn scale vào transform của Animated.View
-  const animatedStyle = useAnimatedStyle(
-    () => ({ transform: [{ scale: scale.value }] }),
-    [],
-  );
+  const [pressed, setPressed] = React.useState(false);
 
   return (
-    <Animated.View style={animatedStyle}>
+    <View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         onPress={() => onPress(match.id)}
         onPressIn={() => {
-          scale.value = withSpring(0.97, MOTION_SPRING.press);
+          setPressed(true);
         }}
         onPressOut={() => {
-          scale.value = withSpring(1, MOTION_SPRING.settle);
+          setPressed(false);
         }}
-        style={[styles.card, isWin && styles.winCard]}
+        style={[styles.card, isWin && styles.winCard, pressed && styles.cardPressed]}
       >
       <View style={[styles.resultIndicator, { backgroundColor: resultColor }]} />
       <View style={styles.cardBody}>
@@ -258,7 +246,7 @@ function MatchCardComponent({ match, locale, onPress }: MatchCardProps) {
         </View>
       </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -278,7 +266,7 @@ const styles = StyleSheet.create({
     backgroundColor: MATCH_COLORS.winBackground,
   },
   cardPressed: {
-    opacity: 0.78,
+    backgroundColor: MATCH_COLORS.surfaceSoft,
   },
   resultIndicator: {
     width: 5,

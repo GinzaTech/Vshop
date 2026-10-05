@@ -1,38 +1,12 @@
-/**
- * LoadingScreen — Màn hình loading có animation khi app đang fetch data.
- * Hiển thị skeleton gần với bố cục màn hình chính để tránh cảm giác blank screen.
- */
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
-import { useMotionPreference as useReducedMotion } from "~/hooks/useMotionPreference";
-import AppIcon from "~/components/ui/AppIcon";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "~/hooks/useAppTranslation";
 import RecoveryUpdateActions from "~/components/ui/RecoveryUpdateActions";
+import StartupBrandMark from "~/components/ui/StartupBrandMark";
+import StartupLaunchSurface from "~/components/ui/StartupLaunchSurface";
 import { COLORS, RADIUS, SPACING } from "~/constants/DesignSystem";
-import { useTranslation } from "react-i18next";
+import { STARTUP_RECOVERY_ART_SOURCE, type StartupPhase } from "~/constants/Startup";
 
-/**
- * LoadingScreenProps – Props của LoadingScreen.
- *
- * @param message – (mặc định "Loading") Thông báo trạng thái hiển thị cạnh
- *                  spinner; cũng là accessibilityLabel của toàn màn hình.
- * @param showRecoveryActions – Nếu true, hiển thị panel phục hồi khi Riot
- *                              services không truy cập được (nút Retry...).
- * @param canUseCachedData – Nếu true, hiển thị thêm nút "Use cached data"
- *                           trong panel phục hồi.
- * @param recoveryKind – Phân biệt bảo trì/tạm lỗi với lỗi chung.
- * @param cachedDataUpdatedAt – Mốc sync hoàn chỉnh gần nhất được phép fallback.
- * @param onRetry – Callback khi bấm "Retry now" (chỉ hiện khi
- *                  showRecoveryActions).
- * @param onUseCachedData – Callback khi bấm "Use cached data" (chỉ hiện khi
- *                          canUseCachedData).
- */
 type LoadingScreenProps = {
   message?: string;
   showRecoveryActions?: boolean;
@@ -42,316 +16,75 @@ type LoadingScreenProps = {
   onRetry?: () => void;
   onUseCachedData?: () => void;
   showUpdateRecovery?: boolean;
+  onReady?: () => void;
+  recoveryUpdateActions?: React.ReactNode;
+  phase?: StartupPhase;
 };
 
-/**
- * LoadingScreen – Màn hình skeleton splash khi app đang fetch dữ liệu.
- * Cấu trúc: brand VSHOP, hàng trạng thái (spinner + message), panel phục hồi
- * (tuỳ chọn) và skeleton nhấp nháy mô phỏng bố cục màn hình chính.
- *
- * @param message – Thông báo trạng thái (xem LoadingScreenProps).
- * @param showRecoveryActions – Bật panel phục hồi khi Riot services lỗi.
- * @param canUseCachedData – Cho phép tiếp tục bằng dữ liệu cache.
- * @param recoveryKind – Kiểu thông báo phục hồi.
- * @param cachedDataUpdatedAt – Thời điểm cache hoàn chỉnh gần nhất.
- * @param onRetry – Callback nút "Retry now".
- * @param onUseCachedData – Callback nút "Use cached data".
- * @returns View full màn hình (accessibilityRole progressbar).
- *
- * Side effects: animation pulse (withRepeat withTiming 850ms, yoyo) trên
- * shared value `pulse`; tôn trọng Reduce Motion (giữ opacity tĩnh);
- * cleanup: cancelAnimation(pulse) khi unmount hoặc dependency đổi.
- */
-export default function LoadingScreen({
-  message = "Loading",
-  showRecoveryActions = false,
-  canUseCachedData = false,
-  recoveryKind = "unavailable",
-  cachedDataUpdatedAt = null,
-  onRetry,
-  onUseCachedData,
-  showUpdateRecovery = false,
-}: LoadingScreenProps) {
+/** Designed launch composition; real error/watchdog states retain recovery. */
+export default function LoadingScreen({ message, phase = "prepare", showRecoveryActions = false,
+  canUseCachedData = false, recoveryKind = "unavailable", cachedDataUpdatedAt = null,
+  onRetry, onUseCachedData, showUpdateRecovery = false, onReady, recoveryUpdateActions }: LoadingScreenProps) {
   const { t } = useTranslation();
-  // reduceMotion: bật Reduce Motion thì skeleton đứng yên
-  const reduceMotion = useReducedMotion();
-  // pulse: shared value 0..1 điều khiển độ mờ skeleton (yoyo vô hạn)
-  const pulse = useSharedValue(1);
-
-  // Effect: chạy animation pulse lặp vô hạn (850ms, đảo chiều);
-  // nếu Reduce Motion bật thì giữ pulse = 1 (opacity tĩnh 100%).
-  // Cleanup: cancelAnimation khi unmount/dependency đổi.
-  React.useEffect(() => {
-    if (reduceMotion) {
-      pulse.value = 1;
-      return;
-    }
-    pulse.value = withRepeat(withTiming(0, { duration: 850 }), -1, true);
-    return () => {
-      cancelAnimation(pulse);
-    };
-  }, [pulse, reduceMotion]);
-
-  // skeletonAnimatedStyle: map pulse → opacity 0.5..1 cho khối skeleton
-  const skeletonAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: 0.5 + pulse.value * 0.5,
-  }));
-  const cachedDataTime =
-    Number.isFinite(cachedDataUpdatedAt) && Number(cachedDataUpdatedAt) > 0
-      ? new Date(Number(cachedDataUpdatedAt)).toLocaleString()
-      : null;
-
-  return (
-    <View
-      style={styles.container}
-      accessibilityRole="progressbar"
-      accessibilityLabel={message}
-      accessibilityLiveRegion="polite"
-    >
-      <View style={styles.brandBlock}>
-        <View style={styles.brandMark}>
-          <AppIcon
-            name="shop"
-            size={42}
-            color={COLORS.PURE_WHITE}
-            decorative
-          />
-        </View>
-        <View>
-          <Text style={styles.brandName}>VSHOP</Text>
-          <Text style={styles.brandTagline}>VALORANT COMPANION</Text>
-        </View>
-      </View>
-
-      <View style={styles.statusRow}>
-        <ActivityIndicator size={14} color={COLORS.ACCENT_DEEP} />
-        <Text style={styles.statusText}>{message}</Text>
-      </View>
-
-      {showRecoveryActions || showUpdateRecovery ? (
-        <View style={styles.recoveryPanel} accessibilityLiveRegion="polite">
-          {showRecoveryActions ? (
-            <>
-              <Text style={styles.recoveryText}>
-                {recoveryKind === "maintenance"
-                  ? t("startup_recovery.maintenance")
-                  : "Riot services are unavailable. VShop will keep retrying automatically."}
-              </Text>
-              {canUseCachedData && cachedDataTime ? (
-                <Text style={styles.cacheTimestamp}>
-                  {t("startup_recovery.last_updated", { time: cachedDataTime })}
-                </Text>
-              ) : null}
-              <View style={styles.recoveryActions}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Retry loading VShop data"
-                  testID="startup-retry-button"
-                  onPress={onRetry}
-                  style={styles.retryButton}
-                >
-                  <Text style={styles.retryButtonText}>
-                    Retry now
-                  </Text>
-                </Pressable>
-                {canUseCachedData ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t("startup_recovery.use_cache")}
-                    accessibilityHint={t("startup_recovery.cache_hint")}
-                    testID="startup-use-cache-button"
-                    onPress={onUseCachedData}
-                    style={styles.cacheButton}
-                  >
-                    <Text style={styles.cacheButtonText}>
-                      {t("startup_recovery.use_cache")}
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            </>
-          ) : null}
-          <RecoveryUpdateActions />
-        </View>
-      ) : null}
-
-      <Animated.View style={[styles.skeleton, skeletonAnimatedStyle]}>
-        <View style={styles.profileCard}>
-          <View style={styles.avatar} />
-          <View style={styles.headerCopy}>
-            <View style={[styles.line, styles.titleLine]} />
-            <View style={[styles.line, styles.subtitleLine]} />
+  const recovery = showRecoveryActions;
+  const cachedDataTime = Number.isFinite(cachedDataUpdatedAt) && Number(cachedDataUpdatedAt) > 0
+    ? new Date(Number(cachedDataUpdatedAt)).toLocaleString() : null;
+  const brand = <StartupBrandMark onReady={onReady} />;
+  return <View testID="startup-icon-screen" style={styles.container}>
+    {recovery ? <ScrollView style={styles.scroll} contentContainerStyle={styles.recoveryContent}>
+      {brand}
+      <View testID="startup-recovery-panel" style={styles.recoveryPanel} accessibilityLiveRegion="polite">
+        <Image source={STARTUP_RECOVERY_ART_SOURCE} style={styles.recoveryArt} resizeMode="contain" accessible={false} />
+        {showRecoveryActions ? <>
+          <Text style={styles.recoveryText}>{recoveryKind === "maintenance"
+            ? t("startup_recovery.maintenance")
+            : t("startup_recovery.unavailable", { defaultValue: "Riot services are unavailable. VShop will keep retrying automatically." })}</Text>
+          {canUseCachedData && cachedDataTime ? <Text style={styles.cacheTimestamp}>
+            {t("startup_recovery.last_updated", { time: cachedDataTime })}
+          </Text> : null}
+          <View style={styles.recoveryActions}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("startup_recovery.retry", { defaultValue: "Retry now" })}
+              accessibilityState={{ disabled: !onRetry }} disabled={!onRetry} testID="startup-retry-button"
+              onPress={onRetry} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>{t("startup_recovery.retry", { defaultValue: "Retry now" })}</Text>
+            </Pressable>
+            {canUseCachedData ? <Pressable accessibilityRole="button" accessibilityLabel={t("startup_recovery.use_cache")}
+              accessibilityHint={t("startup_recovery.cache_hint")} accessibilityState={{ disabled: !onUseCachedData }}
+              disabled={!onUseCachedData} testID="startup-use-cache-button" onPress={onUseCachedData} style={styles.cacheButton}>
+              <Text style={styles.cacheButtonText}>{t("startup_recovery.use_cache")}</Text>
+            </Pressable> : null}
           </View>
-        </View>
-        <View style={styles.hero} />
-        <View style={styles.sectionLine} />
-        <View style={styles.cardRow}>
-          <View style={styles.card} />
-          <View style={styles.card} />
-        </View>
-      </Animated.View>
-    </View>
-  );
+        </> : null}
+        {showUpdateRecovery ? recoveryUpdateActions ?? <RecoveryUpdateActions /> : null}
+      </View>
+    </ScrollView> : <>
+      <StartupLaunchSurface phase={phase} message={message} onReady={onReady} />
+      {showUpdateRecovery ? <View testID="startup-watchdog-actions" style={styles.watchdog}>
+        {onRetry ? <Pressable testID="startup-retry-button" accessibilityRole="button"
+          accessibilityLabel={t("startup_recovery.retry")} onPress={onRetry} style={styles.retryButton}>
+          <Text style={styles.retryButtonText}>{t("startup_recovery.retry")}</Text>
+        </Pressable> : null}
+        {recoveryUpdateActions ?? <RecoveryUpdateActions />}
+      </View> : null}
+    </>}
+  </View>;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 72,
-  },
-  brandBlock: {
-    width: "100%",
-    maxWidth: 720,
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-  },
-  brandMark: {
-    width: 72,
-    height: 72,
-    borderRadius: RADIUS.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.ACCENT_DEEP,
-  },
-  brandName: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 21,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-  },
-  brandTagline: {
-    marginTop: 2,
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  statusRow: {
-    width: "100%",
-    maxWidth: 720,
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs,
-    marginTop: SPACING.xl,
-  },
-  statusText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  recoveryPanel: {
-    width: "100%",
-    maxWidth: 720,
-    alignSelf: "center",
-    marginTop: SPACING.md,
-    padding: SPACING.md,
-    borderRadius: RADIUS.card,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    backgroundColor: COLORS.SURFACE,
-  },
-  recoveryText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  cacheTimestamp: {
-    marginTop: SPACING.xs,
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  recoveryActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: SPACING.sm,
-    marginTop: SPACING.sm,
-  },
-  retryButton: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: SPACING.md,
-    borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.PURE_BLACK,
-  },
-  retryButtonText: {
-    color: COLORS.PURE_WHITE,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  cacheButton: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: SPACING.md,
-    borderRadius: RADIUS.chip,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    backgroundColor: COLORS.SURFACE_MUTED,
-  },
-  cacheButtonText: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  skeleton: {
-    width: "100%",
-    maxWidth: 720,
-    alignSelf: "center",
-  },
-  profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: SPACING.md,
-    borderRadius: RADIUS.card,
-    backgroundColor: COLORS.SURFACE,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    gap: SPACING.sm,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.chip,
-    backgroundColor: COLORS.SURFACE_MUTED,
-  },
-  headerCopy: {
-    flex: 1,
-    gap: SPACING.xs,
-  },
-  line: {
-    height: 12,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.SURFACE_MUTED,
-  },
-  titleLine: { width: "42%" },
-  subtitleLine: { width: "64%", height: 9 },
-  hero: {
-    height: 136,
-    marginTop: SPACING.xl,
-    borderRadius: RADIUS.card,
-    backgroundColor: COLORS.SURFACE_MUTED,
-  },
-  sectionLine: {
-    width: 120,
-    height: 16,
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.sm,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.SURFACE_MUTED,
-  },
-  cardRow: {
-    flexDirection: "row",
-    gap: SPACING.sm,
-  },
-  card: {
-    flex: 1,
-    height: 176,
-    borderRadius: RADIUS.card,
-    backgroundColor: COLORS.SURFACE_MUTED,
-  },
+  container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
+  watchdog: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xxl },
+  scroll: { flex: 1 },
+  recoveryContent: { flexGrow: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: SPACING.lg, paddingVertical: SPACING.xxl },
+  recoveryPanel: { width: "100%", maxWidth: 420, marginTop: SPACING.xl, padding: SPACING.md,
+    borderRadius: RADIUS.card, borderWidth: 1, borderColor: COLORS.BORDER, backgroundColor: COLORS.SURFACE },
+  recoveryArt: { width: 72, height: 72, alignSelf: "center", marginBottom: SPACING.sm },
+  recoveryText: { color: COLORS.TEXT_SECONDARY, fontSize: 12, lineHeight: 18 },
+  cacheTimestamp: { marginTop: SPACING.xs, color: COLORS.TEXT_PRIMARY, fontSize: 11, lineHeight: 16 },
+  recoveryActions: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm, marginTop: SPACING.sm },
+  retryButton: { minHeight: 48, justifyContent: "center", paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.chip, backgroundColor: COLORS.PURE_BLACK },
+  retryButtonText: { color: COLORS.PURE_WHITE, fontSize: 13, fontWeight: "800" },
+  cacheButton: { minHeight: 48, justifyContent: "center", paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.chip, borderWidth: 1, borderColor: COLORS.BORDER, backgroundColor: COLORS.SURFACE_MUTED },
+  cacheButtonText: { color: COLORS.TEXT_PRIMARY, fontSize: 13, fontWeight: "700" },
 });

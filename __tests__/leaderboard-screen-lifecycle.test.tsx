@@ -185,6 +185,38 @@ describe("leaderboard screen request ownership", () => {
     expect(rows()[0].gameName).toBe("one");
   });
 
+  it.each([
+    ["rejected", () => Promise.reject(new Error("season unavailable"))],
+    ["null", () => Promise.resolve(null)],
+  ])("does not show season A rows when selecting season B returns %s", async (_case, response) => {
+    await mount();
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    mockLeaderboard.mockImplementationOnce(response);
+
+    const chips = () => renderer.root.findAllByType(TouchableOpacity);
+    await act(async () => { chips()[1].props.onPress(); });
+
+    expect(rows()).toEqual([]);
+  });
+
+  it("reuses the mounted season cache when returning to season A", async () => {
+    await mount();
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    mockLeaderboard.mockResolvedValueOnce(board("two")).mockRejectedValueOnce(new Error("refresh failed"));
+
+    const chips = () => renderer.root.findAllByType(TouchableOpacity);
+    await act(async () => { chips()[1].props.onPress(); });
+    expect(rows()[0].gameName).toBe("two");
+
+    await act(async () => { chips()[0].props.onPress(); });
+    expect(rows()[0].gameName).toBe("one");
+
+    await act(async () => {
+      await renderer.root.findByType(FlatList).props.refreshControl.props.onRefresh();
+    });
+    expect(rows()[0].gameName).toBe("one");
+  });
+
   it("ignores an old board failure after a newer season has loaded", async () => {
     await mount();
     const old = deferred<ReturnType<typeof board>>();
