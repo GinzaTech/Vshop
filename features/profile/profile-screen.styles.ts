@@ -973,17 +973,23 @@ export const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
+    position: "relative",
     overflow: "hidden",
   },
-  profileSkinArtworkBounds: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
   profileSkinImage: {
-    width: "100%",
-    height: "100%",
+    position: "absolute",
+  },
+  profileSkinImageRegular: {
+    left: 10,
+    right: 10,
+    top: 6,
+    bottom: 6,
+  },
+  profileSkinImageCompact: {
+    left: 14,
+    right: 14,
+    top: 9,
+    bottom: 9,
   },
   profileSkinTierBadge: {
     flexShrink: 1,

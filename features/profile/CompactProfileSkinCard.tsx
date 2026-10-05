@@ -45,8 +45,6 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
   );
   const upgradeLabel = formatUpgradeLevel(weapon);
   const compactArtwork = width < 120;
-  const artworkScale = compactArtwork ? 0.72 : 0.82;
-  const artworkSize = `${Math.round(artworkScale * 100)}%` as `${number}%`;
   const cardStyle = [
     styles.profileSkinCard,
     presentationStyles.contentCard,
@@ -90,25 +88,23 @@ export const CompactProfileSkinCard = React.memo(function CompactProfileSkinCard
             ) : null}
           </View>
           <View style={styles.profileSkinImageStage}>
-            <View
+            <Image
+                cacheId={`skin-image:${
+                    weapon.chromaId || weapon.skinLevelId || weapon.skinId
+                }:profile-card-v2`}
+                source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
                 style={[
-                  styles.profileSkinArtworkBounds,
-                  { width: artworkSize, height: artworkSize },
+                  styles.profileSkinImage,
+                  compactArtwork
+                    ? styles.profileSkinImageCompact
+                    : styles.profileSkinImageRegular,
                 ]}
-            >
-              <Image
-                  cacheId={`skin-image:${
-                      weapon.chromaId || weapon.skinLevelId || weapon.skinId
-                  }:profile-card-v2`}
-                  source={weapon.image ? { uri: weapon.image } : FALLBACK_IMAGE}
-                  style={styles.profileSkinImage}
-                  contentFit="contain"
-                  contentPosition="center"
-                  cachePolicy="memory-disk"
-                  priority={imagePriority}
-                  recyclingKey={weapon.skinId || weapon.weaponId}
-              />
-            </View>
+                contentFit="contain"
+                contentPosition="center"
+                cachePolicy="memory-disk"
+                priority={imagePriority}
+                recyclingKey={weapon.skinId || weapon.weaponId}
+            />
           </View>
         </View>
 
