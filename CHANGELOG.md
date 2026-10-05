@@ -198,6 +198,11 @@ No unreleased changes.
   passed both the source gate and Android native compile. The production APK
   was not installed because the physical device was disconnected, so installed
   runtime and the latest popup/scroll visual acceptance remain **NOT VERIFIED**.
+- GitHub Release
+  [`v4.2.1`](https://github.com/GinzaTech/Vshop/releases/tag/v4.2.1) publishes
+  the verified APK and `VShop-4.2.1-CHANGELOG.md`. A clean release download
+  reproduced the APK hash above; the changelog SHA-256 is
+  `CB52DD65820DE8143EEFAE97E495C5B8C5A3C5E3EAF26783ED38D49091557B1D`.
 
 ## [4.2.0] - 2026-10-01
 

@@ -528,3 +528,8 @@ passed source and native Android jobs. The phone disconnected before artifact
 completion, so production install/runtime and the pending physical popup/scroll
 acceptance remain **NOT VERIFIED**. EAS uses remote credentials; non-EAS local
 release builds retain the fail-closed production-keystore guard.
+
+GitHub Release [`v4.2.1`](https://github.com/GinzaTech/Vshop/releases/tag/v4.2.1)
+publishes the APK and versioned CHANGELOG. Both assets were downloaded again from
+the release; size and SHA-256 matched the local verified files. This distribution
+verification does not change the production device-runtime boundary above.

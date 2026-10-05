@@ -299,6 +299,10 @@ Sau khi build:
   [`37292019480`](https://github.com/GinzaTech/Vshop/actions/runs/37292019480)
   PASS source gate và Android native compile. Thiết bị đã ngắt ADB trước khi APK
   hoàn tất, nên production install/runtime vẫn **NOT VERIFIED**.
+- GitHub Release [`v4.2.1`](https://github.com/GinzaTech/Vshop/releases/tag/v4.2.1)
+  đã publish APK và CHANGELOG; tải lại cả hai asset PASS kích thước/checksum.
+  Digest CHANGELOG là
+  `CB52DD65820DE8143EEFAE97E495C5B8C5A3C5E3EAF26783ED38D49091557B1D`.
 
 ### Lịch sử source candidate 4.2.0
 
